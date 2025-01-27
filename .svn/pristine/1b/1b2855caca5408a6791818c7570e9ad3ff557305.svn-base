@@ -1,0 +1,30 @@
+function [W] = gaussAttractN(NRobot,RobotParams,~)
+N = floor(length(RobotParams)/4);
+W = zeros(2,2*N); 
+xs = zeros(1,N); 
+ys = zeros(1,N);
+ds = zeros(1,N); 
+xs(1:N) = RobotParams(1:4:end); 
+ys(1:N) = RobotParams(2:4:end); 
+%na = floor(rand(1)*(N)/2) + floor(N/4); 
+na = floor(randn(1,1)*N/8+N/2);
+if na>=N
+    na=N-1; 
+elseif na<=1
+    na=2; 
+end
+%na = floor(N/2); 
+ds(1:N) = sqrt((xs-xs(NRobot)).^2 + (ys-ys(NRobot)).^2); 
+%dsa = ds; 
+%dso = ds; 
+dsa = ones(1,N); 
+dso = ones(1,N); 
+% dsa(dsa>max(mink(dsa,na)))=0;
+% dso(dso<min(maxk(dso,na)))=0;
+dsa(ds>max(mink(ds,na)))=0;
+dso(ds<min(maxk(ds,N-na)))=0;
+W(1,1:2:2*N) = dsa;
+W(2,2:2:2*N) = dsa; 
+
+end
+

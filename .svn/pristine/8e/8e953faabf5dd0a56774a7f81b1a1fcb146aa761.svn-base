@@ -1,0 +1,193 @@
+function HomogeneousTrenchCheck(Robot_Params)
+Xs = Robot_Params(1:4:end);
+Ys = Robot_Params(2:4:end);
+SensorValue = Robot_Params(4:4:end);
+N = floor(length(Robot_Params)/4);
+
+%% Trench Check
+[~,min_robot_idx]= min(SensorValue);
+TrenchBuffer = 0.1*(max(SensorValue)-min(SensorValue));
+d_from_min = sqrt( ( Xs(min_robot_idx)-Xs ).^2 + ( Ys(min_robot_idx)-Ys ).^2 );
+O_from_min = atan2(Ys(min_robot_idx)-Ys,Xs(min_robot_idx)-Xs);
+delta_z_from_min = SensorValue-SensorValue(min_robot_idx);
+amp1 = d_from_min./delta_z_from_min;
+amp2 = (d_from_min.^2)./delta_z_from_min;
+amp3 = d_from_min./(delta_z_from_min.^2);
+amp1(delta_z_from_min < TrenchBuffer) = 0;
+amp2(delta_z_from_min < TrenchBuffer) = 0;
+amp3(delta_z_from_min < TrenchBuffer) = 0;
+
+clear d_from_max O_from_max delta_z_from_max i
+figure
+scatter3(Xs,Ys,SensorValue)
+% Find max "amplitude" robot
+trench_robot_idxs = find(amp2>=0.9*max(amp2));
+R2rRight_b = 0;
+R2rLeft_b = 0;
+Ptr_b =0;
+Ptl_b =0;
+TR_idx_b =0;
+
+for n = 1:length(trench_robot_idxs)
+    trench_robot_idx = trench_robot_idxs(n);
+    if trench_robot_idx ~= min_robot_idx
+        theta1 = atan2(Ys(trench_robot_idx) - Ys(min_robot_idx),Xs(trench_robot_idx) - Xs(min_robot_idx));
+        theta2 = atan2(SensorValue(min_robot_idx)-SensorValue(trench_robot_idx),sqrt((Ys(trench_robot_idx) - Ys(min_robot_idx)).^2+(Xs(trench_robot_idx) - Xs(min_robot_idx))^2));
+        
+        R1 = [cos(theta1), sin(theta1),0;-sin(theta1),cos(theta1),0;0 0 1 ;];
+        P01 = [Xs(min_robot_idx);Ys(min_robot_idx); SensorValue(min_robot_idx)];
+        
+        H1 = [R1 -R1*P01; 0 0 0  1];
+        
+        R2 = [cos(theta2),0, -sin(theta2);0 1 0; sin(theta2),0,cos(theta2)];
+        H2 = [R2 [0;0;0]; 0 0 0 1];
+        
+        H = H2*H1;
+        RPa = zeros(N*4,1);
+        RPa(1:4:end)=Xs;
+        RPa(2:4:end)=Ys;
+        RPa(3:4:end)= SensorValue;
+        RPa(4:4:end) = 1;
+        ACell = repmat({H}, 1, N);
+        HM = blkdiag(ACell{:});
+        RPap = HM*RPa;
+        Xsp = RPap(1:4:end);
+        Ysp = RPap(2:4:end);
+        SVp = RPap(3:4:end);
+        
+        
+        clear H H1 H2 P P01 R1 R2 theta1 theta2
+        [~,idxs] = sort(Ysp);
+        grads = SVp./Ysp;
+        [~,i1] = max(amp1);
+        [~,i2] = max(amp2);
+        %if sum(SVp>0) ==0 || ridge_robot_idx== i1 || ridge_robot_idx == i2
+        if (trench_robot_idx == i1) && trench_robot_idx == i2
+            title(sprintf('max of Amp1 and Amp2 is robot %d',trench_robot_idx))
+        elseif (trench_robot_idx == i1)
+            title(sprintf('max of Amp1 is robot %d',trench_robot_idx))
+        elseif (trench_robot_idx == i2)
+            title(sprintf('max of Amp2 is robot %d',trench_robot_idx))
+        else
+            title(sprintf('Ridge robot is %d',trench_robot_idx))
+        end
+        
+        view(90,0)
+        %            pause
+        %             view(180,0)
+        %             pause
+        grads(idxs);
+        nr_right = sum(Ysp<0);
+        nr_left = sum(floor(Ysp)>0);
+        if nr_right>0
+            [Prr,Srr] = polyfit(Ysp(Ysp<=0 & Xsp>=0),SVp(Ysp<=0 & Xsp>=0),1);
+            R2tRight = 1 - (Srr.normr/norm(SVp(Ysp<=0 & Xsp>=0) - mean(SVp(Ysp<=0 & Xsp>=0))))^2;
+        else
+            Prr = 0;
+            R2tRight =0;
+        end
+        if nr_left>0
+            [Prl,Srl] = polyfit(Ysp(Ysp>=0 & Xsp>=0),SVp(Ysp>=0 & Xsp>=0),1);
+            R2tleft = 1 - (Srl.normr/norm(SVp(Ysp>=0 & Xsp>=0) - mean(SVp(Ysp>=0 & Xsp>=0))))^2;
+        else
+            Prl = 0;
+            R2tleft = 0;
+        end
+        if nr_right > 0 && nr_left >0
+            if Prl(1) > 0 && Prr(1)<0 && R2tleft > 0.7 && R2tRight > 0.7
+                % fit polynomial on two sides of Xsp vs SVp
+                if  nr_right >= floor(N/4) && nr_left >= floor(N/4)
+                    disp('Trench')
+                    if R2tleft > R2rLeft_b && R2tRight >R2rRight_b
+                        R2rRight_b = R2tRight;
+                        R2rLeft_b = R2tleft;
+                        Ptr_b =Prr;
+                        Ptl_b =Prl;
+                        TR_idx_b =trench_robot_idx;
+                    end
+                else
+                    disp('Ridge Sideslip Needed')
+                end
+            else
+                disp('Not Ridge')
+            end
+        end
+        
+    end
+end
+trench_robot_idx =TR_idx_b ;
+if trench_robot_idx ~= min_robot_idx && trench_robot_idx ~=0
+    theta1 = atan2(Ys(trench_robot_idx) - Ys(min_robot_idx),Xs(trench_robot_idx) - Xs(min_robot_idx));
+    theta2 = atan2(SensorValue(min_robot_idx)-SensorValue(trench_robot_idx),sqrt((Ys(trench_robot_idx) - Ys(min_robot_idx)).^2+(Xs(trench_robot_idx) - Xs(min_robot_idx))^2));
+    
+    R1 = [cos(theta1), sin(theta1),0;-sin(theta1),cos(theta1),0;0 0 1 ;];
+    P01 = [Xs(min_robot_idx);Ys(min_robot_idx); SensorValue(min_robot_idx)];
+    
+    H1 = [R1 -R1*P01; 0 0 0  1];
+    
+    R2 = [cos(theta2),0, -sin(theta2);0 1 0; sin(theta2),0,cos(theta2)];
+    H2 = [R2 [0;0;0]; 0 0 0 1];
+    
+    H = H2*H1;
+    RPa = zeros(N*4,1);
+    RPa(1:4:end)=Xs;
+    RPa(2:4:end)=Ys;
+    RPa(3:4:end)= SensorValue;
+    RPa(4:4:end) = 1;
+    ACell = repmat({H}, 1, N);
+    HM = blkdiag(ACell{:});
+    RPap = HM*RPa;
+    Xsp = RPap(1:4:end);
+    Ysp = RPap(2:4:end);
+    SVp = RPap(3:4:end);
+    
+    
+    clear H H1 H2 P P01 R1 R2 theta1 theta2
+    [~,idxs] = sort(Ysp);
+    grads = SVp./Ysp;
+    [~,i1] = max(amp1);
+    [~,i2] = max(amp2);
+    %if sum(SVp>0) ==0 || ridge_robot_idx== i1 || ridge_robot_idx == i2
+    if (trench_robot_idx == i1) && trench_robot_idx == i2
+        title(sprintf('max of Amp1 and Amp2 is robot %d',trench_robot_idx))
+    elseif (trench_robot_idx == i1)
+        title(sprintf('max of Amp1 is robot %d',trench_robot_idx))
+    elseif (trench_robot_idx == i2)
+        title(sprintf('max of Amp2 is robot %d',trench_robot_idx))
+    else
+        title(sprintf('Ridge robot is %d',trench_robot_idx))
+    end
+    
+    view(90,0)
+    %            pause
+    %             view(180,0)
+    %             pause
+    grads(idxs);
+    nr_right = sum(Ysp<0);
+    nr_left = sum(floor(Ysp)>0);
+    if nr_right>0
+        [Prr,Srr] = polyfit(Ysp(Ysp<=0),SVp(Ysp<=0),1);
+        R2tRight = 1 - (Srr.normr/norm(SVp(Ysp<=0) - mean(SVp(Ysp<=0))))^2;
+    end
+    if nr_left>0
+        [Prl,Srl] = polyfit(Ysp(Ysp>=0),SVp(Ysp>=0),1);
+        R2tleft = 1 - (Srl.normr/norm(SVp(Ysp>=0) - mean(SVp(Ysp>=0))))^2;
+    end
+    figure
+    hold on
+    scatter3(Xs,Ys,SensorValue)
+    scatter3(Xs(min_robot_idx),Ys(min_robot_idx),SensorValue(min_robot_idx),'r')
+    scatter3(Xs(trench_robot_idx),Ys(trench_robot_idx),SensorValue(trench_robot_idx),'y')
+    hold off
+    figure
+    hold on
+    scatter3(Xsp,Ysp,SVp)
+    xlabel('Xprime')
+    ylabel('Yprime')
+    zlabel('SV prime')
+    plot3(zeros(1,2),[max(Ysp(Ysp<=0)),min(Ysp(Ysp<=0))],polyval(Prr,[max(Ysp(Ysp<=0)),min(Ysp(Ysp<=0))]),'g')
+    plot3(zeros(1,2),[max(Ysp(Ysp>=0)),min(Ysp(Ysp>=0))],polyval(Prl,[max(Ysp(Ysp>=0)),min(Ysp(Ysp>=0))]),'g')
+    
+    view([90,0])
+end
+

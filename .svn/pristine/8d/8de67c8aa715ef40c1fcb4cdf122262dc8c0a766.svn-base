@@ -1,0 +1,40 @@
+function plotFormation(Robot_Data,SimParams)
+g = ceil(sqrt(numel(Robot_Data))); 
+figure
+for j = 1:length(Robot_Data)
+    P = subplot(g,g,j);
+    labs= {};
+    
+    for i = 1:SimParams.NUM_ROBOTS
+        labs{i} = num2str(i);
+    end
+    L = length(Robot_Data(j).out.simout.Data);
+    s0 = Robot_Data(j).out.simout.Data(1,:);
+    s1 = Robot_Data(j).out.simout.Data(floor(L*.25),:);
+    s2 = Robot_Data(j).out.simout.Data(floor(L*.5),:);
+    s3 = Robot_Data(j).out.simout.Data(floor(L*.75),:);
+    s4 = Robot_Data(j).out.simout.Data(end,:);
+
+scatter(s4(1:4:end),s4(2:4:end),100,'MarkerFaceColor','r')
+text(s4(1:4:end),s4(2:4:end),labs,'VerticalAlignment','top','HorizontalAlignment','left');%,'FontSize',12)
+%scatter(s2(1:4:end),s2(2:4:end),'g')
+%text(s2(1:4:end),s2(2:4:end),labs,'VerticalAlignment','top','HorizontalAlignment','left')
+%scatter(s3(1:4:end),s3(2:4:end),'b')
+%text(s3(1:4:end),s3(2:4:end),labs,'VerticalAlignment','top','HorizontalAlignment','left')
+%legend('Desired Trajectory','CoM Trajectory')
+% xlabel('x(m)')
+% ylabel('y(m)')
+
+%set(gca,'FontSize',24)
+
+%add velocity vectors
+x= s4(1:4:end);
+y= s4(2:4:end);
+%for i =1:length(labs)
+%   Vf= SwarmSimFormation(s4, i, 300,SimParams.Distances);
+%   m = norm(Vf);
+%   quiver(x(i),y(i), Vf(1)/m, Vf(2)/m);
+%end
+hold off
+end
+end

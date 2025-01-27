@@ -1,0 +1,39 @@
+function [W] = distBtwnRobots(NRobot,RobotParams,DL, SimParams)
+N = floor(length(RobotParams)/4);
+W = zeros(2,2*N); 
+xs = zeros(1,N); 
+ys = zeros(1,N);
+ds = zeros(1,N);  
+xs(1:N) = RobotParams(1:4:end); 
+ys(1:N) = RobotParams(2:4:end); 
+ds(1:N) = sqrt((xs-xs(NRobot)).^2 + (ys-ys(NRobot)).^2); 
+%find closest single neighbors
+ds(NRobot) = nan; 
+[~,idx] = min(ds); 
+
+%[~,idx] = mink(ds,1); 
+w = zeros(1,N); 
+w(idx) = DL - ds(idx); 
+%w(idx) = 1; 
+w(ds>DL) = 0; 
+
+
+W(1,1:2:2*N) = w;
+W(2,2:2:2*N) = w; 
+
+end
+% N = floor(length(RobotParams)/4);
+% W = zeros(2,2*N); 
+% xs = zeros(1,N); 
+% ys = zeros(1,N);
+% ds = zeros(1,N); 
+% Distance = zeros(1,N);  
+% xs(1:N) = RobotParams(1:4:end); 
+% ys(1:N) = RobotParams(2:4:end); 
+% ds(1:N) = sqrt((xs-xs(NRobot)).^2 + (ys-ys(NRobot)).^2); 
+% Distance(1:N) = distances(NRobot,:)'; 
+% [~,I] = sort(ds);
+% [~,I2] = sort(Distance);
+% 
+% W(1,1:2:2*N) = ds - Distance(I2(I));
+% W(2,2:2:2*N) = ds - Distance(I2(I));

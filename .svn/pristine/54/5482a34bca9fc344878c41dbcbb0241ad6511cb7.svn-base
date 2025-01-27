@@ -1,0 +1,52 @@
+function [] = spacingMatrixParallel(datas,SimParams)
+figure
+hold on
+Ns = ceil(sqrt(length(datas))); 
+[~,L] = size(datas); 
+for n = 1:L
+    data = datas(n);
+    xs = [data.robot.x]; 
+    x = xs(end,:); 
+    ys = [data.robot.y]; 
+    y = ys(end,:); 
+
+    for i = 1:length(x)
+        for j = 1:length(y)
+            d(i,j) = sqrt((x(i)-x(j))^2 + (y(i)-y(j))^2); 
+        end
+    end
+    m = sort(d,1); 
+    % scatter(x,y,'ko')
+    s = []; 
+    t = []; 
+    weights = []; 
+    allWeights = []; 
+    for i = 1:length(x)
+        for j = i:length(x)
+            d = sqrt((x(i)-x(j))^2 + (y(i)-y(j))^2); 
+            if 0< d && d< 1.25*SimParams.AVOID_RANGE
+                s(end+1) = i; 
+                t(end+1) = j; 
+                weights(end+1) = floor(d*100)/100;
+            end
+            allWeights(end+1) =d;  
+        end
+    end
+    latticeFactors(n) = mean(weights);
+    G = graph(s,t,weights,length(x)); 
+    subplot(Ns,Ns,n)
+    hold on
+    if length(weights) ~= 0
+        plot(G,'XData',x,'YData',y,'EdgeLabel',G.Edges.Weight)
+    end
+    hold off
+    %[xm,ym] = ginput(1);
+    W_maxs(n) = max(allWeights);
+end
+latticeFactor = mean(latticeFactors)
+W_max = mean(W_maxs)
+W_max_min = min(W_maxs)
+W_max_max = max(W_maxs)
+hold off
+end
+

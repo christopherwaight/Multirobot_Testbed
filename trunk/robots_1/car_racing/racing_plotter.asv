@@ -1,0 +1,35 @@
+poses = {pose_03, pose_04, pose_05, pose_06, pose_07, pose_08, pose_09, pose_1,};
+
+figure;
+hold on;
+
+for i = 1:length(poses)
+  diff_pose = diff(poses{i}(:,2)) * 10;
+  plot(diff_pose);  
+  mean_diff = mean(diff_pose);
+  disp(['Mean diff for pose_', num2str(i), ': ', num2str(mean_diff)]);
+end
+
+hold off;
+figure;
+hold on;
+
+mov_avg_pts = 10;
+
+for i = 1:length(poses)
+  mov_avg_diff = movmean(diff(poses{i}(:,2)) * 10, mov_avg_pts);
+  plot(mov_avg_diff);
+end
+
+hold off;
+figure;
+hold on;
+
+for i = 1:length(poses)
+  mov_avg_diff = movmean(sqrt(diff(poses{i}(:,2)).^2 + diff(poses{i}(:,1)).^2) * 10, mov_avg_pts);
+  plot(mov_avg_diff);
+  mean_avg_diff = mean(mov_avg_diff);
+  disp(['Mean avg diff for pose_', num2str(i), ': ', num2str(mean_avg_diff)]);
+end
+
+hold off;

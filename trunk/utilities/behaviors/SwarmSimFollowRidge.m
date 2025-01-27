@@ -1,0 +1,206 @@
+function [Vf,ridgeState]= SwarmSimFollowRidge(RobotParams, NRobot,SensorRange)
+% SWARMSIMFOLLOWRIDGE - <Determines the vector Vf to follow in order for the swarm to follow a ridge>
+
+% Outputs:
+%   ridgeState      1=OnRidge, 2= offridge, 3= offRidge_right
+%                   4= offRidge_left 5= Not enough robots
+%% Initialize Variables
+
+% Determine number of robots based off length of robot params vector
+N= floor(length(RobotParams)/4);
+
+%% initialize variables
+% position variables for 3-DOF omnibot are x,y,and theta (rotation about z-axis)
+x=zeros(1,N);
+y=zeros(1,N);
+SensorValue= zeros(1,N); % this is the value of the "sensor reading" from each robot's "on-board" sensor.
+d=zeros(1,N);
+d_from_max=zeros(1,N);
+delta_z_from_max=zeros(1,N);
+amp=zeros(1,N);
+% ridgeVector=[0.0 0.0 0.0];
+Vft=0.0;
+Vf = zeros(1,3);
+
+
+
+%% Set x,y,theta, and SensorValue inputs into an array
+
+x(1,1:N)=RobotParams(1:4:end);
+y(1,1:N)=RobotParams(2:4:end);
+SensorValue(1,1:N)=RobotParams(4:4:end);
+
+% Determine distance to each robot
+d(1,1:N)= sqrt( ( x(NRobot)-x ).^2 + ( y(NRobot)-y ).^2 );
+
+
+%% Algorithm
+
+inRange_idx=find(0<d & d<=SensorRange);
+
+% Find robot with max sensor value
+if length(inRange_idx) >=6
+    max_robot_idx=find(SensorValue==max(SensorValue(inRange_idx)));
+    if length(max_robot_idx)>1
+        max_robot_idx = max_robot_idx(1);
+    end
+    RidgeBuffer = 0.1*(max(SensorValue(inRange_idx))-min(SensorValue(inRange_idx)));
+    
+    d_from_max(1,1:N) = sqrt((x(max_robot_idx)*ones(size(x))-x ).^2 + ( y(max_robot_idx)*ones(size(x))-y).^2 );
+    delta_z_from_max(1,1:N) = SensorValue(max_robot_idx)*ones(size(SensorValue))-SensorValue;
+    amp(1,1:N)= (d_from_max.^2)./delta_z_from_max;
+    amp(delta_z_from_max<RidgeBuffer)=0;
+    % Find max "amplitude" robot
+    ridge_robot_idxs=find(amp==max(amp(inRange_idx)));
+    ridge_robot_idx  = ridge_robot_idxs(1); 
+    [Vfx,Vfy,ridgeState,~,~]= checkridge(max_robot_idx,ridge_robot_idx,x,y,SensorValue,N,inRange_idx);
+    if ridgeState ~=1
+        Vf = SwarmSimFindMax(RobotParams, NRobot, SensorRange);
+        Vf(1,1:3) = Vf./sqrt(sum(Vf.^2));
+    else
+        Vf(1,1:3) = [Vfx(1) Vfy(1) Vft(1)];
+    end
+else
+    %Not enough robots inrange
+    ridgeState=5;
+    [Vf] = SwarmSimFindMax(RobotParams, NRobot, SensorRange);
+end
+
+end
+%% Helper Functions
+function [Vfx,Vfy,ridgeState,R2rleft,R2rRight]= checkridge(max_robot_idx,ridge_robot_idx,x,y,SensorValue,N,inRange_idx)
+%Compute Homogeneous transform to look along vector from ridgeRobot
+%to max robot to determine number and curvature of robots on either
+%side of proposed ridge
+
+%Find angles theta1 and theta2 for transform
+
+theta1 = atan2(y(ridge_robot_idx) - y(max_robot_idx),x(ridge_robot_idx) - x(max_robot_idx));
+theta2 = atan2(SensorValue(max_robot_idx)-SensorValue(ridge_robot_idx),sqrt((y(ridge_robot_idx) - y(max_robot_idx)).^2+(x(ridge_robot_idx) - x(max_robot_idx))^2));
+%Build Transforms
+R1 = [cos(theta1), sin(theta1),0;-sin(theta1),cos(theta1),0;0 0 1 ;];
+P01 = [x(max_robot_idx);y(max_robot_idx); SensorValue(max_robot_idx)];
+H1 = [R1 -R1*P01; 0 0 0  1];
+R2 = [cos(theta2),0, -sin(theta2);0 1 0; sin(theta2),0,cos(theta2)];
+H2 = [R2 [0;0;0]; 0 0 0 1];
+H = H2*H1;
+%Convert coordinates
+RPa = zeros(N*4,1);
+RPa(1:4:end)=x;
+RPa(2:4:end)=y;
+RPa(3:4:end)= SensorValue;
+RPa(4:4:end) = 1;
+ACell = repmat({H}, 1, N);
+HM = blkdiag(ACell{:});
+RPap = HM*RPa;
+Xsp = RPap(1:4:end);
+Ysp = RPap(2:4:end);
+SVp = RPap(3:4:end);
+Xsp = Xsp(inRange_idx);
+Ysp = Ysp(inRange_idx);
+SVp = SVp(inRange_idx);
+
+
+%Determine if robots are on a ridge
+nr_right = sum(Ysp<0);
+nr_left = sum(Ysp>0);
+nfr_right= sum(Ysp<0 & Xsp>=0); 
+nfr_left = sum(Ysp>0 & Xsp>=0);
+
+% Check if there aren't at least N_sided robots on one side
+% Nsided must be at lest two
+N_sided = floor(length(inRange_idx)/4);
+if N_sided <2
+    N_sided =2;
+end
+if nr_right <N_sided
+    %Shift right
+    MR = [x(ridge_robot_idx)-x(max_robot_idx), y(ridge_robot_idx)-y(max_robot_idx),0];
+    V = cross(MR ,[0,0,1]);
+    Vfs = V(1:2);
+    Vm = sqrt(sum(Vfs.^2));
+    Vfx=Vfs(1)/Vm;
+    Vfy=Vfs(2)/Vm;
+    ridgeState= 4;
+    R2rleft =0;
+    R2rRight=0;
+elseif nr_left < N_sided
+    %Shift left
+    MR = [x(ridge_robot_idx)-x(max_robot_idx), y(ridge_robot_idx)-y(max_robot_idx),0];
+    V = cross(MR ,[0,0,-1]);
+    Vfs = V(1:2);
+    Vm = sqrt(sum(Vfs.^2));
+    Vfx=Vfs(1)/Vm;
+    Vfy=Vfs(2)/Vm;
+    ridgeState= 3;
+    R2rleft =0;
+    R2rRight=0;
+else
+    %There are at least two robots on either side of the ridge
+    R2Limit= 0.5;
+    if nfr_right >=2 && nfr_left>=2
+        %Calculate slope of robots on either side of the ridge and R^2 values
+        [Prr,~,R2rRight] = fastPolyfit(Ysp(Ysp<=0 & Xsp>=0),SVp(Ysp<=0 & Xsp>=0));
+        [Prl,~,R2rleft] = fastPolyfit(Ysp(Ysp>=0),SVp(Ysp>=0));
+    else
+        R2rleft =0;
+        R2rRight=0;
+        Prl =0;
+        Prr=0;
+    end
+    
+    if Prl < 0 && Prr>0 && R2rleft>=R2Limit && R2rRight >= R2Limit
+        %Ridge with sufficient number of robots on either side
+        Vfs = [x(ridge_robot_idx)-x(max_robot_idx), y(ridge_robot_idx)-y(max_robot_idx)];
+        Vm = sqrt(sum(Vfs.^2));
+        Vfx=Vfs(1)/Vm;
+        Vfy=Vfs(2)/Vm;
+        ridgeState=1;
+    elseif Prl < 0 && Prr>0 && R2rleft< R2Limit && R2rRight >= R2Limit
+        %Shift left
+        MR = [x(ridge_robot_idx)-x(max_robot_idx), y(ridge_robot_idx)-y(max_robot_idx),0];
+        V = cross(MR ,[0,0,-1]);
+        Vfs = V(1:2);
+        Vm = sqrt(sum(Vfs.^2));
+        Vfx=Vfs(1)/Vm;
+        Vfy=Vfs(2)/Vm;
+        ridgeState= 3;
+    elseif Prl < 0 && Prr>0 && R2rleft>= R2Limit && R2rRight < R2Limit
+        %Shift right
+        MR = [x(ridge_robot_idx)-x(max_robot_idx), y(ridge_robot_idx)-y(max_robot_idx),0];
+        V = cross(MR ,[0,0,1]);
+        Vfs = V(1:2);
+        Vm = sqrt(sum(Vfs.^2));
+        Vfx=Vfs(1)/Vm;
+        Vfy=Vfs(2)/Vm;
+        ridgeState= 4;
+    else
+        %Either slopes are not correct or lines fit too poorly
+        %Not a ridge so find max
+        ridgeState= 2;
+        Vfx = 0;
+        Vfy = 0; 
+    end
+end
+
+end
+
+%% SUBFUNCTIONS
+function [k,b,r] = fastPolyfit(x,y)
+%https://stackoverflow.com/questions/48802871/fast-fit-of-linear-function-matlab
+sumX=nansum(x);
+sumY=nansum(y);
+sumX2=nansum(x.^2);
+sum2X=sumX.^2;
+sum2Y=sumY.^2;
+N = length(x);
+
+XY=x.*y;
+sumXY=nansum(XY);
+numerator=N.*sumXY-sumX.*sumY;
+denominator=(N.*sumX2-sum2X);
+
+k=numerator./denominator;
+b=(sumY-k.*sumX)./N;
+r=abs(numerator./sqrt(denominator.*(N.*nansum(y.^2)-sum2Y)));
+end

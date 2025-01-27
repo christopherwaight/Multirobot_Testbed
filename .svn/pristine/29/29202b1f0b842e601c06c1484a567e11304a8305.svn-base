@@ -1,0 +1,7 @@
+function [W] = OnesWeights(~,RobotParams,DL, SysParam)
+N = floor(length(RobotParams)/4);
+W = zeros(2,2*N); 
+W(1,1:2:2*N) = ones(1,N);
+W(2,2:2:2*N) = ones(1,N);
+
+end

@@ -1,0 +1,29 @@
+function [W] = invDistBtwnRobots(NRobot,RobotParams,~)
+N = floor(length(RobotParams)/4);
+W = zeros(2,2*N); 
+xs = zeros(1,N); 
+ys = zeros(1,N);
+ds = zeros(1,N); 
+xs(1:N) = RobotParams(1:4:end); 
+ys(1:N) = RobotParams(2:4:end); 
+ds(1:N) = sqrt((xs-xs(NRobot)).^2 + (ys-ys(NRobot)).^2); 
+
+W(1,1:2:2*N) = 1./ds.^2;
+W(2,2:2:2*N) = 1./ds.^2; 
+
+end
+% N = floor(length(RobotParams)/4);
+% W = zeros(2,2*N); 
+% xs = zeros(1,N); 
+% ys = zeros(1,N);
+% ds = zeros(1,N); 
+% Distance = zeros(1,N);  
+% xs(1:N) = RobotParams(1:4:end); 
+% ys(1:N) = RobotParams(2:4:end); 
+% ds(1:N) = sqrt((xs-xs(NRobot)).^2 + (ys-ys(NRobot)).^2); 
+% Distance(1:N) = distances(NRobot,:)'; 
+% [~,I] = sort(ds);
+% [~,I2] = sort(Distance);
+% 
+% W(1,1:2:2*N) = ds - Distance(I2(I));
+% W(2,2:2:2*N) = ds - Distance(I2(I));

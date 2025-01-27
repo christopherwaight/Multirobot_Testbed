@@ -1,0 +1,35 @@
+clc; clear; close all
+N = 5; 
+r = 5; 
+dtheta = 360/(N); 
+for i=1:N
+     xs(i) = r*cosd(dtheta*(i-1)); 
+     ys(i) = r*sind(dtheta*(i-1)); 
+end
+%r2 = 15;
+%for i = N/2+1:N
+%    xs(i) = r2*cosd(dtheta*(i-1)); 
+%    ys(i) = r2*sind(dtheta*(i-1)); 
+%end
+% xs(end+1) = 0; 
+% ys(end+1) = 0; 
+% N = N+1;
+%%for random 6 robots
+%xs = [ 0  0 0 1 1 2 2 3 3 4 4 4]
+%Ys = [ 0  1 2 1 3 2 4 1 3 0 1 2]
+%for grid of 16 robots
+%xs = [ 0 1 2 3 0 1 2 3 0 1 2 3 0 1 2 3]; 
+%ys = [ 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3]; 
+N = length(xs);
+D = zeros(N,N); 
+for i = 1:N
+    for j = i:N
+        d = sqrt((xs(i)-xs(j))^2 + (ys(i) - ys(j))^2); 
+        D(i,j) = d; 
+        D(j,i) = d; 
+    end
+end
+D
+figure
+
+scatter(xs,ys)

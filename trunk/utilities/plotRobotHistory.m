@@ -1,0 +1,353 @@
+%% plotRobotHistory()
+% Performs post-processing ploting of robot time history
+% Inputs:
+%   Robot_Data: Is an array of time history data of the robot. It has fields defined
+%   in ExtractRobotData
+%   SimParams: Contains all parameters for the simulation as defined in
+%   SCUSANS_GUI.m
+%   ScalarFieldSelection: Specifies the scalar field selected for this
+%   simulation
+%   FIELD_WIDTH: Specifies the field width for this simulation
+function [] = plotRobotHistory(Robot_Data,SimParams,behavior,ScalarFieldSelection,FIELD_WIDTH)
+g = ceil(sqrt(numel(Robot_Data)));
+%create figure handle for time history plot
+f_oh = figure;
+p_oh = uipanel('Parent',f_oh,'BorderType','none'); 
+p_oh.Title = 'Time History of Robot Positions Overhead'; 
+p_oh.TitlePosition = 'centertop'; 
+p_oh.FontSize = 12;
+p_oh.FontWeight = 'bold';
+
+%create figure handle for overhead plot.
+f_th = figure;
+p_th = uipanel('Parent',f_th,'BorderType','none'); 
+p_th.Title = 'Time History of Robot Positions'; 
+p_th.TitlePosition = 'centertop'; 
+p_th.FontSize = 12;
+p_th.FontWeight = 'bold';
+
+%Create figure handle for composite time history plot
+f_thc = figure;
+title('Composite Time History')
+cmap_coh = jet(numel(Robot_Data));
+cmap_nrobot = jet(SimParams.NUM_ROBOTS);
+
+%create figure handle for composite overhead plot
+f_ohc = figure;
+title('Composite Time History Overhead')
+glim.minx = nan;
+glim.miny = nan;
+glim.maxx = nan;
+glim.maxy = nan;
+glim.mins = nan; 
+glim.maxs = nan;
+for k = 1:length(Robot_Data)
+    
+    %Initialize arrays for plotting
+    x_PI= zeros(length(Robot_Data(k).robot(1).x),SimParams.NUM_ROBOTS);
+    y_PI= zeros(length(Robot_Data(k).robot(1).y),SimParams.NUM_ROBOTS);
+    theta_PI= zeros(length(Robot_Data(k).robot(1).theta),SimParams.NUM_ROBOTS);
+    sensor_value_PI = zeros(length(Robot_Data(k).robot(1).sensor_value),SimParams.NUM_ROBOTS);
+    dn = floor(length(Robot_Data(k).robot(1).x)/1000); 
+    if dn<1
+        dn=1; 
+        end
+    for i=1:SimParams.NUM_ROBOTS
+        x_PI(:,i) = Robot_Data(k).robot(i).x;
+        y_PI(:,i) = Robot_Data(k).robot(i).y;
+        theta_PI(:,i)= Robot_Data(k).robot(i).theta;
+        sensor_value_PI(:,i)= Robot_Data(k).robot(i).sensor_value;
+    end
+    
+    %Reevaluate X,Y,Z to display robot paths if they went outside the field
+    %width
+    if ScalarFieldSelection < 7
+        minx = min(-FIELD_WIDTH,min(min(x_PI)));
+        miny = min(-FIELD_WIDTH,min(min(y_PI)));
+        maxx = max(FIELD_WIDTH,max(max(x_PI)));
+        maxy = max(FIELD_WIDTH,max(max(y_PI)));
+    else
+        minx = min(FIELD_WIDTH.xmin,min(min(x_PI)));
+        miny = min(FIELD_WIDTH.ymin,min(min(y_PI)));
+        maxx = max(FIELD_WIDTH.xmax,max(max(x_PI)));
+        maxy = max(FIELD_WIDTH.ymax,max(max(y_PI)));
+        
+    end
+    glim.minx = min(glim.minx,minx);
+    glim.miny = min(glim.miny,miny);
+    glim.maxx = max(glim.maxx,maxx);
+    glim.maxy = max(glim.maxy,maxy);
+    glim.mins = min(glim.mins, min(min(sensor_value_PI))); 
+    glim.maxs = max(glim.maxs, max(max(sensor_value_PI)));
+    
+    % Determine Average Position of swarm
+    x_PI_ave= zeros(SimParams.NUM_ROBOTS, 1);
+    y_PI_ave= zeros(SimParams.NUM_ROBOTS, 1);
+    
+    for i= 1:SimParams.NUM_ROBOTS
+        x_PI_current= x_PI(:,i);
+        x_PI_ave(i,1)= mean(x_PI_current);
+        y_PI_current= y_PI(:,i);
+        y_PI_ave(i,1)= mean(y_PI_current);
+    end
+    
+    %Plot time history overhead plot
+    %figure()
+    figure(f_oh);
+    P = subplot(g,g,k,'Parent',p_oh);
+    ax = gca;
+    hold on
+    xs = zeros(1,SimParams.NUM_ROBOTS);
+    ys = zeros(1,SimParams.NUM_ROBOTS);
+    cmap = jet(numel(Robot_Data(1).robot_ds));
+    for i=1:SimParams.NUM_ROBOTS
+        % This is here for experimental trials where only a subset of data is
+        % plotted due to localization loss
+        if i == nan
+            plot(Robot_Data.robot(i).x, Robot_Data.robot(i).y,'LineWidth',2,'Color',cmap_nrobot(i,:));
+            ps(1) = plot(Robot_Data(k).robot(i).x(40), Robot_Data.robot(i).y(40), 'kx','MarkerSize',18);
+            ps(2) = plot(Robot_Data(k).robot(i).x(end), Robot_Data.robot(i).y(end), 'ko','MarkerSize',18);
+            xs(i) = Robot_Data(k).robot(i).x(end);
+            ys(i) = Robot_Data(k).robot(i).y(end);
+        else
+            %plot(Robot_Data.robot(i).x, Robot_Data.robot(i).y,'Color',cmap(i,:),'LineWidth',4);
+            plot(Robot_Data(k).robot(i).x(1:dn:end), Robot_Data(k).robot(i).y(1:dn:end),'LineWidth',2,'Color',cmap_nrobot(i,:));
+            ps(1) = plot(Robot_Data(k).robot(i).x(1), Robot_Data(k).robot(i).y(1), 'kx','MarkerSize',18);
+            ps(2) = plot(Robot_Data(k).robot(i).x(end), Robot_Data(k).robot(i).y(end), 'ko','MarkerSize',18);
+            xs(i) = Robot_Data(k).robot(i).x(end);
+            ys(i) = Robot_Data(k).robot(i).y(end);
+        end
+        
+    end
+    x = sum(xs)/SimParams.NUM_ROBOTS;
+    y = sum(ys)/SimParams.NUM_ROBOTS;
+    
+    %For go to behavior add desired and average swarm end position markers
+    if any(strcmp(behavior,'Go To'))
+        ps(3) = plot(x,y,'ks','MarkerSize',12,'MarkerFaceColor','k');
+        %ps(4) = plot(SimParams.GoTo_Coords(1),SimParams.GoTo_Coords(2), 'ks','MarkerSize',12);
+        thetas = 0:1:360;
+        plot(15*cosd(thetas)+x, 15*sind(thetas)+y,'k-.');
+    else
+        
+    end
+    grid on
+    %set(gca,'FontSize',24)
+    box on
+    axis equal
+    hold off
+    
+    %Plot composite time history
+    figure(f_thc);
+    hold on
+    plot3(x_PI(1:dn:end,:), y_PI(1:dn:end,:), sensor_value_PI(1:dn:end,:),'Color',cmap_coh(k,:))
+    scatter3(x_PI(end,:), y_PI(end,:), sensor_value_PI(end,:), 100,'ko', 'LineWidth',2);
+    scatter3(x_PI(1,:), y_PI(1,:), sensor_value_PI(1,:), 100,'kx', 'LineWidth',2);
+    view(-45,45)
+    
+    box on
+    grid on
+    hold off
+    
+    %Plot Swarm time history on scalar field
+    %figure()
+    figure(f_th)
+    P = subplot(g,g,k,'Parent',p_th);
+    ax = gca;
+    hold on
+    for i=1:SimParams.NUM_ROBOTS
+        plot3(Robot_Data(k).robot(i).x(1:dn:end), Robot_Data(k).robot(i).y(1:dn:end,:),Robot_Data(k).robot(i).sensor_value(1:dn:end,:),'LineWidth',3,'Color',cmap_nrobot(i,:));
+    end
+    scatter3(arrayfun(@(r) r.x(1),Robot_Data(k).robot), arrayfun(@(r) r.y(1),Robot_Data(k).robot),arrayfun(@(r) r.sensor_value(1),Robot_Data(k).robot),100,'kx','LineWidth',2);
+    scatter3(arrayfun(@(r) r.x(end),Robot_Data(k).robot), arrayfun(@(r) r.y(end),Robot_Data(k).robot),arrayfun(@(r) r.sensor_value(end),Robot_Data(k).robot),100,'ko','LineWidth',2);
+    
+    
+    view(-45,45)
+    box on
+    hold off
+    
+    % Plot overhead composite plot
+    figure(f_ohc);
+    hold on
+    plot3(x_PI, y_PI, sensor_value_PI,'Color',cmap_coh(k,:))
+    scatter3(x_PI(end,:), y_PI(end,:), sensor_value_PI(end,:), 100,'ko', 'LineWidth',2);
+    scatter3(x_PI(1,:), y_PI(1,:), sensor_value_PI(1,:), 100,'kx', 'LineWidth',2);
+    box on
+    grid on
+    hold off
+    
+    %% Post processing plots for simple behaviors
+    if any(strcmp(behavior,'Go To'))
+        if k ==1
+            f_gtc = figure;
+            p_gtc = uipanel('Parent',f_gtc,'BorderType','none'); 
+            p_gtc.Title = 'Distance to Go To Coordinates'; 
+            p_gtc.TitlePosition = 'centertop'; 
+            p_gtc.FontSize = 12;
+            p_gtc.FontWeight = 'bold';
+        end
+        figure(f_gtc)
+        subplot(g,g,k,'Parent',p_gtc);
+        hold on
+        for i = 1:SimParams.NUM_ROBOTS
+            plot(Robot_Data(k).robot(i).time,sqrt((x_PI(:,i)-SimParams.GoTo_Coords(1)).^2 + (y_PI(:,i)-SimParams.GoTo_Coords(2)).^2));
+        end
+        xlabel('Time (s)','fontsize',12)
+        ylabel('Distance to go (m)')
+        hold off
+    end
+    %eigenvalueanalysis
+    %CheckEigenvalues
+    7
+end
+res=100;
+xdivs=linspace(glim.minx,glim.maxx,res);
+ydivs=linspace(glim.miny,glim.maxy,res);
+[X,Y] = meshgrid(xdivs,ydivs);
+if ScalarFieldSelection~=5
+    if ScalarFieldSelection == 7
+        load('utilities/RealWorldData/chern_scat_int.mat','F');
+    elseif ScalarFieldSelection == 8
+        load('utilities/RealWorldData/yos_scat_int.mat','F');
+    else
+        F = [];
+    end
+    Z=readScalarField(X,Y,ScalarFieldSelection,F);
+else
+    F = [];
+    for i =1:length(X)
+        for j = 1:length(Y)
+            Z(i,j)=readScalarField(X(i,j),Y(i,j),ScalarFieldSelection,F);
+        end
+    end
+end
+glim.mins = min(glim.mins, min(min(Z))); 
+glim.maxs = max(glim.maxs, max(max(Z)));
+
+%Plot contur on time history plot
+figure(f_thc)
+plotContour(gca,X,Y,Z,behavior,SimParams,glim);
+
+%Plot contour on individual time history plot
+for k = 1:numel(Robot_Data)
+    figure(f_th)
+    P = subplot(g,g,k);
+    ax = gca;
+    plotContour(ax,X,Y,Z,behavior,SimParams,glim);
+end
+%legend(ps, 'Starting Position', 'Ending Position');%,'fontsize',24)
+
+% Plot contour on ohp
+figure(f_ohc)
+plotContour(gca,X,Y,Z,behavior,SimParams,glim);
+
+%Plot contour on individual overhead history plot
+for k = 1:numel(Robot_Data)
+    figure(f_oh)
+    P = subplot(g,g,k);
+    hold on
+    ax = gca;
+    plotContour(ax,X,Y,Z,behavior,SimParams,glim);
+    xlabel('X (m)')
+    ylabel('Y (m)')
+    zlabel('Sensor Value')
+    box on
+    grid on
+    hold off
+end
+
+
+
+
+%% Perform post processing
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+time = Robot_Data(k).out.simout.Time;
+global_max_val= max(max(Z))*ones(length(time),1);
+global_min_val= min(min(Z))*ones(length(time),1);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+desired_contour_plot= SimParams.DESIRED_VALUE*ones(length(time),1);
+%begin post-processing plotting by behavior
+if any(strcmp(behavior,'Incompatible'))
+    disp('You have selected an incompatible pair of behaviors, such as selecting multiple of the FindMin/FindMax/FindContour behaviors. Plots could not be generated.')
+else
+    if any(strcmp(behavior,'Find Max'))        % plot the individual robot concentrations:
+        plotScalarValueTimeHistory(Robot_Data, @max,max(max(Z)),behavior, SimParams.NUM_ROBOTS,'Maximum Sensor Value')
+        SVProperties(Robot_Data, SimParams.NUM_ROBOTS,max(max(Z)));
+        AttractProperties(Robot_Data,SimParams.NUM_ROBOTS)
+    end
+    if any(strcmp(behavior,'Find Min'))        % plot the individual robot concentrations:
+        plotScalarValueTimeHistory(Robot_Data, @min,min(min(Z)),behavior, SimParams.NUM_ROBOTS,'Minimum Sensor Value')
+        SVProperties(Robot_Data, SimParams.NUM_ROBOTS, min(min(Z)));
+    end
+    if any(strcmp(behavior,'Contour Following'))        % plot the individual robot concentrations:
+        plotScalarValueTimeHistory(Robot_Data, @(x,y)( sum([x,y],2,'omitnan')),SimParams.DESIRED_VALUE,behavior, SimParams.NUM_ROBOTS,'Mean Sensor Value')
+        SVProperties(Robot_Data, SimParams.NUM_ROBOTS, SimParams.DESIRED_VALUE);
+    end
+    if any(strcmp(behavior,'Ridge Follow'))
+        plotScalarValueTimeHistory(Robot_Data, @max,max(max(Z)),behavior, SimParams.NUM_ROBOTS,'Maximum Sensor Value')
+         AttractProperties(Robot_Data,SimParams.NUM_ROBOTS);
+    end
+    if any(strcmp(behavior,'Attract'))
+        %characterize attraction formation as an ellipse
+        AttractProperties(Robot_Data,SimParams.NUM_ROBOTS)
+        %spacingMatrixParallel(Robot_Data,SimParams)
+    end
+    if any(strcmp(behavior,'Formation'))
+        calculateDmatrix(Robot_Data,SimParams);
+        plotFormation(Robot_Data,SimParams);
+        FormationProperties(Robot_Data,SimParams.NUM_ROBOTS,SimParams)
+    end
+    if any(strcmp(behavior,'Orbit'))
+        %calculateDmatrix(Robot_Data,SimParams);
+        %plotFormation(Robot_Data,SimParams);
+        OrbitProperties(Robot_Data,SimParams.NUM_ROBOTS);
+    end
+    if any(strcmp(behavior, 'Trajectory Following'))
+        TrajectorytProperties(Robot_Data,SimParams.NUM_ROBOTS,@desiredTrajectory);
+    end
+    if any(strcmp(behavior,'Front Id'))
+        AttractProperties(Robot_Data,SimParams.NUM_ROBOTS);
+    end
+    
+    
+end
+
+end
+
+
+%% helper function
+
+function [] = addLegend(ax, ps)
+axis(ax);
+if numel(ps) == 3
+    legend(ps, 'Starting Position', 'Ending Position', 'Swarm Average End Position')%, 'Desired Position')
+else
+    legend(ps, 'Starting Position', 'Ending Position')%, 'Desired Position')
+end
+end
+
+function [] = plotContour(ax,X,Y,Z,behavior,SimParams,glim)
+axis(ax);
+hold on
+if any(ismember(behavior, { 'Find Min','Find Max','Contour Following','Ridge Follow','Trench Follow','Front Id' }))
+    
+    colormap(gray);
+    [c,h]=contour3(X,Y,Z,15);
+    if any(strcmp(behavior,'Contour Following'))
+        [M,c] = contour3(X,Y,Z,[SimParams.DESIRED_VALUE SimParams.DESIRED_VALUE],'ShowText','on','LineWidth',3,'LineColor',[.1 .1 .1]);
+    end
+    %colorbar 
+end
+xlim([glim.minx, glim.maxx]);
+ylim([glim.miny, glim.maxy]);
+%zlim([glim.mins, glim.maxs]); 
+axis equal
+xlabel('X (m)')
+ylabel('Y (m)')
+zlabel('Sensor Value')
+box on 
+grid on
+hold off
+end
+

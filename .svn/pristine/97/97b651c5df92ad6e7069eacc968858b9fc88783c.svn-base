@@ -1,0 +1,58 @@
+function plotFormation(Robot_Data,SimParams)
+g = ceil(sqrt(numel(Robot_Data)));
+f_form = figure;
+for k = 1:numel(Robot_Data)
+    figure(f_form)
+    subplot(g,g,k)
+    hold on
+    t = Robot_Data(k).out.tout;
+    xd = 0.01*t;
+    yd = 10*sin(0.005*t);
+    n = 0;
+    for i =1:250:length(t)
+        n = n+1;
+        tc(n) = t(i);
+        S = Robot_Data(k).out.simout.Data(i,:);
+        x_c(n) = mean(S(1:4:end));
+        y_c(n) = mean(S(2:4:end));
+        
+    end
+    %plot(xd,yd,'-',x_c,y_c,'.-.')
+    labs= {};
+    
+    for i = 1:length(S)/4
+        labs{i} = i;
+    end
+    L = length(Robot_Data(k).out.simout.Data);
+    s0 = Robot_Data(k).out.simout.Data(1,:);
+    s1 = Robot_Data(k).out.simout.Data(floor(L*.25),:);
+    s2 = Robot_Data(k).out.simout.Data(floor(L*.5),:);
+    s3 = Robot_Data(k).out.simout.Data(floor(L*.75),:);
+    s4 = Robot_Data(k).out.simout.Data(end,:);
+    
+    scatter(s4(1:4:end),s4(2:4:end),100,'MarkerFaceColor','r')
+    text(s4(1:4:end),s4(2:4:end),labs,'VerticalAlignment','top','HorizontalAlignment','left','FontSize',24)
+    %scatter(s2(1:4:end),s2(2:4:end),'g')
+    %text(s2(1:4:end),s2(2:4:end),labs,'VerticalAlignment','top','HorizontalAlignment','left')
+    %scatter(s3(1:4:end),s3(2:4:end),'b')
+    %text(s3(1:4:end),s3(2:4:end),labs,'VerticalAlignment','top','HorizontalAlignment','left')
+    %legend('Desired Trajectory','CoM Trajectory')
+    xlabel('x(m)')
+    ylabel('y(m)')
+    
+    set(gca,'FontSize',24)
+    
+    %add velocity vectors
+    x= s4(1:4:end);
+    y= s4(2:4:end);
+    %for i =1:length(labs)
+    %   Vf= SwarmSimFormation(s4, i, 300,SimParams.Distances);
+    %   m = norm(Vf);
+    %   quiver(x(i),y(i), Vf(1)/m, Vf(2)/m);
+    %end
+    axis equal
+    grid on
+    box on
+    hold off
+end
+end

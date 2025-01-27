@@ -1,0 +1,14 @@
+function [weights] = SimpleGradientCalc(NRobot,RobotParams,Reference)
+N = floor(length(RobotParams)/4);
+SV = zeros(1,N);
+SV(1,1:N) = RobotParams(4:4:end);
+minr = find(SV == min(SV)); 
+maxr = find(SV == max(SV)); 
+m = length(minr); 
+n = length(maxr); 
+weights= zeros(2,2*N);
+weights(1,2*minr-1) =  -n;
+weights(2,2*minr) =  -n;
+weights(1,2*maxr-1) =  m;
+weights(2,2*maxr) =  m;
+end

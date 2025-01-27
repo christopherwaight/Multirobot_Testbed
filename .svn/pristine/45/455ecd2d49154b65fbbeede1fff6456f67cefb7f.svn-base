@@ -1,0 +1,46 @@
+function [SV] = ThetaFurthestNeighbor(NRobot,RobotParams,SysParam)
+N = floor(length(RobotParams)/4);
+SV = zeros(2,2*N); 
+DL = SysParam(1); 
+
+xs = RobotParams(1:4:end);
+ys = RobotParams(2:4:end); 
+ds = sqrt((xs-xs(NRobot)).^2 + (ys-ys(NRobot)).^2); 
+ds(ds>DL) =0; 
+n = sum(ds~=0); 
+theta = 0; 
+[~,ni] = max(ds); 
+if length(ni)>1 
+    ni = ni(1); 
+end
+%theta method 
+theta =  atan2d(ys(ni)-ys(NRobot), xs(ni) - xs(NRobot)); 
+alpha = .3; 
+beta = 1-alpha;
+SV(1,1:2:2*N) = (alpha*(sind(theta)^2 - cosd(theta)^2)+beta)*ds/n; 
+SV(1,2:2:2*N) = (alpha*-2 * sind(theta)*cosd(theta))*ds/n;
+SV(2,1:2:2*N) = (alpha*-2 * sind(theta)*cosd(theta))*ds/n; 
+SV(2,2:2:2*N) = (alpha*(cosd(theta)^2 - sind(theta)^2)+beta)*ds/n; 
+
+% M1 = sind(theta)^2; 
+% M2 = -sind(theta)*cosd(theta); 
+% M3 = cosd(theta)^2; 
+% N1 = cosd(theta)^2; 
+% N2 = sind(theta)*cosd(theta);
+% N3 = sind(theta)^2; 
+% 
+% SV(1,1:2:2*N) = (alpha*M1+beta*N1)*ds/n; 
+% SV(1,2:2:2*N) = (alpha*M2+beta*N2)*ds/n;
+% SV(2,1:2:2*N) = (alpha*M2+beta*N2)*ds/n; 
+% SV(2,2:2:2*N) = (alpha*M3+beta*N3)*ds/n; 
+
+
+% M method is a little annoying
+% % m = tand(theta); 
+% % %m = 10;
+% % SV(1,1:2:2*N) = 0.45*(1-m^2)/(1+m^2)*ones(1,N)+0.55; 
+% % SV(1,2:2:2*N) = 0.45*(2*m)/(1+m^2)*ones(1,N); 
+% % SV(2,1:2:2*N) = 0.45*(2*m)/(1+m^2)*ones(1,N); 
+% % SV(2,2:2:2*N) = 0.45*(m^2-1)/(1+m^2)*ones(1,N)+0.55; 
+% % %SV(2,2:2:2*N) = ones(1,N);
+end

@@ -1,0 +1,155 @@
+dt = round(100001/1000);
+if dt==0
+    dt =1; 
+end
+
+for b = 1:length(behavior)
+    if strcmp(behavior{b},'Go To') || strcmp(behavior{b},'Trajectory Following')
+        continue
+    end
+    disp(strcat('Eigenvalue analysis for: ',behavior{b})); 
+    idx =1; 
+    for i = 1:dt:length(time)
+        N = length(Robot_Data.robot);
+        A = zeros(2*N,2*N);
+        x_state= zeros(2*N,1);
+        x_state(1:2:end) = x_PI(i,:); 
+        x_state(2:2:end) = y_PI(i,:);
+        RobotParams = zeros(4*N,1);
+        RobotParams(1:4:end) = x_PI(i,:); 
+        RobotParams(2:4:end) = y_PI(i,:);
+        RobotParams(4:4:end) = sensor_value_PI(i,:);
+        ds= [];
+        dpercenterror = []; 
+        for j = 1:length(Robot_Data.robot)    
+            d(1:2:2*N) = sqrt((x_state(1:2:end)-x_state(2*j-1)).^2 + (x_state(2:2:end)-x_state(2*j)).^2); 
+            d(2:2:2*N) = sqrt((x_state(1:2:end)-x_state(2*j-1)).^2 + (x_state(2:2:end)-x_state(2*j)).^2); 
+            d(d>SimParams.SENSOR_RANGE| d==0)=inf;
+            D(idx,j) = sum(d(1:2:2*N)<=SimParams.AVOID_RANGE);
+            P = diag(1./d);
+
+            %% Attract Behavior 
+
+            % Determine distance and angle to each robot 
+            L = eye(2*N);
+            L(1:2:end,2*j-1) = L(1:2:2*N,2*j-1)-1;
+            L(2:2:end,2*j) = L(2:2:2*N,2*j)-1;
+            switch behavior{b}
+                case 'Formation'
+                    ds = [ds; sqrt((x_state(1:2:end)-x_state(2*j-1)).^2 + (x_state(2:2:end)-x_state(2*j)).^2)];
+                    W = distRelativeToSetpoint(j,RobotParams,SimParams.Distances);
+                    K = eye(2);
+                    dpercenterror = [dpercenterror; ((sqrt((x_state(1:2:end)-x_state(2*j-1)).^2 + (x_state(2:2:end)-x_state(2*j)).^2))-SimParams.Distances(:,j))./SimParams.Distances(:,j)];
+                case 'Attract'
+                    ds = [ds; sqrt((x_state(1:2:end)-x_state(2*j-1)).^2 + (x_state(2:2:end)-x_state(2*j)).^2)];
+                    W= OnesWeights(j,RobotParams,{});
+                    K = eye(2); 
+                case 'Disperse'
+                    ds = [ds; sqrt((x_state(1:2:end)-x_state(2*j-1)).^2 + (x_state(2:2:end)-x_state(2*j)).^2)];
+                    W= -OnesWeights(j,RobotParams,{});
+                    K = eye(2); 
+                case 'Orbit'
+                    ds = [ds; sqrt((x_state(1:2:end)-x_state(2*j-1)).^2 + (x_state(2:2:end)-x_state(2*j)).^2)];
+                    W= OnesWeights(j,RobotParams,{});
+                    K =[0 -1; 1 0];  
+                case 'Find Min'
+                    W= LowerSVThanRefWeights(j,RobotParams,RobotParams(4*j));
+                    K = eye(2); 
+                case 'Find Max'
+                    W= SVminusRef(j,RobotParams,RobotParams(4*j));
+                    K = eye(2); 
+                otherwise 
+                    continue 
+            end
+
+            %W = GradientAscent(j,RobotParams,300);
+            A(2*j-1:2*j,:) = K*W*P*L; 
+        end
+        hold on
+        [E,V] = eig(A);
+    %     for k = 1:length(E)
+    %         %figure
+    %         ex = E(1:2:end,k); 
+    %         ey = E(2:2:end,k); 
+    %         %scatter(ex,ey)
+    %     end
+        %pause(0.01)
+        hold off
+        e(:,idx) = eig(A);
+        er(:,idx) = sort(real(e(:,idx))); 
+        ei(:,idx) = sort(imag(e(:,idx))); 
+        switch behavior{b}
+            case 'Formation'
+                dplot(:,idx) = ds;
+                dpeplot(:,idx) = dpercenterror;
+            case 'Attract'
+                dplot(:,idx) = ds;
+            case 'Disperse'
+                dplot(:,idx) = ds;
+        end
+        idx = idx+1; 
+
+    end
+        figure
+        plot(time(1:dt:end),er)
+        title(strcat(behavior{b},' Eigenvalues: Real Part'))
+        xlabel('Time (s)')
+        ylabel('Real(E) ')
+        figure
+        plot(time(1:dt:end),ei)
+        xlabel('Time (s)')
+        ylabel('Imag(E) ')
+        title(strcat(behavior{b},' Eigenvalues: Imaginary Part'))
+        switch behavior{b}
+            case 'Formation'
+                figure
+                hold on
+                plot(time(1:dt:end),dplot)
+                plot(time(1:dt:end), unique(SimParams.Distances)*(ones(size(time(1:dt:end)))'),'k-')
+                xlabel('Time (s)')
+                ylabel('Distances (m)')
+                title('Distances wrt time')
+                box on
+                hold off
+                figure
+                hold on 
+                plot(time(1:dt:end), dpeplot)
+                title('Formation Percent Error')
+                xlabel('Time (s)')
+                ylabel('Percent Error')
+                hold off
+                box on
+                %OverlayFormationsPlot
+            case 'Attract'
+                figure
+                hold on
+                plot(time(1:dt:end),dplot)
+                title('Distances wrt time')
+                xlabel('Time (s)')
+                ylabel('Distance (m)')
+                box on
+                hold off
+            case 'Disperse'
+                figure
+                hold on
+                plot(time(1:dt:end),dplot)
+                title('Distances wrt time')
+                box on
+                xlabel('Time (s)')
+                ylabel('Distance (m)')
+                hold off
+        end
+
+        %% 
+        ei1 = ei(:,1); 
+        er1 = er(:,1);
+        erend= er(:,end);
+        %unique(ei1(ei1>0))
+        %unique(er1)
+        unique(erend)
+    if b ==1
+        figure
+        plot(time(1:dt:end),D)
+        title('obsavoid triggered')
+    end
+end

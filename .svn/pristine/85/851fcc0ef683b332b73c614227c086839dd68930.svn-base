@@ -1,0 +1,23 @@
+function calculateDmatrix(Robot_Data, SimParams)
+for k = 1:length(Robot_Data)
+xs = Robot_Data(k).out.simout.Data(end,1:4:end); 
+ys = Robot_Data(k).out.simout.Data(end,2:4:end);
+D_actual = zeros(SimParams.NUM_ROBOTS,SimParams.NUM_ROBOTS);
+for i = 1:SimParams.NUM_ROBOTS
+    for j  = i+1:SimParams.NUM_ROBOTS
+        d = sqrt((xs(i)-xs(j)).^2 + (ys(i)-ys(j))^2); 
+        D_actual(i,j) = d; 
+        D_actual(j,i) = d; 
+    end
+end
+disp("Desired D matrix\n")
+disp(SimParams.Distances)
+disp("Actual D matrix\n")
+disp(D_actual)
+disp("Percent Difference\n")
+diff = (SimParams.Distances-D_actual)./SimParams.Distances
+disp(max(max(abs(diff))))
+if (max(max(abs(diff)))) > .25
+    disp('Issue'); 
+end
+end

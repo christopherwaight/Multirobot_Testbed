@@ -1,0 +1,162 @@
+clc
+clear
+close all
+
+FIELD_WIDTH=1500;
+N=25;
+ScalarFieldSelection=1;
+if ScalarFieldSelection ~=5
+    FIELD_WIDTH=300;
+else
+    FIELD_WIDTH=1500;
+end
+disp('Opening GUI interface for selection')
+fig=figure;
+
+% First plot scalar field
+ax=gca;
+ax.XLim=[-FIELD_WIDTH FIELD_WIDTH];
+ax.YLim=[-FIELD_WIDTH FIELD_WIDTH];
+cmap = hsv(N);
+title('Click to select robot initial positions')
+
+res=100;
+xdivs=linspace(ax.XLim(1),ax.XLim(2),res);
+ydivs=linspace(ax.YLim(1),ax.YLim(2),res);
+[X,Y] = meshgrid(xdivs,ydivs);
+if ScalarFieldSelection ~=5
+    Z=readScalarField(X,Y,ScalarFieldSelection);
+else
+    for i = 1:length(X)
+        for j = 1:length(Y)
+            Z(i,j)=readScalarField(X(i,j),Y(i,j),ScalarFieldSelection);
+        end
+    end
+end
+surf(X,Y,Z);
+view([0 90])
+hold on
+
+for i=1:N
+    [Xs(i),Ys(i)] = ginput(1);
+    Sensor_Value(i)=readScalarField(Xs(i),Ys(i),ScalarFieldSelection);
+    plot3(Xs(i),Ys(i),Sensor_Value(i)+abs(Sensor_Value(i)*.2),'o','MarkerSize',10,'MarkerFaceColor',cmap(i,:),'MarkerEdgeColor','k')
+    initialCondition{i}=sprintf('[%g %g 0]',Xs(i),Ys(i));
+    RobotParams(4*i-3) = Xs(i); 
+    RobotParams(4*i-2) = Ys(i); 
+    RobotParams(4*i-1) = 0; 
+    RobotParams(4*i) = Sensor_Value(i);
+end
+close(fig);
+clear initialCondition ax FIELD_WIDTH X Y Z cmap fig i ScalarFieldSelection xdivs ydivs res
+
+SensorValue = Sensor_Value;
+clear Sensor_Value
+%% Ridge Check
+[~,max_robot_idx]= max(SensorValue);
+RidgeBuffer = 0.1*(max(SensorValue)-min(SensorValue));
+d_from_max = sqrt( ( Xs(max_robot_idx)-Xs ).^2 + ( Ys(max_robot_idx)-Ys ).^2 );
+O_from_max = atan2(Ys(max_robot_idx)-Ys,Xs(max_robot_idx)-Xs);
+delta_z_from_max = SensorValue(max_robot_idx)-SensorValue;
+amp1 = d_from_max./delta_z_from_max;
+amp2 = (d_from_max.^2)./delta_z_from_max;
+amp3 = d_from_max./(delta_z_from_max.^2);
+amp1(delta_z_from_max < RidgeBuffer) = 0; 
+amp2(delta_z_from_max < RidgeBuffer) = 0; 
+amp3(delta_z_from_max < RidgeBuffer) = 0; 
+
+clear d_from_max O_from_max delta_z_from_max i
+figure
+scatter3(Xs,Ys,SensorValue)
+% Find max "amplitude" robot
+[~,ridge_robot_idx] = max(amp2);
+%for ridge_robot_idx = 1:N
+    if ridge_robot_idx ~= max_robot_idx
+        theta1 = atan2(Ys(ridge_robot_idx) - Ys(max_robot_idx),Xs(ridge_robot_idx) - Xs(max_robot_idx));
+        theta2 = atan2(SensorValue(max_robot_idx)-SensorValue(ridge_robot_idx),sqrt((Ys(ridge_robot_idx) - Ys(max_robot_idx)).^2+(Xs(ridge_robot_idx) - Xs(max_robot_idx))^2));
+        
+        R1 = [cos(theta1), sin(theta1),0;-sin(theta1),cos(theta1),0;0 0 1 ;];
+        P01 = [Xs(max_robot_idx);Ys(max_robot_idx); SensorValue(max_robot_idx)];
+        
+        H1 = [R1 -R1*P01; 0 0 0  1];
+        
+        R2 = [cos(theta2),0, -sin(theta2);0 1 0; sin(theta2),0,cos(theta2)];
+        H2 = [R2 [0;0;0]; 0 0 0 1];
+        
+        H = H2*H1;
+        RPa = zeros(N*4,1); 
+        RPa(1:4:end)=Xs; 
+        RPa(2:4:end)=Ys;
+        RPa(3:4:end)= SensorValue; 
+        RPa(4:4:end) = 1; 
+        ACell = repmat({H}, 1, N);
+        HM = blkdiag(ACell{:});
+        RPap = HM*RPa; 
+        Xsp = RPap(1:4:end); 
+        Ysp = RPap(2:4:end); 
+        SVp = RPap(3:4:end); 
+       
+        
+        clear H H1 H2 P P01 R1 R2 theta1 theta2 
+        [~,idxs] = sort(Ysp);
+        grads = SVp./Ysp;
+        [~,i1] = max(amp1); 
+        [~,i2] = max(amp2); 
+        %if sum(SVp>0) ==0 || ridge_robot_idx== i1 || ridge_robot_idx == i2
+        if ridge_robot_idx == i2
+            figure
+            hold on
+            scatter3(Xs,Ys,SensorValue)
+            scatter3(Xs(max_robot_idx),Ys(max_robot_idx),SensorValue(max_robot_idx),'r')
+            scatter3(Xs(ridge_robot_idx),Ys(ridge_robot_idx),SensorValue(ridge_robot_idx),'y')
+            hold off
+            figure
+            hold on
+            scatter3(Xsp,Ysp,SVp)
+            xlabel('Xprime')
+            ylabel('Yprime')
+            zlabel('SV prime')
+            if (ridge_robot_idx == i1) && ridge_robot_idx == i2
+            	title(sprintf('max of Amp1 and Amp2 is robot %d',ridge_robot_idx))
+            elseif (ridge_robot_idx == i1) 
+            	title(sprintf('max of Amp1 is robot %d',ridge_robot_idx))
+            elseif (ridge_robot_idx == i2) 
+            	title(sprintf('max of Amp2 is robot %d',ridge_robot_idx))
+            else
+                title(sprintf('Ridge robot is %d',ridge_robot_idx))
+            end
+            
+            view(90,0)
+%            pause
+%             view(180,0)
+%             pause
+            grads(idxs);
+            nr_right = sum(Ysp<0);
+            nr_left = sum(floor(Ysp)>0);
+            if nr_right>=2
+                [Prr,Srr] = polyfit(Ysp(Ysp<=0 & Xsp>=0),SVp(Ysp<=0 & Xsp>=0),1);
+                plot3(zeros(1,2),[max(Ysp(Ysp<=0 & Xsp>=0)),min(Ysp(Ysp<=0 & Xsp>=0))],polyval(Prr,[max(Ysp(Ysp<=0 & Xsp>=0)),min(Ysp(Ysp<=0 & Xsp>=0))]),'g')
+                R2rRight = 1 - (Srr.normr/norm(SVp(Ysp<=0 & Xsp>=0) - mean(SVp(Ysp<=0 & Xsp>=0))))^2;
+            end
+            if nr_left>=2
+                [Prl,Srl] = polyfit(Ysp(Ysp>=0 & Xsp>=0),SVp(Ysp>=0 & Xsp>=0),1);
+                plot3(zeros(1,2),[max(Ysp(Ysp>=0 & Xsp>=0)),min(Ysp(Ysp>=0 & Xsp>=0))],polyval(Prl,[max(Ysp(Ysp>=0 & Xsp>=0)),min(Ysp(Ysp>=0 & Xsp>=0))]),'g')
+                R2rleft = 1 - (Srl.normr/norm(SVp(Ysp>=0 & Xsp>=0) - mean(SVp(Ysp>=0 & Xsp>=0))))^2;
+            end
+            if nr_right >=2 && nr_left >=2
+                if Prl(1) < 0 && Prr(1)>0 && R2rleft>0.25 && R2rRight > 0.25
+                    % fit polynomial on two sides of Xsp vs SVp 
+                    if  nr_right >=floor(N/4) && nr_left >=floor(N/4)
+                        disp('Ridge')
+                    else
+                        disp('Ridge Sideslip Needed')
+                    end
+                else
+                	disp('Not Ridge')
+                end
+            end
+        end
+
+    end
+%end
+[Vf,ridgeState]= SwarmSimFollowRidge(RobotParams, 1,1000)

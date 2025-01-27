@@ -1,0 +1,16 @@
+function [W] = invDistBtwnRobots(NRobot,RobotParams,DL,~)
+N = floor(length(RobotParams)/4);
+W = zeros(2,2*N); 
+xs = zeros(1,N); 
+ys = zeros(1,N);
+ds = zeros(1,N); 
+xs(1:N) = RobotParams(1:4:end); 
+ys(1:N) = RobotParams(2:4:end); 
+ds(1:N) = sqrt((xs-xs(NRobot)).^2 + (ys-ys(NRobot)).^2); 
+ds(NRobot) = inf;
+dsi = 1./ds; 
+W(1,1:2:2*N) = dsi ;
+W(2,2:2:2*N) = dsi ; 
+
+end
+

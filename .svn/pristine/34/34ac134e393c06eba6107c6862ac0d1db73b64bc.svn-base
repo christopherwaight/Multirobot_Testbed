@@ -1,0 +1,65 @@
+function [] = spacingMatrixParallel(datas,SimParams)
+% uses data from either a single simulation or parallel simulations and
+% calculates the lattice factor (lattice spacing between robobots). It then
+% produces a weighted graph only including edges that are less than 1.25
+% times the avoidance range. This is to visualize the "lattice structure"
+% of the swarm
+% Inputs: 
+%   datas: an array of data output from the simulations 
+%   SimParams: a struct containing information about the simulations
+figure
+hold on
+Ns = ceil(sqrt(length(datas))); 
+[~,L] = size(datas); 
+%Loop through each simulation data
+for n = 1:L
+    %extract out robot positions
+    data = datas(n);
+    xs = [data.robot.x]; 
+    x = xs(end,:); 
+    ys = [data.robot.y]; 
+    y = ys(end,:); 
+    %calculate distance between each robot pair
+    for i = 1:length(x)
+        for j = 1:length(y)
+            d(i,j) = sqrt((x(i)-x(j))^2 + (y(i)-y(j))^2); 
+        end
+    end
+    %build arrays for weighted graph: s and t are arrays of edge pairs
+    s = []; 
+    t = []; 
+    weights = []; 
+    allWeights = []; 
+    for i = 1:length(x)
+        for j = i:length(x)
+            d = sqrt((x(i)-x(j))^2 + (y(i)-y(j))^2); 
+            if 0< d && d< 1.25*SimParams.AVOID_RANGE
+                s(end+1) = i; 
+                t(end+1) = j; 
+                weights(end+1) = floor(d*100)/100;
+            end
+            allWeights(end+1) =d;  
+        end
+    end
+    latticeFactors(n) = mean(weights);
+    %produce weighted graph, note that edge weights are normalized to 1
+    G = graph(s,t,weights./SimParams.AVOID_RANGE,length(x)); 
+    subplot(Ns,Ns,n)
+    hold on
+    if length(weights) ~= 0
+        plot(G,'XData',x,'YData',y,'EdgeLabel',G.Edges.Weight)
+    end
+    hold off
+    W_maxs(n) = max(allWeights);
+end
+%Display lattice factor ie spacing between robots
+latticeFactor = mean(latticeFactors)
+%display average max distance between two robots
+W_max = mean(W_maxs)
+%display minimum max distance between two robots
+W_max_min = min(W_maxs)
+%display minimum min distance between two robots
+W_max_max = max(W_maxs)
+hold off
+end
+

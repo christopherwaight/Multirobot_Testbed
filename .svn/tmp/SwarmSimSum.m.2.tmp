@@ -1,0 +1,38 @@
+function [VCommand] = SwarmSimSum(Attract, Disperse, Avoidance,GoTo,Orbit, Formation,FindMin, FindMax, FindContour, FollowRidge, FollowTrench,FrontId, TrajFollow, Boundary)
+%SwarmSimSum Aggregates the velocity inputs from individual behaviors into a single heading command.
+%   SwarmSimSum is the function called in the Sum blocks in
+%   Swarm_Adaptive_Navigation_Simulator/Robot # Behavior. Each behavior
+%   outputs a Vf vector with components [Vfx, Vfy, Vft] of unit magnitude. 
+%   This function calculates the sum of all of the behaviors and outputs a 
+%   theta value using atan2 that is then fed to the robot level.
+
+% TO ADD A BEHAVIOR TO THE SUM FUNCTION:
+% 1) Add the behavior to the inputs for the SwarmSimSum function
+% 2) Add the behavior to x_agg, y_agg, and t_agg sums below.
+
+% Initialize Variables
+VCommand = [0.0; 0.0; 0.0];
+Total = [ 0;0;0];
+%Total= 1*Avoidance+1*Attract;% - 0.5*Disperse;
+%Total= 1*Avoidance+Attract;% +0.5*FindMax;
+%Total = 1*Avoidance + 0.5*Attract+0.2*Orbit+ 0.3*u; 
+%Total= 1*Avoidance+0.5*Attract +0.25*FindContour+0.25*Orbit;
+%Total= 0.5*Attract + Disperse + 1*Avoidance +1*GoTo+0.2*Orbit+0.5*Formation+ .5*FindMin + .25*FindMax + 0.75*FindContour + FollowRidge + FollowTrench+0.3*u;
+%Total= 1*Avoidance +0.2*Orbit+0.3*Formation+0.5*u;
+%Total= 1*Avoidance +0.2*Orbit+0.5*Attract+0.3*u;
+%Total= Avoidance +0.5*Attract+0.25*Orbit+ 0.25*FindContour;
+%Total= 1*Avoidance +0.2*Orbit+0.3*Formation+0.5*u;
+<<<<<<< .mine
+Total= Avoidance +Attract+u;
+=======
+%Total= Avoidance +Attract;
+>>>>>>> .r1818
+%Total= Avoidance+0.1*u + 0.70*Disperse+0.1*GoTo + 0.10*Attract;
+Total= Attract + Disperse + 1000*Avoidance +GoTo+Orbit+Formation+ FindMin + FindMax + FindContour + FollowRidge + FollowTrench+FrontId+TrajFollow+10000*Boundary;
+VCommand(1)= Total(1);
+VCommand(2)= Total(2);
+VCommand(3)=0;
+
+
+end
+

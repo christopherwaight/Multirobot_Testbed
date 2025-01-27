@@ -1,0 +1,761 @@
+function varargout = SCUSANS_GUI(varargin)
+% SCUSANS_GUI MATLAB code for SCUSANS_GUI.fig
+%      SCUSANS_GUI, by itself, creates a new SCUSANS_GUI or raises the existing
+%      singleton*.
+%
+%      H = SCUSANS_GUI returns the handle to a new SCUSANS_GUI or the handle to
+%      the existing singleton*.
+%
+%      SCUSANS_GUI('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in SCUSANS_GUI.M with the given input arguments.
+%
+%      SCUSANS_GUI('Property','Value',...) creates a new SCUSANS_GUI or raises the
+%      existing singleton*.  Starting from the left, property value pairs are
+%      applied to the GUI before SCUSANS_GUI_OpeningFcn gets called.  An
+%      unrecognized property name or invalid value makes property application
+%      stop.  All inputs are passed to SCUSANS_GUI_OpeningFcn via varargin.
+%
+%      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
+%      instance to run (singleton)".
+%
+% See also: GUIDE, GUIDATA, GUIHANDLES
+
+% Edit the above text to modify the response to help SCUSANS_GUI
+
+% Last Modified by GUIDE v2.5 06-Dec-2021 16:52:12
+
+% Begin initialization code - DO NOT EDIT
+gui_Singleton = 1;
+gui_State = struct('gui_Name',       mfilename, ...
+                   'gui_Singleton',  gui_Singleton, ...
+                   'gui_OpeningFcn', @SCUSANS_GUI_OpeningFcn, ...
+                   'gui_OutputFcn',  @SCUSANS_GUI_OutputFcn, ...
+                   'gui_LayoutFcn',  [] , ...
+                   'gui_Callback',   []);
+if nargin && ischar(varargin{1})
+    gui_State.gui_Callback = str2func(varargin{1});
+end
+
+if nargout
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+else
+    gui_mainfcn(gui_State, varargin{:});
+end
+% Setup matlab directory to run in current runFile folder
+runFileFunctionName=mfilename;
+runFilePath=mfilename('fullpath');
+BaseFolderPath = replace(runFilePath,runFileFunctionName,string(''));
+cd(BaseFolderPath);
+[~] = ConfigureProjectPath;
+% End initialization code - DO NOT EDIT
+
+% --- Executes just before SCUSANS_GUI is made visible.
+function SCUSANS_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
+% This function has no output args, see OutputFcn.
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% varargin   command line arguments to SCUSANS_GUI (see VARARGIN)
+
+% Choose default command line output for SCUSANS_GUI
+handles.output = hObject;
+% Update handles structure
+guidata(hObject, handles);
+set(handles.ExpRobotSelect,'Visible','off')
+set(handles.ParSimVersion,'Visible','off')
+ConfigureProjectPath();
+
+% UIWAIT makes SCUSANS_GUI wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+
+
+% --- Outputs from this function are returned to the command line.
+function varargout = SCUSANS_GUI_OutputFcn(hObject, eventdata, handles) 
+% varargout  cell array for returning output args (see VARARGOUT);
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Get default command line output from handles structure
+varargout{1} = handles.output;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% BEHAVIOR PUSHBUTTON CALLBACK FCNS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- Executes on button press in cbox_Attract.
+function cbox_Attract_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Attract (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Disperse.
+function cbox_Disperse_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Disperse (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_GoTo.
+function cbox_GoTo_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_GoTo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if hObject.Value 
+    set(handles.GoToCoordinatesGroup,'Visible','on')
+else
+    set(handles.GoToCoordinatesGroup,'Visible','off')
+end
+
+% --- Executes on button press in cbox_TrajFollow.
+function cbox_TrajFollow_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_TrajFollow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Orbit.
+function cbox_Orbit_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Orbit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_formation.
+function cbox_formation_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_formation (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_boundary.
+function cbox_boundary_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_boundary (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_FindMin.
+function cbox_FindMin_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_FindMin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_FindMax.
+function cbox_FindMax_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_FindMax (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_ContourFollow.
+function cbox_ContourFollow_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_ContourFollow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if hObject.Value
+    set(handles.DesiredContour_edit,'Enable','on')
+    set(handles.contourBuffer_edit,'Enable','on')
+else
+    set(handles.DesiredContour_edit,'Enable','off')
+    set(handles.contourBuffer_edit,'Enable','off')
+end
+
+% --- Executes on button press in cbox_RidgeFollow.
+function cbox_RidgeFollow_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_RidgeFollow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_TrenchFollow.
+function cbox_TrenchFollow_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_TrenchFollow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ROBOT NAME CHECKLIST CALLBACK FCNS %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% --- Executes on button press in cbox_Pink.
+function cbox_Pink_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Pink (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Celeste.
+function cbox_Celeste_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Celeste (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Pacific_Blue.
+function cbox_Pacific_Blue_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Pacific_Blue (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Canary.
+function cbox_Canary_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Canary (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Sunglow.
+function cbox_Sunglow_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Sunglow (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Schwein.
+function cbox_Schwein_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Schwein (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Redwood.
+function cbox_Redwood_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Redwood (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Watermelon.
+function cbox_Watermelon_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Watermelon (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Tidal.
+function cbox_Tidal_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Tidal (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Wisteria.
+function cbox_Wisteria_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Wisteria (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Orange.
+function cbox_Orange_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Orange (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in cbox_Cesoir.
+function cbox_Cesoir_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_Cesoir (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in SetBehaviors_PB.
+
+function SetBehaviors_PB_Callback(hObject, eventdata, handles)
+    % On Set Behaviors push button press, behaviors in
+    % Swarm_Robot_Base_a are turned on/off based on paired checkboxes
+
+% %Comments out behavior blocks that are not being used. 
+setBaseBehaviors(handles); 
+
+function numRobots_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to numRobots_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function numRobots_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to numRobots_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in setSimParam_PB.
+function setSimParam_PB_Callback(hObject, eventdata, handles)
+% hObject    handle to setSimParam_PB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+function SimRunTime_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to SimRunTime_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function SimRunTime_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to SimRunTime_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function SensorRange_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to SensorRange_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function SensorRange_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to SensorRange_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function AvoidanceRange_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to AvoidanceRange_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function AvoidanceRange_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to AvoidanceRange_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function DesiredContour_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to DesiredContour_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function DesiredContour_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to DesiredContour_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in runSim_PB.
+function runSim_PB_Callback(hObject, eventdata, handles)
+% hObject    handle to runSim_PB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+base = handleVersion(handles);
+
+%Comments out behavior blocks that are not being used
+setBaseBehaviors(handles)
+
+behavior = getBehaviorList(handles);
+
+SimParams = {};
+% set simulation parameters based off text edit boxes: 
+% Note: while all values are stored in SimParams every simulation not all
+% are used. They are all set for ease of programming but only the
+% parameters that are relevant to the behavior are actually accessed. 
+SimParams.SENSOR_RANGE= str2double(handles.SensorRange_edit.String);
+SimParams.AVOID_RANGE= str2double(handles.AvoidanceRange_edit.String);
+SimParams.DESIRED_VALUE= str2double(handles.DesiredContour_edit.String);
+SimParams.CONTOUR_BUFFER= str2double(handles.contourBuffer_edit.String);
+SimParams.init.x_init_center= str2double(handles.initCond_centerX_edit.String);
+SimParams.init.y_init_center= str2double(handles.initCond_centerY_edit.String);
+SimParams.init.init_radius= str2double(handles.initCond_radius_edit.String); 
+SimParams.GoTo_Coords = [str2double(handles.goTo_X_Coord_edit.String), str2double(handles.goTo_Y_Coord_edit.String)]; 
+
+SimParams.MakeVideo = handles.MakeVideoCB.Value;
+SimParams.SaveVideo = handles.SaveVideoCB.Value;
+SimParams.SaveData = handles.SaveDataCB.Value; 
+SimParams.Distances = getFormationDistances();
+
+%because robot_speed is not a parameter used inside swarm_robot_test_sim,
+%update robot speed in Simulink Block Diagram here:
+set_param(strcat(base,'/Robot 1 Behavior/Robot Speed'),'value', handles.robSpeed_edit.String);
+
+% determine Scalar Field to use based off the radio button group: 
+% To add a scalar field, make sure that it is added in three places: 
+%     1) readScalarField function 
+%     2) SCUSANS_GUI as a radio button 
+%     3) list below so it can be passed to the test_sim file
+[ScalarFieldSelection] = getScalarField(handles);
+
+if handles.SelectSimRB.Value
+    disp('sim')
+    trialType = 1;
+    SimParams.NUM_ROBOTS= str2double(handles.numRobots_edit.String);
+    SimParams.SIM_TIME= str2double(handles.SimRunTime_edit.String);
+elseif handles.SelectTestbedRB.Value 
+    disp('exp')
+    trialType = 3; 
+    all_robots = [string('burnt-orange'), string('canary'), ...
+        string('celeste'), string('ce-soir'), string('pacific-blue'), ...
+        string('pink'), string('redwood'), string('schweinefleisch'), ...
+        string('sunglow'), string('tidal'), string('watermelon'),...
+        string('wisteria'),];
+    robot_select = [handles.cbox_Orange.Value,handles.cbox_Canary.Value,...
+        handles.cbox_Celeste.Value,handles.cbox_Cesoir.Value, ...
+        handles.cbox_Pacific_Blue.Value,handles.cbox_Pink.Value, ...
+        handles.cbox_Redwood.Value, handles.cbox_Schwein.Value,...
+        handles.cbox_Sunglow.Value,handles.cbox_Tidal.Value,...
+        handles.cbox_Watermelon.Value,handles.cbox_Wisteria.Value];
+    SimParams.robots = all_robots(logical(robot_select));
+    SimParams.NUM_ROBOTS = length(SimParams.robots);
+    SimParams.SIM_TIME= str2double(handles.SimRunTime_edit.String);
+elseif handles.SelectParallelSimRB.Value
+    disp('parsim')
+    trialType= 2; 
+    SimParams.NUM_ROBOTS = str2num(handles.ParallelNRobots_edit.String); 
+    SimParams.SIM_TIME= str2num(handles.ParallelTimes_edit.String);
+    SimParams.NumTrials = str2double(handles.ParallelNTrials_edit.String);
+end
+% run simulation: 
+Swarm_Robot_Test_Sim(SimParams,ScalarFieldSelection,behavior,trialType,base) 
+
+function contourBuffer_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to contourBuffer_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function contourBuffer_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to contourBuffer_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in prevScalarField_PB.
+function prevScalarField_PB_Callback(hObject, eventdata, handles)
+% hObject    handle to prevScalarField_PB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+[ScalarFieldSelection] = getScalarField(handles);
+FIELD_WIDTH= getScalarFieldWidth(ScalarFieldSelection);
+figure;
+ax = axes();
+DesiredValue = str2double(handles.DesiredContour_edit.String);
+behavior = getBehaviorList(handles);
+[s,Z] = PlotScalarField(ax,ScalarFieldSelection,500,DesiredValue,FIELD_WIDTH,behavior);
+
+function robSpeed_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to robSpeed_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function robSpeed_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to robSpeed_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function initCond_radius_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to initCond_radius_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function initCond_radius_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to initCond_radius_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function initCond_centerX_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to initCond_centerX_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function initCond_centerX_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to initCond_centerX_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function initCond_centerY_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to initCond_centerY_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function initCond_centerY_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to initCond_centerY_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in SelectSimRB.
+function SelectSimRB_Callback(hObject, eventdata, handles)
+% hObject    handle to SelectSimRB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+if handles.SelectSimRB.Value
+    set(handles.ExpRobotSelect,'Visible','off')
+    set(handles.numRobots_edit,'Enable','on')
+    set(handles.SimRunTime_edit,'Enable','on')
+    set(handles.MLVersion_box,'Visible','on')
+    set(handles.ParSimVersion,'Visible','off')
+end
+
+% --- Executes on button press in SelectTestbedRB.
+function SelectTestbedRB_Callback(hObject, eventdata, handles)
+% hObject    handle to SelectTestbedRB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if handles.SelectTestbedRB.Value
+    set(handles.ExpRobotSelect,'Visible','on')
+    set(handles.numRobots_edit,'Enable','off')
+    set(handles.SimRunTime_edit,'Enable','on')
+    set(handles.MLVersion_box,'Visible','off')
+    set(handles.ParSimVersion,'Visible','off')
+end
+
+% --- Executes on button press in SelectParallelSimRB.
+function SelectParallelSimRB_Callback(hObject, eventdata, handles)
+% hObject    handle to SelectParallelSimRB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+if handles.SelectParallelSimRB.Value
+    set(handles.ExpRobotSelect,'Visible','off')
+    set(handles.numRobots_edit,'Enable','off')
+    set(handles.SimRunTime_edit,'Enable','off')
+    set(handles.MLVersion_box,'Visible','on')
+    set(handles.ParSimVersion,'Visible','on')
+end
+
+function goTo_X_Coord_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to goTo_X_Coord_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function goTo_X_Coord_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to goTo_X_Coord_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function goTo_Y_Coord_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to goTo_Y_Coord_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function goTo_Y_Coord_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to goTo_Y_Coord_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function ParallelTimes_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to ParallelTimes_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function ParallelTimes_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ParallelTimes_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function ParallelNRobots_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to ParallelNRobots_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function ParallelNRobots_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ParallelNRobots_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function ParallelNTrials_edit_Callback(hObject, eventdata, handles)
+% hObject    handle to ParallelNTrials_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes during object creation, after setting all properties.
+function ParallelNTrials_edit_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to ParallelNTrials_edit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on button press in SaveVideoCB.
+function SaveVideoCB_Callback(hObject, eventdata, handles)
+% hObject    handle to SaveVideoCB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in MakeVideoCB.
+function MakeVideoCB_Callback(hObject, eventdata, handles)
+% hObject    handle to MakeVideoCB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes on button press in SaveDataCB.
+function SaveDataCB_Callback(hObject, eventdata, handles)
+% hObject    handle to SaveDataCB (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% SUB FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ConfigureProjectPath()
+function [project_path] = ConfigureProjectPath()
+[project_path] = fileparts(mfilename('fullpath'));
+cd(project_path);
+if exist(fullfile(project_path,'results'))==0
+    mkdir(project_path,'results')
+end
+if exist(fullfile(project_path,'results/videos'))==0
+    mkdir(fullfile(project_path,'results'),'videos')
+end
+
+addpath(fullfile(project_path,'utilities'),fullfile(project_path,'utilities/testbed'),fullfile(project_path,'utilities/behaviors'),fullfile(project_path,'utilities/behaviors/WeightingFunctions'), fullfile(project_path,'utilities/RealWorldData'));
+addpath(fullfile(project_path,'results'),fullfile(project_path,'results/videos'));
+
+
+
+function behavior = getBehaviorList(handles)
+    % set behavior switch used to plot time histories of robots:
+    if handles.cbox_FindMin.Value && handles.cbox_FindMax.Value
+        behavior = 'Incompatible';
+    elseif handles.cbox_FindMin.Value && handles.cbox_ContourFollow.Value
+        behavior = 'Incompatible';
+    elseif handles.cbox_FindMax.Value && handles.cbox_ContourFollow.Value
+        behavior = 'Incompatible';
+    elseif handles.cbox_FindMax.Value && handles.cbox_ContourFollow.Value && handles.cbox_FindMin.Value
+        behavior = 'Incompatible';
+    else
+        behavior = {};
+        if handles.cbox_FindMin.Value
+            behavior{end+1} = 'Find Min';
+        end
+        if handles.cbox_FindMax.Value
+            behavior{end+1} = 'Find Max';
+        end
+        if handles.cbox_ContourFollow.Value
+            behavior{end+1} = 'Contour Following';
+        end
+        if handles.cbox_GoTo.Value
+            behavior{end+1} = 'Go To';
+        end
+        if handles.cbox_Orbit.Value
+            behavior{end+1} = 'Orbit';
+        end
+        if handles.cbox_RidgeFollow.Value
+            behavior{end+1} = 'Ridge Follow';
+        end
+        if handles.cbox_TrenchFollow.Value
+            behavior{end+1} = 'Trench Follow';
+        end
+        if handles.cbox_FrontId.Value
+            behavior{end+1} = 'Front Id';
+        end
+        if handles.cbox_Attract.Value
+            behavior{end+1} = 'Attract';
+        end
+        if handles.cbox_Disperse.Value
+            behavior{end+1} = 'Disperse';
+        end
+        if handles.cbox_formation.Value
+            behavior{end+1} = 'Formation' ;
+        end
+        if handles.cbox_TrajFollow.Value
+            behavior{end+1} = 'Trajectory Following' ;
+        end
+        if handles.cbox_boundary.Value
+            behavior{end+1} = 'Boundary';
+        end
+    end
+   
+    
+
+
+function [] = setBaseBehaviors(handles)
+base = handleVersion(handles);
+set_param(strcat(base,'/Robot 1 Behavior/Attract'),'commented',mod(handles.cbox_Attract.Value+1,2))
+set_param(strcat(base,'/Robot 1 Behavior/Disperse'),'commented',mod(handles.cbox_Disperse.Value+1,2))
+set_param(strcat(base,'/Robot 1 Behavior/Find Min'),'commented',mod(handles.cbox_FindMin.Value+1,2))
+set_param(strcat(base,'/Robot 1 Behavior/Find Max'),'commented',mod(handles.cbox_FindMax.Value+1,2))
+set_param(strcat(base,'/Robot 1 Behavior/Follow Contour'),'commented',mod(handles.cbox_ContourFollow.Value+1,2));
+set_param(strcat(base,'/Robot 1 Behavior/Follow Ridge'),'commented',mod(handles.cbox_RidgeFollow.Value+1,2));
+set_param(strcat(base,'/Robot 1 Behavior/Follow Trench'),'commented',mod(handles.cbox_TrenchFollow.Value+1,2));
+set_param(strcat(base,'/Robot 1 Behavior/Front Identification'),'commented',mod(handles.cbox_FrontId.Value+1,2));
+set_param(strcat(base,'/Robot 1 Behavior/Go To'),'commented',mod(handles.cbox_GoTo.Value+1,2));
+set_param(strcat(base,'/Robot 1 Behavior/Orbit'),'commented',mod(handles.cbox_Orbit.Value+1,2));
+set_param(strcat(base,'/Robot 1 Behavior/Formation'),'commented',mod(handles.cbox_formation.Value+1,2));
+set_param(strcat(base,'/Robot 1 Behavior/Trajectory Following'),'commented',mod(handles.cbox_TrajFollow.Value+1,2));
+set_param(strcat(base,'/Robot 1 Behavior/External Boundary'),'commented',mod(handles.cbox_boundary.Value+1,2)); 
+
+%helper function to manage version 
+function [base] = handleVersion(handles)
+    if handles.SelectTestbedRB.Value || handles.ML2016b.Value
+        base = 'Swarm_Robot_Base_2016b';
+        close_system('Swarm_Robot_Base_2019b',0)
+        close_system('Swarm_Robot_Base_2021a',0) 
+    elseif handles.ML2019b.Value
+        base = 'Swarm_Robot_Base_2019b';
+        close_system('Swarm_Robot_Base_2016b',0)
+        close_system('Swarm_Robot_Base_2021a',0)
+    else
+        base = 'Swarm_Robot_Base_2021a';
+        close_system('Swarm_Robot_Base_2016b',0)
+        close_system('Swarm_Robot_Base_2019b',0) 
+    end
+    open(strcat(base,'.slx'))
+    
+function [ScalarFieldSelection] = getScalarField(handles)
+    if handles.compField_RB.Value
+        ScalarFieldSelection = 1;
+    elseif handles.singSource_RB.Value
+        ScalarFieldSelection = 2;
+    elseif handles.singSink_RB.Value
+        ScalarFieldSelection = 3;
+    elseif handles.tbSink_RB.Value
+        ScalarFieldSelection = 4;
+    elseif handles.wideRidge_RB.Value
+        ScalarFieldSelection = 5;
+    elseif handles.front_RB.Value
+        ScalarFieldSelection = 6;
+    elseif handles.chern_RB.Value
+        ScalarFieldSelection = 7;
+    elseif handles.yos_RB.Value
+        ScalarFieldSelection = 8;
+    else
+        disp('No Value Selected'); 
+        ScalarFieldSelection = nan; 
+    end
+
+
+% --- Executes on button press in cbox_FrontId.
+function cbox_FrontId_Callback(hObject, eventdata, handles)
+% hObject    handle to cbox_FrontId (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cbox_FrontId
