@@ -1,0 +1,188 @@
+%% Create and Train Feedforward Neural Networks for Hue and Saturation
+% Copy this entire directory, then update the files individually as needed.
+% Written by Christopher Waight
+% Last update on Jan 29, 2025
+
+%% Clearing the workspace
+clc; clear all; close all;
+
+%% Read Data from the Calibration CSV
+data = readmatrix("pink_cal.csv");
+
+%% Assign Input Variables and Target Values
+inputs = data(:,3:6);
+hue_targets = data(:,1);
+sat_targets = data(:,2);
+
+
+% Normalize data
+inputs(:,1) = (inputs(:,1)-171)/1718;
+inputs(:,2) = (inputs(:,2)-262)/2023;
+inputs(:,3) = (inputs(:,3)-253)/1713;
+inputs(:,4) = (inputs(:,4)-991)/5292;
+inputs = max(min(inputs, 1), 0); 
+
+
+
+%% Data Augmentation
+noiseLevelRGB = 0.001;  % Adjust as needed
+numAugmentations = 4; % Number of augmented samples to generate per original sample
+
+augmentedInputs = [];
+augmentedHueTargets = [];
+augmentedSatTargets = [];
+
+for i = 1:size(inputs, 1)
+    for j = 1:numAugmentations
+        % 1. Add Gaussian noise to RGB (first 3 features)
+        noisyRGB = inputs(i, 1:3) + noiseLevelRGB * std(inputs(:, 1:3)) .* randn(1, 3);
+
+        % 2. Clip noisy RGB to [0, 1]
+        noisyRGB = max(0, min(1, noisyRGB));
+
+        % 3. Keep Clear value the same
+        noisyClear = inputs(i, 4);
+
+        % 4. Construct new input vector
+        noisyInput = [noisyRGB, noisyClear];
+
+        % 5. Add to augmented data
+        augmentedInputs = [augmentedInputs; noisyInput];
+        augmentedHueTargets = [augmentedHueTargets; hue_targets(i)]; % Hue target remains the same
+        augmentedSatTargets = [augmentedSatTargets; sat_targets(i)];
+    end
+end
+
+%% Feature Engineering (on Augmented Data)
+% Add HSV to augmented data
+hsv_augmented = rgb2hsv(augmentedInputs(:, 1:3));
+augmentedInputs = [augmentedInputs, hsv_augmented];
+
+%% Combine Original and Augmented Data
+inputs = [inputs; augmentedInputs];
+hue_targets = [hue_targets; augmentedHueTargets];
+sat_targets = [sat_targets; augmentedSatTargets];
+
+
+%% Feature Engineering
+% add HSV
+hsv = rgb2hsv(inputs(:,1:3));
+inputs(:,5:7) = hsv; 
+
+
+
+%% Transpose the inputs to make NN compatible
+inputs = inputs';
+hue_targets = hue_targets';
+sat_targets = sat_targets';
+
+%% Create and Train the Deeper Feedforward Network
+hiddenLayerSizes1 = [7 5 3 1]; % Define the number of neurons in each hidden layer for a deeper network
+hiddenLayerSizes2 = [7 5 3 1]; % Define the number of neurons in each hidden layer for a deeper network
+pink_hue_net = feedforwardnet(hiddenLayerSizes1);
+pink_sat_net = feedforwardnet(hiddenLayerSizes2);
+
+% Customize training parameters of hue net
+pink_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+pink_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
+pink_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
+pink_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+pink_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
+pink_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
+pink_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
+%pink_hue_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
+%pink_hue_net.trainParam.mu = 10;
+
+% Customize training parameters of sat net
+pink_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+pink_sat_net.trainParam.epochs = 1000; % Set the maximum number of epochs
+pink_sat_net.trainParam.showWindow = true; % Turn off display progress dialog.
+pink_sat_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+pink_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
+pink_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
+pink_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
+%pink_sat_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
+%pink_sat_net.trainParam.mu = 10;
+
+
+%% Normaling the Target Data
+% Normalize the input data
+[inputs,ps1] = mapminmax(inputs); % Normalize inputs to the range [-1, 1]
+[hue_targets,ts1] = mapminmax(hue_targets); % Normalize targets to the range [-1, 1]
+[sat_targets,ts2] = mapminmax(sat_targets); % Normalize targets to the range [-1, 1]
+
+%% Now, train the networks with normalized data
+[pink_hue_net,tr1] = train(pink_hue_net,inputs,hue_targets);
+[pink_sat_net,tr2] = train(pink_sat_net,inputs,sat_targets);
+
+%% Use the Trained Model to Predict Data and Denormalize
+% Predict on a specific sample (e.g., the 5th sample)
+predicted_hue_Output_Normalized = pink_hue_net(inputs(:,5));
+predicted_hue_Output = mapminmax('reverse', predicted_hue_Output_Normalized, ts1); % Denormalize the hue prediction
+
+predicted_sat_Output_Normalized = pink_sat_net(inputs(:,5));
+predicted_sat_Output = mapminmax('reverse', predicted_sat_Output_Normalized, ts2); % Denormalize the sat prediction
+
+%% Verification
+% Denormalize the actual target for comparison
+actual_hue_target = mapminmax('reverse', hue_targets(5), ts1); % Denormalize the actual target
+actual_sat_target = mapminmax('reverse', sat_targets(5), ts2); % Denormalize the actual target
+
+% Display the denormalized predicted and actual values
+disp(['Predicted Hue: ', num2str(predicted_hue_Output)]);
+disp(['Actual Hue', num2str(actual_hue_target)]);
+
+% Display the denormalized predicted and actual values
+disp(['Predicted Saturation: ', num2str(predicted_sat_Output)]);
+disp(['Actual saturation: ', num2str(actual_sat_target)]);
+
+
+%% Identify Outliers in Predictions in Hue
+% Predict on the entire dataset
+allHuePredictionsNormalized = pink_hue_net(inputs);
+allHuePredictions = mapminmax('reverse', allHuePredictionsNormalized, ts1); % Denormalize
+
+% Calculate the error
+errors1 = hue_targets - allHuePredictionsNormalized; % Use normalized targets here for accurate error calculation
+
+% Define an outlier threshold (e.g., 2 standard deviations away from the mean error)
+errorMean1 = mean(errors1);
+errorStd1 = std(errors1);
+outlierThreshold = 3 * errorStd1;
+
+% Find outlier indices
+outlierIndices1 = find(abs(errors1 - errorMean1) > outlierThreshold);
+
+% Display outlier information
+disp('Hue Outliers:');
+for i = 1:length(outlierIndices1)
+    index = outlierIndices1(i);
+    disp(['  Sample Index: ', num2str(index), ', Error: ', num2str(errors1(index)), ', Predicted: ', num2str(allHuePredictions(index)), ', Actual: ', num2str(mapminmax('reverse', hue_targets(index), ts1))]);
+end
+
+
+%%  Identify Outliers in Predictions in Saturation
+allSatPredictionsNormalized = pink_sat_net(inputs);
+allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
+
+% Calculate the error
+errors2 = sat_targets - allSatPredictionsNormalized; % Use normalized targets here for accurate error calculation
+
+% Define an outlier threshold (e.g., 2 standard deviations away from the mean error)
+errorMean2 = mean(errors2);
+errorStd2 = std(errors2);
+outlierThreshold = 3 * errorStd2;
+
+% Find outlier indices
+outlierIndices2 = find(abs(errors2 - errorMean2) > outlierThreshold);
+
+% Display outlier information
+disp('Saturation Outliers:');
+for i = 1:length(outlierIndices2)
+    index = outlierIndices2(i);
+    disp(['  Sample Index: ', num2str(index), ', Error: ', num2str(errors2(index)), ', Predicted: ', num2str(allSatPredictions(index)), ', Actual: ', num2str(mapminmax('reverse', sat_targets(index), ts2))]);
+end
+
+%% Saving
+% Save the trained network
+%save('trainedNetwork.mat', 'pink_hue_net');
