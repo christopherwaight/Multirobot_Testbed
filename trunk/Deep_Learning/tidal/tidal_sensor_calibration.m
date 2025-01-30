@@ -7,7 +7,7 @@
 clc; clear all; close all;
 
 %% Read Data from the Calibration CSV
-data = readmatrix("pink_cal.csv");
+data = readmatrix("tidal_cal.csv");
 
 %% Assign Input Variables and Target Values
 rows_to_include = 20;
@@ -16,10 +16,10 @@ hue_targets = data(1:24*rows_to_include,1);
 sat_targets = data(1:24*rows_to_include,2);
 
 % Normalize data
-inputs(:,1) = (inputs(:,1)-171)/1718;
-inputs(:,2) = (inputs(:,2)-262)/2023;
-inputs(:,3) = (inputs(:,3)-253)/1713;
-inputs(:,4) = (inputs(:,4)-991)/5292;
+inputs(:,1) = (inputs(:,1)-104)/966;
+inputs(:,2) = (inputs(:,2)-180)/1183;
+inputs(:,3) = (inputs(:,3)-174)/1026;
+inputs(:,4) = (inputs(:,4)-688)/3021;
 inputs = max(min(inputs, 1), 0); 
 
 % Some feature Engineering
@@ -88,32 +88,32 @@ sat_targets = sat_targets';
 %% Create and Train the Deeper Feedforward Network
 %hiddenLayerSizes1 = [8 8 2]; % 2 Nueron Output
 %hiddenLayerSizes2 = [8 6 4 2 1]; % Define the number of neurons in each hidden layer for a deeper network
-hiddenLayerSizes1 =  [5 4 3 2]; % 2 Nueron Output
-hiddenLayerSizes2 = [6 5 4 1]; % Define the number of neurons in each hidden layer for a deeper network
+hiddenLayerSizes1 =  [6 4]; % 2 Nueron Output
+hiddenLayerSizes2 = [10 4]; % Define the number of neurons in each hidden layer for a deeper network
 
 
-pink_hue_net = feedforwardnet(hiddenLayerSizes1);
-pink_sat_net = feedforwardnet(hiddenLayerSizes2);
+tidal_hue_net = feedforwardnet(hiddenLayerSizes1);
+tidal_sat_net = feedforwardnet(hiddenLayerSizes2);
 
 % Customize training parameters of hue net
-pink_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-pink_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
-pink_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
-pink_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-pink_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
-pink_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
-pink_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
+tidal_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+tidal_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
+tidal_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
+tidal_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+tidal_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
+tidal_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
+tidal_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %pink_hue_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
 %pink_hue_net.trainParam.mu = 10;
 
 % Customize training parameters of sat net
-pink_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-pink_sat_net.trainParam.epochs = 4800; % Set the maximum number of epochs
-pink_sat_net.trainParam.showWindow = true; % Turn off display progress dialog.
-pink_sat_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-pink_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
-pink_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
-pink_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
+tidal_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+tidal_sat_net.trainParam.epochs = 4800; % Set the maximum number of epochs
+tidal_sat_net.trainParam.showWindow = true; % Turn off display progress dialog.
+tidal_sat_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+tidal_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
+tidal_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
+tidal_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %pink_sat_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
 %pink_sat_net.trainParam.mu = 10;
 
@@ -126,12 +126,12 @@ pink_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 [sat_targets,ts2] = mapminmax(sat_targets); % Normalize targets to the range [-1, 1]
 
 %% Now, train the networks with normalized data
-[pink_hue_net, tr1] = train(pink_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
-[pink_sat_net, tr2] = train(pink_sat_net, inputs, sat_targets);
+[tidal_hue_net, tr1] = train(tidal_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
+[tidal_sat_net, tr2] = train(tidal_sat_net, inputs, sat_targets);
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
-allHuePredictionsNormalized = pink_hue_net(inputs);
+allHuePredictionsNormalized = tidal_hue_net(inputs);
 allHuePredictions_sin = mapminmax('reverse', allHuePredictionsNormalized(1,:), ts1_sin);
 allHuePredictions_cos = mapminmax('reverse', allHuePredictionsNormalized(2,:), ts1_cos);
 
@@ -162,7 +162,7 @@ end
 count
 %%  Identify Outliers in Predictions in Saturation
 
-allSatPredictionsNormalized = pink_sat_net(inputs);
+allSatPredictionsNormalized = tidal_sat_net(inputs);
 allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
 
 % Denormalize sat_targets using the stored parameters (ts2)
@@ -189,7 +189,7 @@ for i = 1:length(outlierIndices2)
 end
 count2
 %% Saving Trained network
-save('pink_nets.mat', 'pink_hue_net', 'pink_sat_net');
+save('tidal_nets.mat', 'tidal_hue_net', 'tidal_sat_net');
 
 
 

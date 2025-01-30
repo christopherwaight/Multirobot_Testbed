@@ -4,7 +4,7 @@
 % Last update on Jan 29, 2025
 
 %% Load Relevant models and data
-clc; clear all; close all;
+clc; clear all;
 load("pink_nets.mat");  % Load the pink neural networks
 %% Read Data from the Calibration CSV
 data = readmatrix("pink_ver.csv");

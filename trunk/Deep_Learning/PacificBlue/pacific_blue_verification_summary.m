@@ -4,11 +4,10 @@
 % Last update on Jan 29, 2025
 
 %% Load Relevant models and data
-clc; clear all; close all;
-load("pink_hue_net.mat");  % Load the hue network
-load("pink_sat_net.mat");  % Load the saturation network
+clc; clear all;
+load("pacific_blue_nets.mat");  % Load the pink neural networks
 %% Read Data from the Calibration CSV
-data = readmatrix("pink_ver.csv");
+data = readmatrix("pacific_blue_ver.csv");
 
 %% Assign Input Variables and Target Values
 inputs = data(1:70,3:6);
@@ -49,7 +48,7 @@ sat_targets = sat_targets';
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
-allHuePredictionsNormalized = pink_hue_net(inputs);
+allHuePredictionsNormalized = pacific_blue_hue_net(inputs);
 allHuePredictions_sin = mapminmax('reverse', allHuePredictionsNormalized(1,:), ts1_sin);
 allHuePredictions_cos = mapminmax('reverse', allHuePredictionsNormalized(2,:), ts1_cos);
 
@@ -80,7 +79,7 @@ end
 count
 %%  Identify Outliers in Predictions in Saturation
 
-allSatPredictionsNormalized = pink_sat_net(inputs);
+allSatPredictionsNormalized = pacific_blue_sat_net(inputs);
 allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
 
 % Denormalize sat_targets using the stored parameters (ts2)
@@ -107,8 +106,42 @@ for i = 1:length(outlierIndices2)
 end
 count2
 %% Plotting Results
+
+% Create the figure
+figure;
+scatter(hue_targets, allHuePredictions, 'o'); % Scatter plot of actual vs. predicted
+hold on;
+
+% --- Add Line of Best Fit ---
+p = polyfit(hue_targets, allHuePredictions, 1);  % Fit a 1st-degree polynomial (line)
+f = polyval(p, hue_targets);          % Evaluate the polynomial at hue_targets
+plot(hue_targets, f, 'r-');            % Plot the line of best fit in red
+
+% --- Rest of the Plotting Code ---
+plot([0, 1], [0, 1], 'k--'); % Line for perfect prediction (black dashed)
 hold off;
-figure();
-scatter(hue_targets,allHuePredictions)
-figure();
-scatter(sat_targets,allSatPredictions)
+xlabel('Actual Hue');
+ylabel('Predicted Hue');
+title('Predicted vs. Actual Hue');
+legend('Predictions', 'Line of Best Fit', 'Perfect Prediction Line', 'Location', 'northwest');
+grid on;
+
+
+% Now for Saturation
+figure;
+scatter(sat_targets, allSatPredictions, 'o'); % Scatter plot of actual vs. predicted
+hold on;
+
+% --- Add Line of Best Fit ---
+p = polyfit(sat_targets, allSatPredictions, 1);  % Fit a 1st-degree polynomial (line)
+f = polyval(p, sat_targets);          % Evaluate the polynomial at hue_targets
+plot(sat_targets, f, 'r-');            % Plot the line of best fit in red
+
+% --- Rest of the Plotting Code ---
+plot([0.3, 1], [0.3, 1], 'k--'); % Line for perfect prediction (black dashed)
+hold off;
+xlabel('Actual Sat');
+ylabel('Predicted Sat');
+title('Predicted vs. Actual Saturation');
+legend('Predictions', 'Line of Best Fit', 'Perfect Prediction Line', 'Location', 'northwest');
+grid on;

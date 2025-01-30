@@ -7,19 +7,19 @@
 clc; clear all; close all;
 
 %% Read Data from the Calibration CSV
-data = readmatrix("pink_cal.csv");
+data = readmatrix("celeste_cal.csv");
 
 %% Assign Input Variables and Target Values
-rows_to_include = 18;
+rows_to_include = 20;
 inputs = data(1:24*rows_to_include,3:6);
 hue_targets = data(1:24*rows_to_include,1);
 sat_targets = data(1:24*rows_to_include,2);
 
 % Normalize data
-inputs(:,1) = (inputs(:,1)-171)/1718;
-inputs(:,2) = (inputs(:,2)-262)/2023;
-inputs(:,3) = (inputs(:,3)-253)/1713;
-inputs(:,4) = (inputs(:,4)-991)/5292;
+inputs(:,1) = (inputs(:,1)-141)/1006;
+inputs(:,2) = (inputs(:,2)-237)/1160;
+inputs(:,3) = (inputs(:,3)-241)/1073;
+inputs(:,4) = (inputs(:,4)-868)/3032;
 inputs = max(min(inputs, 1), 0); 
 
 % Some feature Engineering
@@ -29,8 +29,8 @@ inputs = max(min(inputs, 1), 0);
 
 
 %% Data Augmentation
-noiseLevelRGB = 0.0025;  % Adjust as needed
-numAugmentations = 6; % Number of augmented samples to generate per original sample
+noiseLevelRGB = 0.01;  % Adjust as needed
+numAugmentations = 3; % Number of augmented samples to generate per original sample
 
 augmentedInputs = [];
 augmentedHueTargets = [];
@@ -68,17 +68,6 @@ sat_targets = [sat_targets; augmentedSatTargets];
 hue_targets_sin = sin(2 * pi * hue_targets);
 hue_targets_cos = cos(2 * pi * hue_targets);
 
-%% Debugging Steps
-figure();
-plot(hue_targets);
-hold on;
-hue_target_verify =  atan2(hue_targets_sin, hue_targets_cos);
-hue_target_verify(hue_target_verify < 0) = hue_target_verify(hue_target_verify < 0) + 2 * pi;
-hue_target_verify = hue_target_verify / (2 * pi);
-plot(hue_target_verify, '--');
-
-
-
 %% Transpose the inputs to make NN compatible
 inputs = inputs';
 hue_targets_sin = hue_targets_sin';
@@ -88,8 +77,8 @@ sat_targets = sat_targets';
 %% Create and Train the Deeper Feedforward Network
 %hiddenLayerSizes1 = [8 8 2]; % 2 Nueron Output
 %hiddenLayerSizes2 = [8 6 4 2 1]; % Define the number of neurons in each hidden layer for a deeper network
-hiddenLayerSizes1 = [8 6 4 2]; % 2 Nueron Output
-hiddenLayerSizes2 = [8 7 4 1]; % Define the number of neurons in each hidden layer for a deeper network
+hiddenLayerSizes1 =  [5 4]; % 2 Nueron Output
+hiddenLayerSizes2 = [6 5]; % Define the number of neurons in each hidden layer for a deeper network
 
 
 pink_hue_net = feedforwardnet(hiddenLayerSizes1);
@@ -128,35 +117,6 @@ pink_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %% Now, train the networks with normalized data
 [pink_hue_net, tr1] = train(pink_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
 [pink_sat_net, tr2] = train(pink_sat_net, inputs, sat_targets);
-
-
-
-%% Verification - Use the Trained Model to Predict Data and Denormalize
-% % Predict on a sample
-% sample_index = 4517; 
-% predicted_hue_sin_cos_normalized = pink_hue_net(inputs(:, sample_index));  % Between -1 and +1
-% predicted_hue_sin_normalized = predicted_hue_sin_cos_normalized(1,:);
-% predicted_hue_cos_normalized = predicted_hue_sin_cos_normalized(2,:);
-% predicted_hue_sin = mapminmax('reverse', predicted_hue_sin_normalized, ts1_sin); % Brings it between -1 and 1
-% predicted_hue_cos = mapminmax('reverse', predicted_hue_cos_normalized, ts1_cos); % Brings it between -1 and 1
-% 
-% % Recover the hue angle using atan2
-% predicted_hue = atan2(predicted_hue_sin, predicted_hue_cos); % Result is between -pi and pi
-% predicted_hue(predicted_hue < 0) = predicted_hue(predicted_hue < 0) + 2 * pi;
-% predicted_hue = predicted_hue / (2 * pi);
-% 
-% predicted_sat_Output_Normalized = pink_sat_net(inputs(:, sample_index));
-% predicted_sat_Output = mapminmax('reverse', predicted_sat_Output_Normalized, ts2); % Denormalize the sat prediction
-% 
-% % Denormalize the actual target for comparison using original range
-% actual_hue_target = hue_targets(sample_index); 
-% actual_sat_target = sat_targets(sample_index);
-% 
-% % Display the denormalized predicted and actual values
-% disp(['Predicted Hue: ', num2str(predicted_hue)]);
-% disp(['Actual Hue: ', num2str(actual_hue_target)]);
-% disp(['Predicted Saturation: ', num2str(predicted_sat_Output)]);
-% disp(['Actual Saturation: ', num2str(actual_sat_target)]);
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
@@ -218,7 +178,6 @@ for i = 1:length(outlierIndices2)
 end
 count2
 %% Saving Trained network
-%% Saving the Networks
 save('pink_nets.mat', 'pink_hue_net', 'pink_sat_net');
 
 

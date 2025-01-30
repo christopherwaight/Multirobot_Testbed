@@ -3,17 +3,20 @@
 % Written by Christopher Waight
 % Last update on Jan 29, 2025
 
-%% Clearing the workspace
-clc; clear all; close all;
-
+%% Load Relevant models and data
+clc; clear all;
+load("tidal_nets.mat");  % Load the pink neural networks
 %% Read Data from the Calibration CSV
-data = readmatrix("pink_cal.csv");
+data = readmatrix("tidal_ver.csv");
 
 %% Assign Input Variables and Target Values
-rows_to_include = 20;
-inputs = data(1:24*rows_to_include,3:6);
-hue_targets = data(1:24*rows_to_include,1);
-sat_targets = data(1:24*rows_to_include,2);
+inputs = data(1:70,3:6);
+
+hue_targets = data(1:70,1);
+hue_targets_sin = sin(2 * pi * hue_targets);
+hue_targets_cos = cos(2 * pi * hue_targets);
+
+sat_targets = data(1:70,2);
 
 % Normalize data
 inputs(:,1) = (inputs(:,1)-171)/1718;
@@ -28,110 +31,24 @@ inputs(:,5:7) = hsv;
 inputs = max(min(inputs, 1), 0); 
 
 
-%% Data Augmentation
-noiseLevelRGB = 0.01;  % Adjust as needed
-numAugmentations = 3; % Number of augmented samples to generate per original sample
-
-augmentedInputs = [];
-augmentedHueTargets = [];
-augmentedSatTargets = [];
-
-for i = 1:size(inputs, 1)
-    for j = 1:numAugmentations
-        % 1. Add Gaussian noise to RGBK (first 4 features)
-        noisyInput = inputs(i, 1:4) + noiseLevelRGB * randn(1, 4);
-
-        % 2. Clip noisy RGBK to [0, 1]
-        noisyInput = max(0, min(1, noisyInput));
-
-
-        % 5. Add to augmented data
-        augmentedInputs = [augmentedInputs; noisyInput];
-        augmentedHueTargets = [augmentedHueTargets; hue_targets(i)]; % Hue target remains the same
-        augmentedSatTargets = [augmentedSatTargets; sat_targets(i)];
-    end
-end
-
-
-% Add HSV to augmented data
-hsv_augmented = rgb2hsv(augmentedInputs(:, 1:3));
-augmentedInputs = [augmentedInputs, hsv_augmented];
-
-inputs = [inputs; augmentedInputs];
-hue_targets = [hue_targets; augmentedHueTargets];
-
-sat_targets = [sat_targets; augmentedSatTargets];
-
-
-
-%% Decomposing Hue into a 2 neuron output
-hue_targets_sin = sin(2 * pi * hue_targets);
-hue_targets_cos = cos(2 * pi * hue_targets);
-
-%% Debugging Steps
-figure();
-plot(hue_targets);
-hold on;
-hue_target_verify =  atan2(hue_targets_sin, hue_targets_cos);
-hue_target_verify(hue_target_verify < 0) = hue_target_verify(hue_target_verify < 0) + 2 * pi;
-hue_target_verify = hue_target_verify / (2 * pi);
-plot(hue_target_verify, '--');
-
-
-
 %% Transpose the inputs to make NN compatible
 inputs = inputs';
 hue_targets_sin = hue_targets_sin';
 hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
-%% Create and Train the Deeper Feedforward Network
-%hiddenLayerSizes1 = [8 8 2]; % 2 Nueron Output
-%hiddenLayerSizes2 = [8 6 4 2 1]; % Define the number of neurons in each hidden layer for a deeper network
-hiddenLayerSizes1 =  [5 4 3 2]; % 2 Nueron Output
-hiddenLayerSizes2 = [6 5 4 1]; % Define the number of neurons in each hidden layer for a deeper network
-
-
-pink_hue_net = feedforwardnet(hiddenLayerSizes1);
-pink_sat_net = feedforwardnet(hiddenLayerSizes2);
-
-% Customize training parameters of hue net
-pink_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-pink_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
-pink_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
-pink_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-pink_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
-pink_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
-pink_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
-%pink_hue_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
-%pink_hue_net.trainParam.mu = 10;
-
-% Customize training parameters of sat net
-pink_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-pink_sat_net.trainParam.epochs = 4800; % Set the maximum number of epochs
-pink_sat_net.trainParam.showWindow = true; % Turn off display progress dialog.
-pink_sat_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-pink_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
-pink_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
-pink_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
-%pink_sat_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
-%pink_sat_net.trainParam.mu = 10;
-
-
-%% Normaling the Target Data
+%% Normaling the Target Data between [-1 amd 1]
 % Normalize the input data
 [inputs,ps1] = mapminmax(inputs); % Normalize inputs to the range [-1, 1]
 [hue_targets_sin, ts1_sin] = mapminmax(hue_targets_sin);
 [hue_targets_cos, ts1_cos] = mapminmax(hue_targets_cos);
 [sat_targets,ts2] = mapminmax(sat_targets); % Normalize targets to the range [-1, 1]
 
-%% Now, train the networks with normalized data
-[pink_hue_net, tr1] = train(pink_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
-[pink_sat_net, tr2] = train(pink_sat_net, inputs, sat_targets);
+
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
-allHuePredictionsNormalized = pink_hue_net(inputs);
+allHuePredictionsNormalized = tidal_hue_net(inputs);
 allHuePredictions_sin = mapminmax('reverse', allHuePredictionsNormalized(1,:), ts1_sin);
 allHuePredictions_cos = mapminmax('reverse', allHuePredictionsNormalized(2,:), ts1_cos);
 
@@ -162,7 +79,7 @@ end
 count
 %%  Identify Outliers in Predictions in Saturation
 
-allSatPredictionsNormalized = pink_sat_net(inputs);
+allSatPredictionsNormalized = tidal_sat_net(inputs);
 allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
 
 % Denormalize sat_targets using the stored parameters (ts2)
@@ -174,7 +91,7 @@ errors2 = allSatPredictions - sat_targets; %error
 % Define an outlier threshold (e.g., 3 standard deviations away from the mean error)
 errorMean2 = mean(errors2);
 errorStd2 = std(errors2);
-outlierThreshold2 = 4 * errorStd2;
+outlierThreshold2 = 3 * errorStd2;
 
 % Find outlier indices
 outlierIndices2 = find(abs(errors2) > outlierThreshold2);
@@ -188,11 +105,6 @@ for i = 1:length(outlierIndices2)
     count2 = count2+1;
 end
 count2
-%% Saving Trained network
-save('pink_nets.mat', 'pink_hue_net', 'pink_sat_net');
-
-
-
 %% Plotting Results
 
 % Create the figure
