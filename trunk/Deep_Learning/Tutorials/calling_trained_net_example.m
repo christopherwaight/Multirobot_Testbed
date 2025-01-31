@@ -3,9 +3,7 @@
 % Save the trained network
 save('trainedNetwork.mat', 'net');
 
-% Load the network(s) back into Matlab
-load('trainedNetwork.mat')
-disp('Networks loaded into base workspace!');
+
 
 
 % Then in a simulink block, make this function
