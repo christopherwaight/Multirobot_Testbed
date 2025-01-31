@@ -75,25 +75,22 @@ hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
 %% Create and Train the Deeper Feedforward Network
-%hiddenLayerSizes1 = [8 8 2]; % 2 Nueron Output
-%hiddenLayerSizes2 = [8 6 4 2 1]; % Define the number of neurons in each hidden layer for a deeper network
-hiddenLayerSizes1 =  [5 3]; % 2 Nueron Output
-hiddenLayerSizes2 = [6 5]; % Define the number of neurons in each hidden layer for a deeper network
+hiddenLayerSizes1 =  [5 4]; % 2 Nueron Output
+hiddenLayerSizes2 = [6 4 2]; % Define the number of neurons in each hidden layer for a deeper network
 
 
-pacfic_blue_hue_net = feedforwardnet(hiddenLayerSizes1);
+pacific_blue_hue_net = feedforwardnet(hiddenLayerSizes1);
 pacific_blue_sat_net = feedforwardnet(hiddenLayerSizes2);
 
 % Customize training parameters of hue net
-pacfic_blue_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-pacfic_blue_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
-pacfic_blue_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
-pacfic_blue_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-pacfic_blue_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
-pacfic_blue_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
-pacfic_blue_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
-%pink_hue_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
-%pink_hue_net.trainParam.mu = 10;
+pacific_blue_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+pacific_blue_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
+pacific_blue_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
+pacific_blue_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+pacific_blue_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
+pacific_blue_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
+pacific_blue_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
+
 
 % Customize training parameters of sat net
 pacific_blue_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
@@ -103,26 +100,24 @@ pacific_blue_sat_net.divideFcn = 'dividerand'; % Randomly divide data into train
 pacific_blue_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
 pacific_blue_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
 pacific_blue_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
-%pink_sat_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
-%pink_sat_net.trainParam.mu = 10;
 
 
-%% Normaling the Target Data
-% Normalize the input data
-[inputs,ps1] = mapminmax(inputs); % Normalize inputs to the range [-1, 1]
-[hue_targets_sin, ts1_sin] = mapminmax(hue_targets_sin);
-[hue_targets_cos, ts1_cos] = mapminmax(hue_targets_cos);
-[sat_targets,ts2] = mapminmax(sat_targets); % Normalize targets to the range [-1, 1]
+
+%% Normaling the Target Data to the range [-1, 1]
+inputs = (inputs*2) -1;
+hue_targets_sin = (hue_targets_sin*2) -1;
+hue_targets_cos = (hue_targets_cos*2) -1;
+sat_targets = (sat_targets*2) -1;
 
 %% Now, train the networks with normalized data
-[pacfic_blue_hue_net, tr1] = train(pacfic_blue_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
+[pacific_blue_hue_net, tr1] = train(pacific_blue_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
 [pacific_blue_sat_net, tr2] = train(pacific_blue_sat_net, inputs, sat_targets);
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
-allHuePredictionsNormalized = pacfic_blue_hue_net(inputs);
-allHuePredictions_sin = mapminmax('reverse', allHuePredictionsNormalized(1,:), ts1_sin);
-allHuePredictions_cos = mapminmax('reverse', allHuePredictionsNormalized(2,:), ts1_cos);
+allHuePredictionsNormalized = pacific_blue_hue_net(inputs);
+allHuePredictions_sin =(allHuePredictionsNormalized(1,:)+1)/2;
+allHuePredictions_cos = (allHuePredictionsNormalized(2,:)+1)/2;
 
 % Bringing back into a single value from 0 to 1
 allHuePredictions = atan2(allHuePredictions_sin, allHuePredictions_cos);
@@ -152,10 +147,10 @@ count
 %%  Identify Outliers in Predictions in Saturation
 
 allSatPredictionsNormalized = pacific_blue_sat_net(inputs);
-allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
+allSatPredictions = (allSatPredictionsNormalized+1)/2;
 
 % Denormalize sat_targets using the stored parameters (ts2)
-sat_targets = mapminmax('reverse', sat_targets, ts2);
+sat_targets = (sat_targets+1)/2;
 
 % Calculate the error
 errors2 = allSatPredictions - sat_targets; %error
@@ -178,7 +173,7 @@ for i = 1:length(outlierIndices2)
 end
 count2
 %% Saving Trained network
-save(['pacific_blue_nets.mat'], 'pacfic_blue_hue_net', 'pacific_blue_sat_net');
+save(['pacific_blue_nets.mat'], 'pacific_blue_hue_net', 'pacific_blue_sat_net');
 
 %% Plotting Results
 
