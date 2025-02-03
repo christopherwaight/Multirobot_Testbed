@@ -3,13 +3,12 @@
 % Written by Christopher Waight
 % Last update on Jan 29, 2025
 
-%% Load Relevant models and data
+%% Load Relevant models and data for Verification
 clc; clear all;
 load("celeste_nets.mat");  % Load the pink neural networks
-%% Read Data from the Calibration CSV
+
 data = readmatrix("celeste_ver.csv");
 
-%% Assign Input Variables and Target Values
 inputs = data(1:70,3:6);
 
 hue_targets = data(1:70,1);
@@ -18,7 +17,20 @@ hue_targets_cos = cos(2 * pi * hue_targets);
 
 sat_targets = data(1:70,2);
 
-% Normalize data
+
+%% Read Data from the Calibration CSV
+% 
+% clc; clear all;
+% load("celeste_nets.mat");  % Load the pink neural networks
+% data = readmatrix("celeste_cal.csv");
+% rows_to_include = 20;
+% inputs = data(1:24*rows_to_include,3:6);
+% hue_targets = data(1:24*rows_to_include,1);
+% sat_targets = data(1:24*rows_to_include,2);
+% hue_targets_sin = sin(2 * pi * hue_targets);
+% hue_targets_cos = cos(2 * pi * hue_targets);
+
+%% Normalize data
 inputs(:,1) = (inputs(:,1)-171)/1718;
 inputs(:,2) = (inputs(:,2)-262)/2023;
 inputs(:,3) = (inputs(:,3)-253)/1713;
