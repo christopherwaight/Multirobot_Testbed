@@ -10,19 +10,20 @@ load("pacific_blue_nets.mat");  % Load the pink neural networks
 data = readmatrix("pacific_blue_ver.csv");
 
 %% Assign Input Variables and Target Values
-inputs = data(1:70,3:6);
+total_squares = 80;
+inputs = data(1:total_squares,3:6);
 
-hue_targets = data(1:70,1);
+hue_targets = data(1:total_squares,1);
 hue_targets_sin = sin(2 * pi * hue_targets);
 hue_targets_cos = cos(2 * pi * hue_targets);
 
-sat_targets = data(1:70,2);
+sat_targets = data(1:total_squares,2);
 
 % Normalize data
-inputs(:,1) = (inputs(:,1)-171)/1718;
-inputs(:,2) = (inputs(:,2)-262)/2023;
-inputs(:,3) = (inputs(:,3)-253)/1713;
-inputs(:,4) = (inputs(:,4)-991)/5292;
+inputs(:,1) = (inputs(:,1)-127)/1012;
+inputs(:,2) = (inputs(:,2)-218)/1121;
+inputs(:,3) = (inputs(:,3)-219)/971;
+inputs(:,4) = (inputs(:,4)-842)/2824;
 inputs = max(min(inputs, 1), 0); 
 
 % Some feature Engineering

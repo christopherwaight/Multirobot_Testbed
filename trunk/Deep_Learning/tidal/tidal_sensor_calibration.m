@@ -89,7 +89,7 @@ sat_targets = sat_targets';
 %hiddenLayerSizes1 = [8 8 2]; % 2 Nueron Output
 %hiddenLayerSizes2 = [8 6 4 2 1]; % Define the number of neurons in each hidden layer for a deeper network
 hiddenLayerSizes1 =  [6 4]; % 2 Nueron Output
-hiddenLayerSizes2 = [10 4]; % Define the number of neurons in each hidden layer for a deeper network
+hiddenLayerSizes2 = [10 10 10]; % Define the number of neurons in each hidden layer for a deeper network
 
 
 tidal_hue_net = feedforwardnet(hiddenLayerSizes1);
@@ -118,12 +118,12 @@ tidal_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %pink_sat_net.trainParam.mu = 10;
 
 
-%% Normaling the Target Data
-% Normalize the input data
-[inputs,ps1] = mapminmax(inputs); % Normalize inputs to the range [-1, 1]
-[hue_targets_sin, ts1_sin] = mapminmax(hue_targets_sin);
-[hue_targets_cos, ts1_cos] = mapminmax(hue_targets_cos);
-[sat_targets,ts2] = mapminmax(sat_targets); % Normalize targets to the range [-1, 1]
+%% Normaling the Target Data to the range [-1, 1]
+inputs = (inputs*2) -1;
+hue_targets_sin = (hue_targets_sin*2) -1;
+hue_targets_cos = (hue_targets_cos*2) -1;
+sat_targets = (sat_targets*2) -1;
+
 
 %% Now, train the networks with normalized data
 [tidal_hue_net, tr1] = train(tidal_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
@@ -132,8 +132,8 @@ tidal_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
 allHuePredictionsNormalized = tidal_hue_net(inputs);
-allHuePredictions_sin = mapminmax('reverse', allHuePredictionsNormalized(1,:), ts1_sin);
-allHuePredictions_cos = mapminmax('reverse', allHuePredictionsNormalized(2,:), ts1_cos);
+allHuePredictions_sin =(allHuePredictionsNormalized(1,:)+1)/2;
+allHuePredictions_cos = (allHuePredictionsNormalized(2,:)+1)/2;
 
 % Bringing back into a single value from 0 to 1
 allHuePredictions = atan2(allHuePredictions_sin, allHuePredictions_cos);
@@ -163,10 +163,10 @@ count
 %%  Identify Outliers in Predictions in Saturation
 
 allSatPredictionsNormalized = tidal_sat_net(inputs);
-allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
+allSatPredictions = (allSatPredictionsNormalized+1)/2;
 
 % Denormalize sat_targets using the stored parameters (ts2)
-sat_targets = mapminmax('reverse', sat_targets, ts2);
+sat_targets = (sat_targets+1)/2;
 
 % Calculate the error
 errors2 = allSatPredictions - sat_targets; %error

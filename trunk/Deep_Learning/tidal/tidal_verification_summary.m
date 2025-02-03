@@ -19,10 +19,10 @@ hue_targets_cos = cos(2 * pi * hue_targets);
 sat_targets = data(1:70,2);
 
 % Normalize data
-inputs(:,1) = (inputs(:,1)-171)/1718;
-inputs(:,2) = (inputs(:,2)-262)/2023;
-inputs(:,3) = (inputs(:,3)-253)/1713;
-inputs(:,4) = (inputs(:,4)-991)/5292;
+inputs(:,1) = (inputs(:,1)-104)/966;
+inputs(:,2) = (inputs(:,2)-180)/1183;
+inputs(:,3) = (inputs(:,3)-174)/1026;
+inputs(:,4) = (inputs(:,4)-688)/3021;
 inputs = max(min(inputs, 1), 0); 
 
 % Some feature Engineering
@@ -38,19 +38,18 @@ hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
 %% Normaling the Target Data between [-1 amd 1]
-% Normalize the input data
-[inputs,ps1] = mapminmax(inputs); % Normalize inputs to the range [-1, 1]
-[hue_targets_sin, ts1_sin] = mapminmax(hue_targets_sin);
-[hue_targets_cos, ts1_cos] = mapminmax(hue_targets_cos);
-[sat_targets,ts2] = mapminmax(sat_targets); % Normalize targets to the range [-1, 1]
+inputs = (inputs*2) -1;
+hue_targets_sin = (hue_targets_sin*2) -1;
+hue_targets_cos = (hue_targets_cos*2) -1;
+sat_targets = (sat_targets*2) -1;
 
 
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
 allHuePredictionsNormalized = tidal_hue_net(inputs);
-allHuePredictions_sin = mapminmax('reverse', allHuePredictionsNormalized(1,:), ts1_sin);
-allHuePredictions_cos = mapminmax('reverse', allHuePredictionsNormalized(2,:), ts1_cos);
+allHuePredictions_sin =(allHuePredictionsNormalized(1,:)+1)/2;
+allHuePredictions_cos = (allHuePredictionsNormalized(2,:)+1)/2;
 
 % Bringing back into a single value from 0 to 1
 allHuePredictions = atan2(allHuePredictions_sin, allHuePredictions_cos);
@@ -80,10 +79,9 @@ count
 %%  Identify Outliers in Predictions in Saturation
 
 allSatPredictionsNormalized = tidal_sat_net(inputs);
-allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
+allSatPredictions = (allSatPredictionsNormalized+1)/2;
+sat_targets = (sat_targets+1)/2;
 
-% Denormalize sat_targets using the stored parameters (ts2)
-sat_targets = mapminmax('reverse', sat_targets, ts2);
 
 % Calculate the error
 errors2 = allSatPredictions - sat_targets; %error

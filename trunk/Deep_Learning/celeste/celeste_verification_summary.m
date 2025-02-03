@@ -18,23 +18,11 @@ hue_targets_cos = cos(2 * pi * hue_targets);
 sat_targets = data(1:70,2);
 
 
-%% Read Data from the Calibration CSV
-% 
-% clc; clear all;
-% load("celeste_nets.mat");  % Load the pink neural networks
-% data = readmatrix("celeste_cal.csv");
-% rows_to_include = 20;
-% inputs = data(1:24*rows_to_include,3:6);
-% hue_targets = data(1:24*rows_to_include,1);
-% sat_targets = data(1:24*rows_to_include,2);
-% hue_targets_sin = sin(2 * pi * hue_targets);
-% hue_targets_cos = cos(2 * pi * hue_targets);
-
 %% Normalize data
-inputs(:,1) = (inputs(:,1)-171)/1718;
-inputs(:,2) = (inputs(:,2)-262)/2023;
-inputs(:,3) = (inputs(:,3)-253)/1713;
-inputs(:,4) = (inputs(:,4)-991)/5292;
+inputs(:,1) = (inputs(:,1)-141)/1006;
+inputs(:,2) = (inputs(:,2)-237)/1160;
+inputs(:,3) = (inputs(:,3)-241)/1073;
+inputs(:,4) = (inputs(:,4)-868)/3032;
 inputs = max(min(inputs, 1), 0); 
 
 % Some feature Engineering
@@ -51,18 +39,18 @@ sat_targets = sat_targets';
 
 %% Normaling the Target Data between [-1 amd 1]
 % Normalize the input data
-[inputs,ps1] = mapminmax(inputs); % Normalize inputs to the range [-1, 1]
-[hue_targets_sin, ts1_sin] = mapminmax(hue_targets_sin);
-[hue_targets_cos, ts1_cos] = mapminmax(hue_targets_cos);
-[sat_targets,ts2] = mapminmax(sat_targets); % Normalize targets to the range [-1, 1]
+inputs = (inputs*2) -1;
+hue_targets_sin = (hue_targets_sin*2) -1;
+hue_targets_cos = (hue_targets_cos*2) -1;
+sat_targets = (sat_targets*2) -1;
 
 
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
 allHuePredictionsNormalized = celeste_hue_net(inputs);
-allHuePredictions_sin = mapminmax('reverse', allHuePredictionsNormalized(1,:), ts1_sin);
-allHuePredictions_cos = mapminmax('reverse', allHuePredictionsNormalized(2,:), ts1_cos);
+allHuePredictions_sin =(allHuePredictionsNormalized(1,:)+1)/2;
+allHuePredictions_cos = (allHuePredictionsNormalized(2,:)+1)/2;
 
 % Bringing back into a single value from 0 to 1
 allHuePredictions = atan2(allHuePredictions_sin, allHuePredictions_cos);
@@ -92,10 +80,9 @@ count
 %%  Identify Outliers in Predictions in Saturation
 
 allSatPredictionsNormalized = celeste_sat_net(inputs);
-allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
+allSatPredictions = (allSatPredictionsNormalized+1)/2;
+sat_targets = (sat_targets+1)/2;
 
-% Denormalize sat_targets using the stored parameters (ts2)
-sat_targets = mapminmax('reverse', sat_targets, ts2);
 
 % Calculate the error
 errors2 = allSatPredictions - sat_targets; %error

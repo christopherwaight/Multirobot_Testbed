@@ -75,54 +75,52 @@ hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
 %% Create and Train the Deeper Feedforward Network
-%hiddenLayerSizes1 = [8 8 2]; % 2 Nueron Output
-%hiddenLayerSizes2 = [8 6 4 2 1]; % Define the number of neurons in each hidden layer for a deeper network
-hiddenLayerSizes1 =  [5 4]; % 2 Nueron Output
+hiddenLayerSizes1 =  [10 4]; % 2 Nueron Output
 hiddenLayerSizes2 = [6 5]; % Define the number of neurons in each hidden layer for a deeper network
 
 
-pink_hue_net = feedforwardnet(hiddenLayerSizes1);
-pink_sat_net = feedforwardnet(hiddenLayerSizes2);
+celeste_hue_net = feedforwardnet(hiddenLayerSizes1);
+celeste_sat_net = feedforwardnet(hiddenLayerSizes2);
 
 % Customize training parameters of hue net
-pink_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-pink_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
-pink_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
-pink_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-pink_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
-pink_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
-pink_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
+celeste_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+celeste_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
+celeste_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
+celeste_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+celeste_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
+celeste_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
+celeste_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %pink_hue_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
 %pink_hue_net.trainParam.mu = 10;
 
 % Customize training parameters of sat net
-pink_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-pink_sat_net.trainParam.epochs = 4800; % Set the maximum number of epochs
-pink_sat_net.trainParam.showWindow = true; % Turn off display progress dialog.
-pink_sat_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-pink_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
-pink_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
-pink_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
+celeste_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+celeste_sat_net.trainParam.epochs = 4800; % Set the maximum number of epochs
+celeste_sat_net.trainParam.showWindow = true; % Turn off display progress dialog.
+celeste_sat_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+celeste_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
+celeste_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
+celeste_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %pink_sat_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
 %pink_sat_net.trainParam.mu = 10;
 
 
-%% Normaling the Target Data
-% Normalize the input data
-[inputs,ps1] = mapminmax(inputs); % Normalize inputs to the range [-1, 1]
-[hue_targets_sin, ts1_sin] = mapminmax(hue_targets_sin);
-[hue_targets_cos, ts1_cos] = mapminmax(hue_targets_cos);
-[sat_targets,ts2] = mapminmax(sat_targets); % Normalize targets to the range [-1, 1]
+%% Normaling the Target Data to the range [-1, 1]
+inputs = (inputs*2) -1;
+hue_targets_sin = (hue_targets_sin*2) -1;
+hue_targets_cos = (hue_targets_cos*2) -1;
+sat_targets = (sat_targets*2) -1;
+
 
 %% Now, train the networks with normalized data
-[pink_hue_net, tr1] = train(pink_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
-[pink_sat_net, tr2] = train(pink_sat_net, inputs, sat_targets);
+[celeste_hue_net, tr1] = train(celeste_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
+[celeste_sat_net, tr2] = train(celeste_sat_net, inputs, sat_targets);
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
-allHuePredictionsNormalized = pink_hue_net(inputs);
-allHuePredictions_sin = mapminmax('reverse', allHuePredictionsNormalized(1,:), ts1_sin);
-allHuePredictions_cos = mapminmax('reverse', allHuePredictionsNormalized(2,:), ts1_cos);
+allHuePredictionsNormalized = celeste_hue_net(inputs);
+allHuePredictions_sin =(allHuePredictionsNormalized(1,:)+1)/2;
+allHuePredictions_cos = (allHuePredictionsNormalized(2,:)+1)/2;
 
 % Bringing back into a single value from 0 to 1
 allHuePredictions = atan2(allHuePredictions_sin, allHuePredictions_cos);
@@ -151,11 +149,11 @@ end
 count
 %%  Identify Outliers in Predictions in Saturation
 
-allSatPredictionsNormalized = pink_sat_net(inputs);
-allSatPredictions = mapminmax('reverse', allSatPredictionsNormalized, ts2); % Denormalize
+allSatPredictionsNormalized = celeste_sat_net(inputs);
+allSatPredictions = (allSatPredictionsNormalized+1)/2;
 
 % Denormalize sat_targets using the stored parameters (ts2)
-sat_targets = mapminmax('reverse', sat_targets, ts2);
+sat_targets = (sat_targets+1)/2;
 
 % Calculate the error
 errors2 = allSatPredictions - sat_targets; %error
@@ -178,7 +176,7 @@ for i = 1:length(outlierIndices2)
 end
 count2
 %% Saving Trained network
-save('pink_nets.mat', 'pink_hue_net', 'pink_sat_net');
+save('celeste_nets.mat', 'celeste_hue_net', 'celeste_sat_net');
 
 
 
