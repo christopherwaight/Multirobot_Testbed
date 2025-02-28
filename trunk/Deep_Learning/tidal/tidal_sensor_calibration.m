@@ -69,13 +69,13 @@ hue_targets_sin = sin(2 * pi * hue_targets);
 hue_targets_cos = cos(2 * pi * hue_targets);
 
 %% Debugging Steps
-figure();
-plot(hue_targets);
-hold on;
-hue_target_verify =  atan2(hue_targets_sin, hue_targets_cos);
-hue_target_verify(hue_target_verify < 0) = hue_target_verify(hue_target_verify < 0) + 2 * pi;
-hue_target_verify = hue_target_verify / (2 * pi);
-plot(hue_target_verify, '--');
+% figure();
+% plot(hue_targets);
+% hold on;
+% hue_target_verify =  atan2(hue_targets_sin, hue_targets_cos);
+% hue_target_verify(hue_target_verify < 0) = hue_target_verify(hue_target_verify < 0) + 2 * pi;
+% hue_target_verify = hue_target_verify / (2 * pi);
+% plot(hue_target_verify, '--');
 
 
 
@@ -85,11 +85,17 @@ hue_targets_sin = hue_targets_sin';
 hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
+%% Normaling the Target Data to the range [-1, 1]
+inputs = (inputs*2) -1;
+hue_targets_sin = (hue_targets_sin*2) -1;
+hue_targets_cos = (hue_targets_cos*2) -1;
+sat_targets = (sat_targets*2) -1;
+
+
 %% Create and Train the Deeper Feedforward Network
-%hiddenLayerSizes1 = [8 8 2]; % 2 Nueron Output
-%hiddenLayerSizes2 = [8 6 4 2 1]; % Define the number of neurons in each hidden layer for a deeper network
-hiddenLayerSizes1 =  [6 4]; % 2 Nueron Output
-hiddenLayerSizes2 = [10 10 10]; % Define the number of neurons in each hidden layer for a deeper network
+
+hiddenLayerSizes1 =  [7 7]; % 2 Nueron Output
+hiddenLayerSizes2 = [7 4]; % Define the number of neurons in each hidden layer for a deeper network
 
 
 tidal_hue_net = feedforwardnet(hiddenLayerSizes1);
@@ -118,16 +124,14 @@ tidal_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %pink_sat_net.trainParam.mu = 10;
 
 
-%% Normaling the Target Data to the range [-1, 1]
-inputs = (inputs*2) -1;
-hue_targets_sin = (hue_targets_sin*2) -1;
-hue_targets_cos = (hue_targets_cos*2) -1;
-sat_targets = (sat_targets*2) -1;
-
 
 %% Now, train the networks with normalized data
 [tidal_hue_net, tr1] = train(tidal_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
 [tidal_sat_net, tr2] = train(tidal_sat_net, inputs, sat_targets);
+
+%% Saving Trained network
+save('tidal_nets.mat', 'tidal_hue_net', 'tidal_sat_net');
+
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
@@ -188,8 +192,6 @@ for i = 1:length(outlierIndices2)
     count2 = count2+1;
 end
 count2
-%% Saving Trained network
-save('tidal_nets.mat', 'tidal_hue_net', 'tidal_sat_net');
 
 
 

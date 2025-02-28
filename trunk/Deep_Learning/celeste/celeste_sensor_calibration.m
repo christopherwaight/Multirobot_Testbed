@@ -74,8 +74,14 @@ hue_targets_sin = hue_targets_sin';
 hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
+%% Normaling the Target Data to the range [-1, 1]
+inputs = (inputs*2) -1;
+hue_targets_sin = (hue_targets_sin*2) -1;
+hue_targets_cos = (hue_targets_cos*2) -1;
+sat_targets = (sat_targets*2) -1;
+
 %% Create and Train the Deeper Feedforward Network
-hiddenLayerSizes1 =  [10 4]; % 2 Nueron Output
+hiddenLayerSizes1 =  [6 4]; % 2 Nueron Output
 hiddenLayerSizes2 = [6 5]; % Define the number of neurons in each hidden layer for a deeper network
 
 
@@ -105,11 +111,7 @@ celeste_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 %pink_sat_net.trainParam.mu = 10;
 
 
-%% Normaling the Target Data to the range [-1, 1]
-inputs = (inputs*2) -1;
-hue_targets_sin = (hue_targets_sin*2) -1;
-hue_targets_cos = (hue_targets_cos*2) -1;
-sat_targets = (sat_targets*2) -1;
+
 
 
 %% Now, train the networks with normalized data
