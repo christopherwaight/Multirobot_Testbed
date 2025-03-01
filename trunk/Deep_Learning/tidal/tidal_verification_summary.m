@@ -6,17 +6,20 @@
 %% Load Relevant models and data
 clc; clear all;
 load("tidal_nets.mat");  % Load the pink neural networks
+
+
 %% Read Data from the Calibration CSV
 data = readmatrix("tidal_ver.csv");
 
 %% Assign Input Variables and Target Values
-inputs = data(1:70,3:6);
+total_squares = 80;
+inputs = data(1:total_squares,3:6);
 
-hue_targets = data(1:70,1);
+hue_targets = data(1:total_squares,1);
 hue_targets_sin = sin(2 * pi * hue_targets);
 hue_targets_cos = cos(2 * pi * hue_targets);
 
-sat_targets = data(1:70,2);
+sat_targets = data(1:total_squares,2);
 
 % Normalize data
 inputs(:,1) = (inputs(:,1)-104)/966;
@@ -24,6 +27,7 @@ inputs(:,2) = (inputs(:,2)-180)/1183;
 inputs(:,3) = (inputs(:,3)-174)/1026;
 inputs(:,4) = (inputs(:,4)-688)/3021;
 inputs = max(min(inputs, 1), 0); 
+
 
 % Some feature Engineering
 hsv = rgb2hsv(inputs(:,1:3));
@@ -37,17 +41,21 @@ hue_targets_sin = hue_targets_sin';
 hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
-%% Normaling the Target Data between [-1 amd 1]
+%% Normaling the Target Data to the range [-1, 1]
 inputs = (inputs*2) -1;
 hue_targets_sin = (hue_targets_sin*2) -1;
 hue_targets_cos = (hue_targets_cos*2) -1;
 sat_targets = (sat_targets*2) -1;
 
+% Add this before calling the network
+disp(['Size of inputs: ', num2str(size(inputs))]);
 
+% Then check the expected size of the network's input
+disp(['Expected input size: ', num2str(tidal_sat_net.inputs{1}.size)]);
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
-allHuePredictionsNormalized = tidal_hue_net(inputs);
+allHuePredictionsNormalized =tidal_hue_net(inputs);
 allHuePredictions_sin =(allHuePredictionsNormalized(1,:)+1)/2;
 allHuePredictions_cos = (allHuePredictionsNormalized(2,:)+1)/2;
 
@@ -78,11 +86,11 @@ end
 count
 %%  Identify Outliers in Predictions in Saturation
 
+% UnNormalizing
 allSatPredictionsNormalized = tidal_sat_net(inputs);
 allSatPredictions = (allSatPredictionsNormalized+1)/2;
 sat_targets = (sat_targets+1)/2;
-
-
+allSatPredictions(allSatPredictions>1)=1;
 % Calculate the error
 errors2 = allSatPredictions - sat_targets; %error
 

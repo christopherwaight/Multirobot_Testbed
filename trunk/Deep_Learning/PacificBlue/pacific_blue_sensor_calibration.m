@@ -75,8 +75,8 @@ hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
 %% Create and Train the Deeper Feedforward Network
-hiddenLayerSizes1 =  [4 3]; % 2 Nueron Output
-hiddenLayerSizes2 = [20 10]; % Define the number of neurons in each hidden layer for a deeper network
+hiddenLayerSizes1 =  [3 3]; % 2 Nueron Output
+hiddenLayerSizes2 = [7 5]; % Define the number of neurons in each hidden layer for a deeper network
 
 
 pacific_blue_hue_net = feedforwardnet(hiddenLayerSizes1);
