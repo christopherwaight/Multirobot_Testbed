@@ -3,8 +3,7 @@
 % Written by Christopher Waight
 % Last update on Jan 29, 2025
 
-%% Clearing the workspace
-clc; clear all; close all;
+
 
 %% Read Data from the Calibration CSV
 data1 = readmatrix("celeste_cal.csv");
@@ -18,10 +17,10 @@ inputs = [data1(1:24*rows_to_include,3:6);data2(1:24*rows_to_include,3:6);data3(
 hue_targets = [data1(1:24*rows_to_include,1);data2(1:24*rows_to_include,1);data3(1:24*rows_to_include,1)];
 sat_targets = [data1(1:24*rows_to_include,2);data2(1:24*rows_to_include,2);data3(1:24*rows_to_include,2)];
 
-% Normalize data
-inputs(:,1) = (inputs(:,1)-100)/1400;
-inputs(:,2) = (inputs(:,2)-100)/1400;
-inputs(:,3) = (inputs(:,3)-100)/1400;
+%% Normalize data
+inputs(:,1) = (inputs(:,1)-100)/1500;
+inputs(:,2) = (inputs(:,2)-100)/1500;
+inputs(:,3) = (inputs(:,3)-100)/1500;
 inputs(:,4) = (inputs(:,4)-500)/4500;
 inputs = max(min(inputs, 1), 0); 
 
@@ -32,8 +31,8 @@ inputs = max(min(inputs, 1), 0);
 
 
 %% Data Augmentation
-noiseLevelRGB = 0.005;  % Adjust as needed
-numAugmentations = 4; % Number of augmented samples to generate per original sample
+noiseLevelRGB = 0.01;  % Adjust as needed
+numAugmentations = 1; % Number of augmented samples to generate per original sample
 
 augmentedInputs = [];
 augmentedHueTargets = [];
@@ -77,37 +76,6 @@ hue_targets_sin = hue_targets_sin';
 hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
-%% Create and Train the Deeper Feedforward Network
-hiddenLayerSizes1 =  [8 6 4]; % 2 Nueron Output
-hiddenLayerSizes2 = [16 15]; % Define the number of neurons in each hidden layer for a deeper network
-
-
-everything_hue_net = feedforwardnet(hiddenLayerSizes1);
-everything_sat_net = feedforwardnet(hiddenLayerSizes2);
-
-% Customize training parameters of hue net
-everything_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-everything_hue_net.trainParam.epochs = 1000; % Set the maximum number of epochs
-everything_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
-everything_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-everything_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
-everything_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
-everything_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
-%pink_hue_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
-%pink_hue_net.trainParam.mu = 10;
-
-% Customize training parameters of sat net
-everything_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
-everything_sat_net.trainParam.epochs = 4800; % Set the maximum number of epochs
-everything_sat_net.trainParam.showWindow = true; % Turn off display progress dialog.
-everything_sat_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
-everything_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
-everything_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
-everything_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
-%pink_sat_net.trainParam.mu_max = 1e20; %You can uncomment these if the model trains too slowly.
-%pink_sat_net.trainParam.mu = 10;
-
-
 %% Normaling the Target Data to the range [-1, 1]
 inputs = (inputs*2) -1;
 hue_targets_sin = (hue_targets_sin*2) -1;
@@ -115,9 +83,43 @@ hue_targets_cos = (hue_targets_cos*2) -1;
 sat_targets = (sat_targets*2) -1;
 
 
-%% Now, train the networks with normalized data
-[everything_hue_net, tr1] = train(everything_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
-[everything_sat_net, tr2] = train(everything_sat_net, inputs, sat_targets);
+% %% Create and Train the Deeper Feedforward Network
+% hiddenLayerSizes1 =  [10 10]; % 2 Nueron Output
+% hiddenLayerSizes2 = [10 10]; % Define the number of neurons in each hidden layer for a deeper network
+% 
+% 
+% everything_hue_net = feedforwardnet(hiddenLayerSizes1);
+% everything_sat_net = feedforwardnet(hiddenLayerSizes2);
+% 
+% % Customize training parameters of hue net
+% everything_hue_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+% everything_hue_net.trainParam.epochs = 4000; % Set the maximum number of epochs
+% everything_hue_net.trainParam.showWindow = true; % Turn off display progress dialog.
+% everything_hue_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+% everything_hue_net.divideParam.trainRatio = 0.7; % 70% of data for training
+% everything_hue_net.divideParam.valRatio = 0.15; % 15% of data for validation
+% everything_hue_net.divideParam.testRatio = 0.15; % 15% of data for testing
+% 
+% 
+% % Customize training parameters of sat net
+% everything_sat_net.trainFcn = 'trainlm';  % Use Levenberg-Marquardt algorithm (you can change this)
+% everything_sat_net.trainParam.epochs = 4800; % Set the maximum number of epochs
+% everything_sat_net.trainParam.showWindow = true; % Turn off display progress dialog.
+% everything_sat_net.divideFcn = 'dividerand'; % Randomly divide data into training, validation, and test sets (default)
+% everything_sat_net.divideParam.trainRatio = 0.7; % 70% of data for training
+% everything_sat_net.divideParam.valRatio = 0.15; % 15% of data for validation
+% everything_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
+% 
+% 
+% 
+% 
+% 
+% % Train the networks with normalized data
+% [everything_hue_net, tr1] = train(everything_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
+% [everything_sat_net, tr2] = train(everything_sat_net, inputs, sat_targets);
+% 
+% % Saving Trained network
+% save('everything_nets.mat', 'everything_hue_net', 'everything_sat_net');
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
@@ -178,8 +180,7 @@ for i = 1:length(outlierIndices2)
     count2 = count2+1;
 end
 count2
-%% Saving Trained network
-save('everything_nets.mat', 'everything_hue_net', 'everything_sat_net');
+
 
 
 
@@ -223,3 +224,68 @@ ylabel('Predicted Sat');
 title('Predicted vs. Actual Saturation');
 legend('Predictions', 'Line of Best Fit', 'Perfect Prediction Line', 'Location', 'northwest');
 grid on;
+
+%% Some Statistics
+
+
+fprintf('\n--- Hue Model Metrics ---\n');
+
+% Regular metrics for Hue
+% Ensure all data is in the same format (vectors)
+hue_targets_vec = hue_targets(:);
+allHuePredictions_vec = allHuePredictions(:);
+
+% Standard R-squared calculation
+SST_hue = sum((hue_targets_vec - mean(hue_targets_vec)).^2);
+SSE_hue = sum((hue_targets_vec - allHuePredictions_vec).^2);
+R2_hue = 1 - SSE_hue/SST_hue;
+fprintf('R-squared: %.4f\n', R2_hue);
+
+% Standard RMSE calculation
+RMSE_hue = sqrt(mean((hue_targets_vec - allHuePredictions_vec).^2));
+fprintf('RMSE: %.4f\n', RMSE_hue);
+
+% Circular metrics for Hue
+% For circular data, we need to account for the circular nature
+% Calculate circular error (smallest angle between predictions and targets)
+circular_errors = min(abs(hue_targets_vec - allHuePredictions_vec), ...
+                      1 - abs(hue_targets_vec - allHuePredictions_vec));
+
+% Circular RMSE
+circular_RMSE_hue = sqrt(mean(circular_errors.^2));
+fprintf('Circular RMSE: %.4f\n', circular_RMSE_hue);
+
+% Circular R-squared calculation
+% Calculate circular distance from mean
+hue_mean = mean(hue_targets_vec);
+circular_errors_from_mean = min(abs(hue_targets_vec - hue_mean), ...
+                               1 - abs(hue_targets_vec - hue_mean));
+
+% Circular SST and SSE                           
+circular_SST_hue = sum(circular_errors_from_mean.^2);
+circular_SSE_hue = sum(circular_errors.^2);
+
+% Circular R-squared
+circular_R2_hue = 1 - circular_SSE_hue/circular_SST_hue;
+fprintf('Circular R-squared: %.4f\n', circular_R2_hue);
+
+fprintf('\n--- Saturation Model Metrics ---\n');
+
+% Metrics for Saturation (non-circular)
+% Ensure all data is in the same format (vectors)
+sat_targets_vec = sat_targets(:);
+allSatPredictions_vec = allSatPredictions(:);
+
+% Standard R-squared calculation
+SST_sat = sum((sat_targets_vec - mean(sat_targets_vec)).^2);
+SSE_sat = sum((sat_targets_vec - allSatPredictions_vec).^2);
+R2_sat = 1 - SSE_sat/SST_sat;
+fprintf('R-squared: %.4f\n', R2_sat);
+
+% Standard RMSE calculation
+RMSE_sat = sqrt(mean((sat_targets_vec - allSatPredictions_vec).^2));
+fprintf('RMSE: %.4f\n', RMSE_sat);
+
+% For consistency in output, include "N/A" for circular metrics
+fprintf('Circular RMSE: N/A (saturation is not circular)\n');
+fprintf('Circular R-squared: N/A (saturation is not circular)\n');

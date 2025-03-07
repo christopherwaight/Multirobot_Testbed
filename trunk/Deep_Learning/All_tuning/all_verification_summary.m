@@ -11,16 +11,14 @@ data1 = readmatrix("celeste_ver.csv");
 data2 = readmatrix("tidal_ver.csv");
 data3 = readmatrix("pacific_blue_ver.csv");
 
-inputs = [data1(1:70,3:6);data2(1:70,3:6);data3(1:70,3:6)];
+inputs = [data1(1:70,3:6)];% ;data2(1:70,3:6);data3(1:70,3:6)];
 
-hue_targets = [data1(1:70,1);data2(1:70,1);data3(1:70,1)];
+hue_targets = [data1(1:70,1)]%;data2(1:70,1);data3(1:70,1)];
 hue_targets_sin = sin(2 * pi * hue_targets);
 hue_targets_cos = cos(2 * pi * hue_targets);
 
-sat_targets = [data1(1:70,2);data2(1:70,2);data3(1:70,2)];
+sat_targets = [data1(1:70,2)];%data2(1:70,2);data3(1:70,2)];
 
-
-%% Normalize data
 inputs(:,1) = (inputs(:,1)-100)/1400;
 inputs(:,2) = (inputs(:,2)-100)/1400;
 inputs(:,3) = (inputs(:,3)-100)/1400;

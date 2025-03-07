@@ -30,7 +30,7 @@ inputs = max(min(inputs, 1), 0);
 
 %% Data Augmentation
 noiseLevelRGB = 0.01;  % Adjust as needed
-numAugmentations = 3; % Number of augmented samples to generate per original sample
+numAugmentations = 2; % Number of augmented samples to generate per original sample
 
 augmentedInputs = [];
 augmentedHueTargets = [];
@@ -215,3 +215,68 @@ ylabel('Predicted Sat');
 title('Predicted vs. Actual Saturation');
 legend('Predictions', 'Line of Best Fit', 'Perfect Prediction Line', 'Location', 'northwest');
 grid on;
+
+%% Some Statistics
+
+
+fprintf('\n--- Hue Model Metrics ---\n');
+
+% Regular metrics for Hue
+% Ensure all data is in the same format (vectors)
+hue_targets_vec = hue_targets(:);
+allHuePredictions_vec = allHuePredictions(:);
+
+% Standard R-squared calculation
+SST_hue = sum((hue_targets_vec - mean(hue_targets_vec)).^2);
+SSE_hue = sum((hue_targets_vec - allHuePredictions_vec).^2);
+R2_hue = 1 - SSE_hue/SST_hue;
+fprintf('R-squared: %.4f\n', R2_hue);
+
+% Standard RMSE calculation
+RMSE_hue = sqrt(mean((hue_targets_vec - allHuePredictions_vec).^2));
+fprintf('RMSE: %.4f\n', RMSE_hue);
+
+% Circular metrics for Hue
+% For circular data, we need to account for the circular nature
+% Calculate circular error (smallest angle between predictions and targets)
+circular_errors = min(abs(hue_targets_vec - allHuePredictions_vec), ...
+                      1 - abs(hue_targets_vec - allHuePredictions_vec));
+
+% Circular RMSE
+circular_RMSE_hue = sqrt(mean(circular_errors.^2));
+fprintf('Circular RMSE: %.4f\n', circular_RMSE_hue);
+
+% Circular R-squared calculation
+% Calculate circular distance from mean
+hue_mean = mean(hue_targets_vec);
+circular_errors_from_mean = min(abs(hue_targets_vec - hue_mean), ...
+                               1 - abs(hue_targets_vec - hue_mean));
+
+% Circular SST and SSE                           
+circular_SST_hue = sum(circular_errors_from_mean.^2);
+circular_SSE_hue = sum(circular_errors.^2);
+
+% Circular R-squared
+circular_R2_hue = 1 - circular_SSE_hue/circular_SST_hue;
+fprintf('Circular R-squared: %.4f\n', circular_R2_hue);
+
+fprintf('\n--- Saturation Model Metrics ---\n');
+
+% Metrics for Saturation (non-circular)
+% Ensure all data is in the same format (vectors)
+sat_targets_vec = sat_targets(:);
+allSatPredictions_vec = allSatPredictions(:);
+
+% Standard R-squared calculation
+SST_sat = sum((sat_targets_vec - mean(sat_targets_vec)).^2);
+SSE_sat = sum((sat_targets_vec - allSatPredictions_vec).^2);
+R2_sat = 1 - SSE_sat/SST_sat;
+fprintf('R-squared: %.4f\n', R2_sat);
+
+% Standard RMSE calculation
+RMSE_sat = sqrt(mean((sat_targets_vec - allSatPredictions_vec).^2));
+fprintf('RMSE: %.4f\n', RMSE_sat);
+
+% For consistency in output, include "N/A" for circular metrics
+fprintf('Circular RMSE: N/A (saturation is not circular)\n');
+fprintf('Circular R-squared: N/A (saturation is not circular)\n');
