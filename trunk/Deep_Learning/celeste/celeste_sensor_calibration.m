@@ -68,13 +68,13 @@ sat_targets = [sat_targets; augmentedSatTargets];
 hue_targets_sin = sin(2 * pi * hue_targets);
 hue_targets_cos = cos(2 * pi * hue_targets);
 
-%% Transpose the inputs to make NN compatible
+% Transpose the inputs to make NN compatible
 inputs = inputs';
 hue_targets_sin = hue_targets_sin';
 hue_targets_cos = hue_targets_cos';
 sat_targets = sat_targets';
 
-%% Normaling the Target Data to the range [-1, 1]
+% Normaling the Target Data to the range [-1, 1]
 inputs = (inputs*2) -1;
 hue_targets_sin = (hue_targets_sin*2) -1;
 hue_targets_cos = (hue_targets_cos*2) -1;
@@ -114,9 +114,14 @@ celeste_sat_net.divideParam.testRatio = 0.15; % 15% of data for testing
 
 
 
-%% Now, train the networks with normalized data
+% Now, train the networks with normalized data
 [celeste_hue_net, tr1] = train(celeste_hue_net, inputs, [hue_targets_sin; hue_targets_cos]); % Train on both sine and cosine
 [celeste_sat_net, tr2] = train(celeste_sat_net, inputs, sat_targets);
+
+% Save after training
+save('celeste_nets.mat', 'celeste_hue_net', 'celeste_sat_net');
+
+
 
 %% Identify Outliers in Predictions in Hue
 % Predict on the entire dataset
@@ -177,9 +182,6 @@ for i = 1:length(outlierIndices2)
     count2 = count2+1;
 end
 count2
-%% Saving Trained network
-save('celeste_nets.mat', 'celeste_hue_net', 'celeste_sat_net');
-
 
 
 %% Plotting Results

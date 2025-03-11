@@ -2,13 +2,13 @@ function [everything_hue_net, everything_sat_net] = createNetworks()
 
 
     % Generate random network architectures
-    hiddenLayerSizes1 = [randi([4, 10]) randi([4, 10]) ]; % 2 Neuron Output for Hue
-    hiddenLayerSizes2 = [randi([4, 10]) randi([4, 10]) ]; % 1 Neuron Output for Saturation
+    hiddenLayerSizes1 = [randi([5, 12]) randi([4, 10]) ]; % 2 Neuron Output for Hue
+    hiddenLayerSizes2 = [randi([5, 12]) randi([4, 10]) ]; % 1 Neuron Output for Saturation
 
     % Occasionally try a 3-layer network (20% of the time)
-    if rand < 0.05
-        hiddenLayerSizes1 = [randi([4, 15]) randi([4, 10]) randi([2, 10]) randi([2, 10])];
-        hiddenLayerSizes2 = [randi([4, 15]) randi([4, 10]) randi([2, 10]) randi([2, 10])];
+    if rand < 0.2
+        hiddenLayerSizes1 = [randi([4, 12]) randi([3, 10]) randi([3, 6])];
+        hiddenLayerSizes2 = [randi([4, 12]) randi([4, 1]) randi([3, 6])];
     end
 
 
@@ -24,10 +24,10 @@ function [everything_hue_net, everything_sat_net] = createNetworks()
     everything_hue_net.trainParam.epochs = 48000;
     everything_hue_net.trainParam.showWindow = false;
     everything_hue_net.divideFcn = 'dividerand';
-    everything_hue_net.divideParam.trainRatio = 0.7;
-    everything_hue_net.divideParam.valRatio = 0.15;
-    everything_hue_net.divideParam.testRatio = 0.15;
-    everything_hue_net.trainParam.max_fail = randi([20, 30]);     % Increase patience
+    everything_hue_net.divideParam.trainRatio = 0.8;
+    everything_hue_net.divideParam.valRatio = 0.1;
+    everything_hue_net.divideParam.testRatio = 0.1;
+    everything_hue_net.trainParam.max_fail = 20;     % Increase patience
     everything_hue_net.trainParam.mu = randi([5, 20])*0.001;  % Random initial mu
 
     
@@ -36,9 +36,9 @@ function [everything_hue_net, everything_sat_net] = createNetworks()
     everything_sat_net.trainParam.epochs = 4800;
     everything_sat_net.trainParam.showWindow = false;
     everything_sat_net.divideFcn = 'dividerand';
-    everything_sat_net.divideParam.trainRatio = 0.7;
-    everything_sat_net.divideParam.valRatio = 0.15;
-    everything_sat_net.divideParam.testRatio = 0.15;
-    everything_sat_net.trainParam.max_fail = randi([20, 30]);     % Increase patience
+    everything_sat_net.divideParam.trainRatio = 0.8;
+    everything_sat_net.divideParam.valRatio = 0.1;
+    everything_sat_net.divideParam.testRatio = 0.1;
+    everything_sat_net.trainParam.max_fail = 20;
     everything_sat_net.trainParam.mu = randi([5, 20])*0.001;
 end

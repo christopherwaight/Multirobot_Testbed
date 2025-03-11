@@ -4,20 +4,22 @@
 % Define validation datasets
 validation_datasets = {
     'data/celeste_cal.csv',
-    'data/tidal_cal.csv', 
+    'data/celeste_ver.csv',
+    'data/tidal_cal.csv',
+    'data/tidal_ver.csv',
     'data/pacific_blue_cal.csv', 
+    'data/pacific_blue_ver.csv',
     'data/redwood_cal.csv', 
-    'data/celeste_ver.csv', 
-    'data/tidal_ver.csv', 
-    'data/pacific_blue_ver.csv'
+    'data/redwood_ver.csv'
+    
 };
-
+%%
 % Initialize best scores
 %best_score_hue = 1e6;
 %best_score_sat = 1e6;
 
 % Initialize arrays to track scores over time
-iterations = 2000; % Total iterations
+iterations = 200; % Total iterations
 score_history_hue = zeros(1, iterations);
 score_history_sat = zeros(1, iterations);
 best_score_history_hue = ones(1, iterations) * 1e6;
