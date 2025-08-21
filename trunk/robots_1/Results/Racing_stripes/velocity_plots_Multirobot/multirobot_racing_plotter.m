@@ -1,7 +1,7 @@
 %%  - Multi-robot Racing Plotter
 clc; clear all; close all;
 % Define the run files to process
-run_files = {'tidal_runs.mat', 'celeste_runs.mat', 'pacific_blue_runs.mat', 'redwood_runs.mat'};
+run_files = {'tidal.mat', 'celestes.mat', 'pacific_blue.mat', 'redwood.mat'};
 colors = {'magenta', 'cyan', 'blue', 'green'};  % Corresponding colors for plotting
 color_names = {'R1', 'R2', 'R3', 'R4'};  % Color names for legend
 markers = {'o', 's', 'd', 'g'};  % Different markers for each color
