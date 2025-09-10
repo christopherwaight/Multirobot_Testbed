@@ -16,7 +16,7 @@ end
 
 % Radius files
 radius_files = {'radius001.mat', 'radius01.mat', 'radius02.mat', 'radius03.mat', ...
-                'radius04.mat', 'radius05.mat', 'radius06.mat'};
+                'radius04.mat', 'radius05.mat', 'radius06.mat', 'scanning_entire_vortex_mat.mat'};
 
 %% Initialize data storage
 all_data = [];

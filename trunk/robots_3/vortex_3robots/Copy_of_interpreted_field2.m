@@ -1,4 +1,4 @@
-% Vector Field Analyzer - Accounting for Y-axis flip
+% Vector Field Analyzer - With X = -y, Y = -x transformation
 clear; clc; close all;
 
 %% Load and reshape data
@@ -12,8 +12,8 @@ for t = 1:n_timepoints
     for robot = 1:3
         col_offset = (robot-1)*5;
         reshaped_data((t-1)*3 + robot, :) = [
-            data_matrix(t, col_offset+1),  % x
-            data_matrix(t, col_offset+2),  % y  
+            data_matrix(t, col_offset+1),  % x (original)
+            data_matrix(t, col_offset+2),  % y (original)
             data_matrix(t, col_offset+3),  % theta (robot heading)
             data_matrix(t, col_offset+4),  % hue (field direction)
             data_matrix(t, col_offset+5)   % saturation (field magnitude)
@@ -25,20 +25,24 @@ end
 valid_idx = (reshaped_data(:, 1) ~= 0) | (reshaped_data(:, 2) ~= 0);
 valid_data = reshaped_data(valid_idx, :);
 
-x = valid_data(:, 1);
-y = valid_data(:, 2);
+% Original coordinates
+x_orig = valid_data(:, 1);
+y_orig = valid_data(:, 2);
 hue = valid_data(:, 4);
 saturation = valid_data(:, 5);
 
 % Convert hue to field angle
 field_angle = hue * 2 * pi;
 
-% Calculate vector components
-u = cos(field_angle) .* saturation;
-v = sin(field_angle) .* saturation;
+% Calculate ORIGINAL vector components
+u_orig = cos(field_angle) .* saturation;
+v_orig = sin(field_angle) .* saturation;
 
-% CRITICAL FIX: Account for Y-axis flip (Y = -y transformation)
-v = -v;  % Negate v-component due to coordinate flip
+% APPLY TRANSFORMATION: X = -y, Y = -x
+x = -y_orig;  % New x coordinate
+y = -x_orig;  % New y coordinate
+u = -v_orig;  % New u component
+v = -u_orig;  % New v component
 
 %% Create grid
 grid_resolution = 30;
@@ -54,7 +58,7 @@ Sat_grid = zeros(size(X_grid));
 Hue_grid = zeros(size(X_grid));
 Count_grid = zeros(size(X_grid));
 
-% Bin data into grid
+% Bin data into grid using TRANSFORMED coordinates
 for i = 1:length(x)
     [~, xi] = min(abs(x_edges - x(i)));
     [~, yi] = min(abs(y_edges - y(i)));
@@ -80,7 +84,7 @@ V_grid(~valid_cells) = NaN;
 %% Visualizations
 figure('Position', [100, 100, 1600, 800]);
 
-% Raw data with vectors
+% Raw data with vectors (using transformed coordinates)
 subplot(2, 3, 1);
 skip_raw = 50;
 idx = 1:skip_raw:length(x);
@@ -90,7 +94,7 @@ hold on;
 scatter(x(idx), y(idx), 10, hue(idx), 'filled');
 colormap(subplot(2,3,1), hsv);
 colorbar;
-title('Raw Field Measurements');
+title('Raw Field (Transformed: X=-y, Y=-x)');
 xlabel('X (m)'); ylabel('Y (m)');
 axis equal; grid on; xlim([-0.5 0.5]); ylim([-0.5 0.5]);
 
@@ -98,7 +102,7 @@ axis equal; grid on; xlim([-0.5 0.5]); ylim([-0.5 0.5]);
 subplot(2, 3, 2);
 quiver(X_grid, Y_grid, U_grid*0.03, V_grid*0.03, ...
        'AutoScale', 'off', 'Color', [0.8 0.2 0.2], 'LineWidth', 1.5);
-title('Averaged Field');
+title('Averaged Field (Transformed)');
 xlabel('X (m)'); ylabel('Y (m)');
 axis equal; grid on; xlim([-0.5 0.5]); ylim([-0.5 0.5]);
 
@@ -125,7 +129,7 @@ U_stream(isnan(U_stream)) = 0; V_stream(isnan(V_stream)) = 0;
 [startx, starty] = meshgrid(-0.4:0.1:0.4, -0.4:0.1:0.4);
 h_stream = streamline(X_grid, Y_grid, U_stream, V_stream, startx(:), starty(:));
 set(h_stream, 'Color', [0.2 0.2 0.8], 'LineWidth', 1);
-title('Field Streamlines');
+title('Field Streamlines (Transformed)');
 xlabel('X (m)'); ylabel('Y (m)');
 axis equal; grid on; xlim([-0.5 0.5]); ylim([-0.5 0.5]);
 
@@ -142,8 +146,18 @@ for i = 1:size(X_grid, 1)
         end
     end
 end
-title('Combined Visualization');
+title('Combined Visualization (Transformed)');
 xlabel('X (m)'); ylabel('Y (m)');
 axis equal; grid on; xlim([-0.5 0.5]); ylim([-0.5 0.5]);
 
-sgtitle('Vector Field Analysis - Corrected for Y-axis Flip');
+sgtitle('Vector Field Analysis - Transformation: X = -y, Y = -x');
+
+% Debug output to verify transformation
+fprintf('\n=== Transformation Applied: X = -y, Y = -x ===\n');
+fprintf('Sample points (first 5):\n');
+for i = 1:min(5, length(x))
+    fprintf('  Original: (%.3f, %.3f) → Transformed: (%.3f, %.3f)\n', ...
+            x_orig(i), y_orig(i), x(i), y(i));
+    fprintf('  Vector: (%.3f, %.3f) → (%.3f, %.3f)\n', ...
+            u_orig(i), v_orig(i), u(i), v(i));
+end
