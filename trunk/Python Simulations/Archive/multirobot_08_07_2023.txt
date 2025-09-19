@@ -1,0 +1,290 @@
+# 1. Import Libraries
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 2. Define constants
+def reset_constants():
+    global x_start, y_start, x_end, y_end, quiver_step_size
+    global cluster_start, robot_1_offset, robot_2_offset, robot_3_offset, robot_step_size
+    global stop_simulation, flaggs, sim_time, angle, robot_offset
+    stop_simulation = False
+    flaggs = False
+
+# Edit these variables to determine size of plot, plot resolution, and runtime    
+    x_start = y_start = 0
+    x_end = y_end = 10
+    quiver_step_size = 0.2
+    sim_time = 200
+
+#3. Define the Vector Field
+
+def initialize_vector_field(x_start, x_end, quiver_step_size, y_start, y_end):
+    x = np.arange(x_start, x_end, quiver_step_size)
+    y = np.arange(y_start, y_end, quiver_step_size)
+    X, Y = np.meshgrid(x, y)
+    
+    return X, Y
+
+def position_readings(x,y): # Fill out the Vector Field Below
+    
+    u = []
+    v = []
+    
+    # Add Feature 1
+    x_source1 = 5
+    y_source1 = 5
+    u1, v1 = vortex_stream(x, y, x_source1, y_source1)
+    u.append(u1)
+    v.append(v1)
+    
+    # Add Feature 2
+    x_source2 = 6
+    y_source2 = 6 
+    u2, v2 = vortex_stream(x, y, x_source2, y_source2)
+    u.append(u2)
+    v.append(v2)
+    # Add Feature 3
+    # Add Feature 4
+    # ...
+    # Add them altogether
+    u = np.sum(u)
+    v = np.sum(v)
+    
+    return u, v
+
+# 4. Define the Robot Cluster
+
+def reset_cluster():
+    global cluster_start, robot_step_size, angle
+    global  robot_1_offset, robot_2_offset, robot_3_offset
+    cluster_start = [8,7.5]
+    robot_1_offset = [0,0]
+    robot_2_offset = [0.5,0]
+    robot_3_offset = [0,0.5]   
+    robot_step_size = 0.3
+    angle = 0 # Needed for initialization for some reason
+    
+def basic_cluster():
+    global cluster_start, robot_step_size, angle
+    global  robot_1_offset, robot_2_offset, robot_3_offset
+    cluster_start = [8,7.5]
+    robot_offset = 0.5 # Spacing for simple triangular cluster
+    robot_1_offset = [cluster_start[0], cluster_start[1]]
+    robot_2_offset = [robot_offset,0]
+    robot_3_offset = [0,robot_offset]
+    robot_step_size = 0.3
+    angle = 0 # Needed for initialization for some reason
+    
+def initialize_robots(cluster_start, robot_1_offset, robot_2_offset, robot_3_offset):
+    pos1 = [(cluster_start[0] + robot_1_offset[0]),(cluster_start[1] + robot_1_offset[1])]
+    pos2 = [(cluster_start[0] + robot_2_offset[0]),(cluster_start[1] + robot_2_offset[1])]
+    pos3 = [(cluster_start[0] + robot_3_offset[0]),(cluster_start[1] + robot_3_offset[1])]
+    return pos1, pos2, pos3, angle
+
+def plot_robot_position(pos1,pos2,pos3):
+    plt.scatter(pos1[0],pos1[1], marker='o', color='blue')
+    plt.scatter(pos2[0],pos2[1], marker='o', color = 'yellow')
+    plt.scatter(pos3[0],pos3[1], marker='o', color = 'green')
+    
+
+# 5. Vector Field Features
+
+def vortex_stream(x, y, x_source, y_source):
+       
+    x_centre = x - x_source
+    y_centre = y - y_source
+
+    # Radial Distance from Centre
+    r = np.sqrt(x_centre**2 + y_centre**2)
+
+    # Calculate the angular component of the velocity
+    v_theta = 1 / r 
+
+    # Convert to cartesian coordinates
+    u = v_theta * y_centre / r + np.ones_like(x) 
+    v = -v_theta * x_centre / r 
+
+    return u, v
+
+# 6. Magnitude and Angle Solver
+
+def composite_vector(u,v):  
+    mag = np.sqrt(u**2 + v**2)
+    angle = np.arctan2(v,u)  
+    return mag, angle
+
+def slope_finder(pos1, pos2, pos3, mag1, mag2, mag3):  
+    # Finds the magnitude based slopes
+    poss1 = np.array([*pos1,mag1])
+    poss2 = np.array([*pos2,mag2])
+    poss3 = np.array([*pos3,mag3])
+
+    # Calculate vectors R12 and R13
+    R12 = poss2 - poss1
+    R13 = poss3 - poss1
+
+    # Calculate the cross product of R12 and R13 - the normal vector
+    Nx , Ny, _ = np.cross(-R12, R13)
+    angle = np.arctan2(Ny, Nx)
+    return Nx, Ny
+
+# 7. Control Primitives
+
+def max_flow_finder(pos1, pos2, pos3, slope_y, slope_y1, slope_y2, slope_x, robot_step_size, angle):
+    if np.sign(slope_y)>0:
+        pos1[1] += robot_step_size
+        pos2[1] += robot_step_size
+        pos3[1] += robot_step_size
+    else:
+        pos1[1] -= robot_step_size
+        pos2[1] -= robot_step_size
+        pos3[1] -= robot_step_size
+    return pos1, pos2, pos3
+    
+def spring_finder(pos1, pos2, pos3, slope_y, slope_y1, slope_y2, slope_x, step_size, angle):
+    
+    angle = np.arctan2(slope_y,slope_x) #- np.pi/2
+    
+    pos1[0] += step_size*np.cos(angle)
+    pos1[1] += step_size*np.sin(angle)
+    pos2[0] += step_size*np.cos(angle)
+    pos2[1] += step_size*np.sin(angle)
+    pos3[0] += step_size*np.cos(angle)
+    pos3[1] += step_size*np.sin(angle)
+    return pos1, pos2, pos3
+
+def fast_flow_aligned(pos1, pos2, pos3, slope_y, slope_y1, slope_y2, slope_x, step_size, angle):
+
+    if np.sign(slope_y1)>0 and np.sign(slope_y2)>0:
+        pos1[1] += step_size
+        pos2[1] += step_size
+        pos3[1] += step_size
+    elif np.sign(slope_y1)<0 and np.sign(slope_y2)<0:
+        pos1[1] -= step_size
+        pos2[1] -= step_size
+        pos3[1] -= step_size
+    return pos1, pos2, pos3
+
+def stagnation_finder(pos1, pos2, pos3, slope_y, slope_y1, slope_y2, slope_x, step_size, angle):
+    
+    global flaggs
+    
+    angle = np.arctan2(slope_y,slope_x)
+    readings = [robot_readings(pos[0], pos[1], x_source, y_source) for pos in [pos1, pos2, pos3]]
+    composites = [composite_vector(u, v) for u, v in readings]
+
+    if (angle >0.2 ) or flaggs:     
+        print()
+        composites = [(10 - comp[0], comp[1]) for comp in composites]
+        slope_x = (composites[1][0] - composites[0][0])/ robot_2_offset[0]
+        slope_y = (composites[2][0] - composites[0][0]) / robot_3_offset[1]
+        angle = np.arctan2(slope_y,slope_x) + np.pi/2
+        print(slope_x,slope_y, angle)
+        pos1[0] += step_size*np.cos(angle)
+        pos1[1] += step_size*np.sin(angle)
+        pos2[0] += step_size*np.cos(angle)
+        pos2[1] += step_size*np.sin(angle)
+        pos3[0] += step_size*np.cos(angle)
+        pos3[1] += step_size*np.sin(angle)
+        flaggs = True    
+    else:
+        angle -= np.pi/2
+        print(angle)
+        #angle = np.arctan2(slope_y,slope_x)
+        pos1[0] += step_size*np.cos(angle)
+        pos1[1] += step_size*np.sin(angle)
+        pos2[0] += step_size*np.cos(angle)
+        pos2[1] += step_size*np.sin(angle)
+        pos3[0] += step_size*np.cos(angle)
+        pos3[1] += step_size*np.sin(angle)
+    return pos1, pos2, pos3
+
+
+def cluster_reshape1(robot_1_start, robot_offset, x_source, y_source):
+    # Doing a rotation step prior to the main loop.
+
+    pos1 = robot_1_start
+    [u1, v1] = robot_readings(pos1[0],pos1[1], x_source, y_source)
+    pos2 = [pos1[0] + robot_offset, pos1[1] + robot_offset]
+    [u2, v2] = robot_readings(pos2[0],pos2[1], x_source, y_source)
+    pos3 = [pos2[0] + robot_offset, pos2[1] + robot_offset]
+    [u3, v3] = robot_readings(pos3[0],pos3[1], x_source, y_source)
+
+    [mag1, angle1] = composite_vector(u1,v1)
+    [mag2, angle2] = composite_vector(u2,v2)
+    [mag3, angle3] = composite_vector(u3,v3)
+
+    angle = (angle1+angle2+angle3)/3 +np.pi/2
+
+    pos1 = robot_1_start
+    pos2 = [pos1[0] + robot_offset*np.cos(angle),pos1[1] + robot_offset*np.sin(angle)]
+    pos3 = [pos2[0] + robot_offset*np.cos(angle),pos2[1] + robot_offset*np.sin(angle)]
+
+    return pos1, pos2, pos3, angle
+    # Starting Maneuver if Necessary
+#     if title == 'Fast Flow Aligned':
+#         pos1, pos2, pos3, angle = cluster_reshape1(robot_1_start, robot_offset, x_source, y_source)
+
+# 8. Main Function
+
+def execute_simulation(update_robot_position, title):
+    
+    # Initialize vector field
+    X, Y = initialize_vector_field(x_start, x_end, quiver_step_size, y_start, y_end)
+    u, v = position_readings(X,Y)
+    plt.figure(figsize=(6, 6))
+    plt.quiver(X, Y, u, v)
+    plt.title(title)
+    plt.show()
+    
+    
+    # Initialize Robot Cluster
+    pos1, pos2, pos3, angle = initialize_robots(cluster_start, robot_1_offset, robot_2_offset, robot_3_offset)
+    print(' Initial Positions', pos1, pos2, pos3)
+    
+    # Initialize output Plot
+    plt.figure(figsize=(6, 6))
+    plot_robot_position(pos1, pos2, pos3)
+    print(title)
+    
+
+    # Main Loop
+    for _ in range(1, sim_time):
+        
+        # Read Robot Positions
+        readings = [position_readings(pos) for pos in [pos1, pos2, pos3]]
+        
+        # Calculate info from Readings
+        composites = [composite_vector(u, v) for u, v in readings]
+        Nx, Ny = slope_finder(pos1, pos2, pos2, mag1, mag2, mag2)
+        
+        # Update Robot Positions
+        pos1, pos2, pos3 = update_robot_position(pos1, pos2, pos3, slope_y, slope_y1, slope_y2, slope_x, robot_step_size, angle)
+        
+        # print(slope_y1)
+        plot_robot_position(pos1, pos2, pos3)
+        
+        # Check Break Criteria
+        # Coming soon to a program near you!
+        
+      
+    # Plot Outcome
+    plt.quiver(x, y, u, v) # Is this line necessary?
+    plt.title(title)
+    plt.show()
+
+# 9. Execute the simulations
+reset_constants()
+reset_cluster()
+execute_simulation(max_flow_finder, 'Max Flow Finder')
+reset_constants()
+reset_cluster()
+execute_simulation(spring_finder, 'Spring Finder')
+reset_constants()
+reset_cluster()
+execute_simulation(fast_flow_aligned, 'Fast Flow Aligned')
+reset_constants()
+reset_cluster()
+execute_simulation(stagnation_finder, 'Stagnation Finder')
+
+

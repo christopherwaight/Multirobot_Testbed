@@ -1,0 +1,31 @@
+%% Data File Reader %%
+% Read the CSV file, skipping the first row
+data = readmatrix('hsv_training.csv', 'HeaderLines', 1);
+
+% Extract columns 1 and 2 as Y
+Y = data(1:576, 2:3);
+
+% Extract columns 3 to 6 as X
+X_0 = data(1:576, 4:6);
+
+% Normalize RGB values to [0, 1]
+X_norm = X_0;
+for i = 1:size(X_0, 2)
+    X_norm(:, i) = (X(:, i) - min(X(:, i))) ./ (max(X(:, i)) - min(X(:, i)));
+end
+
+% Convert RGB to HSV
+X_augment1 = rgb2hsv(X_norm);
+
+% Concatenate everything
+X = [X_norm X_augment1];
+
+% Create the 3D scatter plot
+figure; % Create a new figure window
+scatter3(Y(:,1), Y(:,2), X(:,4), 'filled'); % 'filled' fills the markers
+
+% Add labels and title
+xlabel('X1 (Normalized Red)'); 
+ylabel('X2 (Normalized Green)');
+zlabel('X4 (Hue)');
+title('3D Scatter Plot of X1, X2 vs. X4 (Hue)');
