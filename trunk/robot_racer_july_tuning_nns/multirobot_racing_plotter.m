@@ -47,7 +47,7 @@ for file_idx = 1:length(run_files)
         diff_pose = sqrt(diff(current_pose(:,1)).^2 + diff(current_pose(:,2)).^2) * 10;
         
         % Moving average to smooth the data
-        mov_avg_pts = 10;
+        mov_avg_pts = 3;
         mov_avg_diff = movmean(diff_pose, mov_avg_pts);
         
         % Plot the smoothed velocity trace for this pose
