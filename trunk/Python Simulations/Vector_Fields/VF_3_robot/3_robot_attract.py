@@ -61,9 +61,9 @@ for i, (env_func, env_name) in enumerate(environments, 1):
     # Initialize cluster with analytical function
     cluster = RobotCluster(environment_function=env_func, use_nn=False, use_rbf=False)
     
-    # # Run simulation
-    # execute_simulation(cluster, cp.critical_point_plane_fitting, 
-    #                f'{env_name} Critical Point Finder')
+    # Run simulation
+    execute_simulation(cluster, cp.critical_point_plane_fitting, 
+                   f'{env_name} Critical Point Finder')
     
     # # Run simulation
     # execute_simulation(cluster, cp.find_center, 
@@ -73,8 +73,8 @@ for i, (env_func, env_name) in enumerate(environments, 1):
     #                  f'{env_name} Critical Point Finder')    
    #
 
-    execute_simulation(cluster, cp.rio_finder3_simple, 
-                    f'{env_name} Critical Point Finder')
+    # execute_simulation(cluster, cp.rio_finder3_simple, 
+    #                 f'{env_name} Critical Point Finder')
     
     # Adjust subplot to be more compact
     ax.tick_params(labelsize=8)

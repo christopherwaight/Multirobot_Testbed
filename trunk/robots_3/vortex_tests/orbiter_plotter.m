@@ -2,10 +2,8 @@
 % This script loads multiple radius files and analyzes the cluster radius over time
 
 % Define the radius files to process
-radius_files = {'radius001.mat', 'radius01.mat', 'radius02.mat', 'radius03.mat', ...
-                'radius04.mat', 'radius05.mat', 'radius06.mat'};
-
-
+radius_files = {'orbit101.mat', 'orbit110.mat', 'orbit120.mat', 'orbit130.mat', ...
+                'orbit140.mat', 'orbit150.mat', 'orbit160.mat', 'orbit170.mat'};
 
 % Display info message at start         
 fprintf('Loading and processing %d radius files...\n', length(radius_files));
@@ -19,6 +17,7 @@ file_colors = [
     0.6 0.2 0.8;  % Purple
     0.8 0.8 0.2;  % Yellow
     0.2 0.8 0.8;  % Cyan
+    0.8 0.2 0.6;  % Magenta
 ];
 
 % Storage for radius data
@@ -36,11 +35,11 @@ for file_idx = 1:length(radius_files)
         % Load data
         data = load(current_file);
         
-        % Check if cluster_pose exists
-        if isfield(data, 'cluster_pose')
+        % Check if cluster_position exists
+        if isfield(data, 'cluster_position')
             % Extract x and y positions
-            x_pos = data.cluster_pose(:, 1);
-            y_pos = data.cluster_pose(:, 2);
+            x_pos = data.cluster_position(:, 1);
+            y_pos = data.cluster_position(:, 2);
             
             % Calculate radius (Euclidean distance from origin)
             r = sqrt(x_pos.^2 + y_pos.^2);
@@ -50,7 +49,9 @@ for file_idx = 1:length(radius_files)
             
             % Generate time vector (assuming constant sampling)
             % If time data exists in the file, use it instead
-            if isfield(data, 'time')
+            if isfield(data, 'tout')
+                all_time_data{end+1} = data.tout;
+            elseif isfield(data, 'time')
                 all_time_data{end+1} = data.time;
             else
                 % Assume 1 Hz sampling if no time data
@@ -72,11 +73,17 @@ for file_idx = 1:length(radius_files)
             fprintf('  Total change: %.4f m\n', r(end) - r(1));
             
         else
-            fprintf('Warning: cluster_pose not found in %s\n', current_file);
+            fprintf('Warning: cluster_position not found in %s\n', current_file);
         end
     else
         fprintf('Warning: File not found - %s\n', current_file);
     end
+end
+
+% Check if we have any data to plot
+if isempty(all_radius_data)
+    fprintf('\nError: No valid data found in any files. Exiting.\n');
+    return;
 end
 
 % Create figure for radius over time plot
@@ -141,9 +148,9 @@ for file_idx = 1:length(radius_files)
     if exist(current_file, 'file')
         data = load(current_file);
         
-        if isfield(data, 'cluster_pose')
-            x_pos = data.cluster_pose(:, 1);
-            y_pos = data.cluster_pose(:, 2);
+        if isfield(data, 'cluster_position')
+            x_pos = data.cluster_position(:, 1);
+            y_pos = data.cluster_position(:, 2);
             
             % Plot trajectory
             plot(x_pos, y_pos, 'Color', file_colors(file_idx,:), ...

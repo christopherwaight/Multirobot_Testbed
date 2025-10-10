@@ -29,7 +29,7 @@ def execute_simulation(cluster, update_robot_position, title):
     plt.title(title)
 
     # Simulation
-    sim_time = 1
+    sim_time = 150
     cluster.plot()
     
     # Pre-allocate array with zeros

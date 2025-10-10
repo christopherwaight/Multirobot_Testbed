@@ -295,14 +295,14 @@ def main():
     hue_model = FieldPredictor(HUE_ARCHITECTURE)
     hue_model, hue_train_losses, hue_test_losses = train_model(
         hue_model, X_train, y_hue_train, X_test, y_hue_test,
-        epochs=500, batch_size=8, lr=0.0004, model_name="Hue"
+        epochs=120, batch_size=16, lr=0.0005, model_name="Hue"
     )
     
     # Saturation model
     sat_model = FieldPredictor(SAT_ARCHITECTURE)
     sat_model, sat_train_losses, sat_test_losses = train_model(
         sat_model, X_train, y_sat_train, X_test, y_sat_test,
-        epochs=500, batch_size=8, lr=0.0004, model_name="Saturation"
+        epochs=120, batch_size=16, lr=0.0005, model_name="Saturation"
     )
     
     # Step 6: Create final visualization

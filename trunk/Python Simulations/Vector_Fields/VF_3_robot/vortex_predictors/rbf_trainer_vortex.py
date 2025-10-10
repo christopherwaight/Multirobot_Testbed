@@ -269,13 +269,127 @@ class VortexRBFInterpolator:
 
 # ==================== VISUALIZATION ====================
 
+# def visualize_rbf_results(interpolator, df, test_points=None):
+#     """Create comprehensive visualization of RBF results"""
+    
+#     fig = plt.figure(figsize=(15, 10))
+    
+#     # 1. Training data distribution
+#     ax1 = plt.subplot(2, 3, 1)
+#     scatter1 = ax1.scatter(df['x'], df['y'], c=df['hue'], cmap='hsv', s=1, alpha=0.6)
+#     ax1.set_xlabel('X')
+#     ax1.set_ylabel('Y')
+#     ax1.set_title(f'Training Data - Hue ({len(df)} points)')
+#     ax1.set_aspect('equal')
+#     plt.colorbar(scatter1, ax=ax1, label='Hue')
+    
+#     # 2. Training data - Saturation
+#     ax2 = plt.subplot(2, 3, 2)
+#     scatter2 = ax2.scatter(df['x'], df['y'], c=df['sat'], cmap='viridis', s=1, alpha=0.6)
+#     ax2.set_xlabel('X')
+#     ax2.set_ylabel('Y')
+#     ax2.set_title('Training Data - Saturation')
+#     ax2.set_aspect('equal')
+#     plt.colorbar(scatter2, ax=ax2, label='Saturation')
+    
+#     # 3. Interpolated field - Hue
+#     ax3 = plt.subplot(2, 3, 3)
+#     x_grid = np.linspace(-0.65, 0.65, 100)
+#     y_grid = np.linspace(-0.65, 0.65, 100)
+#     X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
+#     points_grid = np.column_stack([X_grid.ravel(), Y_grid.ravel()])
+    
+#     hue_grid, sat_grid = interpolator.predict(points_grid)
+#     hue_grid = hue_grid.reshape(X_grid.shape)
+    
+#     im3 = ax3.pcolormesh(X_grid, Y_grid, hue_grid, cmap='hsv', shading='auto')
+#     ax3.set_xlabel('X')
+#     ax3.set_ylabel('Y')
+#     ax3.set_title('RBF Interpolated - Hue')
+#     ax3.set_aspect('equal')
+#     plt.colorbar(im3, ax=ax3, label='Hue')
+    
+#     # 4. Interpolated field - Saturation
+#     ax4 = plt.subplot(2, 3, 4)
+#     sat_grid = sat_grid.reshape(X_grid.shape)
+    
+#     im4 = ax4.pcolormesh(X_grid, Y_grid, sat_grid, cmap='viridis', shading='auto')
+#     ax4.set_xlabel('X')
+#     ax4.set_ylabel('Y')
+#     ax4.set_title('RBF Interpolated - Saturation')
+#     ax4.set_aspect('equal')
+#     plt.colorbar(im4, ax=ax4, label='Saturation')
+    
+#     # 5. Error at training points
+#     ax5 = plt.subplot(2, 3, 5)
+#     errors = interpolator.evaluate_at_training_points()
+    
+#     # Create bar plot of errors
+#     error_types = ['Hue MAE', 'Hue Max', 'Sat MAE', 'Sat Max']
+#     error_values = [errors['hue_mae'], errors['hue_max_error'], 
+#                    errors['sat_mae'], errors['sat_max_error']]
+    
+#     bars = ax5.bar(error_types, error_values)
+#     ax5.set_ylabel('Error')
+#     ax5.set_title('Reproduction Error at Training Points')
+#     ax5.set_ylim(0, max(error_values) * 1.2 if max(error_values) > 0 else 0.1)
+    
+#     # Add value labels on bars
+#     for bar, val in zip(bars, error_values):
+#         height = bar.get_height()
+#         ax5.text(bar.get_x() + bar.get_width()/2., height,
+#                 f'{val:.2e}', ha='center', va='bottom')
+    
+#     # 6. Test points comparison (if provided)
+#     ax6 = plt.subplot(2, 3, 6)
+#     if test_points is not None:
+#         X_test, hue_test, sat_test = test_points
+#         hue_pred, sat_pred = interpolator.predict(X_test)
+        
+#         # Plot hue comparison
+#         ax6.scatter(hue_test, hue_pred, alpha=0.5, s=1, label='Hue')
+#         ax6.plot([0, 1], [0, 1], 'r--', alpha=0.5)
+#         ax6.set_xlabel('Actual')
+#         ax6.set_ylabel('Predicted')
+#         ax6.set_title('Test Set Predictions')
+#         ax6.legend()
+#         ax6.grid(True, alpha=0.3)
+#     else:
+#         ax6.text(0.5, 0.5, 'No test set provided', 
+#                 ha='center', va='center', transform=ax6.transAxes)
+#         ax6.set_title('Test Set Comparison')
+    
+#     plt.tight_layout()
+#     plt.show()
+
 def visualize_rbf_results(interpolator, df, test_points=None):
-    """Create comprehensive visualization of RBF results"""
+    """Create comprehensive 3x3 visualization of RBF results"""
     
-    fig = plt.figure(figsize=(15, 10))
+    fig = plt.figure(figsize=(18, 15))
     
-    # 1. Training data distribution
-    ax1 = plt.subplot(2, 3, 1)
+    # Prepare grid for interpolation
+    x_grid = np.linspace(-0.65, 0.65, 100)
+    y_grid = np.linspace(-0.65, 0.65, 100)
+    X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
+    points_grid = np.column_stack([X_grid.ravel(), Y_grid.ravel()])
+    
+    # Get interpolated values
+    hue_grid, sat_grid = interpolator.predict(points_grid)
+    hue_grid_2d = hue_grid.reshape(X_grid.shape)
+    sat_grid_2d = sat_grid.reshape(X_grid.shape)
+    
+    # Convert hue and saturation to RGB for combined visualization
+    from matplotlib.colors import hsv_to_rgb
+    hsv_combined = np.zeros((X_grid.shape[0], X_grid.shape[1], 3))
+    hsv_combined[:, :, 0] = hue_grid_2d  # Hue
+    hsv_combined[:, :, 1] = sat_grid_2d  # Saturation
+    hsv_combined[:, :, 2] = 1.0          # Full value/brightness
+    rgb_combined = hsv_to_rgb(hsv_combined)
+    
+    # ========== ROW 1: Training Data ==========
+    
+    # 1. Training data - Hue
+    ax1 = plt.subplot(3, 3, 1)
     scatter1 = ax1.scatter(df['x'], df['y'], c=df['hue'], cmap='hsv', s=1, alpha=0.6)
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
@@ -284,7 +398,7 @@ def visualize_rbf_results(interpolator, df, test_points=None):
     plt.colorbar(scatter1, ax=ax1, label='Hue')
     
     # 2. Training data - Saturation
-    ax2 = plt.subplot(2, 3, 2)
+    ax2 = plt.subplot(3, 3, 2)
     scatter2 = ax2.scatter(df['x'], df['y'], c=df['sat'], cmap='viridis', s=1, alpha=0.6)
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
@@ -292,72 +406,143 @@ def visualize_rbf_results(interpolator, df, test_points=None):
     ax2.set_aspect('equal')
     plt.colorbar(scatter2, ax=ax2, label='Saturation')
     
-    # 3. Interpolated field - Hue
-    ax3 = plt.subplot(2, 3, 3)
-    x_grid = np.linspace(-0.65, 0.65, 100)
-    y_grid = np.linspace(-0.65, 0.65, 100)
-    X_grid, Y_grid = np.meshgrid(x_grid, y_grid)
-    points_grid = np.column_stack([X_grid.ravel(), Y_grid.ravel()])
+    # 3. Training data - Combined (Hue + Saturation as color)
+    ax3 = plt.subplot(3, 3, 3)
+    # Convert training data hue and sat to RGB
+    hsv_train = np.zeros((len(df), 3))
+    hsv_train[:, 0] = df['hue'].values
+    hsv_train[:, 1] = df['sat'].values
+    hsv_train[:, 2] = 1.0
+    rgb_train = hsv_to_rgb(hsv_train.reshape(-1, 1, 3)).reshape(-1, 3)
     
-    hue_grid, sat_grid = interpolator.predict(points_grid)
-    hue_grid = hue_grid.reshape(X_grid.shape)
-    
-    im3 = ax3.pcolormesh(X_grid, Y_grid, hue_grid, cmap='hsv', shading='auto')
+    ax3.scatter(df['x'], df['y'], c=rgb_train, s=1, alpha=0.6)
     ax3.set_xlabel('X')
     ax3.set_ylabel('Y')
-    ax3.set_title('RBF Interpolated - Hue')
+    ax3.set_title('Training Data - Hue+Sat Combined')
     ax3.set_aspect('equal')
-    plt.colorbar(im3, ax=ax3, label='Hue')
     
-    # 4. Interpolated field - Saturation
-    ax4 = plt.subplot(2, 3, 4)
-    sat_grid = sat_grid.reshape(X_grid.shape)
+    # ========== ROW 2: Interpolated Fields ==========
     
-    im4 = ax4.pcolormesh(X_grid, Y_grid, sat_grid, cmap='viridis', shading='auto')
+    # 4. Interpolated field - Hue
+    ax4 = plt.subplot(3, 3, 4)
+    im4 = ax4.pcolormesh(X_grid, Y_grid, hue_grid_2d, cmap='hsv', shading='auto')
     ax4.set_xlabel('X')
     ax4.set_ylabel('Y')
-    ax4.set_title('RBF Interpolated - Saturation')
+    ax4.set_title('RBF Interpolated - Hue')
     ax4.set_aspect('equal')
-    plt.colorbar(im4, ax=ax4, label='Saturation')
+    plt.colorbar(im4, ax=ax4, label='Hue')
     
-    # 5. Error at training points
-    ax5 = plt.subplot(2, 3, 5)
-    errors = interpolator.evaluate_at_training_points()
+    # 5. Interpolated field - Saturation
+    ax5 = plt.subplot(3, 3, 5)
+    im5 = ax5.pcolormesh(X_grid, Y_grid, sat_grid_2d, cmap='viridis', shading='auto')
+    ax5.set_xlabel('X')
+    ax5.set_ylabel('Y')
+    ax5.set_title('RBF Interpolated - Saturation')
+    ax5.set_aspect('equal')
+    plt.colorbar(im5, ax=ax5, label='Saturation')
     
-    # Create bar plot of errors
-    error_types = ['Hue MAE', 'Hue Max', 'Sat MAE', 'Sat Max']
-    error_values = [errors['hue_mae'], errors['hue_max_error'], 
-                   errors['sat_mae'], errors['sat_max_error']]
+    # 6. Interpolated field - Combined (Hue + Saturation as RGB)
+    ax6 = plt.subplot(3, 3, 6)
+    ax6.imshow(rgb_combined, extent=[-0.65, 0.65, -0.65, 0.65], origin='lower', aspect='auto')
+    ax6.set_xlabel('X')
+    ax6.set_ylabel('Y')
+    ax6.set_title('RBF Interpolated - Hue+Sat Combined')
+    ax6.set_aspect('equal')
     
-    bars = ax5.bar(error_types, error_values)
-    ax5.set_ylabel('Error')
-    ax5.set_title('Reproduction Error at Training Points')
-    ax5.set_ylim(0, max(error_values) * 1.2 if max(error_values) > 0 else 0.1)
+    # ========== ROW 3: Advanced Visualizations ==========
     
-    # Add value labels on bars
-    for bar, val in zip(bars, error_values):
-        height = bar.get_height()
-        ax5.text(bar.get_x() + bar.get_width()/2., height,
-                f'{val:.2e}', ha='center', va='bottom')
+    # 7. 3D Surface plot - Saturation with Hue colors
+    ax7 = plt.subplot(3, 3, 7, projection='3d')
+    # Downsample for better 3D performance
+    stride = 2
+    surf = ax7.plot_surface(X_grid[::stride, ::stride], 
+                           Y_grid[::stride, ::stride], 
+                           sat_grid_2d[::stride, ::stride],
+                           facecolors=rgb_combined[::stride, ::stride],
+                           shade=False,
+                           alpha=0.9)
+    ax7.set_xlabel('X')
+    ax7.set_ylabel('Y')
+    ax7.set_zlabel('Saturation')
+    ax7.set_title('3D Saturation Surface (Hue-colored)')
+    ax7.view_init(elev=30, azim=45)
     
-    # 6. Test points comparison (if provided)
-    ax6 = plt.subplot(2, 3, 6)
+    # 8. Quiver plot - Vector field
+    ax8 = plt.subplot(3, 3, 8)
+    # Create a coarser grid for quiver plot
+    x_quiver = np.linspace(-0.65, 0.65, 20)
+    y_quiver = np.linspace(-0.65, 0.65, 20)
+    X_quiver, Y_quiver = np.meshgrid(x_quiver, y_quiver)
+    points_quiver = np.column_stack([X_quiver.ravel(), Y_quiver.ravel()])
+    
+    # Get predictions at quiver points
+    hue_quiver, sat_quiver = interpolator.predict(points_quiver)
+    
+    # Convert hue to vector direction (angle) and saturation to magnitude
+    angles = hue_quiver * 2 * np.pi + np.pi/2
+    U = sat_quiver * np.cos(angles)
+    V = sat_quiver * np.sin(angles)
+    
+    U_grid = U.reshape(X_quiver.shape)
+    V_grid = V.reshape(X_quiver.shape)
+    
+    # Color by hue
+    colors_quiver = hue_quiver.reshape(X_quiver.shape)
+    
+    quiv = ax8.quiver(X_quiver, Y_quiver, U_grid, V_grid, colors_quiver,
+                      cmap='hsv', scale=10, alpha=0.8)
+    ax8.set_xlabel('X')
+    ax8.set_ylabel('Y')
+    ax8.set_title('Vector Field (Direction=Hue, Magnitude=Sat)')
+    ax8.set_aspect('equal')
+    plt.colorbar(quiv, ax=ax8, label='Hue')
+    
+    # 9. Error analysis or test set comparison
+    ax9 = plt.subplot(3, 3, 9)
+    
     if test_points is not None:
         X_test, hue_test, sat_test = test_points
         hue_pred, sat_pred = interpolator.predict(X_test)
         
-        # Plot hue comparison
-        ax6.scatter(hue_test, hue_pred, alpha=0.5, s=1, label='Hue')
-        ax6.plot([0, 1], [0, 1], 'r--', alpha=0.5)
-        ax6.set_xlabel('Actual')
-        ax6.set_ylabel('Predicted')
-        ax6.set_title('Test Set Predictions')
-        ax6.legend()
-        ax6.grid(True, alpha=0.3)
+        # Calculate errors
+        hue_error = np.abs(hue_pred - hue_test)
+        hue_error = np.minimum(hue_error, 1 - hue_error)  # Circular
+        sat_error = np.abs(sat_pred - sat_test)
+        
+        # Scatter plot with error magnitude as color
+        total_error = np.sqrt(hue_error**2 + sat_error**2)
+        scatter9 = ax9.scatter(X_test[:, 0], X_test[:, 1], 
+                              c=total_error, cmap='hot_r', s=5, alpha=0.6)
+        ax9.set_xlabel('X')
+        ax9.set_ylabel('Y')
+        ax9.set_title('Test Set Error Distribution')
+        ax9.set_aspect('equal')
+        plt.colorbar(scatter9, ax=ax9, label='Total Error')
+        
+        # Add error statistics as text
+        textstr = f'Mean: {np.mean(total_error):.4f}\nMax: {np.max(total_error):.4f}'
+        ax9.text(0.05, 0.95, textstr, transform=ax9.transAxes,
+                verticalalignment='top', bbox=dict(boxstyle='round', 
+                facecolor='wheat', alpha=0.5))
     else:
-        ax6.text(0.5, 0.5, 'No test set provided', 
-                ha='center', va='center', transform=ax6.transAxes)
-        ax6.set_title('Test Set Comparison')
+        # Show training error reproduction
+        errors = interpolator.evaluate_at_training_points()
+        
+        error_types = ['Hue\nMAE', 'Hue\nMax', 'Sat\nMAE', 'Sat\nMax']
+        error_values = [errors['hue_mae'], errors['hue_max_error'], 
+                       errors['sat_mae'], errors['sat_max_error']]
+        
+        bars = ax9.bar(error_types, error_values, color=['#ff6b6b', '#ff8787', '#4ecdc4', '#45b7aa'])
+        ax9.set_ylabel('Error')
+        ax9.set_title('Training Point Reproduction Error')
+        ax9.set_ylim(0, max(error_values) * 1.2 if max(error_values) > 0 else 0.1)
+        ax9.grid(axis='y', alpha=0.3)
+        
+        # Add value labels on bars
+        for bar, val in zip(bars, error_values):
+            height = bar.get_height()
+            ax9.text(bar.get_x() + bar.get_width()/2., height,
+                    f'{val:.2e}', ha='center', va='bottom', fontsize=9)
     
     plt.tight_layout()
     plt.show()
@@ -380,8 +565,8 @@ def main():
         stacked_df, 
         x_range=(-0.65, 0.65), 
         y_range=(-0.65, 0.65),
-        tolerance=0.01,  # Slightly less aggressive deduplication
-        target_size=8_000  # RBF can handle more points efficiently
+        tolerance=0.005,  # Slightly less aggressive deduplication
+        target_size=15_000  # RBF can handle more points efficiently
     )
     
     # Step 3: Prepare data

@@ -3,7 +3,7 @@
 % for each group of 10 runs (1-10, 11-20, ..., 71-80)
 
 % Define all 80 run files
-run_files = cell(1, 80);
+run_files = cell(101, 180);
 for i = 1:80
     run_files{i} = sprintf('run%d.mat', i);
 end
@@ -84,8 +84,8 @@ for group_idx = 1:num_groups
         temp_data = load(current_file);
         
         % Store trajectories if they exist
-        if isfield(temp_data, 'cluster_pose')
-            all_cluster_traj{end+1} = temp_data.cluster_pose(:,1:2); % Just keep X and Y
+        if isfield(temp_data, 'cluster_position')
+            all_cluster_traj{end+1} = temp_data.cluster_position(:,1:2); % Just keep X and Y
         end
         
         if isfield(temp_data, 'robot1_pose')
@@ -217,6 +217,10 @@ for group_idx = 1:num_groups
 end
 
 fprintf('\nAll plots saved successfully!\n');
+
+% =========================================================================
+% LOCAL FUNCTIONS
+% =========================================================================
 
 % Function to plot trajectory with confidence band
 function h = plotTrajectoryWithConfidence(avg_traj, std_traj, color, line_width, alpha_val, name)
