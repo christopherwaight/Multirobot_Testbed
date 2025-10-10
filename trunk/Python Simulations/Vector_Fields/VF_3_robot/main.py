@@ -9,8 +9,8 @@ from exec_sim.simulation import execute_simulation
 
 # Import environment functions (for comparison if needed)
 #from env.Saddle import true_saddle as enviro 
-#from env.Sinking_Vortex import sinking_vortex as enviro 
-from env.Sink import sink as enviro 
+from env.Sinking_Vortex import sinking_vortex1 as enviro 
+#from env.Sink import sink3 as enviro 
 
 ## Main - Execute the simulations
 

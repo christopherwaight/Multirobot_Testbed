@@ -13,7 +13,7 @@ class RobotCluster:
         off_size = 0.25
         
         # Initialize cluster center as numpy array
-        self.cluster_centre = np.random.rand(2)*.01 + 3.2
+        self.cluster_centre = np.random.rand(2)*.01 + 0.1
         
 
         self.robot_offsets = np.array([

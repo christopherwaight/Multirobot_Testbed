@@ -169,7 +169,7 @@ class RobotCluster:
     def reset(self): 
         off_size = 0.25
         # Initialize cluster center as numpy array
-        self.cluster_centre = np.random.rand(2) * 0.2 + 0.1
+        self.cluster_centre = np.random.rand(2) * 0.5 + 0.01
         
         # Initialize robot offsets as numpy arrays
         self.robot_offsets = np.array([

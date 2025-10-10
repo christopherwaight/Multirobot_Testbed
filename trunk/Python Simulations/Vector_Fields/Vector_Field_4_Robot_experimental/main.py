@@ -15,7 +15,7 @@ from env.Sink import sink as enviro
 plt.figure(figsize=(10, 10))
 
 cluster2 = RobotCluster(enviro)
-execute_simulation(cluster2, cp.center_orbiter, 'Center Orbiter')
+execute_simulation(cluster2, cp.dual_jacobian_center_finder, 'Center Orbiter')
 
 # Show the plots
 plt.tight_layout()

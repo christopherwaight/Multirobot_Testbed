@@ -2,11 +2,11 @@
 import numpy as np
 
 def make_environment_grid():
-    x_start = 1
-    y_start = 0.5
-    x_end = 10
-    y_end = 10
-    quiver_step_size = .33
+    x_start = -0.65
+    y_start = -0.65
+    x_end = 0.65
+    y_end = 0.65
+    quiver_step_size = .033
     
     x = np.arange(x_start, x_end, quiver_step_size)
     y = np.arange(y_start, y_end, quiver_step_size)

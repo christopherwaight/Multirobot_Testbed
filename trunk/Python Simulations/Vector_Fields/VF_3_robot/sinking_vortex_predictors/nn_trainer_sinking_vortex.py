@@ -264,7 +264,7 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(script_dir)
     print(f"Working in directory: {script_dir}")
-    csv_path = os.path.join(script_dir, 'sinking_vortex_data1.csv')
+    csv_path = os.path.join(script_dir, 'sinking_vortex_data.csv')
     
     # Step 1: Load and stack data
     stacked_df = load_and_stack_data(csv_path)

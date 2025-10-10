@@ -1,29 +1,50 @@
 % Combine All Vortex Data into Single CSV
-% This script reads all 80 run files and 7 radius files
+% This script reads all run files and orbit files
 % and combines them into a single CSV file
 
 clear; clc;
 
 fprintf('=== Starting Vortex Data Combination ===\n');
-fprintf('This script will combine data from run files and radius files\n\n');
+fprintf('This script will combine data from run files and orbit files\n\n');
 
 %% Define file lists
-% Run files (run1.mat to run80.mat)
-run_files = cell(1, 80);
+% Run files (run1.mat to run80.mat and run100.mat to run180.mat)
+run_files = cell(1, 161);
+idx = 1;
+
+% Add run1 to run80
 for i = 1:80
-    run_files{i} = sprintf('run%d.mat', i);
+    run_files{idx} = sprintf('run%d.mat', i);
+    idx = idx + 1;
 end
 
-% Radius files
-radius_files = {'radius001.mat', 'radius01.mat', 'radius02.mat', 'radius03.mat', ...
-                'radius04.mat', 'radius05.mat', 'radius06.mat', 'scanning_entire_vortex_mat.mat'};
+% Add run100 to run180
+for i = 100:180
+    run_files{idx} = sprintf('run%d.mat', i);
+    idx = idx + 1;
+end
+
+% Orbit files
+orbit_files = {};
+
+% Add orbit001, orbit010, orbit020, ..., orbit070
+orbit_files{end+1} = 'orbit001.mat';
+for i = 10:10:70
+    orbit_files{end+1} = sprintf('orbit%03d.mat', i);
+end
+
+% Add orbit101, orbit110, orbit120, ..., orbit170
+orbit_files{end+1} = 'orbit101.mat';
+for i = 110:10:170
+    orbit_files{end+1} = sprintf('orbit%d.mat', i);
+end
 
 %% Initialize data storage
 all_data = [];
 successful_loads = 0;
 failed_files = {};
 
-%% Process run files (run1.mat to run80.mat)
+%% Process run files
 fprintf('Processing %d run files...\n', length(run_files));
 fprintf('----------------------------------------\n');
 
@@ -161,13 +182,13 @@ for file_idx = 1:length(run_files)
     end
 end
 
-%% Process radius files
+%% Process orbit files
 fprintf('\n----------------------------------------\n');
-fprintf('Processing %d radius files...\n', length(radius_files));
+fprintf('Processing %d orbit files...\n', length(orbit_files));
 fprintf('----------------------------------------\n');
 
-for file_idx = 1:length(radius_files)
-    current_file = radius_files{file_idx};
+for file_idx = 1:length(orbit_files)
+    current_file = orbit_files{file_idx};
     
     if exist(current_file, 'file')
         try
@@ -308,7 +329,7 @@ fprintf('----------------------------------------\n');
 
 if ~isempty(all_data)
     % Define output filename
-    output_filename = 'all_vortex_data_possible.csv';
+    output_filename = 'all_vortex_data_complete.csv';
     
     % Create header
     header = {'x1', 'y1', 'theta1', 'hue1', 'sat1', ...
@@ -345,8 +366,11 @@ end
 fprintf('\n========================================\n');
 fprintf('           SUMMARY REPORT\n');
 fprintf('========================================\n');
-fprintf('Total files processed: %d\n', length(run_files) + length(radius_files));
-fprintf('Successfully loaded: %d\n', successful_loads);
+fprintf('Total files to process:\n');
+fprintf('  - Run files: %d\n', length(run_files));
+fprintf('  - Orbit files: %d\n', length(orbit_files));
+fprintf('  - Total: %d\n', length(run_files) + length(orbit_files));
+fprintf('\nSuccessfully loaded: %d\n', successful_loads);
 fprintf('Failed to load: %d\n', length(failed_files));
 
 if ~isempty(failed_files)
@@ -360,7 +384,7 @@ if ~isempty(all_data)
     fprintf('\nData Statistics:\n');
     fprintf('  Total rows (time points): %d\n', size(all_data, 1));
     fprintf('  Total columns: %d\n', size(all_data, 2));
-    fprintf('  Output file: all_vortex_data_possible.csv\n');
+    fprintf('  Output file: %s\n', output_filename);
     fprintf('  File size: %.2f MB\n', numel(all_data) * 8 / (1024^2));
     
     % Show data range for each column

@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 def sink(x, y):
     # Define sink center
-    x_sink = 5
-    y_sink = 5
+    x_sink = 0
+    y_sink = 0
     
     # Calculate distance from center
     x_centre = x - x_sink
@@ -31,3 +31,25 @@ def sink(x, y):
     
     return u, v
 
+def sink3(x, y):
+
+    center_x = 0
+    center_y = 0
+    # Calculate radius and angle
+    r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10  # small epsilon to prevent divide-by-zero
+    theta = np.arctan2(y - center_y, x - center_x)
+    
+    # Adjusting field components to create a "spinning plate" effect
+    u = - np.sin(theta) * r**2
+    v =   np.cos(theta) * r**2
+
+    # Calculating A sink
+    x_centre = x - center_x
+    y_centre = y - center_y
+    r2 = np.sqrt(x_centre**2 + y_centre**2) + 5*1e-5
+
+    # Sink
+    u = -0.15*x_centre / r2**2
+    v = -0.15*y_centre / r2**2
+
+    return u, v
