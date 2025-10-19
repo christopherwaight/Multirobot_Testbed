@@ -237,12 +237,13 @@ class RobotCluster:
     def get_rbf_predictions(self, pos):
         """Get RBF predictions for a single position."""
         # RBF expects shape (n_samples, 2)
-        pos_array = np.array([pos])
-        
+        # Convert to float32 to avoid scipy RBF type mismatch with Pythran
+        pos_array = np.array([pos], dtype=np.float32)
+
         # Get predictions
         hue_sincos = self.rbf_hue(pos_array)
         sat_pred = self.rbf_sat(pos_array).flatten()[0]
-        
+
         # hue_sincos contains [sin, cos] components
         return hue_sincos[0], sat_pred
         

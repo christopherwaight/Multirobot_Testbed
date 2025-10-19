@@ -88,9 +88,10 @@ def evaluate_rbf_on_grid(cluster, X, Y):
     shape = X.shape
     X_flat = X.flatten()
     Y_flat = Y.flatten()
-    
+
     # Prepare points for RBF evaluation
-    points = np.column_stack([X_flat, Y_flat])
+    # Convert to float32 to avoid scipy RBF type mismatch with Pythran
+    points = np.column_stack([X_flat, Y_flat]).astype(np.float32)
     
     # Get RBF predictions
     hue_sincos = cluster.rbf_hue(points)
@@ -127,7 +128,8 @@ def evaluate_blended_on_grid(cluster, X, Y):
     n_points = len(X_flat)
     
     # Prepare all points for RBF (it can handle all at once)
-    all_points = np.column_stack([X_flat, Y_flat])
+    # Convert to float32 to avoid scipy RBF type mismatch with Pythran
+    all_points = np.column_stack([X_flat, Y_flat]).astype(np.float64)
     rbf_hue_all = cluster.rbf_hue(all_points)
     rbf_sat_all = cluster.rbf_sat(all_points).flatten()
     
