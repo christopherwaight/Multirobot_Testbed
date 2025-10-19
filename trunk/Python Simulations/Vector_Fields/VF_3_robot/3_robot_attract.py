@@ -62,12 +62,12 @@ for i, (env_func, env_name) in enumerate(environments, 1):
     cluster = RobotCluster(environment_function=env_func, use_nn=False, use_rbf=False)
     
     # Run simulation
-    execute_simulation(cluster, cp.critical_point_plane_fitting, 
-                   f'{env_name} Critical Point Finder')
+    # execute_simulation(cluster, cp.critical_point_plane_fitting, 
+    #                f'{env_name} Critical Point Finder')
     
     # # Run simulation
-    # execute_simulation(cluster, cp.find_center, 
-    #                f'{env_name} Critical Point Finder')
+    execute_simulation(cluster, cp.eigenstep, 
+                    f'{env_name} Critical Point Finder')
 
     # execute_simulation(cluster, cp.center_finder3, 
     #                  f'{env_name} Critical Point Finder')    
