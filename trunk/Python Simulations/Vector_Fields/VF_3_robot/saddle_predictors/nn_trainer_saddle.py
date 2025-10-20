@@ -40,25 +40,26 @@ def load_and_stack_data(filename='saddle_data.csv'):
     
     for i in range(len(df)):
         # First measurement set
+        # Negate only y to match simulation coordinate system (saddle-specific)
         stacked_data.append([
-            df.iloc[i, 0],  # x1
-            df.iloc[i, 1],  # y1
-            df.iloc[i, 3],  # hue1
-            df.iloc[i, 4]   # sat1
+            df.iloc[i, 0],   # x1 (NOT negated)
+            -df.iloc[i, 1],  # y1 (negated)
+            df.iloc[i, 3],   # hue1
+            df.iloc[i, 4]    # sat1
         ])
         # Second measurement set
         stacked_data.append([
-            df.iloc[i, 5],  # x2
-            df.iloc[i, 6],  # y2
-            df.iloc[i, 8],  # hue2
-            df.iloc[i, 9]   # sat2
+            df.iloc[i, 5],   # x2 (NOT negated)
+            -df.iloc[i, 6],  # y2 (negated)
+            df.iloc[i, 8],   # hue2
+            df.iloc[i, 9]    # sat2
         ])
         # Third measurement set
         stacked_data.append([
-            df.iloc[i, 10], # x3
-            df.iloc[i, 11], # y3
-            df.iloc[i, 13], # hue3
-            df.iloc[i, 14]  # sat3
+            df.iloc[i, 10],  # x3 (NOT negated)
+            -df.iloc[i, 11], # y3 (negated)
+            df.iloc[i, 13],  # hue3
+            df.iloc[i, 14]   # sat3
         ])
     
     # Create new dataframe with stacked data (excluding theta)

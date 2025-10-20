@@ -40,23 +40,24 @@ def load_and_stack_data(filename='sinking_vortex_data.csv'):
     
     for i in range(len(df)):
         # First measurement set
+        # Negate x and y to match simulation coordinate system
         stacked_data.append([
-            df.iloc[i, 0],  # x1
-            df.iloc[i, 1],  # y1
+            -df.iloc[i, 0],  # x1 (negated)
+            -df.iloc[i, 1],  # y1 (negated)
             df.iloc[i, 3],  # hue1
             df.iloc[i, 4]   # sat1
         ])
         # Second measurement set
         stacked_data.append([
-            df.iloc[i, 5],  # x2
-            df.iloc[i, 6],  # y2
+            -df.iloc[i, 5],  # x2 (negated)
+            -df.iloc[i, 6],  # y2 (negated)
             df.iloc[i, 8],  # hue2
             df.iloc[i, 9]   # sat2
         ])
         # Third measurement set
         stacked_data.append([
-            df.iloc[i, 10], # x3
-            df.iloc[i, 11], # y3
+            -df.iloc[i, 10], # x3 (negated)
+            -df.iloc[i, 11], # y3 (negated)
             df.iloc[i, 13], # hue3
             df.iloc[i, 14]  # sat3
         ])
@@ -275,8 +276,8 @@ def main():
     processed_df = filter_and_deduplicate(stacked_df, 
                                          x_range=(-0.65, 0.65), 
                                          y_range=(-0.65, 0.65),
-                                         tolerance=0.005,  # Smaller tolerance to keep more points
-                                         target_size=5000)
+                                         tolerance=0.004,  # Smaller tolerance to keep more points
+                                         target_size=8000)
     
     # Step 3: Load processed data
     print("\nLoading processed data...")
@@ -295,22 +296,29 @@ def main():
     hue_model = FieldPredictor(HUE_ARCHITECTURE)
     hue_model, hue_train_losses, hue_test_losses = train_model(
         hue_model, X_train, y_hue_train, X_test, y_hue_test,
-        epochs=200, batch_size=16, lr=0.0004, model_name="Hue"
+        epochs=320, batch_size=128, lr=0.0002, model_name="Hue"
     )
     
     # Saturation model
     sat_model = FieldPredictor(SAT_ARCHITECTURE)
     sat_model, sat_train_losses, sat_test_losses = train_model(
         sat_model, X_train, y_sat_train, X_test, y_sat_test,
-        epochs=200, batch_size=16, lr=0.0004, model_name="Saturation"
+        epochs=320, batch_size=128, lr=0.0002, model_name="Saturation"
     )
     
     # Step 6: Create final visualization
     print("\nCreating final visualization...")
-    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
-    
+    fig = plt.figure(figsize=(15, 8))
+
+    # Helper function to reconstruct hue from sin/cos predictions
+    def reconstruct_hue_from_predictions(sin_cos_pred):
+        """Convert sin/cos predictions back to hue angle"""
+        angles = np.arctan2(sin_cos_pred[:, 0], sin_cos_pred[:, 1])
+        angles = (angles + 2 * np.pi) % (2 * np.pi)  # [0, 2π]
+        return angles / (2 * np.pi)  # [0, 1]
+
     # Plot 1: Combined training histories
-    ax = axes[0, 0]
+    ax = plt.subplot(2, 3, 1)
     ax.plot(hue_train_losses, label='Hue Train', color='blue', alpha=0.7)
     ax.plot(hue_test_losses, label='Hue Test', color='blue', linestyle='--')
     ax.plot(sat_train_losses, label='Sat Train', color='orange', alpha=0.7)
@@ -322,7 +330,7 @@ def main():
     ax.grid(True, alpha=0.3)
     
     # Plot 2: Hue predictions
-    ax = axes[0, 1]
+    ax = plt.subplot(2, 3, 2)
     hue_model.eval()
     with torch.no_grad():
         hue_pred = hue_model(torch.FloatTensor(X_test)).numpy()
@@ -337,7 +345,7 @@ def main():
     ax.grid(True, alpha=0.3)
     
     # Plot 3: Saturation predictions
-    ax = axes[1, 0]
+    ax = plt.subplot(2, 3, 3)
     sat_model.eval()
     with torch.no_grad():
         sat_pred = sat_model(torch.FloatTensor(X_test)).squeeze().numpy()
@@ -350,7 +358,7 @@ def main():
     ax.grid(True, alpha=0.3)
     
     # Plot 4: Data distribution
-    ax = axes[1, 1]
+    ax = plt.subplot(2, 3, 4)
     scatter = ax.scatter(df['x'], df['y'], c=df['hue'], cmap='hsv', s=1, alpha=0.6)
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
@@ -359,7 +367,41 @@ def main():
     ax.set_ylim(-0.65, 0.65)
     ax.set_aspect('equal')
     plt.colorbar(scatter, ax=ax, label='Hue')
-    
+
+    # Plot 5: Quiver plot - Vector field
+    ax = plt.subplot(2, 3, 5)
+    # Create coarser grid for quiver
+    x_quiver = np.linspace(-0.65, 0.65, 20)
+    y_quiver = np.linspace(-0.65, 0.65, 20)
+    X_quiver, Y_quiver = np.meshgrid(x_quiver, y_quiver)
+    points_quiver = np.column_stack([X_quiver.ravel(), Y_quiver.ravel()])
+
+    # Get predictions at quiver points
+    with torch.no_grad():
+        hue_quiver = hue_model(torch.FloatTensor(points_quiver)).numpy()
+        sat_quiver = sat_model(torch.FloatTensor(points_quiver)).squeeze().numpy()
+
+    hue_quiver = reconstruct_hue_from_predictions(hue_quiver)
+    sat_quiver = (sat_quiver + 1) / 2  # Convert to [0,1]
+    sat_quiver = np.clip(sat_quiver, 0, 1)
+
+    # Convert hue to vector direction (add π/2) and saturation to magnitude
+    angles = hue_quiver * 2 * np.pi + np.pi/2
+    U = sat_quiver * np.cos(angles)
+    V = sat_quiver * np.sin(angles)
+
+    U_grid = U.reshape(X_quiver.shape)
+    V_grid = V.reshape(X_quiver.shape)
+    colors_quiver = hue_quiver.reshape(X_quiver.shape)
+
+    quiv = ax.quiver(X_quiver, Y_quiver, U_grid, V_grid, colors_quiver,
+                     cmap='hsv', scale=10, alpha=0.8)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_title('Vector Field (Dir=Hue, Mag=Sat)')
+    ax.set_aspect('equal')
+    plt.colorbar(quiv, ax=ax, label='Hue')
+
     plt.tight_layout()
     plt.show()
     

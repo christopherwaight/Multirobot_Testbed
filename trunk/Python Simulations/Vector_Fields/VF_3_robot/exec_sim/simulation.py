@@ -69,10 +69,16 @@ def evaluate_nn_on_grid(cluster, X, Y):
             sat_pred = cluster.sat_model(batch_input).numpy()
             
             for j in range(len(batch_x)):
-                angle = np.arctan2(hue_pred[j, 0], hue_pred[j, 1])
+                # Reconstruct hue from sin/cos predictions
+                hue_angle = np.arctan2(hue_pred[j, 0], hue_pred[j, 1])
+                hue_angle = (hue_angle + 2 * np.pi) % (2 * np.pi)  # [0, 2π]
+                hue = hue_angle / (2 * np.pi)  # [0, 1]
+
                 sat = (sat_pred[j, 0] + 1) / 2
                 magnitude = (sat - 0.3) / 0.7
-                
+
+                # Convert hue to vector angle (add π/2)
+                angle = hue * 2 * np.pi + np.pi/2
                 u_flat[i + j] = magnitude * np.cos(angle)
                 v_flat[i + j] = magnitude * np.sin(angle)
     
@@ -90,7 +96,7 @@ def evaluate_rbf_on_grid(cluster, X, Y):
     Y_flat = Y.flatten()
 
     # Prepare points for RBF evaluation
-    # Convert to float32 to avoid scipy RBF type mismatch with Pythran
+    # Convert to float32 to match the dtype used during RBF training
     points = np.column_stack([X_flat, Y_flat]).astype(np.float32)
     
     # Get RBF predictions
@@ -102,8 +108,15 @@ def evaluate_rbf_on_grid(cluster, X, Y):
     v_flat = np.zeros_like(Y_flat)
     
     for i in range(len(points)):
-        angle = np.arctan2(hue_sincos[i, 0], hue_sincos[i, 1])
+        # Reconstruct hue from sin/cos
+        hue_angle = np.arctan2(hue_sincos[i, 0], hue_sincos[i, 1])
+        hue_angle = (hue_angle + 2 * np.pi) % (2 * np.pi)  # [0, 2π]
+        hue = hue_angle / (2 * np.pi)  # [0, 1]
+
         magnitude = (sat_pred[i] - 0.3) / 0.7
+
+        # Convert hue to vector angle (add π/2)
+        angle = hue * 2 * np.pi + np.pi/2
         u_flat[i] = magnitude * np.cos(angle)
         v_flat[i] = magnitude * np.sin(angle)
     
@@ -128,8 +141,8 @@ def evaluate_blended_on_grid(cluster, X, Y):
     n_points = len(X_flat)
     
     # Prepare all points for RBF (it can handle all at once)
-    # Convert to float32 to avoid scipy RBF type mismatch with Pythran
-    all_points = np.column_stack([X_flat, Y_flat]).astype(np.float64)
+    # Convert to float32 to match the dtype used during RBF training
+    all_points = np.column_stack([X_flat, Y_flat]).astype(np.float32)
     rbf_hue_all = cluster.rbf_hue(all_points)
     rbf_sat_all = cluster.rbf_sat(all_points).flatten()
     
@@ -151,17 +164,22 @@ def evaluate_blended_on_grid(cluster, X, Y):
                 # Blend at hue/sat level
                 blended_sin = cluster.rbf_weight * rbf_hue_all[idx, 0] + cluster.nn_weight * nn_hue_pred[j, 0]
                 blended_cos = cluster.rbf_weight * rbf_hue_all[idx, 1] + cluster.nn_weight * nn_hue_pred[j, 1]
-                
+
                 # NN saturation is in [-1, 1], RBF is in [0, 1]
                 nn_sat = (nn_sat_pred[j, 0] + 1) / 2
                 blended_sat = cluster.rbf_weight * rbf_sat_all[idx] + cluster.nn_weight * nn_sat
-                
-                # Convert to angle and magnitude
-                angle = np.arctan2(blended_sin, blended_cos)
+
+                # Reconstruct hue from blended sin/cos
+                hue_angle = np.arctan2(blended_sin, blended_cos)
+                hue_angle = (hue_angle + 2 * np.pi) % (2 * np.pi)  # [0, 2π]
+                hue = hue_angle / (2 * np.pi)  # [0, 1]
+
                 magnitude = (blended_sat - 0.3) / 0.7
-                
-                u_flat[idx] = -magnitude * np.cos(angle)
-                v_flat[idx] = -magnitude * np.sin(angle)
+
+                # Convert hue to vector angle (add π/2)
+                angle = hue * 2 * np.pi + np.pi/2
+                u_flat[idx] = magnitude * np.cos(angle)
+                v_flat[idx] = magnitude * np.sin(angle)
     
     u = u_flat.reshape(shape)
     v = v_flat.reshape(shape)

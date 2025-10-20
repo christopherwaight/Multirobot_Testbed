@@ -46,23 +46,24 @@ def load_and_stack_data(filename='all_vortex_data_possible.csv'):
     
     for i in range(len(df)):
         # First measurement set
+        # Negate x and y to match simulation coordinate system
         stacked_data.append([
-            df.iloc[i, 0],  # x1
-            df.iloc[i, 1],  # y1
+            -df.iloc[i, 0],  # x1 (negated)
+            -df.iloc[i, 1],  # y1 (negated)
             df.iloc[i, 3],  # hue1
             df.iloc[i, 4]   # sat1
         ])
         # Second measurement set
         stacked_data.append([
-            df.iloc[i, 5],  # x2
-            df.iloc[i, 6],  # y2
+            -df.iloc[i, 5],  # x2 (negated)
+            -df.iloc[i, 6],  # y2 (negated)
             df.iloc[i, 8],  # hue2
             df.iloc[i, 9]   # sat2
         ])
         # Third measurement set
         stacked_data.append([
-            df.iloc[i, 10], # x3
-            df.iloc[i, 11], # y3
+            -df.iloc[i, 10], # x3 (negated)
+            -df.iloc[i, 11], # y3 (negated)
             df.iloc[i, 13], # hue3
             df.iloc[i, 14]  # sat3
         ])
@@ -136,10 +137,11 @@ class VortexRBFInterpolator:
         print("\nFitting RBF interpolators...")
         print(f"Configuration: {self.config}")
         print(f"Training on {len(X)} points")
-        
-        self.training_points = np.array(X)
-        self.training_hue = np.array(hue_values)
-        self.training_sat = np.array(sat_values)
+
+        # Convert to float32 for compatibility with pythranized scipy
+        self.training_points = np.array(X, dtype=np.float32)
+        self.training_hue = np.array(hue_values, dtype=np.float32)
+        self.training_sat = np.array(sat_values, dtype=np.float32)
         
         # Convert hue to sin/cos representation for circular continuity
         hue_angle = self.training_hue * 2 * np.pi

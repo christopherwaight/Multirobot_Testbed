@@ -18,14 +18,14 @@ SIMULATION_MODE = "compare"  # Options: "single", "compare", "multi_env"
 # "multi_env" - Run all 18 environments in a grid (3x6)
 
 # --- Field Approximation Mode ---
-USE_BLENDED = False       # Use blended RBF/NN approach
-USE_NN_ONLY = False      # Use only neural network
-USE_RBF_ONLY = False     # Use only RBF
+USE_BLENDED = True       # Use blended RBF/NN approach
+USE_NN_ONLY = True      # Use only neural network
+USE_RBF_ONLY = True     # Use only RBF
 USE_ANALYTICAL = True   # Use analytical function
 RBF_WEIGHT = 0.9         # Blending weight (0.9 = 90% RBF, 10% NN)
 
 # --- Environment Selection ---
-ENVIRONMENT = "vortex1"  # Options: see environment_map below
+ENVIRONMENT = "sinking_vortex3"  # Options: see environment_map below
 # Single environment options:
 #   "sink1", "sink2", "sink3"
 #   "source1", "source2", "source3"
@@ -132,14 +132,29 @@ control_primitive_map = {
 # HELPER FUNCTIONS
 # ============================================================================
 
-def create_cluster(env_func, mode_name):
-    """Create a robot cluster based on the selected mode"""
+# Map environments to their trained model directories
+PREDICTOR_DIR_MAP = {
+    "saddle1": "saddle_predictors",
+    "vortex1": "vortex_predictors",
+    "sinking_vortex3": "sinking_vortex_predictors",
+    # Add more mappings as you train models for other environments
+}
+
+def get_predictor_dir(env_name):
+    """Get the predictor directory for a given environment name."""
+    # Extract the base name (e.g., "saddle1" -> "saddle1")
+    return PREDICTOR_DIR_MAP.get(env_name, 'sinking_vortex_predictors')
+
+def create_cluster(env_func, env_name):
+    """Create a robot cluster based on the selected mode and environment"""
+    predictor_dir = get_predictor_dir(env_name)
+
     if USE_BLENDED:
-        return RobotCluster(use_blended=True, rbf_weight=RBF_WEIGHT), f'Blended ({RBF_WEIGHT*100:.0f}% RBF)'
+        return RobotCluster(use_blended=True, rbf_weight=RBF_WEIGHT, predictor_dir=predictor_dir), f'Blended ({RBF_WEIGHT*100:.0f}% RBF)'
     elif USE_NN_ONLY:
-        return RobotCluster(use_nn=True), 'Neural Network'
+        return RobotCluster(use_nn=True, predictor_dir=predictor_dir), 'Neural Network'
     elif USE_RBF_ONLY:
-        return RobotCluster(use_rbf=True), 'RBF Interpolator'
+        return RobotCluster(use_rbf=True, predictor_dir=predictor_dir), 'RBF Interpolator'
     else:
         return RobotCluster(environment_function=env_func, use_nn=False, use_rbf=False), 'Analytical'
 
@@ -162,10 +177,13 @@ def run_blending_test(env_func):
         [-0.3, 0.3],
     ]
 
+    # Get the correct predictor directory for this environment
+    predictor_dir = get_predictor_dir(ENVIRONMENT)
+
     # Create test clusters for each mode
-    test_cluster_blend = RobotCluster(use_blended=True, rbf_weight=RBF_WEIGHT)
-    test_cluster_nn = RobotCluster(use_nn=True)
-    test_cluster_rbf = RobotCluster(use_rbf=True)
+    test_cluster_blend = RobotCluster(use_blended=True, rbf_weight=RBF_WEIGHT, predictor_dir=predictor_dir)
+    test_cluster_nn = RobotCluster(use_nn=True, predictor_dir=predictor_dir)
+    test_cluster_rbf = RobotCluster(use_rbf=True, predictor_dir=predictor_dir)
 
     for point in test_points:
         print(f"\nPoint ({point[0]:5.2f}, {point[1]:5.2f}):")
@@ -270,22 +288,25 @@ def run_comparison_simulation():
     # Get control primitive
     control_func = get_control_primitive()
 
+    # Get the correct predictor directory for this environment
+    predictor_dir = get_predictor_dir(ENVIRONMENT)
+
     # Main simulation plot (Blended)
     ax1 = plt.subplot(2, 2, 1)
     plt.title(f'Blended ({RBF_WEIGHT*100:.0f}% RBF)')
-    cluster = RobotCluster(use_blended=True, rbf_weight=RBF_WEIGHT)
+    cluster = RobotCluster(use_blended=True, rbf_weight=RBF_WEIGHT, predictor_dir=predictor_dir)
     execute_simulation(cluster, control_func, f'Blended - {env_name}')
 
     # Pure NN
     ax2 = plt.subplot(2, 2, 2)
     plt.title('Pure Neural Network')
-    cluster_nn = RobotCluster(use_nn=True)
+    cluster_nn = RobotCluster(use_nn=True, predictor_dir=predictor_dir)
     execute_simulation(cluster_nn, control_func, f'NN - {env_name}')
 
     # Pure RBF
     ax3 = plt.subplot(2, 2, 3)
     plt.title('Pure RBF Interpolator')
-    cluster_rbf = RobotCluster(use_rbf=True)
+    cluster_rbf = RobotCluster(use_rbf=True, predictor_dir=predictor_dir)
     execute_simulation(cluster_rbf, control_func, f'RBF - {env_name}')
 
     # Analytical (Ground Truth)

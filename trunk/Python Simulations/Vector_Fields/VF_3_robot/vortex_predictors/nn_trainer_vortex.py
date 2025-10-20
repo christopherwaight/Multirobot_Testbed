@@ -40,23 +40,24 @@ def load_and_stack_data(filename='sinking_vortex_data.csv'):
     
     for i in range(len(df)):
         # First measurement set
+        # Negate x and y to match simulation coordinate system
         stacked_data.append([
-            df.iloc[i, 0],  # x1
-            df.iloc[i, 1],  # y1
+            -df.iloc[i, 0],  # x1 (negated)
+            -df.iloc[i, 1],  # y1 (negated)
             df.iloc[i, 3],  # hue1
             df.iloc[i, 4]   # sat1
         ])
         # Second measurement set
         stacked_data.append([
-            df.iloc[i, 5],  # x2
-            df.iloc[i, 6],  # y2
+            -df.iloc[i, 5],  # x2 (negated)
+            -df.iloc[i, 6],  # y2 (negated)
             df.iloc[i, 8],  # hue2
             df.iloc[i, 9]   # sat2
         ])
         # Third measurement set
         stacked_data.append([
-            df.iloc[i, 10], # x3
-            df.iloc[i, 11], # y3
+            -df.iloc[i, 10], # x3 (negated)
+            -df.iloc[i, 11], # y3 (negated)
             df.iloc[i, 13], # hue3
             df.iloc[i, 14]  # sat3
         ])
@@ -412,14 +413,14 @@ def main():
     hue_model = FieldPredictor(HUE_ARCHITECTURE)
     hue_model, hue_train_losses, hue_test_losses = train_model(
         hue_model, X_train, y_hue_train, X_test, y_hue_test,
-        epochs=200, batch_size=64, lr=0.0004, model_name="Hue"
+        epochs=120, batch_size=64, lr=0.0004, model_name="Hue"
     )
     
     # Saturation model
     sat_model = FieldPredictor(SAT_ARCHITECTURE)
     sat_model, sat_train_losses, sat_test_losses = train_model(
         sat_model, X_train, y_sat_train, X_test, y_sat_test,
-        epochs=200, batch_size=64, lr=0.0004, model_name="Saturation"
+        epochs=120, batch_size=64, lr=0.0004, model_name="Saturation"
     )
     
     # Step 6: Create grid predictions for visualization

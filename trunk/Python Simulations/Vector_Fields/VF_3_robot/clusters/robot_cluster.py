@@ -49,17 +49,18 @@ class FieldPredictor(nn.Module):
         return self.network(x)
 
 class RobotCluster:
-    def __init__(self, environment_function=None, use_nn=False, use_rbf=False, 
-                 use_blended=False, rbf_weight=0.9):
+    def __init__(self, environment_function=None, use_nn=False, use_rbf=False,
+                 use_blended=False, rbf_weight=0.9, predictor_dir='sinking_vortex_predictors'):
         """
         Initialize RobotCluster with option to use neural network, RBF, or blended approach.
-        
+
         Args:
             environment_function: Analytical function for vector field (used if none of the ML methods are True)
             use_nn: Boolean flag to use only neural network predictions
             use_rbf: Boolean flag to use only RBF predictions
             use_blended: Boolean flag to use blended RBF/NN predictions
             rbf_weight: Weight for RBF in blended mode (default: 0.9, meaning 90% RBF, 10% NN)
+            predictor_dir: Name of the predictor directory (e.g., 'sinking_vortex_predictors', 'saddle_predictors', 'vortex_predictors')
         """
         # Store mode flags
         self.use_nn = use_nn
@@ -67,6 +68,7 @@ class RobotCluster:
         self.use_blended = use_blended
         self.rbf_weight = rbf_weight
         self.nn_weight = 1.0 - rbf_weight
+        self.predictor_dir = predictor_dir
         
         # Determine which models to load
         load_nn = use_nn or use_blended
@@ -95,7 +97,7 @@ class RobotCluster:
             # Go up one level to get to the main directory
             main_dir = os.path.dirname(script_dir)
             # Path to predictors folder
-            predictors_dir = os.path.join(main_dir, 'sinking_vortex_predictors')
+            predictors_dir = os.path.join(main_dir, self.predictor_dir)
             
             # Load architecture info
             model_info_path = os.path.join(predictors_dir, 'model_info.pkl')
@@ -138,7 +140,7 @@ class RobotCluster:
             # Go up one level to get to the main directory
             main_dir = os.path.dirname(script_dir)
             # Path to predictors folder
-            predictors_dir = os.path.join(main_dir, 'sinking_vortex_predictors')
+            predictors_dir = os.path.join(main_dir, self.predictor_dir)
             
             # Load the RBF interpolator
             rbf_path = os.path.join(predictors_dir, 'vortex_rbf_interpolator.pkl')
@@ -237,7 +239,7 @@ class RobotCluster:
     def get_rbf_predictions(self, pos):
         """Get RBF predictions for a single position."""
         # RBF expects shape (n_samples, 2)
-        # Convert to float32 to avoid scipy RBF type mismatch with Pythran
+        # Convert to float32 to match the dtype used during RBF training
         pos_array = np.array([pos], dtype=np.float32)
 
         # Get predictions
@@ -272,19 +274,22 @@ class RobotCluster:
                 # Blend sin/cos components separately
                 blended_sin = self.rbf_weight * rbf_hue_sincos[0] + self.nn_weight * nn_hue_sincos[0]
                 blended_cos = self.rbf_weight * rbf_hue_sincos[1] + self.nn_weight * nn_hue_sincos[1]
-                
+
                 # NN saturation is in [-1, 1], RBF saturation is in [0, 1]
                 # Convert NN saturation to [0, 1] for blending
                 nn_sat = (nn_sat_scaled + 1) / 2
                 blended_sat = self.rbf_weight * rbf_sat + self.nn_weight * nn_sat
-                
-                # Convert blended sin/cos back to angle
-                angle = np.arctan2(blended_sin, blended_cos)
-                
+
+                # Reconstruct hue from blended sin/cos
+                hue_angle = np.arctan2(blended_sin, blended_cos)
+                hue_angle = (hue_angle + 2 * np.pi) % (2 * np.pi)  # [0, 2π]
+                hue = hue_angle / (2 * np.pi)  # [0, 1]
+
                 # Convert saturation to magnitude
                 magnitude = (blended_sat - 0.3) / 0.7
-                
-                # Convert to u, v components with small noise
+
+                # Convert hue to vector angle (add π/2)
+                angle = hue * 2 * np.pi + np.pi/2
                 u = magnitude * np.cos(angle) + np.random.randn() * 0.00
                 v = magnitude * np.sin(angle) + np.random.randn() * 0.00
                 
@@ -299,17 +304,20 @@ class RobotCluster:
             for pos in positions:
                 # Get RBF predictions
                 hue_sincos, sat = self.get_rbf_predictions(pos)
-                
-                # Convert sin/cos to angle
-                angle = np.arctan2(hue_sincos[0], hue_sincos[1])
-                
+
+                # Reconstruct hue from sin/cos
+                hue_angle = np.arctan2(hue_sincos[0], hue_sincos[1])
+                hue_angle = (hue_angle + 2 * np.pi) % (2 * np.pi)  # [0, 2π]
+                hue = hue_angle / (2 * np.pi)  # [0, 1]
+
                 # Convert saturation to magnitude
                 magnitude = (sat - 0.3) / 0.7
-                
-                # Convert to u, v components with small noise
+
+                # Convert hue to vector angle (add π/2)
+                angle = hue * 2 * np.pi + np.pi/2
                 u = magnitude * np.cos(angle) + np.random.randn() * 0.00
                 v = magnitude * np.sin(angle) + np.random.randn() * 0.00
-                
+
                 readings.append([u, v])
             
             return readings
@@ -321,20 +329,23 @@ class RobotCluster:
             for pos in positions:
                 # Get NN predictions
                 hue_pred, sat_pred = self.get_nn_predictions(pos)
-                
-                # Convert sin/cos back to angle
-                angle = np.arctan2(hue_pred[0], hue_pred[1])
-                
+
+                # Reconstruct hue from sin/cos
+                hue_angle = np.arctan2(hue_pred[0], hue_pred[1])
+                hue_angle = (hue_angle + 2 * np.pi) % (2 * np.pi)  # [0, 2π]
+                hue = hue_angle / (2 * np.pi)  # [0, 1]
+
                 # Convert saturation from [-1, 1] back to [0, 1]
                 sat = (sat_pred + 1) / 2
-                
+
                 # Saturation represents magnitude
                 magnitude = (sat - 0.3) / 0.7
-                
-                # Convert to u, v components with small noise
+
+                # Convert hue to vector angle (add π/2)
+                angle = hue * 2 * np.pi + np.pi/2
                 u = magnitude * np.cos(angle) + np.random.randn() * 0.00
                 v = magnitude * np.sin(angle) + np.random.randn() * 0.00
-                
+
                 readings.append([u, v])
             
             return readings

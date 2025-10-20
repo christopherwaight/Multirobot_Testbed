@@ -46,23 +46,24 @@ def load_and_stack_data(filename='saddle_data.csv'):
     
     for i in range(len(df)):
         # First measurement set
+        # Negate x and y to match simulation coordinate system
         stacked_data.append([
-            df.iloc[i, 0],  # x1
-            df.iloc[i, 1],  # y1
+            -df.iloc[i, 0],  # x1 (negated)
+            -df.iloc[i, 1],  # y1 (negated)
             df.iloc[i, 3],  # hue1
             df.iloc[i, 4]   # sat1
         ])
         # Second measurement set
         stacked_data.append([
-            df.iloc[i, 5],  # x2
-            df.iloc[i, 6],  # y2
+            -df.iloc[i, 5],  # x2 (negated)
+            -df.iloc[i, 6],  # y2 (negated)
             df.iloc[i, 8],  # hue2
             df.iloc[i, 9]   # sat2
         ])
         # Third measurement set
         stacked_data.append([
-            df.iloc[i, 10], # x3
-            df.iloc[i, 11], # y3
+            -df.iloc[i, 10], # x3 (negated)
+            -df.iloc[i, 11], # y3 (negated)
             df.iloc[i, 13], # hue3
             df.iloc[i, 14]  # sat3
         ])
@@ -136,10 +137,11 @@ class VortexRBFInterpolator:
         print("\nFitting RBF interpolators...")
         print(f"Configuration: {self.config}")
         print(f"Training on {len(X)} points")
-        
-        self.training_points = np.array(X)
-        self.training_hue = np.array(hue_values)
-        self.training_sat = np.array(sat_values)
+
+        # Convert to float32 for compatibility with pythranized scipy
+        self.training_points = np.array(X, dtype=np.float32)
+        self.training_hue = np.array(hue_values, dtype=np.float32)
+        self.training_sat = np.array(sat_values, dtype=np.float32)
         
         # Convert hue to sin/cos representation for circular continuity
         hue_angle = self.training_hue * 2 * np.pi
@@ -320,25 +322,33 @@ def visualize_rbf_results(interpolator, df, test_points=None):
     ax4.set_aspect('equal')
     plt.colorbar(im4, ax=ax4, label='Saturation')
     
-    # 5. Error at training points
+    # 5. Quiver plot - Vector field
     ax5 = plt.subplot(2, 3, 5)
-    errors = interpolator.evaluate_at_training_points()
-    
-    # Create bar plot of errors
-    error_types = ['Hue MAE', 'Hue Max', 'Sat MAE', 'Sat Max']
-    error_values = [errors['hue_mae'], errors['hue_max_error'], 
-                   errors['sat_mae'], errors['sat_max_error']]
-    
-    bars = ax5.bar(error_types, error_values)
-    ax5.set_ylabel('Error')
-    ax5.set_title('Reproduction Error at Training Points')
-    ax5.set_ylim(0, max(error_values) * 1.2 if max(error_values) > 0 else 0.1)
-    
-    # Add value labels on bars
-    for bar, val in zip(bars, error_values):
-        height = bar.get_height()
-        ax5.text(bar.get_x() + bar.get_width()/2., height,
-                f'{val:.2e}', ha='center', va='bottom')
+    # Create coarser grid for quiver
+    x_quiver = np.linspace(-0.65, 0.65, 20)
+    y_quiver = np.linspace(-0.65, 0.65, 20)
+    X_quiver, Y_quiver = np.meshgrid(x_quiver, y_quiver)
+    points_quiver = np.column_stack([X_quiver.ravel(), Y_quiver.ravel()])
+
+    # Get predictions at quiver points
+    hue_quiver, sat_quiver = interpolator.predict(points_quiver)
+
+    # Convert hue to vector direction (add π/2) and saturation to magnitude
+    angles = hue_quiver * 2 * np.pi + np.pi/2
+    U = sat_quiver * np.cos(angles)
+    V = sat_quiver * np.sin(angles)
+
+    U_grid = U.reshape(X_quiver.shape)
+    V_grid = V.reshape(X_quiver.shape)
+    colors_quiver = hue_quiver.reshape(X_quiver.shape)
+
+    quiv = ax5.quiver(X_quiver, Y_quiver, U_grid, V_grid, colors_quiver,
+                      cmap='hsv', scale=10, alpha=0.8)
+    ax5.set_xlabel('X')
+    ax5.set_ylabel('Y')
+    ax5.set_title('Vector Field (Dir=Hue, Mag=Sat)')
+    ax5.set_aspect('equal')
+    plt.colorbar(quiv, ax=ax5, label='Hue')
     
     # 6. Test points comparison (if provided)
     ax6 = plt.subplot(2, 3, 6)

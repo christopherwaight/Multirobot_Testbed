@@ -27,8 +27,8 @@ The primary simulation code lives in `Vector_Fields/VF_3_robot/`:
 
 ```
 VF_3_robot/
-├── main.py                    # Entry point - run simulations here
-├── main_lite.py              # Simplified version
+├── main.py                    # Entry point - unified simulation runner
+├── main_lite.py              # Simplified version (deprecated)
 ├── clusters/                 # Robot cluster implementations
 │   └── robot_cluster.py      # Core RobotCluster class
 ├── primitives/               # Control algorithms (THE BRAIN)
@@ -37,14 +37,22 @@ VF_3_robot/
 │   ├── VF_bases.py          # Basic field types (source, sink, vortex, etc.)
 │   ├── VF_env.py            # Field composition
 │   ├── Sinking_Vortex.py    # Combined sink+vortex fields
+│   ├── Spewing_Vortex.py    # Combined source+vortex fields
 │   ├── Saddle.py            # Saddle point fields
+│   ├── Sink.py, Source.py, Vortex.py  # Individual field types
 │   └── grid_setup.py        # Visualization grid
 ├── exec_sim/                # Simulation execution
 │   └── simulation.py        # Main simulation loop
-└── sinking_vortex_predictors/  # ML models (NN & RBF)
-    ├── nn_trainer_sinking_vortex.py
-    ├── rbf_trainer_sinking_vortex.py
-    └── synthetic_generator.py
+├── sinking_vortex_predictors/  # ML models for sinking vortex fields
+│   ├── nn_trainer_sinking_vortex.py
+│   ├── rbf_trainer_sinking_vortex.py
+│   └── synthetic_generator.py
+├── saddle_predictors/       # ML models for saddle point fields
+│   ├── nn_trainer_saddle.py
+│   └── rbf_trainer_saddle.py
+└── vortex_predictors/       # ML models for pure vortex fields
+    ├── nn_trainer_vortex.py
+    └── rbf_trainer_vortex.py
 ```
 
 ## Running Simulations
@@ -56,27 +64,31 @@ python main.py
 ```
 
 ### Configuration Options (in main.py)
-```python
-USE_BLENDED = True    # Blend RBF + NN (90/10 default)
-USE_NN_ONLY = False   # Use only neural network
-USE_RBF_ONLY = False  # Use only RBF interpolator
-USE_ANALYTICAL = False # Use ground truth analytical functions
 
-RBF_WEIGHT = 0.9  # Blending ratio (0.9 = 90% RBF, 10% NN)
+The simulation has three modes controlled by `SIMULATION_MODE`:
+- `"single"` - Run one simulation with one environment
+- `"compare"` - Compare 4 modes (Blended, NN, RBF, Analytical) side-by-side
+- `"multi_env"` - Run all 18 environments in a 3x6 grid
+
+**Field Approximation Modes:**
+```python
+USE_BLENDED = False       # Use blended RBF/NN approach
+USE_NN_ONLY = False      # Use only neural network
+USE_RBF_ONLY = False     # Use only RBF interpolator
+USE_ANALYTICAL = True    # Use ground truth analytical functions
+RBF_WEIGHT = 0.9         # Blending ratio (0.9 = 90% RBF, 10% NN)
 ```
 
-### Selecting Environment
-In `main.py`, change the import:
+**Environment Selection:**
 ```python
-from env.Sinking_Vortex import sinking_vortex1 as enviro  # Vortex+sink
-from env.Saddle import true_saddle as enviro              # Saddle point
-from env.Sink import sink3 as enviro                      # Pure sink
+ENVIRONMENT = "vortex1"  # Options: sink1-3, source1-3, vortex1-3,
+                         #          sinking_vortex1-3, spewing_vortex1-3,
+                         #          saddle1-3
 ```
 
-### Selecting Control Primitive
-In `main.py`, change the control primitive passed to `execute_simulation()`:
+**Control Primitive Selection:**
 ```python
-execute_simulation(cluster, cp.critical_point_orbiter_plane_fitting, 'Title')
+CONTROL_PRIMITIVE = "critical_point_orbiter_plane_fitting"
 ```
 
 Available control primitives (from `control_primitives.py`):
@@ -88,6 +100,9 @@ Available control primitives (from `control_primitives.py`):
 - `find_center` - Weighted combination of rotation/radial components
 - `find_center2` - Parameter-free center finding using energy descent
 - `eigenstep` - Move along most stable eigenvector direction
+- `direction_follow_with_center_attraction` - Follow field direction with attraction to center
+- `center_attraction` - Move toward estimated center
+- `find_sink_center` - Specialized for finding sink centers
 
 ## Key Architecture Concepts
 
@@ -158,6 +173,8 @@ blended_sat = rbf_weight * rbf_sat + nn_weight * nn_sat
 
 ### 5. Training ML Models
 
+The default configuration loads models from `sinking_vortex_predictors/`. To train models for different field types, use the corresponding predictor directory.
+
 **Generate Training Data:**
 ```bash
 cd Vector_Fields/VF_3_robot/sinking_vortex_predictors
@@ -176,17 +193,19 @@ python rbf_trainer_sinking_vortex.py
 # Outputs: vortex_rbf_interpolator.pkl
 ```
 
-**Model Files Required:**
+**Model Files Required (in predictor directory):**
 - `hue_model.pth` - NN weights for direction
 - `sat_model.pth` - NN weights for magnitude
 - `model_info.pkl` - Architecture specifications
 - `vortex_rbf_interpolator.pkl` - RBF interpolator
 
+**Note:** By default, `RobotCluster` loads models from `sinking_vortex_predictors/`. To use different field-specific models, modify the `load_nn_models()` and `load_rbf_models()` methods in `robot_cluster.py` to point to `saddle_predictors/` or `vortex_predictors/`.
+
 ## Vector Field Primitives
 
 Available in `env/VF_bases.py`:
 - `source(x, y, xc, yc)` - Radial outward flow (V ∝ 1/r²)
-- `sink(x, y, xc, yc)` - Radial inward flow
+- `sink(x, y, xc, yc)` - Radial inward flow (V ∝ 1/r²)
 - `free_vortex(x, y, xc, yc)` - Circular flow with V ∝ 1/r
 - `fixed_vortex(x, y, xc, yc)` - Circular flow with V ∝ r
 - `saddle(x, y, xc, yc)` - Hyperbolic saddle point
@@ -195,7 +214,17 @@ Available in `env/VF_bases.py`:
 - `uni_yflow(x, y)` - Uniform vertical flow
 - `boundary_layer(x, y)` - Exponentially decaying flow
 
-Compose custom fields in `env/VF_env.py` by summing primitives.
+### Pre-Built Environment Configurations
+
+The `env/` directory includes multiple pre-configured environments with 3 variants each:
+- **Sink** (`Sink.py`): sink1, sink2, sink3 - Pure radial inward flow fields
+- **Source** (`Source.py`): source1, source2, source3 - Pure radial outward flow fields
+- **Vortex** (`Vortex.py`): vortex1, vortex2, vortex3 - Pure rotational flow fields
+- **Sinking Vortex** (`Sinking_Vortex.py`): sinking_vortex1-3 - Combined rotation + inward flow
+- **Spewing Vortex** (`Spewing_Vortex.py`): spewing_vortex1-3 - Combined rotation + outward flow
+- **Saddle** (`Saddle.py`): saddle1, saddle2, saddle3 - Hyperbolic saddle points
+
+Compose custom fields in `env/VF_env.py` by summing primitives from `VF_bases.py`.
 
 ## Dependencies
 
@@ -220,13 +249,37 @@ pip install numpy matplotlib torch scipy pandas scikit-learn
 1. Add new function to `primitives/control_primitives.py`
 2. Function signature: `def my_algorithm(cluster) -> np.ndarray`
 3. Return the new cluster center position
-4. Update `main.py` to call your primitive: `execute_simulation(cluster, cp.my_algorithm, 'My Title')`
+4. Update `main.py`:
+   - Add your primitive name to `control_primitive_map` dictionary
+   - Set `CONTROL_PRIMITIVE = "my_algorithm"`
+   - Run with `python main.py`
 
 ### Create New Vector Field Environment
 1. Add environment function to `env/` directory (see `Sinking_Vortex.py` as template)
 2. Function signature: `def my_field(x, y) -> (u, v)` where x,y can be scalars or arrays
 3. Use `VF_bases.py` primitives to compose your field
-4. Import in `main.py` and set `USE_ANALYTICAL = True`
+4. Update `main.py`:
+   - Import your environment: `from env.MyField import my_field1`
+   - Add to `environment_map` dictionary
+   - Set `ENVIRONMENT = "my_field1"` and `USE_ANALYTICAL = True`
+
+### Run Quick Experiment
+For single simulation with specific settings:
+```python
+# In main.py
+SIMULATION_MODE = "single"
+ENVIRONMENT = "sinking_vortex1"
+CONTROL_PRIMITIVE = "critical_point_orbiter_plane_fitting"
+USE_ANALYTICAL = True  # or USE_BLENDED/USE_NN_ONLY/USE_RBF_ONLY
+```
+
+### Compare ML Models vs Analytical
+```python
+# In main.py
+SIMULATION_MODE = "compare"  # Shows Blended, NN, RBF, Analytical side-by-side
+ENVIRONMENT = "vortex1"
+RUN_BLENDING_TEST = True  # Verify blending math
+```
 
 ### Modify Robot Formation
 Edit `reset()` in `clusters/robot_cluster.py`:
@@ -239,10 +292,11 @@ self.robot_offsets = np.array([
 ```
 
 ### Train Models for New Field Type
-1. Create new predictor directory (e.g., `saddle_predictors/`)
-2. Copy `synthetic_generator.py` and modify to generate your field
-3. Copy and adapt `nn_trainer_*.py` and `rbf_trainer_*.py`
-4. Update `RobotCluster.__init__()` to load from new directory
+1. Use existing predictor directory (`sinking_vortex_predictors/`, `saddle_predictors/`, or `vortex_predictors/`)
+2. Modify `synthetic_generator.py` to generate your specific field configuration
+3. Run training scripts: `python nn_trainer_*.py` and `python rbf_trainer_*.py`
+4. Trained models will be saved in the same directory
+5. Note: `RobotCluster` defaults to loading from `sinking_vortex_predictors/`
 
 ## Key Implementation Details
 
