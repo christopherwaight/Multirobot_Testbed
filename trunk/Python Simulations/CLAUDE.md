@@ -13,57 +13,62 @@ The core innovation is using **momentum-based physics** for robot clusters combi
 ```
 Python Simulations/
 ├── Vector_Fields/          # Vector field navigation simulations
-│   ├── VF_3_robot/        # Main 3-robot simulation (ACTIVELY USED)
-│   ├── Vector_Field_4_Robot/              # 4-robot variant
-│   └── Vector_Field_4_Robot_experimental/ # Experimental 4-robot work
+│   └── VF_Robot/          # Unified multi-robot simulation (ACTIVELY USED)
 ├── Scalar Fields/         # Scalar field optimization (gradient ascent/descent)
 ├── Separatrix_Control_testing/  # Separatrix navigation experiments
 └── Archive/               # Old implementations and experiments
+    └── VF_4_Robot/        # Legacy 4-robot code (merged into VF_Robot)
 ```
 
-### VF_3_robot Structure (Main Working Directory)
+### VF_Robot Structure (Main Working Directory)
 
-The primary simulation code lives in `Vector_Fields/VF_3_robot/`:
+The primary simulation code lives in `Vector_Fields/VF_Robot/` and supports both 3-robot and 4-robot formations:
 
 ```
-VF_3_robot/
-├── main.py                    # Entry point - unified simulation runner
-├── main_lite.py              # Simplified version (deprecated)
-├── clusters/                 # Robot cluster implementations
-│   └── robot_cluster.py      # Core RobotCluster class
-├── primitives/               # Control algorithms (THE BRAIN)
-│   └── control_primitives.py # All control strategies
-├── env/                      # Vector field environments
-│   ├── VF_bases.py          # Basic field types (source, sink, vortex, etc.)
-│   ├── VF_env.py            # Field composition
-│   ├── Sinking_Vortex.py    # Combined sink+vortex fields
-│   ├── Spewing_Vortex.py    # Combined source+vortex fields
-│   ├── Saddle.py            # Saddle point fields
-│   ├── Sink.py, Source.py, Vortex.py  # Individual field types
-│   └── grid_setup.py        # Visualization grid
-├── exec_sim/                # Simulation execution
-│   └── simulation.py        # Main simulation loop
+VF_Robot/
+├── experiments/              # Main entry points
+│   └── main_omni.py         # Unified simulation runner (3 or 4 robots)
+├── src/                     # Core library code
+│   ├── robot/               # Robot implementations
+│   │   ├── omnibot.py      # Individual omnidirectional robot
+│   │   ├── omni_cluster.py # 3-robot cluster manager
+│   │   └── quad_cluster.py # 4-robot cluster manager
+│   ├── control/             # Control algorithms
+│   │   ├── primitives.py   # 3-robot control strategies
+│   │   ├── quad_primitives.py  # 4-robot control strategies
+│   │   ├── kinematics.py   # 3-robot kinematics (SAS parameterization)
+│   │   └── quad_kinematics.py  # 4-robot kinematics (diagonal parameterization)
+│   ├── fields/              # Field abstractions
+│   │   ├── field_types.py  # AnalyticalField, NNField, RBFField, BlendedField
+│   │   └── environments/   # Vector field definitions (Sink, Source, Vortex, etc.)
+│   └── simulation/          # Simulation execution
+│       └── runner.py        # Main simulation loop
+├── config/                  # Configuration files
+│   └── formations/          # Formation configs (YAML)
+│       ├── equilateral_*.yaml  # 3-robot formations
+│       └── quad_*.yaml      # 4-robot formations
 ├── sinking_vortex_predictors/  # ML models for sinking vortex fields
-│   ├── nn_trainer_sinking_vortex.py
-│   ├── rbf_trainer_sinking_vortex.py
-│   └── synthetic_generator.py
-├── saddle_predictors/       # ML models for saddle point fields
-│   ├── nn_trainer_saddle.py
-│   └── rbf_trainer_saddle.py
+├── saddle_predictors/       # ML models for saddle points
 └── vortex_predictors/       # ML models for pure vortex fields
-    ├── nn_trainer_vortex.py
-    └── rbf_trainer_vortex.py
 ```
 
 ## Running Simulations
 
 ### Basic Execution
 ```bash
-cd "Vector_Fields/VF_3_robot"
-python main.py
+cd "Vector_Fields/VF_Robot"
+python3 experiments/main_omni.py
 ```
 
-### Configuration Options (in main.py)
+### Switching Between 3-Robot and 4-Robot Modes
+Edit `experiments/main_omni.py`:
+```python
+NUM_ROBOTS = 3  # Change to 4 for 4-robot simulation
+```
+
+For detailed usage, see `Vector_Fields/VF_Robot/CLAUDE.md`.
+
+### Configuration Options (in main_omni.py)
 
 The simulation has three modes controlled by `SIMULATION_MODE`:
 - `"single"` - Run one simulation with one environment
@@ -106,20 +111,19 @@ Available control primitives (from `control_primitives.py`):
 
 ## Key Architecture Concepts
 
-### 1. Robot Cluster Physics
-The `RobotCluster` class (`clusters/robot_cluster.py`) implements **second-order dynamics** with momentum:
+### 1. Robot Physics
+The `Omnibot` class (`src/robot/omnibot.py`) implements **second-order dynamics** with momentum:
 
 ```python
-desired_velocity = (desired_centre - cluster_centre) / step_size
-velocity = momentum_alpha * velocity + (1 - momentum_alpha) * desired_velocity
-velocity *= damping
-cluster_centre += velocity * step_size
+velocity = alpha * velocity_old + (1 - alpha) * velocity_cmd
+position += timestep * velocity
 ```
 
 Parameters:
-- `momentum_alpha = 0.7` - Higher = more inertia
-- `damping = 1.0` - Energy dissipation
-- `step_size = 0.1` - Base movement increment
+- `momentum_alpha = 0.7` - Higher = more inertia (momentum coefficient)
+- `timestep = 0.1` - Integration time step
+
+Robot clusters (OmniCluster or QuadCluster) use formation control to convert desired centroid velocities into individual robot commands while maintaining formation shape.
 
 ### 2. Critical Point Estimation Theory
 The mathematics behind center estimation is documented in `Explanation II.txt` (LaTeX source). Key principles:
@@ -177,7 +181,7 @@ The default configuration loads models from `sinking_vortex_predictors/`. To tra
 
 **Generate Training Data:**
 ```bash
-cd Vector_Fields/VF_3_robot/sinking_vortex_predictors
+cd Vector_Fields/VF_Robot/sinking_vortex_predictors
 python synthetic_generator.py  # Creates CSV with (x,y,hue,sat) samples
 ```
 
@@ -199,7 +203,7 @@ python rbf_trainer_sinking_vortex.py
 - `model_info.pkl` - Architecture specifications
 - `vortex_rbf_interpolator.pkl` - RBF interpolator
 
-**Note:** By default, `RobotCluster` loads models from `sinking_vortex_predictors/`. To use different field-specific models, modify the `load_nn_models()` and `load_rbf_models()` methods in `robot_cluster.py` to point to `saddle_predictors/` or `vortex_predictors/`.
+**Note:** ML models are loaded based on the `ENVIRONMENT_TO_PREDICTOR` mapping in `experiments/main_omni.py`. Different environments automatically use their corresponding predictor directories (`sinking_vortex_predictors/`, `saddle_predictors/`, or `vortex_predictors/`).
 
 ## Vector Field Primitives
 
@@ -246,49 +250,62 @@ pip install numpy matplotlib torch scipy pandas scikit-learn
 ## Common Workflows
 
 ### Experiment with New Control Algorithm
-1. Add new function to `primitives/control_primitives.py`
-2. Function signature: `def my_algorithm(cluster) -> np.ndarray`
-3. Return the new cluster center position
-4. Update `main.py`:
-   - Add your primitive name to `control_primitive_map` dictionary
-   - Set `CONTROL_PRIMITIVE = "my_algorithm"`
-   - Run with `python main.py`
+1. Add new function to `src/control/primitives.py` (3-robot) or `src/control/quad_primitives.py` (4-robot)
+2. Function signature: `def my_algorithm(cluster) -> (vx_c, vy_c)`
+3. Return desired centroid velocity
+4. Update `experiments/main_omni.py`:
+   - Add your primitive name to `control_primitive_map_3` or `control_primitive_map_4`
+   - Set `CONTROL_PRIMITIVE_3 = "my_algorithm"` (or `CONTROL_PRIMITIVE_4`)
+   - Run with `python3 experiments/main_omni.py`
 
 ### Create New Vector Field Environment
-1. Add environment function to `env/` directory (see `Sinking_Vortex.py` as template)
+1. Add environment function to `src/fields/environments/` directory (see `Sinking_Vortex.py` as template)
 2. Function signature: `def my_field(x, y) -> (u, v)` where x,y can be scalars or arrays
 3. Use `VF_bases.py` primitives to compose your field
-4. Update `main.py`:
-   - Import your environment: `from env.MyField import my_field1`
+4. Update `experiments/main_omni.py`:
+   - Import your environment: `from src.fields.environments.MyField import my_field1`
    - Add to `environment_map` dictionary
-   - Set `ENVIRONMENT = "my_field1"` and `USE_ANALYTICAL = True`
+   - Set `ENVIRONMENT = "my_field1"`
 
 ### Run Quick Experiment
 For single simulation with specific settings:
 ```python
-# In main.py
+# In experiments/main_omni.py
+NUM_ROBOTS = 3  # or 4
 SIMULATION_MODE = "single"
+FIELD_MODE = "analytical"  # or "nn", "rbf", "blended"
 ENVIRONMENT = "sinking_vortex1"
-CONTROL_PRIMITIVE = "critical_point_orbiter_plane_fitting"
-USE_ANALYTICAL = True  # or USE_BLENDED/USE_NN_ONLY/USE_RBF_ONLY
+CONTROL_PRIMITIVE_3 = "critical_point_orbiter_plane_fitting"
 ```
 
 ### Compare ML Models vs Analytical
 ```python
-# In main.py
+# In experiments/main_omni.py
 SIMULATION_MODE = "compare"  # Shows Blended, NN, RBF, Analytical side-by-side
 ENVIRONMENT = "vortex1"
-RUN_BLENDING_TEST = True  # Verify blending math
+RBF_WEIGHT = 0.9  # Blending ratio
 ```
 
 ### Modify Robot Formation
-Edit `reset()` in `clusters/robot_cluster.py`:
-```python
-self.robot_offsets = np.array([
-    [0, off_size],              # robot 1 position relative to center
-    [-off_size*√(1/3), 0],      # robot 2
-    [off_size*√(1/3), 0]        # robot 3 (forms equilateral triangle)
-])
+**For 3-robot:** Create/edit YAML file in `config/formations/`:
+```yaml
+formation:
+  p: 0.433
+  q: 0.433
+  beta_degrees: 120.0
+  position_gain: 1.0
+```
+
+**For 4-robot:** Create/edit YAML file in `config/formations/`:
+```yaml
+formation:
+  type: "quadrilateral"
+  d1: 0.433
+  d2: 0.25
+  r1: 0.5
+  r2: 0.5
+  phi_degrees: 90.0
+  position_gain: 1.0
 ```
 
 ### Train Models for New Field Type
@@ -296,7 +313,7 @@ self.robot_offsets = np.array([
 2. Modify `synthetic_generator.py` to generate your specific field configuration
 3. Run training scripts: `python nn_trainer_*.py` and `python rbf_trainer_*.py`
 4. Trained models will be saved in the same directory
-5. Note: `RobotCluster` defaults to loading from `sinking_vortex_predictors/`
+5. Update `ENVIRONMENT_TO_PREDICTOR` mapping in `experiments/main_omni.py` to use your models
 
 ## Key Implementation Details
 
@@ -324,7 +341,7 @@ In `exec_sim/simulation.py`:
 
 **Singular matrix errors**: Occurs when robot formation is degenerate (collinear points). The code falls back to `vector_sum()` in these cases.
 
-**Oscillating behavior**: Reduce `step_size` or increase `momentum_alpha` in `robot_cluster.py` for more damping.
+**Oscillating behavior**: Increase `momentum_alpha` in robot initialization (see `src/robot/omnibot.py`) for more damping, or reduce `timestep` for finer control.
 
 **Poor ML predictions**: Retrain with more diverse training data or adjust network architecture in the trainer scripts.
 
