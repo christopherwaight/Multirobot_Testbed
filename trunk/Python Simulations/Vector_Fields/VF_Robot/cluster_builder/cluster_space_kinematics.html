@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cluster-Space Kinematics: Parameterizations, Jacobians, and Clusters of Clusters</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    tags: 'none'
+  },
+  chtml: { scale: 1.0 },
+  options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js" async></script>
+
+<style>
+  :root {
+    --paper:    #f6f3ec;
+    --paper-2:  #efeadd;
+    --ink:      #1c1b18;
+    --ink-soft: #524e44;
+    --rule:     #d9d3c4;
+    --rule-2:   #c7bfab;
+    --accent:   #1f5e57;
+    --accent-2: #2f7a72;
+    --mark:     #a8522a;
+    --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --body:    'Newsreader', Georgia, serif;
+    --mono:    'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #fbf9f3 0%, var(--paper) 55%) fixed;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 19px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 50rem;
+    margin: 0 auto;
+    padding: clamp(1.4rem, 4vw, 4rem) clamp(1.1rem, 4vw, 2.2rem) 6rem;
+  }
+
+  /* Masthead */
+  .masthead { margin-bottom: 2.6rem; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1.1rem;
+  }
+  h1 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(2rem, 5.5vw, 3.1rem);
+    line-height: 1.05;
+    letter-spacing: -0.012em;
+    margin: 0 0 0.7rem;
+  }
+  .subtitle {
+    font-family: var(--body);
+    font-style: italic;
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0 0 1.5rem;
+    max-width: 38rem;
+  }
+  .masthead-rule {
+    border: 0;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--rule-2);
+    height: 3px;
+    margin: 0;
+  }
+  .meta-line {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    margin-top: 0.7rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.4rem;
+  }
+
+  /* Table of contents */
+  nav.toc {
+    margin: 2.6rem 0 3rem;
+    padding: 1.3rem 1.5rem;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+  }
+  nav.toc h2 {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.8rem;
+    border: 0;
+  }
+  nav.toc ol {
+    margin: 0; padding: 0; list-style: none;
+    columns: 2; column-gap: 2rem;
+  }
+  nav.toc li {
+    margin: 0.28rem 0;
+    break-inside: avoid;
+    font-size: 0.95rem;
+  }
+  nav.toc a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+  }
+  nav.toc a:hover { border-bottom-color: var(--accent); color: var(--accent); }
+  nav.toc .num { font-family: var(--mono); color: var(--accent); font-size: 0.78rem; margin-right: 0.5rem; }
+
+  /* Sections */
+  section { margin: 3.3rem 0; }
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: clamp(1.4rem, 3.6vw, 1.95rem);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    margin: 0 0 1.1rem;
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--rule-2);
+  }
+  h2 .num {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    vertical-align: 0.28em;
+    margin-right: 0.7rem;
+  }
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.18rem;
+    margin: 2rem 0 0.4rem;
+    color: var(--accent);
+  }
+  p { margin: 0.85rem 0; }
+  a { color: var(--accent-2); }
+
+  .lead { font-size: 1.05rem; }
+
+  strong { font-weight: 600; }
+  em { color: var(--ink); }
+
+  /* Math display spacing */
+  mjx-container[display="true"] { margin: 1.1rem 0 !important; }
+  .math-note {
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    margin: 0.4rem 0 0.9rem;
+  }
+
+  /* State vector / inline mono chips */
+  code, .chip {
+    font-family: var(--mono);
+    font-size: 0.84em;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 0.04em 0.36em;
+  }
+
+  /* Callout: round-trip check */
+  .check {
+    margin: 1.4rem 0;
+    background: var(--paper-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 3px 3px 0;
+    padding: 1rem 1.25rem 1.05rem;
+  }
+  .check .tag {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.55rem;
+  }
+  .check p { margin: 0.5rem 0; font-size: 0.96rem; }
+  .check .verdict {
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--mark);
+    margin-top: 0.7rem;
+  }
+
+  /* Aside: drawbacks / caution */
+  .aside {
+    margin: 1.4rem 0;
+    border: 1px solid var(--rule-2);
+    border-radius: 3px;
+    padding: 1rem 1.25rem;
+    background: #fbf9f3;
+  }
+  .aside .tag {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mark);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Glossary definition list */
+  dl.gloss {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, max-content) 1fr;
+    gap: 0.45rem 1.4rem;
+    margin: 1rem 0;
+  }
+  dl.gloss dt {
+    font-family: var(--mono);
+    font-size: 0.84rem;
+    color: var(--accent);
+    padding-top: 0.08rem;
+  }
+  dl.gloss dd { margin: 0; font-size: 0.97rem; }
+
+  /* Tables */
+  .table-scroll { overflow-x: auto; margin: 1.3rem 0; -webkit-overflow-scrolling: touch; }
+  table.cmp {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 44rem;
+    font-size: 0.86rem;
+    font-family: var(--body);
+  }
+  table.cmp th, table.cmp td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  table.cmp thead th {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border-bottom: 1.5px solid var(--ink);
+    background: var(--paper-2);
+  }
+  table.cmp tbody th {
+    font-family: var(--display);
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  table.cmp tr:last-child td, table.cmp tr:last-child th { border-bottom: 1.5px solid var(--rule-2); }
+
+  ul.tight { margin: 0.6rem 0; padding-left: 1.2rem; }
+  ul.tight li { margin: 0.4rem 0; }
+
+  .grammar {
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    line-height: 1.95;
+    background: var(--paper-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 3px 3px 0;
+    padding: 0.9rem 1.25rem;
+    margin: 1.3rem 0;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .grammar .def { color: var(--accent); font-weight: 500; }
+  .grammar .cmt { color: var(--ink-soft); }
+
+  figure.tree { margin: 1.7rem 0; text-align: center; }
+  figure.tree svg { max-width: 100%; height: auto; }
+  figure.tree figcaption {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+    margin-top: 0.5rem;
+  }
+  figure.tree figcaption b { color: var(--mark); font-weight: 500; }
+
+  .footer {
+    margin-top: 4rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.03em;
+  }
+
+  .fn {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    margin: 1.1rem 0;
+    padding: 0.45rem 0 0.45rem 1rem;
+    border-left: 2px solid var(--rule-2);
+  }
+  sup.fnref { color: var(--mark); font-family: var(--mono); font-size: 0.62em; padding: 0 0.12em; }
+
+  figure.diagram { margin: 1.5rem 0; }
+  figure.diagram svg { width: 100%; height: auto; display: block; }
+  figure.diagram figcaption {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-top: 0.55rem;
+    text-align: center;
+    line-height: 1.45;
+  }
+  .diagram-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.7rem;
+    align-items: start;
+    margin: 1.7rem 0;
+  }
+  @media (max-width: 620px) { .diagram-grid { grid-template-columns: 1fr; } }
+
+  /* Entrance animation */
+  .fade { opacity: 0; transform: translateY(10px); animation: rise 0.7s cubic-bezier(.2,.7,.2,1) forwards; }
+  .fade:nth-child(1) { animation-delay: 0.02s; }
+  .fade:nth-child(2) { animation-delay: 0.08s; }
+  .fade:nth-child(3) { animation-delay: 0.14s; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fade { opacity: 1; transform: none; animation: none; }
+  }
+
+  @media (max-width: 620px) {
+    body { font-size: 17px; }
+    nav.toc ol { columns: 1; }
+    dl.gloss { grid-template-columns: 1fr; gap: 0.1rem 0; }
+    dl.gloss dt { padding-top: 0.6rem; }
+  }
+
+  @media print {
+    body { background: #fff; font-size: 11pt; }
+    .wrap { max-width: 100%; padding: 0; }
+    nav.toc { background: #fff; }
+    .check, .aside { background: #fff; }
+    .fade { opacity: 1; transform: none; animation: none; }
+    section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead fade">
+    <p class="kicker">Multi-Robot Cluster Space &middot; Working Notes</p>
+    <h1>Cluster-Space Kinematics</h1>
+    <p class="subtitle">Two scalable methods for multi-robot formation control: hub-and-spoke and cluster of clusters. Foundational kinematics, Jacobians, velocity propagation, and recursive assembly for arbitrary N.</p>
+    <hr class="masthead-rule">
+    <div class="meta-line">
+      <span>Hub-and-Spoke &middot; Cluster of Clusters</span>
+      <span>Planar robots, \(\theta\) in radians</span>
+    </div>
+  </header>
+
+  <nav class="toc fade">
+    <h2>Contents</h2>
+    <ol>
+      <li><span class="num">1</span><a href="#intro">Introduction</a></li>
+      <li><span class="num">2</span><a href="#sas">Cluster space and the three-robot SAS cluster</a></li>
+      <li><span class="num">3</span><a href="#pentagon">Method 1: Hub-and-spoke &mdash; the six-robot pentagon cluster</a></li>
+      <li><span class="num">4</span><a href="#gauge">Orientation gauges</a></li>
+      <li><span class="num">5</span><a href="#coc">Method 2: Cluster of clusters</a></li>
+      <li><span class="num">6</span><a href="#hframe">The four-robot H-frame cluster</a></li>
+      <li><span class="num">7</span><a href="#origin">Velocity propagation</a></li>
+      <li><span class="num">8</span><a href="#assembly">Recursive assembly of the Jacobian</a></li>
+      <li><span class="num">9</span><a href="#construct">Construction for arbitrary N</a></li>
+      <li><span class="num">A</span><a href="#appendix-a">The two-robot cluster and derivative patterns</a></li>
+      <li><span class="num">B</span><a href="#appendix-b">The four-robot cross-diagonal cluster</a></li>
+      <li><span class="num">C</span><a href="#appendix-c">Comparison of clusters</a></li>
+      <li><span class="num">D</span><a href="#appendix-d">Notation and conventions</a></li>
+      <li><span class="num">E</span><a href="#appendix-e">The SAS-3 inverse Jacobian</a></li>
+      <li><span class="num">F</span><a href="#appendix-f">The six-robot (2,2,2) cluster-of-clusters</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ 1. INTRODUCTION ============ -->
+  <section id="intro" class="fade">
+    <h2><span class="num">1</span>Introduction</h2>
+    <p>Multi-robot systems (MRS) have been deployed across environmental monitoring, pollution tracking, and search-and-rescue missions using unmanned ground vehicles, surface vessels, and aerial vehicles. The spatial distribution of robots allows teams to sample a field simultaneously at multiple locations, enabling distributed estimation of features that no single robot could recover alone.</p>
+    <p>Scaling these teams up is a persistent challenge. Swarm approaches distribute control and can accommodate large numbers of robots, but they rely on statistical aggregation: individual robots cannot be assigned specific roles or positions within the formation. Centralized formation-control approaches retain full addressability and controllability, allowing each robot to be commanded to a precise location, but they typically rely on fixed geometric formations that were designed for a specific team size and do not generalize when robots are added.</p>
+    <p>This document introduces two parameterization methods that address the scaling problem while retaining full controllability and per-robot addressability. Both build on the cluster-space framework of Dr. Christopher Kitts, whose three-robot SAS cluster is the foundational case developed in Section 2.</p>
+    <p>Method 1, presented in Section 3, is the hub-and-spoke star: one robot serves as an anchor, and each remaining robot is described by a radial distance and angular offset from that hub. The method scales to any N by adding one pair of shape variables per robot. Method 2, presented in Section 5, is the cluster of clusters: robots are grouped into sub-clusters, and a meta-level parameterization acts over the sub-cluster centroids. The Jacobian factors by the chain rule, and the same two-robot block is reused at every level of the hierarchy. Together these two methods cover a broad range of team sizes and mission geometries.</p>
+  </section>
+
+  <!-- ============ 2. SAS ============ -->
+  <section id="sas" class="fade">
+    <h2><span class="num">2</span>Cluster space and the three-robot SAS cluster</h2>
+    <p>Cluster space represents a group of N planar robots by a single state vector combining pose (centroid position and orientation) with shape variables that describe internal geometry. The forward map converts robot positions to the cluster state; the inverse map converts a commanded cluster state back to individual robot positions. The Jacobian and its inverse link velocity commands between the two spaces. The three-robot SAS cluster, introduced by Kitts and Mas [23] and used throughout Kitts et al. [7], is the simplest instance that captures all three components. Notation is defined in Appendix D.</p>
+    <p>State vector \(\mathbf q=[\,x_c,\,y_c,\,\theta_c,\,p,\,\beta,\,q\,]^{\mathsf T}\) (6 entries for 6 DOF). The side \(p=\lVert P_1-P_2\rVert\), the side \(q=\lVert P_2-P_3\rVert\), and \(\beta\) is the interior angle at robot 2. Orientation is fixed to the \(1\!\to\!2\) vector.</p>
+
+    <h3>Forward (robots \(\to\) cluster)</h3>
+    $$x_c=\tfrac13(x_1+x_2+x_3),\qquad y_c=\tfrac13(y_1+y_2+y_3)$$
+    $$p=\sqrt{(x_2-x_1)^2+(y_2-y_1)^2},\qquad q=\sqrt{(x_3-x_2)^2+(y_3-y_2)^2}$$
+    $$\theta_c=\operatorname{atan2}(y_2-y_1,\;x_2-x_1)$$
+    $$r=\sqrt{(x_3-x_1)^2+(y_3-y_1)^2},\qquad \beta=\arccos\!\left(\frac{p^2+q^2-r^2}{2pq}\right)$$
+    <p class="math-note">The diagonal \(r=\lVert P_1-P_3\rVert\) is an intermediate; \(\beta\) follows from the law of cosines at vertex 2.<sup class="fnref">&lowast;</sup></p>
+    <p class="fn"><sup class="fnref">&lowast;</sup> A smoother choice replaces the \(\arccos\) with a signed angle, \(\beta=\operatorname{atan2}(a\times b,\;a\cdot b)\) with \(a=P_1-P_2,\ b=P_3-P_2\). The signed form carries the handedness (which side of the \(1\!\to\!2\) baseline robot 3 lies on), so the cluster covers both mirror images instead of being two-to-one, and its derivative stays finite as the triangle flattens, where the \(\arccos\) derivative diverges. The equations above are kept in \(\arccos\) form for continuity with the manuscript.</p>
+
+    <h3>Inverse (cluster \(\to\) robots)</h3>
+    <p>Build the triangle in a local frame aligned so the \(1\!\to\!2\) edge lies along the local \(x\)-axis, then center, rotate, and translate:</p>
+    $$P_1^{\text{loc}}=(0,0),\quad P_2^{\text{loc}}=(p,0),\quad P_3^{\text{loc}}=(p-q\cos\beta,\;q\sin\beta)$$
+    $$x_c^{\text{loc}}=\tfrac13(2p-q\cos\beta),\qquad y_c^{\text{loc}}=\tfrac13\,q\sin\beta$$
+    $$\begin{bmatrix}x_i\\ y_i\end{bmatrix}=R(\theta_c)\begin{bmatrix}x_i^{\text{loc}}-x_c^{\text{loc}}\\ y_i^{\text{loc}}-y_c^{\text{loc}}\end{bmatrix}+\begin{bmatrix}x_c\\ y_c\end{bmatrix}$$
+
+    <div class="check">
+      <span class="tag">Round-trip check</span>
+      <p>Take \(P_1=(0,0)\), \(P_2=(2,0)\), \(P_3=(1,1.5)\).</p>
+      <p>Forward gives \(x_c=1,\ y_c=0.5,\ \theta_c=0,\ p=2,\ q=\sqrt{3.25}\approx1.8028\), with \(r=\sqrt{3.25}\) so \(\cos\beta=4/(2pq)=0.5547\) and \(\beta\approx0.9828\) rad.</p>
+      <p>Inverse: local \(P_3^{\text{loc}}=(2-q\cos\beta,\,q\sin\beta)=(1.0,\,1.5)\); local centroid \((1,0.5)\); with \(\theta_c=0\) the rotation is identity and the three points return to \((0,0),(2,0),(1,1.5)\).</p>
+      <p class="verdict">recovered exactly &check;</p>
+    </div>
+  </section>
+
+  <!-- ============ 3. PENTAGON (METHOD 1) ============ -->
+  <section id="pentagon" class="fade">
+    <h2><span class="num">3</span>Method 1: Hub-and-spoke &mdash; the six-robot pentagon cluster</h2>
+    <p>The hub-and-spoke method designates one robot as a fixed anchor and describes every other robot by its distance and bearing relative to that hub. This section develops the method using a six-robot pentagon as the concrete example.</p>
+    <p>State vector \(\mathbf q=[\,x_h,\,y_h,\,\theta_c,\,r_1,\dots,r_5,\,\gamma_2,\dots,\gamma_5\,]^{\mathsf T}\) (12 entries). Robots 1&ndash;5 are the vertices and robot 6 is the center, which serves as the hub. The orientation \(\theta_c\) is the hub-to-vertex-1 bearing, so \(\gamma_1\equiv0\); the remaining vertices carry angular offsets \(\gamma_i\) relative to \(\theta_c\). This hub-and-spoke cluster is nearly decoupled: perturbing a non-reference vertex (\(i=2,\dots,5\)) affects only its own \(r_i\) and \(\gamma_i\). Two robots are shared rather than decoupled. The hub sets the origin of every spoke, so a displacement of robot 6 affects all five vertices; vertex 1 sets \(\theta_c\), so a displacement of vertex 1 shifts the frame and with it every \(\gamma_j\). Section 4 removes the second of these dependencies.</p>
+
+    <h3>Forward (robots \(\to\) cluster)</h3>
+    $$x_h=x_6,\qquad y_h=y_6$$
+    <p>For each vertex \(i=1,\dots,5\), with \(\Delta x_i=x_i-x_h\), \(\Delta y_i=y_i-y_h\):</p>
+    $$r_i=\sqrt{\Delta x_i^2+\Delta y_i^2},\qquad \beta_i=\operatorname{atan2}(\Delta y_i,\,\Delta x_i)$$
+    $$\theta_c=\beta_1,\qquad \gamma_i=\beta_i-\theta_c\quad(i=2,\dots,5,\ \text{wrapped to }(-\pi,\pi])$$
+
+    <h3>Inverse (cluster \(\to\) robots)</h3>
+    $$x_6=x_h,\qquad y_6=y_h$$
+    $$x_i=x_h+r_i\cos(\theta_c+\gamma_i),\qquad y_i=y_h+r_i\sin(\theta_c+\gamma_i)\qquad(\gamma_1\equiv0)$$
+    <p class="math-note">The only singularity is \(r_i\to0\), where a vertex meets the hub and its bearing becomes undefined. Robots 6 and 1 are distinguished: the hub sets the origin of every spoke, and vertex 1 sets the angular reference. Section 4 retains the hub but removes the dependence on vertex 1.</p>
+
+    <h3>Target formation</h3>
+    <p>A regular pentagon of circumradius \(R\) about the center:</p>
+    $$r_1=\dots=r_5=R,\qquad \gamma_2=\tfrac{2\pi}{5},\ \gamma_3=\tfrac{4\pi}{5},\ \gamma_4=\tfrac{6\pi}{5},\ \gamma_5=\tfrac{8\pi}{5}$$
+    <p>with \(x_h,y_h,\theta_c\) free. At this setpoint the five vertices average to the hub, so robot 6 coincides with the geometric centroid and \((x_h,y_h)\) also serves as the centroid position.</p>
+
+    <div class="check">
+      <span class="tag">Round-trip check</span>
+      <p>Hub \((5,5)\), \(R=1\), \(\theta_c=\tfrac{\pi}{2}\). Inverse gives vertex 1 \(=(5,6)\), vertex 2 \(=(5+\cos162^\circ,\,5+\sin162^\circ)\approx(4.0489,5.3090)\), and so on around the ring.</p>
+      <p>Forward from those positions returns the hub \((5,5)\), every \(r_i=1\), \(\theta_c=90^\circ\), and \(\gamma=\{72^\circ,144^\circ,216^\circ,288^\circ\}\).</p>
+      <p class="verdict">recovered exactly &check;</p>
+    </div>
+  </section>
+
+  <!-- ============ 4. ORIENTATION GAUGE ============ -->
+  <section id="gauge" class="fade">
+    <h2><span class="num">4</span>Orientation gauges</h2>
+    <p class="lead">The pentagon cluster fixes \(\theta_c\) to a single pointer robot, \(\theta_c=\beta_1\). This keeps the orientation row sparse but ties the global frame to one bearing. The choice of orientation reference is a gauge: any rule that determines the formation's rotation from its spokes is admissible. This section compares the sparse pointer gauge with a consensus gauge that distributes the orientation estimate across all spokes, and examines the resulting cost in the Jacobian.</p>
+
+    <h3>The pointer gauge</h3>
+    <p>Taking the baseline of Section 3, \(\theta_c=\beta_1\) and \(\gamma_1\equiv0\): vertex 1 sets the frame and the hub sets the position. The orientation row of the forward Jacobian is nonzero only at those two robots, so the parameterization is as sparse as a star can be. The corresponding weakness is that \(r_1\to0\) drives \(\theta_c\), and with it every reconstructed vertex, to an undefined frame. A formation operating near a critical point, where the field signal is weak and the pointer bearing is least reliable, is precisely the regime in which tying the frame to one spoke is most costly.</p>
+
+    <h3>The consensus gauge</h3>
+    <p>Assign each spoke a nominal slot \(\gamma_i^{\text{set}}\). Each spoke then implies an orientation estimate \(\beta_i-\gamma_i^{\text{set}}\), and the gauge aligns the template to the observed spokes in a least-squares sense. The radius-weighted (Procrustes) optimum is</p>
+    $$\theta_c=\operatorname{atan2}\big(S,\;C\big),\qquad C=\textstyle\sum_i\big(\Delta x_i\cos\gamma_i^{\text{set}}+\Delta y_i\sin\gamma_i^{\text{set}}\big),\quad S=\textstyle\sum_i\big(\Delta y_i\cos\gamma_i^{\text{set}}-\Delta x_i\sin\gamma_i^{\text{set}}\big)$$
+    <p>with \(\Delta x_i=x_i-x_h,\ \Delta y_i=y_i-y_h\). When all radii are equal this reduces to the circular mean \(\theta_c=\operatorname{atan2}\!\big(\sum_i\sin(\beta_i-\gamma_i^{\text{set}}),\,\sum_i\cos(\beta_i-\gamma_i^{\text{set}})\big)\). The radius weighting is essential rather than cosmetic: a bearing-only mean reads \(\beta_i\), which is undefined as \(r_i\to0\), and so inherits the singularity the gauge is intended to remove, whereas the \(\Delta\)-form allows a vanishing spoke to drop out of \(C\) and \(S\). The offsets are then taken for all five spokes, \(\gamma_i=\beta_i-\theta_c\), and \(\gamma_1\) is no longer identically zero.</p>
+
+    <h3>The companion identity</h3>
+    <p>Setting \(\gamma_1\equiv0\) used vertex 1 as the gauge. The consensus gauge replaces this with the stationarity condition that defines \(\theta_c\):</p>
+    $$\sum_{i=1}^{5} r_i\,\sin\!\big(\gamma_i-\gamma_i^{\text{set}}\big)=0$$
+    <p>Any measured formation satisfies this automatically, since it is the condition that makes \(\theta_c\) optimal, so it never constrains a measurement. It constrains only commanded setpoints: the state carries thirteen coordinates on a twelve-dimensional surface, the same dimension as the pointer gauge, with the single redundancy distributed symmetrically rather than assigned to one robot. The regular target \(\gamma_i=\gamma_i^{\text{set}}\) satisfies it as \(\sin0=0\), so in practice four offsets are commanded and the fifth closes the constraint.</p>
+
+    <h3>Forward and inverse</h3>
+    <p>The forward map is that of Section 3 with the single orientation line replaced: \(x_h=x_6,\ y_h=y_6\); each \(r_i,\beta_i\) as before; \(\theta_c\) from the consensus formula; then \(\gamma_i=\beta_i-\theta_c\) for \(i=1,\dots,5\). The inverse map is unchanged in form,</p>
+    $$x_6=x_h,\quad y_6=y_h,\qquad x_i=x_h+r_i\cos(\theta_c+\gamma_i),\quad y_i=y_h+r_i\sin(\theta_c+\gamma_i)$$
+    <p>now with a generally nonzero \(\gamma_1\). The round trip is exact when the commanded \(\gamma_i\) satisfy the companion identity; inconsistent offsets produce a forward \(\theta_c\) that disagrees with the commanded value.</p>
+
+    <div class="check">
+      <span class="tag">Round-trip check</span>
+      <p>Hub \((5,5)\), \(R=1\), \(\theta_c=\tfrac{\pi}{2}\), with \(\gamma^{\text{set}}=\{0,\tfrac{2\pi}{5},\tfrac{4\pi}{5},\tfrac{6\pi}{5},\tfrac{8\pi}{5}\}\). Inverse places vertex 1 at \((5,6)\) and the others around the ring, the same points as Section 3.</p>
+      <p>Forward: every \(\beta_i=\theta_c+\gamma_i^{\text{set}}\), so \(C=\sum_i\cos\theta_c=5\cos\tfrac{\pi}{2}=0\) and \(S=\sum_i\sin\theta_c=5\). Then \(\theta_c=\operatorname{atan2}(5,0)=\tfrac{\pi}{2}\) and each \(\gamma_i=\gamma_i^{\text{set}}\).</p>
+      <p class="verdict">recovered exactly &check;</p>
+    </div>
+
+    <h3>Cost in the Jacobian</h3>
+    <p>One row changes. Using the bearing derivative \(\partial\beta/\partial P_b=\tfrac1L(-\sin\beta,\cos\beta)\) (the tangential pattern of Appendix A), the pointer row is nonzero only at vertex 1 and the hub. The consensus row is distributed over all six robots,</p>
+    $$\frac{\partial\theta_c}{\partial x_i}=\frac{-C\sin\gamma_i^{\text{set}}-S\cos\gamma_i^{\text{set}}}{C^2+S^2},\qquad \frac{\partial\theta_c}{\partial y_i}=\frac{C\cos\gamma_i^{\text{set}}-S\sin\gamma_i^{\text{set}}}{C^2+S^2}$$
+    <p>with the hub entry equal to the negative sum of the vertex entries. At the regular setpoint \(C^2+S^2=25R^2\), and this reduces to</p>
+    $$\frac{\partial\theta_c}{\partial P_i}=\frac15\cdot\frac1{r_i}\big(-\sin\beta_i,\;\cos\beta_i\big)$$
+    <p>The pointer gauge places the entire orientation sensitivity on one spoke at \(1/r_1\); the consensus gauge distributes it across five spokes at \(1/(5r_i)\). A bearing error at any one vertex then moves \(\theta_c\) by a factor of five less, and a single \(r_i\to0\) drops that vertex from \(C\) and \(S\) rather than producing a divergence. The cost falls on the shape angles: since \(\gamma_i=\beta_i-\theta_c\), every \(\gamma_i\) row acquires the same \(-\partial\theta_c/\partial\mathbf r\) term. This shared correction is a rank-one update to the otherwise per-spoke shape block, so it is inverted by the Sherman&ndash;Morrison formula without rebuilding the cluster; the decoupling degrades by exactly one rank rather than becoming a dense block.</p>
+
+    <div class="aside">
+      <span class="tag">Choosing a gauge</span>
+      <p>The pointer gauge fails when \(r_1\to0\), a single-robot collapse that takes the global frame with it. The consensus gauge has no distinguished robot; its only orientation failure is \(\rho=\sqrt{C^2+S^2}\to0\), a simultaneous collapse of the entire alignment, which lies far outside any regime in which \(\rho\approx\sum_i r_i\). The irreducible \(r_i\to0\) singularity remains in both, but under the consensus gauge it costs only that spoke's \(\gamma_i\) rather than the frame. The pointer gauge is preferable when the formation remains well-conditioned and the sparser Jacobian outweighs the added redundancy; the consensus gauge is preferable when the frame must survive a wandering or near-coincident reference robot, which is the operating regime of a formation near a critical point.</p>
+    </div>
+  </section>
+
+  <!-- ============ 5. CLUSTER OF CLUSTERS (METHOD 2) ============ -->
+  <section id="coc" class="fade">
+    <h2><span class="num">5</span>Method 2: Cluster of clusters</h2>
+    <p>The cluster-of-clusters method groups robots into small sub-clusters and applies a meta-level parameterization over their centroids. Unlike the flat star, which assigns every robot a direct relationship to one hub, this approach is hierarchical: the Jacobian factors into per-layer blocks that are each small and sparse, and the same two-robot building block is reused at every node.</p>
+
+    <h3>Construction</h3>
+    <p>Group the robots into small sub-clusters, describe each with its own pose-and-shape parameterization, treat each sub-cluster centroid as a virtual robot, and apply a meta-level parameterization over those virtual robots. For four robots, pair \(\{1,2\}\) and \(\{3,4\}\) into two-robot clusters, then form a two-virtual-robot meta-cluster over their centroids. Carried out minimally, this is the H-frame of Section 6. The sub-cluster descriptions are not additional state; they are a way of constructing the same cluster from the single pair block, applied once per sub-cluster and once at the meta level.</p>
+    <p>The map proceeds in two layers, from robots to sub-cluster states to meta-augmented state, and the Jacobian factors by the chain rule of Section 8. The lower layer is block-diagonal, consisting of two independent pairs; the meta layer is one further pair acting on the sub-centroids while the intra-pair shape variables pass through unchanged. Both factors are inverted in closed form.</p>
+
+    <h3>Advantages</h3>
+    <ul class="tight">
+      <li><strong>Reuse of one derivation.</strong> The two-robot block is derived once; the four-robot cluster is the composition of three copies of it. The error-prone manual differentiation of a monolithic cluster is avoided.</li>
+      <li><strong>Scaling by layers.</strong> A binary tree of two-robot clusters extends to 8, 16, or \(2^N\) robots using the same block at every node, and assembly is linear in robot count. Odd counts are accommodated by inserting the three-robot SAS block at a node.</li>
+      <li><strong>Localized singularities.</strong> The degeneracies are \(L_s\to0\), \(w_1\to0\), and \(w_2\to0\), each a distinct physical collapse, in contrast to the coupled singularities of the cross-diagonal cluster.</li>
+      <li><strong>Additive, well-conditioned coupling.</strong> Positions depend on sums of rotated offsets rather than on products such as \(r_1 d_1\), so the Jacobian is sparser and more uniformly conditioned across the workspace. A single set of control gains is therefore easier to tune, and error propagation is simpler to analyze.</li>
+    </ul>
+
+    <div class="aside">
+      <span class="tag">Limitations</span>
+      <p>The pairing fixes a formation topology. Grouping \(\{1,2\}\) and \(\{3,4\}\) suits an elongated front-rear formation; if a maneuver requires the pairing to change, the cluster becomes ill-suited. The meta level also loses conditioning when the spine is short relative to the pair widths, since the orientation then acts through a long lever arm. Finally, the parameterization does not add control authority: four planar robots have eight degrees of freedom regardless of how the variables are named, so listing additional coordinates does not create additional freedom. The extra directions are dependent, not redundant.</p>
+    </div>
+
+    <h3>Maintaining a square Jacobian</h3>
+    <p>Carrying every variable the construction produces, including the sub-centroid coordinates, yields a 12-element cluster vector mapping to 8 robot degrees of freedom, and hence a non-square Jacobian. This is harmless to compute but readily misinterpreted: the four extra coordinates lie on the constraint surface fixed by \((x_c,y_c,\theta_c,L_s)\), so commanding them independently either has no effect or leaves the surface. The appropriate choice is the minimal eight-variable state</p>
+    $$\mathbf q_{\min}=[\,x_c,\,y_c,\,\theta_c,\,L_s,\,\theta_{c1},\,w_1,\,\theta_{c2},\,w_2\,]^{\mathsf T}$$
+    <p>which is square by construction. Absolute sub-angles give a fully block-separable Jacobian; spine-relative angles \(\alpha_i=\theta_{ci}-\theta_c\) give splay-relative commands at the cost of a small triangular coupling between layers. Treating the hierarchy as a factorization of this square Jacobian, rather than as an enlargement of the state, avoids the non-square case entirely.</p>
+    <p class="math-note">Where genuine redundancy is wanted, it arises from the navigation task being lower-dimensional than the eight formation degrees of freedom, not from the parameterization. This redundancy is the same in every complete cluster, and it is where a pseudo-inverse with null-space projection is appropriate.</p>
+  </section>
+
+  <!-- ============ 6. H-FRAME ============ -->
+  <section id="hframe" class="fade">
+    <h2><span class="num">6</span>The four-robot H-frame cluster</h2>
+    <p>The H-frame is the minimal instance of Method 2. It applies the cluster-of-clusters construction of Section 5 to four robots: two two-robot sub-clusters at the lower layer, and one two-robot meta-cluster acting over their centroids. Readers should treat this section as the worked example of that method, not as a third independent approach.</p>
+    <p>State vector \(\mathbf q=[\,x_c,\,y_c,\,\theta_c,\,L_s,\,\theta_{c1},\,w_1,\,\theta_{c2},\,w_2\,]^{\mathsf T}\) (8 entries). Front pair \(\{1,2\}\) forms sub-cluster 1, rear pair \(\{3,4\}\) forms sub-cluster 2. The spine connects the two sub-centroids: \(\theta_c\) is the spine bearing and \(L_s\) its length. Sub-angles are kept absolute here, which leaves the layers cleanly separable.</p>
+
+    <h3>Forward (robots \(\to\) cluster)</h3>
+    <p>Sub-cluster 1:</p>
+    $$x_{c1}=\tfrac12(x_1+x_2),\quad y_{c1}=\tfrac12(y_1+y_2),\quad \theta_{c1}=\operatorname{atan2}(y_2-y_1,\,x_2-x_1),\quad w_1=\lVert P_2-P_1\rVert$$
+    <p>Sub-cluster 2:</p>
+    $$x_{c2}=\tfrac12(x_3+x_4),\quad y_{c2}=\tfrac12(y_3+y_4),\quad \theta_{c2}=\operatorname{atan2}(y_4-y_3,\,x_4-x_3),\quad w_2=\lVert P_4-P_3\rVert$$
+    <p>Meta level (treat the two sub-centroids as virtual robots):</p>
+    $$x_c=\tfrac12(x_{c1}+x_{c2}),\quad y_c=\tfrac12(y_{c1}+y_{c2}),\quad \theta_c=\operatorname{atan2}(y_{c2}-y_{c1},\,x_{c2}-x_{c1}),\quad L_s=\lVert C_2-C_1\rVert$$
+
+    <h3>Inverse (cluster \(\to\) robots)</h3>
+    <p>Meta \(\to\) sub-centroids:</p>
+    $$C_1=\big(x_c-\tfrac{L_s}{2}\cos\theta_c,\;\,y_c-\tfrac{L_s}{2}\sin\theta_c\big),\qquad C_2=\big(x_c+\tfrac{L_s}{2}\cos\theta_c,\;\,y_c+\tfrac{L_s}{2}\sin\theta_c\big)$$
+    <p>Sub-centroid \(\to\) robots:</p>
+    $$P_1=C_1-\tfrac{w_1}{2}(\cos\theta_{c1},\sin\theta_{c1}),\qquad P_2=C_1+\tfrac{w_1}{2}(\cos\theta_{c1},\sin\theta_{c1})$$
+    $$P_3=C_2-\tfrac{w_2}{2}(\cos\theta_{c2},\sin\theta_{c2}),\qquad P_4=C_2+\tfrac{w_2}{2}(\cos\theta_{c2},\sin\theta_{c2})$$
+    <p class="math-note">There are three independent collapse singularities: \(L_s\to0\), \(w_1\to0\), and \(w_2\to0\). Each corresponds to a clear physical degeneration and can be bounded away from directly, which also keeps the sampling stencil rank-2.</p>
+
+    <div class="check">
+      <span class="tag">Round-trip check</span>
+      <p>Take the rectangle \(P_1=(0,0)\), \(P_2=(0,2)\), \(P_3=(4,0)\), \(P_4=(4,2)\).</p>
+      <p>Forward: sub-centroids \((0,1)\) and \((4,1)\); \(\theta_{c1}=\theta_{c2}=\pi/2\); \(w_1=w_2=2\); meta centroid \((2,1)\); \(\theta_c=0\); \(L_s=4\).</p>
+      <p>Inverse: \(C_1=(0,1),\ C_2=(4,1)\); stepping out by \(w/2\) along \(\theta_{c1}=\theta_{c2}=\pi/2\) returns \((0,0),(0,2),(4,0),(4,2)\).</p>
+      <p class="verdict">recovered exactly &check;</p>
+    </div>
+  </section>
+
+  <!-- ============ 7. VELOCITY PROPAGATION ============ -->
+  <section id="origin" class="fade">
+    <h2><span class="num">7</span>Velocity propagation</h2>
+    <p class="lead">The clusters of Sections 2&ndash;6 were each built by writing down a forward and inverse map and differentiating it. That is the practical method, and for a cluster of a few robots it is the most direct one. This section presents the general principle those clusters are instances of: the inverse Jacobian of any cluster can be assembled one robot at a time, by propagating each robot's velocity from its local cluster frame through the hierarchy to the global frame. This method is novel and developed by Dr. Christopher Kitts. It was implemented in C Waight's master thesis in 2016. The method is presented below.</p>
+
+    <p>The two views are not in conflict. Differentiating a cluster's inverse map and propagating velocities through its frames produce the same Jacobian; the derivative patterns of Appendix A are exactly the per-edge velocity relations below, written for the planar case. Propagation matters because it does not require a closed-form map for the whole formation: it builds the Jacobian from per-edge relations alone, which is what makes the large hierarchical clusters of Sections 5 and 9 tractable. The recursive assembly of Section 8 is its efficient implementation.</p>
+
+    <p>The thesis develops the algorithm in three dimensions. The equations below are stated in that general form, with the original numbering retained, and then specialized to the planar case used in the remainder of these notes. A cluster is a tree of coordinate frames: each robot frame \(\{n\}\), each cluster frame, and the global frame \(\{G\}\) is a vertex, and each edge carries a homogeneous transform</p>
+    $$ {}^{i-1}_{\;\;i}T=\begin{bmatrix}{}^{i-1}_{\;\;i}R & {}^{i-1}_{\;\;i}P\\[2pt] 0 & 1\end{bmatrix}\tag{Eq 7}$$
+    <p>relating frame \(\{i\}\) to its parent \(\{i\!-\!1\}\). By Euler's rotation theorem the rotation factors into three axis rotations, \({}^{i-1}_{\;\;i}R={}^{i-1}_{\;\;i}R_z(\alpha)\,{}^{i-1}_{\;\;i}R_y(\beta)\,{}^{i-1}_{\;\;i}R_x(\gamma)\) (Eq 8&ndash;9), summarized by the angle vector \({}^{i-1}_{\;\;i}\theta=[\alpha\ \beta\ \gamma]\) (Eq 10). In the plane only the \(z\)-rotation remains, so the angle vector reduces to a single \(\theta\) and \(R\) becomes the \(2\times2\) matrix \(R(\theta)\) of Appendix D.</p>
+
+    <h3>Jacobian rows as propagated velocities</h3>
+    <p>Each row \(\nabla h_i\) of the inverse Jacobian can be computed by a velocity-propagation analysis for robot \(i\), giving</p>
+    $$\mathbf J^{-1}(C)\,\dot{\vec C}=\begin{bmatrix}\nabla h_1\\ \nabla h_2\\ \vdots\\ \nabla h_q\end{bmatrix}=\begin{bmatrix}{}^{G}_{1}\vec V & {}^{G}_{1}\vec\omega\\ \vdots & \vdots\\ {}^{G}_{q}\vec V & {}^{G}_{q}\vec\omega\end{bmatrix}\tag{Eq 18}$$
+    <p>The linear and angular velocity of a robot frame \(\{n\}\) expressed in its immediate parent \(\{i\}\) are</p>
+    $$ {}^{i}_{n}\vec V={}^{i}_{n}\dot{\vec P}+{}^{i}_{n}\vec\omega\times{}^{i}_{n}\vec P,\qquad {}^{i}_{n}\vec\omega={}^{i}_{n}\dot\theta\tag{Eq 19, 20}$$
+
+    <h3>Propagation to the parent frame</h3>
+    <p>Given those velocities in \(\{i\}\), the velocities expressed in the next frame up, \(\{i\!-\!1\}\), follow by adding the parent's own motion and rotating the child's contribution into the parent's axes:</p>
+    $$ {}^{i-1}_{\;\;n}\vec V={}^{i-1}_{\;\;i}\vec V+{}^{i-1}_{\;\;i}R\big({}^{i}_{n}\dot{\vec P}+{}^{i-1}_{\;\;n}\vec\omega\times{}^{i}_{n}\vec P\big)\tag{Eq 21}$$
+    $$ {}^{i-1}_{\;\;n}\vec\omega={}^{i-1}_{\;\;i}\vec\omega+{}^{i-1}_{\;\;i}R\;{}^{i}_{n}\vec\omega\tag{Eq 22}$$
+
+    <h3>Propagation to the global frame</h3>
+    <p>Applying Eq 21&ndash;22 recursively from a robot at hierarchical depth \(m\) to \(\{G\}\) telescopes the per-edge rotations into products:</p>
+    $$ {}^{G}_{n}\vec V=\sum_{k=1}^{m}\Big(\prod_{j=1}^{k}{}^{j-1}_{\;\;j}R\Big)\Big({}^{k}_{k-1}\dot{\vec P}+{}^{G}_{k}\vec\omega\times{}^{k}_{k-1}\vec P\Big)\tag{Eq 23}$$
+    $$ {}^{G}_{k}\vec\omega=\sum_{p=1}^{k}\Big(\prod_{i=1}^{p}{}^{i-1}_{\;\;i}R\Big){}^{i}_{i-1}\vec\omega\tag{Eq 24}$$
+    <p class="math-note">Here \(j\) counts steps from the current frame toward the cluster frame and \(m\) is the depth of robot \(n\). Two conventions close the recursion: when \(j=1\) the rotation \({}^{j-1}_{\;\;j}R\) is the identity, and when \(k=1\) the angular term \({}^{G}_{k}\vec\omega\) is the zero vector. Applying the recursion to every robot assembles the rows of the full inverse Jacobian \(\mathbf J^{-1}\).</p>
+
+    <p>Two features of Eq 23&ndash;24 govern the development that follows. First, the rotation product from a node to the root gives the cluster-of-clusters Jacobian its cascaded, rather than dense, structure. Second, recomputing that product independently for each robot is the inefficiency the thesis identifies as future work; Section 8 eliminates it by passing a single sensitivity matrix up the tree.</p>
+
+    <div class="aside">
+      <span class="tag">Planar specialization</span>
+      <p>In the plane each \({}^{i-1}_{\;\;i}R\) is a single-angle rotation \(R(\theta)\), each \(\vec\omega\) is the scalar \(\dot\theta\) about \(z\), and the cross product \(\vec\omega\times\vec P\) is the offset rotated by \(90^\circ\) and scaled by \(\dot\theta\). The two derivative patterns of Appendix A are Eq 19&ndash;20 written out for a single planar edge: a length rate directed radially, and an angle rate directed tangentially. Read this way, the clusters of Sections 2&ndash;6 are Eq 23&ndash;24 specialized to particular trees.</p>
+    </div>
+  </section>
+
+
+  <!-- ============ 8. RECURSIVE ASSEMBLY ============ -->
+  <section id="assembly" class="fade">
+    <h2><span class="num">8</span>Recursive assembly of the Jacobian</h2>
+    <p class="lead">Appendix A established the building block: a single pair block and two derivative patterns. Section 7 gave the velocity-propagation principle. This section combines them into the efficient planar form of that principle, a depth-first traversal that assembles the inverse Jacobian from the pair blocks and removes the redundant rotation product identified as future work in the thesis. For the original implementation, see the thesis document.</p>
+
+    <h3>Composition of layers</h3>
+    <p>For a hierarchical cluster the total Jacobian is a product of per-layer Jacobians, in the same manner that a serial manipulator composes per-joint contributions, and corresponding to the rotation-product structure of Eq 23&ndash;24:</p>
+    $$\mathbf J_{\text{total}}=\mathbf J_{\text{outer}}\,\mathbf J_{\text{inner}},\qquad \mathbf J_{\text{total}}^{-1}=\mathbf J_{\text{inner}}^{-1}\,\mathbf J_{\text{outer}}^{-1}$$
+    <p>Each factor is small and sparse, so the only matrix that must be inverted explicitly is the \(4\times4\) pair block of Appendix A.</p>
+
+    <h3>The node sensitivity matrix</h3>
+    <p>The chain rule is made explicit by defining one object per node, the <em>sensitivity matrix</em> \(S_v\), a \((2n_v\times3)\) matrix whose rows give the Cartesian velocity of each robot in the subtree rooted at \(v\), and whose three columns correspond to a unit velocity in \((x_c^v,\,y_c^v,\,\theta^v)\), the centroid translation and orientation of that sub-cluster. The matrix \(S_v\) is the planar counterpart of the per-node rotation product in Eq 23&ndash;24: it is computed once and passed to the parent, and never recomputed.</p>
+
+    <p>The recursion has two cases.</p>
+
+    <p><strong>Leaves.</strong> For a size-1 leaf (identity node, robot \(i\) is the sub-centroid),</p>
+    $$S_{\text{leaf},1}=\begin{bmatrix}1&0&0\\0&1&0\end{bmatrix}$$
+    <p>For a size-2 leaf with state \((x_c,y_c,\theta,L)\), the pair block gives \(\mathbf J_{\text{pair}}^{-1}\) and \(S\) is its first three columns:</p>
+    $$S_{\text{leaf},2}=\mathbf J_{\text{pair}}^{-1}[\,:\,,\,0{:}3\,]=\begin{bmatrix}1&0&\tfrac{L}{2}\sin\theta\\0&1&-\tfrac{L}{2}\cos\theta\\1&0&-\tfrac{L}{2}\sin\theta\\0&1&\tfrac{L}{2}\cos\theta\end{bmatrix}$$
+    <p>For a size-3 leaf (SAS) with state \((x_c,y_c,\theta_c,p,\beta,q)\), \(S\) is the first three columns of \(\mathbf J_{\text{SAS}}^{-1}\). The leaf also directly fills the columns of the global \(\mathbf J^{-1}\) corresponding to its own shape variables \((L;\) or \(p,\beta,q)\) from the remaining columns of its block.</p>
+
+    <p><strong>Internal nodes.</strong> Let node \(v\) have children \(c_1,\dots,c_k\) with sensitivity matrices \(S_{c_1},\dots,S_{c_k}\) already computed. Form the meta-block \(\mathbf J_v^{-1}\), which maps this node's variables \((x_c^v,y_c^v,\theta^v,\text{shape}^v)\) to the \(k\) child centroid positions. For a binary node (\(k=2\)) this is the \(4\times4\) pair block; for a ternary node (\(k=3\)) it is the \(6\times6\) SAS block evaluated at the child centroids. Partition \(\mathbf J_v^{-1}\) by child:</p>
+    $$\mathbf J_v^{-1}=\begin{bmatrix}\mathbf J_{v,c_1}^{-1}\\\mathbf J_{v,c_2}^{-1}\\\vdots\end{bmatrix},\quad \mathbf J_{v,c_i}^{-1}\text{ is }(2\times\dim\mathbf q_v)$$
+    <p>Then the sensitivity of every robot in child \(c_i\) to the variables of \(v\) is</p>
+    $$\frac{\partial\mathbf r_{c_i}}{\partial\mathbf q_v}=S_{c_i}\cdot\begin{bmatrix}|\\\mathbf J_{v,c_i}^{-1}[\,,\,0{:}2\,]^{\mathsf T}\\|\end{bmatrix}$$
+    <p class="math-note">Only the first two columns of \(\mathbf J_{v,c_i}^{-1}\) (the \(x_c,y_c\) response) enter the product with \(S_{c_i}\). The third column of \(S_{c_i}\) carries the child's own rotation sensitivity, but because all orientation variables in this tree are <em>absolute</em> angles (not relative to the parent), a change in the parent's \(\theta^v\) does not alter any child's \(\theta^{c_i}\) directly &mdash; it only moves the child centroid, which \(\mathbf J_{v,c_i}^{-1}[\,,\,0{:}2\,]\) captures. If spine-relative angles \(\alpha_i=\theta^{c_i}-\theta^v\) are used instead, each child theta co-rotates with the parent and the full three-column chain applies: \(S_{c_i}\cdot \mathbf J_{v,c_i}^{-1}[\,,\,0{:}3\,]^{\mathsf T}\).</p>
+    <p>The columns of the global \(\mathbf J^{-1}\) for the shape variables of \(v\) (i.e. \(L_v\), or \(p_v,\beta_v,q_v\)) are filled from \(\mathbf J_{v,c_i}^{-1}[\,,\,3{:}\,]\) chained through \(S_{c_i}\) in exactly the same way. The sensitivity matrix \(S_v\) for the node itself (passed up to \(v\)'s parent) is assembled from all children:</p>
+    $$S_v[2\ell:2\ell+2,\,:]\;=\;S_{c_i}[2k:2k+2,\,,\,0{:}2\,]\;\cdot\;\mathbf J_{v,c_i}^{-1}[\,,\,0{:}2\,]^{\mathsf T}$$
+    <p>where robot \(\ell\) (in the subtree ordering of \(v\)) is robot \(k\) in child \(c_i\), and the column order of \(S_v\) is \((x_c^v,y_c^v,\theta^v)\).</p>
+
+    <p>One depth-first pass fills every column of \(\mathbf J^{-1}\) and returns the root's \(S_{\text{root}}\), which is discarded (the root has no parent). The assembled matrix is the complete \((2N\times2N)\) inverse Jacobian.</p>
+
+    <div class="aside">
+      <span class="tag">Implementation note</span>
+      <p>This recursion is exactly what <code>clusterbuilder.py</code> implements in <code>_jac_node</code>. Each call receives the global \(\mathbf J\) matrix and the column-index dictionary, fills its shape columns in place, and returns its \(S\) matrix; the size-1, size-2, and size-3 leaf cases above are its three base branches. The root call additionally fills the \((x_c,y_c,\theta_c)\) columns using the same chain rule applied to the root meta-block and all child sensitivities.</p>
+    </div>
+
+    <h3>Computational cost</h3>
+    <p>The 2016 thesis toolbox built the inverse Jacobian in \(O(n)\) operations per cluster variable and per robot, but at \(O(n^2)\) in the depth of the hierarchy, because the rotation product from each node to the root &mdash; the \(\prod R\) of Eq 23&ndash;24 &mdash; was recomputed on every step. The thesis flagged that recomputation as future work.</p>
+    <p>The recursive method removes this cost. Each node computes its sensitivity matrix \(S_v\) once and passes it to its parent, and no ancestor re-descends to recompute it. The total cost is a single depth-first pass. Within that pass, an internal node at depth \(d\) chains over every robot in its subtree, so a robot at depth \(d\) is processed once per ancestor. The total work is</p>
+    $$\sum_{i=1}^{N}\mathrm{depth}(i)$$
+    <p>For a balanced binary tree this is \(O(N\log N)\), and at bounded depth it is \(O(N)\). Only a degenerate chain, in which each robot is a direct child of the previous one, reaches \(O(N^2)\); this matches the thesis worst case while improving on it for all balanced trees and eliminating the redundant rotation product.</p>
+    <p class="math-note">The symbolic path (the <code>--symbolic</code> flag in <code>clusterbuilder.py</code>, which swaps the numeric backend for sympy) multiplies this by the per-expression simplification cost, which can be substantial for large trees.</p>
+  </section>
+
+  <!-- ============ 9. CONSTRUCTION ============ -->
+  <section id="construct" class="fade">
+    <h2><span class="num">9</span>Construction for arbitrary N</h2>
+    <p class="lead">The clusters of Sections 2&ndash;6 are instances of a single construction. A cluster is formed by applying a base parameterization to an ordered list of children, each of which is either a robot or another cluster. Leaves are robots, internal nodes are sub-clusters, and the formation as a whole is a composition tree.</p>
+
+    <div class="grammar">
+      <div><span class="def">cluster</span> ::= parameterization( child, child, &hellip; ) <span class="cmt">// two or more children</span></div>
+      <div><span class="def">child</span>&nbsp;&nbsp;&nbsp;::= robot | cluster</div>
+    </div>
+
+    <p>The base parameterization at a node is one of the blocks already derived: the two-robot block, the three-robot SAS, or a \(k\)-body star for higher arity. A node does not distinguish whether a given child is a physical robot or the representative point of a sub-cluster; it only places points. This is what allows robots and sub-clusters to appear as siblings within the same node.</p>
+
+    <h3>The dimension count</h3>
+    <p>The root contributes 2 variables (global translation). Every internal node with \(k\ge2\) children contributes \(2k-2\): one orientation and \(2k-3\) shape variables (a one-child node contributes none, as discussed below). With \(m\) internal nodes and \(n\) leaves, the child links sum to \(\sum k = m+n-1\), so</p>
+    $$\dim\mathbf q \;=\; 2+\sum_{\text{nodes}}(2k-2)\;=\;2+2(m+n-1)-2m\;=\;2n$$
+    <p>for any tree. The parameterization is therefore complete and square by construction, with no manual sizing required. The Jacobian is the product of the per-node blocks along the tree, assembled in one traversal and inverted layer by layer.</p>
+
+    <h3>The single-child node</h3>
+    <p>A one-child node is the identity node, \(x_\text{node}=x_\text{child}\), with no orientation and no shape. It carries \(2(1)-2=0\) variables, so it cannot supply a missing degree of freedom, but it is permitted, and it provides the hub mechanism. The pentagon's \(x_h=x_6\) designates robot 6 as the formation's position reference, which is a single-child node in all but name. A single point can anchor a cluster while carrying no descriptive variables of its own. The decomposition into one orientation and \(2k-3\) shape variables applies only for \(k\ge2\); at \(k=1\) both terms vanish.</p>
+
+    <h3>Odd robot counts</h3>
+    <p>An odd count requires no placeholder padding. Use an odd-arity block where it fits (SAS-3 is the natural choice), or attach the spare robot as a leaf child of a node that also carries sub-clusters. Five robots, for example, can form a SAS-3 meta-node over one robot and two pairs, since robots and sub-clusters may appear as siblings.</p>
+
+    <h3>Two example trees</h3>
+
+    <figure class="tree">
+      <svg viewBox="0 0 560 248" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Nine robots as three SAS sub-clusters under a SAS root">
+        <g stroke="#c7bfab" stroke-width="1.5" fill="none">
+          <path d="M280 54 L110 105"/><path d="M280 54 L280 105"/><path d="M280 54 L450 105"/>
+          <path d="M110 135 L60 205"/><path d="M110 135 L110 205"/><path d="M110 135 L160 205"/>
+          <path d="M280 135 L230 205"/><path d="M280 135 L280 205"/><path d="M280 135 L330 205"/>
+          <path d="M450 135 L400 205"/><path d="M450 135 L450 205"/><path d="M450 135 L500 205"/>
+        </g>
+        <g font-family="'JetBrains Mono', monospace">
+          <rect x="247" y="22" width="66" height="32" rx="6" fill="#1f5e57"/>
+          <text x="280" y="43" text-anchor="middle" font-size="12" fill="#f6f3ec">SAS</text>
+          <g>
+            <rect x="82" y="105" width="56" height="30" rx="6" fill="#f6f3ec" stroke="#1f5e57" stroke-width="1.5"/>
+            <text x="110" y="124" text-anchor="middle" font-size="11" fill="#1f5e57">SAS</text>
+            <rect x="252" y="105" width="56" height="30" rx="6" fill="#f6f3ec" stroke="#1f5e57" stroke-width="1.5"/>
+            <text x="280" y="124" text-anchor="middle" font-size="11" fill="#1f5e57">SAS</text>
+            <rect x="422" y="105" width="56" height="30" rx="6" fill="#f6f3ec" stroke="#1f5e57" stroke-width="1.5"/>
+            <text x="450" y="124" text-anchor="middle" font-size="11" fill="#1f5e57">SAS</text>
+          </g>
+          <g fill="#1f5e57">
+            <circle cx="60" cy="205" r="10"/><circle cx="110" cy="205" r="10"/><circle cx="160" cy="205" r="10"/>
+            <circle cx="230" cy="205" r="10"/><circle cx="280" cy="205" r="10"/><circle cx="330" cy="205" r="10"/>
+            <circle cx="400" cy="205" r="10"/><circle cx="450" cy="205" r="10"/><circle cx="500" cy="205" r="10"/>
+          </g>
+          <g fill="#f6f3ec" font-size="9" text-anchor="middle">
+            <text x="60" y="209">1</text><text x="110" y="209">2</text><text x="160" y="209">3</text>
+            <text x="230" y="209">4</text><text x="280" y="209">5</text><text x="330" y="209">6</text>
+            <text x="400" y="209">7</text><text x="450" y="209">8</text><text x="500" y="209">9</text>
+          </g>
+          <text x="528" y="209" font-size="9" fill="#524e44" text-anchor="start">robots</text>
+        </g>
+      </svg>
+      <figcaption>9 = SAS over three SAS sub-clusters &middot; <b>2 + 4 + 3&times;4 = 18 = 2&middot;9</b></figcaption>
+    </figure>
+    <p>Nine robots arranged as three groups of three: a SAS meta-node over the three sub-centroids, with each branch a SAS over three robots. Because every branch contains the same number of robots, the meta-centroid coincides with the true centroid of all nine, so the navigation reference remains the true centroid.</p>
+
+    <figure class="tree">
+      <svg viewBox="0 0 560 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Eight robots as a balanced binary tree of two-robot blocks, depth three">
+        <g stroke="#c7bfab" stroke-width="1.5" fill="none">
+          <path d="M280 44 L160 72"/><path d="M280 44 L400 72"/>
+          <path d="M160 98 L95 127"/><path d="M160 98 L225 127"/>
+          <path d="M400 98 L335 127"/><path d="M400 98 L465 127"/>
+          <path d="M95 153 L70 200"/><path d="M95 153 L120 200"/>
+          <path d="M225 153 L200 200"/><path d="M225 153 L250 200"/>
+          <path d="M335 153 L310 200"/><path d="M335 153 L360 200"/>
+          <path d="M465 153 L440 200"/><path d="M465 153 L490 200"/>
+        </g>
+        <g font-family="'JetBrains Mono', monospace">
+          <rect x="257" y="16" width="46" height="28" rx="6" fill="#1f5e57"/>
+          <text x="280" y="34" text-anchor="middle" font-size="10" fill="#f6f3ec">pair</text>
+          <g fill="#f6f3ec" stroke="#1f5e57" stroke-width="1.5">
+            <rect x="137" y="72" width="46" height="26" rx="6"/><rect x="377" y="72" width="46" height="26" rx="6"/>
+            <rect x="72" y="127" width="46" height="26" rx="6"/><rect x="202" y="127" width="46" height="26" rx="6"/>
+            <rect x="312" y="127" width="46" height="26" rx="6"/><rect x="442" y="127" width="46" height="26" rx="6"/>
+          </g>
+          <g fill="#1f5e57" font-size="10" text-anchor="middle">
+            <text x="160" y="89">pair</text><text x="400" y="89">pair</text>
+            <text x="95" y="144">pair</text><text x="225" y="144">pair</text><text x="335" y="144">pair</text><text x="465" y="144">pair</text>
+          </g>
+          <g fill="#1f5e57">
+            <circle cx="70" cy="200" r="10"/><circle cx="120" cy="200" r="10"/>
+            <circle cx="200" cy="200" r="10"/><circle cx="250" cy="200" r="10"/>
+            <circle cx="310" cy="200" r="10"/><circle cx="360" cy="200" r="10"/>
+            <circle cx="440" cy="200" r="10"/><circle cx="490" cy="200" r="10"/>
+          </g>
+          <g fill="#f6f3ec" font-size="9" text-anchor="middle">
+            <text x="70" y="204">1</text><text x="120" y="204">2</text><text x="200" y="204">3</text><text x="250" y="204">4</text>
+            <text x="310" y="204">5</text><text x="360" y="204">6</text><text x="440" y="204">7</text><text x="490" y="204">8</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption>8 = balanced binary tree, depth 3 &middot; <b>2 + 7&times;2 = 16 = 2&middot;8</b></figcaption>
+    </figure>
+    <p>Eight robots arranged as a three-level binary tree: a pair over two pairs-of-pairs over four pairs over eight robots. The seven internal two-body nodes, each the same block, yield the full \(16\times16\) Jacobian as a three-layer cascade. The flat single cluster and this deep binary tree are the two extremes of the same construction.</p>
+
+    <h3>Base parameterizations and composition</h3>
+    <p>Two distinct ideas are at work. A <em>base parameterization</em> is the rule by which one node describes its \(k\) children; <em>composition</em> is the act of letting a child be a sub-cluster. The cross-diagonal, the SAS, and the hub-and-spoke star are base parameterizations, placed at a single node. The cluster of clusters is composition. The H-frame combines the two: it is the smallest composition, two pairs under a meta pair, and can equally be regarded as a single four-body base parameterization. The six-robot pentagon is a single star node rather than a composition, with robot 6 as its hub. SAS is also a base parameterization, describing three bodies anchored at the centroid with a side-angle-side rule rather than polar spokes; it is a counterpart to the star rather than a tree.</p>
+    <p class="math-note">The generator fixes each node's frame to a canonical placement (the pair midpoint, the SAS centroid) rather than accepting an arbitrary user-supplied transform per edge. Arbitrary placement, supported in the 2016 toolbox through manual entry of the homogeneous transform, is omitted here because it enlarges the input without changing the method.</p>
+
+    <h3>Placement of the hub</h3>
+    <p>The hub need not be at the center of the formation. It can be anchored at a center robot, a perimeter robot, or the centroid. In each case every other robot is specified by a radius and a bearing relative to one reference spoke, so the scheme in which a base edge \(1\!\to\!2\) sets \(\theta_c\) and each remaining robot is reached by a length and angle \((L_{2i},\gamma_{2i})\) is the same star with robot 2 as the hub. It scales to any \(n\): the anchor (2), \(\theta_c\) (1), and a radius and offset per spoke total \(2n\). One qualification: anchoring at a physical robot is direct, whereas anchoring at the centroid imposes the constraint that the offset vectors sum to zero, so a centroid-anchored star carries two excess coordinates unless that constraint is absorbed.</p>
+
+    <figure class="tree">
+      <svg viewBox="0 0 300 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hub-and-spoke star with robot 6 as the central hub and five spokes">
+        <g stroke="#c7bfab" stroke-width="1.5" fill="none">
+          <path d="M150 105 L150 32"/><path d="M150 105 L78 82"/><path d="M150 105 L106 167"/><path d="M150 105 L194 167"/><path d="M150 105 L222 82"/>
+        </g>
+        <g font-family="'JetBrains Mono', monospace">
+          <g fill="#f6f3ec" stroke="#524e44" stroke-width="1.5">
+            <circle cx="150" cy="32" r="12"/><circle cx="78" cy="82" r="12"/><circle cx="106" cy="167" r="12"/><circle cx="194" cy="167" r="12"/><circle cx="222" cy="82" r="12"/>
+          </g>
+          <g fill="#1c1b18" font-size="9" text-anchor="middle">
+            <text x="150" y="35">R1</text><text x="78" y="85">R2</text><text x="106" y="170">R3</text><text x="194" y="170">R4</text><text x="222" y="85">R5</text>
+          </g>
+          <circle cx="150" cy="105" r="16" fill="#1f5e57"/>
+          <text x="150" y="109" text-anchor="middle" font-size="10" fill="#f6f3ec">R6</text>
+        </g>
+      </svg>
+      <figcaption>Hub-and-spoke: a flat star node &middot; the hub can be a center robot, a perimeter robot, or the centroid</figcaption>
+    </figure>
+
+    <h3>Degenerate configurations</h3>
+    <ul class="tight">
+      <li><strong>Non-convex formations.</strong> The cross-diagonal cluster is the one affected. When the quadrilateral is non-convex, the two diagonals may fail to cross within their segments, so the ratios \(r_1,r_2\) leave \([0,1]\). The star and SAS clusters make no convexity assumption and represent these configurations directly.</li>
+      <li><strong>Collinear formations.</strong> A star represents a collinear formation with no parameterization singularity, since the spokes simply take bearings of \(0\) or \(\pi\). The cross-diagonal is the worst case: its diagonals become parallel and the parameterization diverges. SAS passes through a flat triangle only in the signed-angle form of the footnote in Section 2. A non-singular parameterization is a kinematic property only; a line has no two-dimensional extent, so it cannot recover a 2-D gradient or Hessian under any parameterization.</li>
+      <li><strong>Handedness.</strong> Parameterizations whose shape angles are unsigned, such as the \(\arccos\) in SAS, cannot distinguish a formation from its mirror image and are therefore two-to-one. Signed \(\operatorname{atan2}\) angles retain the handedness.</li>
+      <li><strong>Coincident robots.</strong> Any distance or bearing between two robots is undefined when they coincide. This is the irreducible singularity common to every parameterization.</li>
+    </ul>
+
+    <h3>Selecting a structure</h3>
+    <p>Composition is appropriate when the formation is large, when one part must be driven independently of the rest, or when the dependence should be distributed. Its inverse Jacobian is block-sparse: a command to one sub-cluster's shape or orientation maps only to that sub-cluster's robots and is zero elsewhere, which allows one sub-group to reshape for local sampling while the remainder holds station. A flat star ties every robot to one shared orientation and one shared anchor, so a single \(\dot\theta_c\) rotates the entire formation and any disturbance at the hub reaches all spokes. This reliance on a single reference is the cost of the star's simplicity, although Section 4 mitigates part of it by computing \(\theta_c\) from a consensus of all spokes rather than one pointer; the shared hub anchor remains. The flat star is preferable when there is a natural center, when one variable should rotate the whole group, or when the formation must pass through a collinear configuration, where the star alone remains non-singular. Composition is preferable for scale, for reuse of a single block, and for localized control.</p>
+
+    <div class="aside">
+      <span class="tag">Properties the tree does not provide</span>
+      <p>Different trees over the same robots are different clusters, with different shape variables and singular loci, so the tree must still be chosen to match the formation. The singularities are the union of the per-node singularities, each local but more numerous as the number of nodes grows. Conditioning compounds along the cascade, so a single ill-conditioned layer, such as a short spine against wide pairs, propagates through the cluster; each node's geometry should be kept well-conditioned. Finally, an unbalanced tree keeps its reference equal to the true centroid only if each child is weighted by its leaf count.</p>
+    </div>
+  </section>
+
+  <!-- ============ APPENDIX A ============ -->
+  <section id="appendix-a" class="fade">
+    <h2><span class="num">A</span>The two-robot cluster and derivative patterns</h2>
+    <p>This appendix derives the building block used throughout the main sections: a single \(4\times4\) pair block and two derivative patterns from which every cluster Jacobian is assembled.</p>
+    <p class="lead">The forward and inverse maps of every cluster in these notes are closed form, so both Jacobians follow by symbolic differentiation; no matrix is inverted numerically. Nearly every entry of those Jacobians reduces to one of two derivatives, and the multi-robot clusters are assembled from a single recurring \(4\times4\) block. Section 7 shows that these two derivatives are the planar form of a general velocity-propagation principle.</p>
+
+    <h3>The two derivative patterns</h3>
+    <p>For a vector \(\Delta=P_b-P_a\) with length \(L=\lVert\Delta\rVert\) and bearing \(\beta=\operatorname{atan2}(\Delta_y,\Delta_x)\), the gradients with respect to \(P_b\) are</p>
+    $$\frac{\partial L}{\partial P_b}=(\cos\beta,\sin\beta)\ \ (\text{unit radial}),\qquad \frac{\partial \beta}{\partial P_b}=\frac1L(-\sin\beta,\cos\beta)\ \ (\text{unit tangential}/L)$$
+    <p>with the opposite sign for \(P_a\); the centroid rows are constant fractions. A distance rate is therefore directed radially, and a bearing rate is directed tangentially and scales as \(1/L\). Given these two patterns, assembling any of the cluster Jacobians in Sections 2&ndash;6 and 8 is a matter of bookkeeping.</p>
+
+    <h3>The two-robot block</h3>
+    <p>The pair map \((x_a,y_a,x_b,y_b)\to(x_c,y_c,\theta,L)\) is the building block from which the H-frame and the cluster of clusters are formed. Its forward Jacobian is</p>
+    $$\mathbf J_{\text{pair}}=\begin{bmatrix}
+      \tfrac12 & 0 & \tfrac12 & 0\\[2pt]
+      0 & \tfrac12 & 0 & \tfrac12\\[2pt]
+      \dfrac{\sin\theta}{L} & -\dfrac{\cos\theta}{L} & -\dfrac{\sin\theta}{L} & \dfrac{\cos\theta}{L}\\[6pt]
+      -\cos\theta & -\sin\theta & \cos\theta & \sin\theta
+    \end{bmatrix}$$
+    <p>and its inverse, the differential of \(x_a=x_c-\tfrac{L}{2}\cos\theta\) and the three companions, is</p>
+    $$\mathbf J_{\text{pair}}^{-1}=\begin{bmatrix}
+      1 & 0 & \tfrac{L}{2}\sin\theta & -\tfrac12\cos\theta\\[3pt]
+      0 & 1 & -\tfrac{L}{2}\cos\theta & -\tfrac12\sin\theta\\[3pt]
+      1 & 0 & -\tfrac{L}{2}\sin\theta & \tfrac12\cos\theta\\[3pt]
+      0 & 1 & \tfrac{L}{2}\cos\theta & \tfrac12\sin\theta
+    \end{bmatrix}$$
+    <p class="math-note">The rows of \(\mathbf J_{\text{pair}}^{-1}\) correspond to \((x_a,y_a,x_b,y_b)\) and the columns to \((x_c,y_c,\theta,L)\). The product \(\mathbf J_{\text{pair}}\mathbf J_{\text{pair}}^{-1}=I\) confirms the pair; the \(\theta\) and \(L\) columns rely on \(\sin^2\theta+\cos^2\theta=1\). This is the block returned by <code>PairBlock.j_inv</code> in <code>clusterbuilder.py</code>.</p>
+
+    <p>Sections 2&ndash;6 and 8 apply these results to specific clusters. Each section derives the forward and inverse maps, verifies a round trip by hand, and identifies where the two derivative patterns and the pair block appear in the cluster's Jacobian. The SAS cluster of Section 2 is the one exception that does not reduce to the pair block; its full Jacobian is derived in Appendix E. The remaining clusters of Sections 3&ndash;6 each use the pair block.</p>
+  </section>
+
+  <!-- ============ APPENDIX B ============ -->
+  <section id="appendix-b" class="fade">
+    <h2><span class="num">B</span>The four-robot cross-diagonal cluster</h2>
+    <p>This appendix documents an alternative four-robot parameterization included for comparison with the H-frame of Section 6. The cross-diagonal cluster cannot be derived from either of the two methods described in the main sections; it is a bespoke parameterization suited to convex quadrilaterals where the two diagonals cross within the formation.</p>
+    <p>State vector \(\mathbf q=[\,x_c,\,y_c,\,\theta_c,\,d_1,\,d_2,\,r_1,\,r_2,\,\psi\,]^{\mathsf T}\) (8 entries). Diagonal 1 runs \(1\!\to\!3\) with length \(d_1\) and sets \(\theta_c\); diagonal 2 runs \(2\!\to\!4\) with length \(d_2\); \(\psi\) is the angle from diagonal 1 to diagonal 2; \(r_1,r_2\in[0,1]\) are the fractional crossing positions of the two diagonals.</p>
+
+    <h3>Forward (robots \(\to\) cluster)</h3>
+    $$x_c=\tfrac14\textstyle\sum_i x_i,\qquad y_c=\tfrac14\textstyle\sum_i y_i$$
+    $$d_1=\lVert P_3-P_1\rVert,\qquad d_2=\lVert P_4-P_2\rVert$$
+    $$\theta_c=\operatorname{atan2}(y_3-y_1,\,x_3-x_1),\qquad \psi=\operatorname{atan2}(y_4-y_2,\,x_4-x_2)-\theta_c$$
+    <p>With \(A=P_3-P_1\), \(B=P_4-P_2\), \(C=P_2-P_1\), and the 2-D cross product \(u\times v=u_xv_y-u_yv_x\):</p>
+    $$r_1=\frac{C\times B}{A\times B},\qquad r_2=\frac{C\times A}{A\times B}$$
+    <p class="math-note">The denominator \(A\times B\) vanishes when the diagonals are parallel (\(\psi\to0,\pi\)). That is the parameterization singularity, and it sits near every near-collinear formation.</p>
+
+    <h3>Inverse (cluster \(\to\) robots)</h3>
+    <p>Let \(\hat u_1=(\cos\theta_c,\sin\theta_c)\) and \(\hat u_2=(\cos(\theta_c+\psi),\sin(\theta_c+\psi))\). First place the crossing point relative to the centroid, then step out along each diagonal:</p>
+    $$\begin{bmatrix}x_{\text{int}}\\ y_{\text{int}}\end{bmatrix}=\begin{bmatrix}x_c\\ y_c\end{bmatrix}+\tfrac14\Big[d_1(2r_1-1)\,\hat u_1+d_2(2r_2-1)\,\hat u_2\Big]$$
+    $$P_1=X-r_1 d_1\hat u_1,\qquad P_3=X+(1-r_1)d_1\hat u_1$$
+    $$P_2=X-r_2 d_2\hat u_2,\qquad P_4=X+(1-r_2)d_2\hat u_2$$
+    <p class="math-note">\(X=(x_{\text{int}},y_{\text{int}})\). The \(\tfrac14[\,\cdot\,]\) term recenters the crossing because the centroid is the mean of the four corners, i.e. the midpoint of the two diagonal midpoints.</p>
+
+    <div class="check">
+      <span class="tag">Round-trip check</span>
+      <p>Take \(P_1=(0,0)\), \(P_2=(1,-1)\), \(P_3=(4,0)\), \(P_4=(1,2)\).</p>
+      <p>Forward: centroid \((1.5,0.25)\); \(d_1=4,\ \theta_c=0\); \(d_2=3,\ \psi=\pi/2\). From the cross products \(A\times B=12,\ C\times B=3,\ C\times A=4\), so \(r_1=0.25,\ r_2=\tfrac13\).</p>
+      <p>Inverse: \(\hat u_1=(1,0),\ \hat u_2=(0,1)\); \(X=(1.5,0.25)+\tfrac14[(-2,0)+(0,-1)]=(1,0)\). Stepping out returns \((0,0),(1,-1),(4,0),(1,2)\).</p>
+      <p class="verdict">recovered exactly &check;</p>
+    </div>
+  </section>
+
+  <!-- ============ APPENDIX C ============ -->
+  <section id="appendix-c" class="fade">
+    <h2><span class="num">C</span>Comparison of clusters</h2>
+    <div class="table-scroll">
+      <table class="cmp">
+        <thead>
+          <tr>
+            <th>Cluster</th>
+            <th>State vector</th>
+            <th>DOF</th>
+            <th>Shape variables</th>
+            <th>Coupling</th>
+            <th>Singular loci</th>
+            <th>Composes / scales</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>SAS-3</th>
+            <td>\([x_c,y_c,\theta_c,p,\beta,q]\)</td>
+            <td>6</td>
+            <td>\(p,q,\beta\)</td>
+            <td>mild (law of cosines)</td>
+            <td>collinear (\(\beta\to0,\pi\)); coincident (\(p,q\to0\))</td>
+            <td>no (bespoke 3-robot cluster)</td>
+          </tr>
+          <tr>
+            <th>Pentagon-6</th>
+            <td>\([x_h,y_h,\theta_c,r_{1..5},\gamma_{2..5}]\)</td>
+            <td>12</td>
+            <td>\(r_i,\gamma_i\)</td>
+            <td>per spoke (\(i\!=\!2..5\)); hub + ref. vertex shared</td>
+            <td>\(r_i\to0\); frame at \(r_1\to0\) (pointer) or \(\rho\to0\) (consensus)</td>
+            <td>yes (hub-and-spoke / star)</td>
+          </tr>
+          <tr>
+            <th>H-Frame-4</th>
+            <td>\([x_c,y_c,\theta_c,L_s,\theta_{c1},w_1,\theta_{c2},w_2]\)</td>
+            <td>8</td>
+            <td>\(L_s,w_1,w_2,\theta_{c1},\theta_{c2}\)</td>
+            <td>additive, block-structured</td>
+            <td>\(L_s\to0\); \(w_1\to0\); \(w_2\to0\)</td>
+            <td>yes (tree of 2-robot blocks)</td>
+          </tr>
+          <tr>
+            <th>Cross-Diagonal-4</th>
+            <td>\([x_c,y_c,\theta_c,d_1,d_2,r_1,r_2,\psi]\)</td>
+            <td>8</td>
+            <td>\(d_1,d_2,r_1,r_2,\psi\)</td>
+            <td>strong, multiplicative (\(r\!\cdot\!d\))</td>
+            <td>parallel diagonals (\(\psi\to0,\pi\)); \(d\to0\)</td>
+            <td>no</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="math-note">The pose accounts for three variables in every row (two translation, one rotation); the shape column lists the remaining \(2n-3\). The Pentagon-6 hub replaces \((x_c,y_c)\) with \((x_h,y_h)\), which coincides with the centroid at the regular setpoint. Its orientation row depends on the gauge of Section 4: the pointer gauge keeps the row sparse (vertex 1 and hub only) but loses the frame at \(r_1\to0\), whereas the consensus gauge distributes the row over all spokes at the expense of the remote failure \(\rho\to0\).</p>
+  </section>
+
+  <!-- ============ APPENDIX D ============ -->
+  <section id="appendix-d" class="fade">
+    <h2><span class="num">D</span>Notation and conventions</h2>
+    <p>Each robot \(i\) sits at planar position \((x_i, y_i)\) in a fixed global frame. A <em>parameterization</em> maps the stacked robot vector \(\mathbf{r}\) to a cluster state vector \(\mathbf{q}\) of the same dimension. The <em>forward</em> map runs robots \(\to\) cluster; the <em>inverse</em> map runs cluster \(\to\) robots. Every angle is measured with <code>atan2</code> and carried in radians. Following the manuscript convention, the inverse Jacobian \(\mathbf J^{-1}\) collects the partials \(\partial x_i/\partial\xi_j\) and \(\partial y_i/\partial\xi_j\) of robot positions with respect to the cluster shape parameters \(\xi_j\in\{x_c,y_c,\theta_c,\dots\}\).</p>
+    <dl class="gloss">
+      <dt>\((x_i,y_i)\)</dt><dd>position of robot \(i\).</dd>
+      <dt>\(\mathbf{r}\)</dt><dd>stacked robot vector, \(\mathbf{r}=[x_1,y_1,\dots]^{\mathsf T}\).</dd>
+      <dt>\(\mathbf{q}\)</dt><dd>cluster state vector (pose plus shape); its shape entries are the \(\xi_j\).</dd>
+      <dt>\((x_c,y_c)\)</dt><dd>cluster centroid (mean of member positions).</dd>
+      <dt>\(\theta_c\)</dt><dd>cluster orientation, fixed to a reference vector specific to each parameterization.</dd>
+      <dt>\(R(\theta)\)</dt><dd>the \(2\times2\) rotation \(\begin{bmatrix}\cos\theta&-\sin\theta\\\sin\theta&\cos\theta\end{bmatrix}\).</dd>
+      <dt>\({}^{i-1}_{\;\;i}T\)</dt><dd>homogeneous transform of frame \(\{i\}\) in frame \(\{i\!-\!1\}\), \(\begin{bmatrix}R&P\\0&1\end{bmatrix}\) (thesis Eq 7); the edges of a cluster tree.</dd>
+      <dt>\(\mathbf J\)</dt><dd>forward Jacobian \(\partial\mathbf{q}/\partial\mathbf{r}\), so \(\dot{\mathbf q}=\mathbf J\dot{\mathbf r}\).</dd>
+      <dt>\(\mathbf J^{-1}\)</dt><dd>inverse Jacobian \(\partial\mathbf{r}/\partial\mathbf{q}\), so \(\dot{\mathbf r}=\mathbf J^{-1}\dot{\mathbf q}\).</dd>
+      <dt>\(\psi\)</dt><dd>cross-diagonal angle, from diagonal 1 to diagonal 2 in the four-robot cluster (Appendix B).</dd>
+      <dt>\(\phi_i\)</dt><dd>per-robot heading of robot \(i\), decoupled from formation shape; introduced by the orientation mode of the generator.</dd>
+    </dl>
+    <p>A planar formation of \(n\) robots has \(2n\) degrees of freedom. Three of them are always rigid-body pose (two translation, one rotation); the remaining \(2n-3\) are shape. Every parameterization in these notes honors that split: pose is \((x_c,y_c,\theta_c)\) or its hub equivalent, and the shape variables describe internal geometry.</p>
+    <p class="math-note">The constructions in these notes are generated and verified by <code>clusterbuilder.py</code>, a command-line tool that emits the kinematics, both Jacobians (numeric, or closed form under <code>--symbolic</code>), and a diagram for an \(N\)-robot formation. Configuration 1 is the hub-and-spoke star of Section 3; configuration 2 is the cluster of clusters of Section 5, whose tree is specified as a nested tuple such as <code>((2,2),(2,2))</code>.</p>
+  </section>
+
+  <!-- ============ APPENDIX E ============ -->
+  <section id="appendix-e" class="fade">
+    <h2><span class="num">E</span>The SAS-3 inverse Jacobian</h2>
+    <p>The pair block of Appendix A handles every two-robot edge in the hierarchy. The SAS-3 cluster does not factor into pair blocks, so its \(6\times6\) inverse Jacobian is derived here directly from the inverse map. This is the block returned by <code>TripleBlock.j_inv</code> in <code>clusterbuilder.py</code> and used for both size-3 leaves and SAS meta-nodes in the recursive assembly of Section 8.</p>
+
+    <h3>Setup: local frame and centred positions</h3>
+    <p>Place robot 2 (the angle vertex) at the origin of a local frame, robot 1 along the positive local \(x\)-axis at \((p,0)\), and robot 3 at \((q\cos\beta,\,q\sin\beta)\). The local centroid is</p>
+    $$c_x = \tfrac{p + q\cos\beta}{3},\qquad c_y = \tfrac{q\sin\beta}{3}$$
+    <p>Centred local positions \(\ell_i = (\ell_{x,i},\,\ell_{y,i})\), \(i=1,2,3\):</p>
+    $$\ell_{x,1}=\tfrac{2p - q\cos\beta}{3},\quad \ell_{x,2}=\tfrac{-p - q\cos\beta}{3},\quad \ell_{x,3}=\tfrac{-p + 2q\cos\beta}{3}$$
+    $$\ell_{y,1}=\tfrac{-q\sin\beta}{3},\quad \ell_{y,2}=\tfrac{-q\sin\beta}{3},\quad \ell_{y,3}=\tfrac{2q\sin\beta}{3}$$
+    <p>Global positions follow by rotating by \(\theta_c\) and translating by the centroid \((x_c,y_c)\):</p>
+    $$\begin{bmatrix}x_i\\y_i\end{bmatrix}=\begin{bmatrix}c_\theta & -s_\theta\\s_\theta & c_\theta\end{bmatrix}\begin{bmatrix}\ell_{x,i}\\\ell_{y,i}\end{bmatrix}+\begin{bmatrix}x_c\\y_c\end{bmatrix}$$
+    <p>where \(c_\theta=\cos\theta_c\), \(s_\theta=\sin\theta_c\). The inverse Jacobian collects \(\partial x_i/\partial\xi_j\) and \(\partial y_i/\partial\xi_j\) for \(\xi\in\{x_c,y_c,\theta_c,p,\beta,q\}\), with rows ordered \((x_1,y_1,x_2,y_2,x_3,y_3)\).</p>
+
+    <h3>Columns of \(\mathbf J_{\text{SAS}}^{-1}\)</h3>
+
+    <p><strong>Columns 1&ndash;2: \(x_c\) and \(y_c\).</strong> Pure translation; \(\ell_i\) does not depend on \((x_c,y_c)\).</p>
+    $$\frac{\partial x_i}{\partial x_c}=1,\quad \frac{\partial y_i}{\partial y_c}=1,\quad \text{all other entries in these columns are zero.}$$
+
+    <p><strong>Column 3: \(\theta_c\).</strong> Only the rotation changes; \(\ell_i\) is independent of \(\theta_c\). Differentiating the rotation:</p>
+    $$\frac{\partial x_i}{\partial\theta_c}=-s_\theta\,\ell_{x,i}-c_\theta\,\ell_{y,i},\qquad \frac{\partial y_i}{\partial\theta_c}=c_\theta\,\ell_{x,i}-s_\theta\,\ell_{y,i}$$
+
+    <p><strong>Column 4: \(p\).</strong> Only robot 1 is placed at \((p,0)\) before centering; increasing \(p\) shifts robot 1's local \(x\) by \(+1\) and the centroid's local \(x\) by \(+1/3\), so the centred sensitivities are \(\partial\ell_x/\partial p = (+2/3,\,-1/3,\,-1/3)\) and \(\partial\ell_y/\partial p = (0,0,0)\). Chaining through the rotation:</p>
+    $$\frac{\partial x_i}{\partial p}=\frac{c_\theta}{3}\cdot d_i,\qquad \frac{\partial y_i}{\partial p}=\frac{s_\theta}{3}\cdot d_i,\qquad d=(+2,-1,-1)$$
+
+    <p><strong>Column 5: \(\beta\).</strong> Only robot 3's local position depends on \(\beta\): \(\partial x_3^{\text{raw}}/\partial\beta=-q\sin\beta\), \(\partial y_3^{\text{raw}}/\partial\beta=q\cos\beta\). The centroid shifts by one-third of this, so the centred sensitivities for robot 3 are \(-(2/3)\) of the centroid shift plus the full raw shift, and for robots 1 and 2 are \(-1/3\) of the centroid shift. Concisely, with \(\delta x_3=-q\sin\beta\) and \(\delta y_3=q\cos\beta\):</p>
+    $$\frac{\partial\ell_{x,i}}{\partial\beta}=\begin{cases}-\delta x_3/3 & i=1,2\\\tfrac{2}{3}\delta x_3 & i=3\end{cases},\qquad \frac{\partial\ell_{y,i}}{\partial\beta}=\begin{cases}-\delta y_3/3 & i=1,2\\\tfrac{2}{3}\delta y_3 & i=3\end{cases}$$
+    $$\frac{\partial x_i}{\partial\beta}=c_\theta\frac{\partial\ell_{x,i}}{\partial\beta}-s_\theta\frac{\partial\ell_{y,i}}{\partial\beta},\qquad \frac{\partial y_i}{\partial\beta}=s_\theta\frac{\partial\ell_{x,i}}{\partial\beta}+c_\theta\frac{\partial\ell_{y,i}}{\partial\beta}$$
+
+    <p><strong>Column 6: \(q\).</strong> By the same argument with \(\partial x_3^{\text{raw}}/\partial q=\cos\beta\), \(\partial y_3^{\text{raw}}/\partial q=\sin\beta\):</p>
+    $$\frac{\partial\ell_{x,i}}{\partial q}=\begin{cases}-\cos\beta/3 & i=1,2\\\tfrac{2}{3}\cos\beta & i=3\end{cases},\qquad \frac{\partial\ell_{y,i}}{\partial q}=\begin{cases}-\sin\beta/3 & i=1,2\\\tfrac{2}{3}\sin\beta & i=3\end{cases}$$
+    $$\frac{\partial x_i}{\partial q}=c_\theta\frac{\partial\ell_{x,i}}{\partial q}-s_\theta\frac{\partial\ell_{y,i}}{\partial q},\qquad \frac{\partial y_i}{\partial q}=s_\theta\frac{\partial\ell_{x,i}}{\partial q}+c_\theta\frac{\partial\ell_{y,i}}{\partial q}$$
+
+    <h3>Assembled matrix</h3>
+    <p>Writing \(c=\cos\theta_c\), \(s=\sin\theta_c\), \(\delta x_3=-q\sin\beta\), \(\delta y_3=q\cos\beta\), the full \(6\times6\) block is</p>
+    $$\mathbf J_{\text{SAS}}^{-1}=\begin{bmatrix}
+    1 & 0 & -s\ell_{x,1}-c\ell_{y,1} & \tfrac{2c}{3} & c(-\tfrac{\delta x_3}{3})-s(-\tfrac{\delta y_3}{3}) & c(-\tfrac{c_\beta}{3})-s(-\tfrac{s_\beta}{3})\\[3pt]
+    0 & 1 & \phantom{-}c\ell_{x,1}-s\ell_{y,1} & \tfrac{2s}{3} & s(-\tfrac{\delta x_3}{3})+c(-\tfrac{\delta y_3}{3}) & s(-\tfrac{c_\beta}{3})+c(-\tfrac{s_\beta}{3})\\[3pt]
+    1 & 0 & -s\ell_{x,2}-c\ell_{y,2} & -\tfrac{c}{3} & c(-\tfrac{\delta x_3}{3})-s(-\tfrac{\delta y_3}{3}) & c(-\tfrac{c_\beta}{3})-s(-\tfrac{s_\beta}{3})\\[3pt]
+    0 & 1 & \phantom{-}c\ell_{x,2}-s\ell_{y,2} & -\tfrac{s}{3} & s(-\tfrac{\delta x_3}{3})+c(-\tfrac{\delta y_3}{3}) & s(-\tfrac{c_\beta}{3})+c(-\tfrac{s_\beta}{3})\\[3pt]
+    1 & 0 & -s\ell_{x,3}-c\ell_{y,3} & -\tfrac{c}{3} & c(\tfrac{2\delta x_3}{3})-s(\tfrac{2\delta y_3}{3}) & c(\tfrac{2c_\beta}{3})-s(\tfrac{2s_\beta}{3})\\[3pt]
+    0 & 1 & \phantom{-}c\ell_{x,3}-s\ell_{y,3} & -\tfrac{s}{3} & s(\tfrac{2\delta x_3}{3})+c(\tfrac{2\delta y_3}{3}) & s(\tfrac{2c_\beta}{3})+c(\tfrac{2s_\beta}{3})
+    \end{bmatrix}$$
+    <p class="math-note">Here \(c_\beta=\cos\beta\), \(s_\beta=\sin\beta\), and the \(\ell_i\) are the centred local positions defined above. Columns 1&ndash;2 contribute the identity pattern used by the recursive assembly to propagate centroid velocities. Columns 3&ndash;6 are the shape columns filled directly into the global \(\mathbf J^{-1}\) at the corresponding node. The first three columns form the sensitivity matrix \(S\) returned to the parent node.</p>
+
+    <div class="check">
+      <span class="tag">Special case: \(\theta_c=0\)</span>
+      <p>At \(\theta_c=0\), \(c=1\), \(s=0\), so the \(p\)-column simplifies to \((2/3,0,-1/3,0,-1/3,0)^{\mathsf T}\) and the \(q\)-column to \((\ldots,\ldots,\ldots,\ldots,\tfrac{2}{3}\cos\beta,\tfrac{2}{3}\sin\beta)^{\mathsf T}\). These agree with differentiating the inverse kinematics directly in the unrotated frame, confirming the rotation is applied correctly.</p>
+      <p class="verdict">consistent with direct differentiation &check;</p>
+    </div>
+
+    <h3>Use in the recursive assembly</h3>
+    <p>In Section 8, a SAS-3 leaf node calls <code>TripleBlock.j_inv(0, 0, theta, p, beta, q)</code> (centroid arguments zero because the centred local frame is used), writes columns 3&ndash;6 directly into the corresponding columns of the global \(\mathbf J^{-1}\), and returns \(S = \mathbf J_{\text{SAS}}^{-1}[:,\,0:3]\) to its parent. The parent then chains \(S\) with the meta-block to fill the global translation and orientation columns, exactly as described in Section 8.</p>
+
+    <div class="aside">
+      <span class="tag">Generator status</span>
+      <p>Both the runtime path (<code>ClusterOfClustersKinematics._jac_node</code>) and the code-generator path (<code>_emit_sas_jac_inline</code>) now emit the SAS-3 columns directly from the formulas above. The shape columns (\(\theta_c\), \(p\), \(\beta\), \(q\)) are written inline; the centroid columns (\(x_c\), \(y_c\)) are propagated by the child leaf emitters via the chain-rule shortcut described in Section 8 and not duplicated at the meta-node.</p>
+    </div>
+  </section>
+
+  <!-- ============ APPENDIX F ============ -->
+  <section id="appendix-f" class="fade">
+    <h2><span class="num">F</span>The six-robot (2,2,2) cluster-of-clusters</h2>
+    <p>The (2,2,2) cluster instantiates the composition principle of Section 5 with the simplest non-trivial tree: a SAS-3 meta-node whose three children are pair leaves. It is the smallest cluster that exercises both the pair block of Appendix A and the SAS-3 block of Appendix E. The generator emits it from <code>my_pentagon.yaml</code> (<code>cluster_config: 2</code>, <code>config_tree: (2,2,2)</code>); the runtime uses the same tree under <code>ClusterOfClustersKinematics</code>.</p>
+
+    <h3>Tree and state vector</h3>
+    <p>Robots 1&ndash;2 form pair leaf 2, robots 3&ndash;4 form pair leaf 3, robots 5&ndash;6 form pair leaf 4. The three pair midpoints A, B, C are the children of the root SAS-3 meta-node 1.</p>
+    $$\mathbf q = (x_c,\,y_c,\,\theta_c,\,p_1,\,\beta_1,\,q_1,\,L_2,\,\theta_2,\,L_3,\,\theta_3,\,L_4,\,\theta_4) \in \mathbb R^{12}$$
+    <p>The SAS-3 variables \((p_1,\beta_1,q_1)\) parameterize the triangle of midpoints exactly as in Section 2: midpoint A at local \((p_1,0)\), midpoint B at the local origin, midpoint C at \((q_1\cos\beta_1,\,q_1\sin\beta_1)\). Each pair leaf carries a length \(L_k\) (vertex-to-vertex distance) and a bearing \(\theta_k\) (absolute, in the global frame) for \(k\in\{2,3,4\}\).</p>
+
+    <h3>Forward kinematics (robots \(\to\) cluster)</h3>
+    <p>For each pair leaf \(k\), apply the two-robot block of Appendix A to obtain the midpoint position, length, and bearing:</p>
+    $$\mathbf m_k = \tfrac12(\mathbf r_{2k-1}+\mathbf r_{2k}),\qquad L_k = \|\mathbf r_{2k}-\mathbf r_{2k-1}\|,\qquad \theta_k = \operatorname{atan2}(y_{2k}-y_{2k-1},\,x_{2k}-x_{2k-1})$$
+    <p>Then apply the SAS-3 forward map of Section 2 to the three midpoints \(\mathbf m_A=\mathbf m_2\), \(\mathbf m_B=\mathbf m_3\), \(\mathbf m_C=\mathbf m_4\):</p>
+    $$(x_c,y_c) = \tfrac13(\mathbf m_A+\mathbf m_B+\mathbf m_C),\qquad p_1 = \|\mathbf m_B-\mathbf m_A\|,\qquad q_1 = \|\mathbf m_C-\mathbf m_B\|$$
+    $$\beta_1 = \arccos\!\left(\frac{p_1^2+q_1^2-\|\mathbf m_C-\mathbf m_A\|^2}{2p_1q_1}\right),\qquad \theta_c = \operatorname{atan2}(y_A-y_B,\,x_A-x_B)$$
+    <p class="math-note">The \(\theta_c\) convention matches the local frame chosen in Section 2 and Appendix E: midpoint A is placed at local \((p_1,0)\) and midpoint B at the origin, so the global bearing of the vector from B to A is exactly \(\theta_c\). This is the convention used by both <code>TripleBlock.forward</code> and the generator-emitted FK in <code>my_pentagon_forward_kinematics.py</code>.</p>
+
+    <h3>Inverse kinematics (cluster \(\to\) robots)</h3>
+    <p>The SAS-3 inverse of Section 2 places the three midpoints in the global frame:</p>
+    $$\mathbf m_i = R(\theta_c)\,\boldsymbol\ell_i + (x_c,y_c)^{\mathsf T},\qquad i\in\{A,B,C\}$$
+    <p>where \(\boldsymbol\ell_i\) are the centred local positions from Appendix E. Each pair leaf then places its two robots symmetrically about its midpoint along the leaf bearing:</p>
+    $$\mathbf r_{2k-1} = \mathbf m_k - \tfrac{L_k}{2}(\cos\theta_k,\sin\theta_k),\qquad \mathbf r_{2k} = \mathbf m_k + \tfrac{L_k}{2}(\cos\theta_k,\sin\theta_k)$$
+
+    <h3>Inverse Jacobian (12 \(\times\) 12)</h3>
+    <p>The inverse Jacobian factors by node. Both robots in a pair share the same row entries for the meta-node variables \((x_c,y_c,\theta_c,p_1,\beta_1,q_1)\), because the pair-spread offset \(\pm\tfrac{L_k}{2}(\cos\theta_k,\sin\theta_k)\) does not depend on those variables. The pair-specific entries \((L_k,\theta_k)\) appear with opposite signs on the two robots:</p>
+    $$\frac{\partial \mathbf r_{2k-1}}{\partial L_k}=-\tfrac12(\cos\theta_k,\sin\theta_k),\quad \frac{\partial \mathbf r_{2k}}{\partial L_k}=+\tfrac12(\cos\theta_k,\sin\theta_k)$$
+    $$\frac{\partial \mathbf r_{2k-1}}{\partial \theta_k}=+\tfrac{L_k}{2}(\sin\theta_k,-\cos\theta_k),\quad \frac{\partial \mathbf r_{2k}}{\partial \theta_k}=-\tfrac{L_k}{2}(\sin\theta_k,-\cos\theta_k)$$
+    <p>The meta-node columns \((x_c,y_c,\theta_c,p_1,\beta_1,q_1)\) are taken from Appendix E with the midpoints A, B, C in the role of robots 1, 2, 3 of the SAS-3 block. The full \(12\times12\) matrix in block form, with rows ordered \((\mathbf r_1,\mathbf r_2,\mathbf r_3,\mathbf r_4,\mathbf r_5,\mathbf r_6)\) and columns ordered as in \(\mathbf q\) above, is</p>
+    $$\mathbf J^{-1} = \begin{bmatrix}
+    \mathbf J^{-1}_{\text{SAS},A} & \mathbf J^{-1}_{\text{pair},2} & \mathbf 0 & \mathbf 0\\
+    \mathbf J^{-1}_{\text{SAS},B} & \mathbf 0 & \mathbf J^{-1}_{\text{pair},3} & \mathbf 0\\
+    \mathbf J^{-1}_{\text{SAS},C} & \mathbf 0 & \mathbf 0 & \mathbf J^{-1}_{\text{pair},4}
+    \end{bmatrix}$$
+    <p>where \(\mathbf J^{-1}_{\text{SAS},i}\) is the \(4\times 6\) block built by duplicating row \(i\) of the \(6\times 6\) Appendix-E matrix to both robots of pair \(k\), and \(\mathbf J^{-1}_{\text{pair},k}\) is the \(4\times 2\) pair block in the columns \((L_k,\theta_k)\). The block sparsity is the localized control property of Section 5: a command in \((L_k,\theta_k)\) reaches only the two robots of pair \(k\); commands in the SAS-3 variables reach all six robots through the midpoint chain.</p>
+
+    <div class="check">
+      <span class="tag">Round-trip verification</span>
+      <p>For ten random states \(\mathbf q\), the composition \(\text{FK}\circ\text{IK}\) recovers \(\mathbf q\) to a maximum drift of \(\sim 3\times 10^{-10}\). For a non-degenerate state, the analytic inverse Jacobian agrees with the central-difference numerical Jacobian (\(\varepsilon=10^{-6}\)) column-by-column to a maximum error of \(\sim 10^{-10}\), and matches the independent hand-written reference in <code>src/control/pentagon_kinematics.py</code> to within \(10^{-15}\). These three checks together pin down both the kinematic maps and the Jacobian.</p>
+      <p class="verdict">FK-IK round trip and analytic-vs-numeric Jacobian both close &check;</p>
+    </div>
+  </section>
+
+  <div class="footer fade">
+    Working notes &middot; planar cluster-space kinematics &middot; all round-trip checks verified by hand
+  </div>
+
+</div>
+</body>
+</html>

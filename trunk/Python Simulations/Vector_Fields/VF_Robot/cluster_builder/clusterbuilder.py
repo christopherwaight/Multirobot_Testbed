@@ -1500,7 +1500,7 @@ class CodeGenerator:
                     f'{pad}cy_{nid} = (ya_m{nid}+yb_m{nid}+yc_m{nid})/3',
                 ]
                 theta_key = '"theta_c"' if is_root else f'"theta_{nid}"'
-                lines.append(f'{pad}state[{theta_key}] = math.atan2(yb_m{nid}-ya_m{nid}, xb_m{nid}-xa_m{nid})')
+                lines.append(f'{pad}state[{theta_key}] = math.atan2(ya_m{nid}-yb_m{nid}, xa_m{nid}-xb_m{nid})')
             if is_root:
                 lines += [
                     f'{pad}state["x_c"] = cx_{nid}',
@@ -1693,6 +1693,9 @@ class CodeGenerator:
         ]
         if self.config == 1:
             lines += self._gen_hub_spoke_j_inv_body(indent=1)
+            if self.orientation:
+                lines += self._gen_orientation_heading_rows(indent=1)
+            lines.append('    return J')
         else:
             lines += [
                 '    # Analytical Jacobian: numerically evaluated at current state',
@@ -1700,10 +1703,10 @@ class CodeGenerator:
                 '    # This calls the runtime kinematics objects.',
                 '    _fill_jacobian(state, J)',
             ]
+            if self.orientation:
+                lines += self._gen_orientation_heading_rows(indent=1)
+            lines.append('    return J')
             lines += self._gen_coc_j_inv_fill()
-        if self.orientation:
-            lines += self._gen_orientation_heading_rows(indent=1)
-        lines.append('    return J')
         return '\n'.join(lines)
 
     def _gen_orientation_heading_rows(self, indent=1) -> List[str]:
@@ -1860,25 +1863,71 @@ class CodeGenerator:
                 self._emit_sas_jac_inline(node, lines, pad, f'_th_{nid}', f'_p_{nid}', f'_b_{nid}', f'_q_{nid}', nid, is_root=is_root, meta=True)
 
     def _emit_sas_jac_inline(self, node, lines, pad, th_var, p_var, b_var, q_var, nid, is_root=False, meta=False):
-        """Emit the SAS Jacobian fill inline, operating on centroid positions."""
-        robots = node.robot_indices if not meta else node.robot_indices
-        i1, i2, i3 = (node.children[0].robot_indices[0] if meta else node.robot_indices[0],
-                      node.children[1].robot_indices[0] if meta else node.robot_indices[1],
-                      (node.children[2].robot_indices[0] if meta else node.robot_indices[2]))
-        # Just emit centroid and shape columns
-        # For brevity, use x_c/y_c for all robots (centroid col = 1/3 each)
-        for ri in node.robot_indices:
-            rx, ry = 2*(ri-1), 2*(ri-1)+1
-            if is_root:
-                lines += [
-                    f'{pad}J[{rx}, col["x_c"]] += 1.0',
-                    f'{pad}J[{ry}, col["y_c"]] += 1.0',
-                ]
-        # Shape columns deferred to runtime evaluation for SAS (complex inline)
-        # Emit a comment noting they're filled by the direct SAS block above
+        """Emit the SAS Jacobian fill inline: shape columns p, beta, q and theta.
+
+        Centroid columns (x_c, y_c) are NOT written here. Pair-leaf and size-1-leaf
+        emitters already write += 1.0 to the centroid columns for every robot
+        beneath them (clusterbuilder.py:1784-1785, 1798-1799), which is the
+        chain-rule shortcut for the special case where each child's centroid
+        equals the parent's view of that child's position. Adding the same
+        contribution again at this meta-level would double-count.
+        """
+        th_key = '"theta_c"' if is_root else f'"theta_{nid}"'
         lines += [
-            f'{pad}# SAS shape vars (p,beta,q) for node {nid} filled above in leaf/meta block',
+            f'{pad}_ct_{nid} = math.cos({th_var})',
+            f'{pad}_st_{nid} = math.sin({th_var})',
+            f'{pad}_sb_{nid} = math.sin({b_var})',
+            f'{pad}_cb_{nid} = math.cos({b_var})',
+            f'{pad}_x1l_{nid} = {p_var}',
+            f'{pad}_y1l_{nid} = 0.0',
+            f'{pad}_x2l_{nid} = 0.0',
+            f'{pad}_y2l_{nid} = 0.0',
+            f'{pad}_x3l_{nid} = {q_var}*_cb_{nid}',
+            f'{pad}_y3l_{nid} = {q_var}*_sb_{nid}',
+            f'{pad}_cxl_{nid} = (_x1l_{nid} + _x2l_{nid} + _x3l_{nid})/3.0',
+            f'{pad}_cyl_{nid} = (_y1l_{nid} + _y2l_{nid} + _y3l_{nid})/3.0',
         ]
+
+        dlx_dp = ['2.0/3.0', '-1.0/3.0', '-1.0/3.0']
+        dly_dp = ['0.0', '0.0', '0.0']
+        dlx_db = [f'{q_var}*_sb_{nid}/3.0',
+                  f'{q_var}*_sb_{nid}/3.0',
+                  f'(-2.0/3.0)*{q_var}*_sb_{nid}']
+        dly_db = [f'-{q_var}*_cb_{nid}/3.0',
+                  f'-{q_var}*_cb_{nid}/3.0',
+                  f'(2.0/3.0)*{q_var}*_cb_{nid}']
+        dlx_dq = [f'-_cb_{nid}/3.0',
+                  f'-_cb_{nid}/3.0',
+                  f'(2.0/3.0)*_cb_{nid}']
+        dly_dq = [f'-_sb_{nid}/3.0',
+                  f'-_sb_{nid}/3.0',
+                  f'(2.0/3.0)*_sb_{nid}']
+
+        lx_expr = [f'(_x1l_{nid} - _cxl_{nid})',
+                   f'(_x2l_{nid} - _cxl_{nid})',
+                   f'(_x3l_{nid} - _cxl_{nid})']
+        ly_expr = [f'(_y1l_{nid} - _cyl_{nid})',
+                   f'(_y2l_{nid} - _cyl_{nid})',
+                   f'(_y3l_{nid} - _cyl_{nid})']
+
+        if meta:
+            child_robot_lists = [list(c.robot_indices) for c in node.children]
+        else:
+            child_robot_lists = [[ri] for ri in node.robot_indices]
+
+        for i, robots_under_child in enumerate(child_robot_lists):
+            for ri in robots_under_child:
+                rx, ry = 2*(ri-1), 2*(ri-1)+1
+                lines += [
+                    f'{pad}J[{rx}, col[{th_key}]] += -_st_{nid}*{lx_expr[i]} - _ct_{nid}*{ly_expr[i]}',
+                    f'{pad}J[{ry}, col[{th_key}]] +=  _ct_{nid}*{lx_expr[i]} - _st_{nid}*{ly_expr[i]}',
+                    f'{pad}J[{rx}, col["p_{nid}"]] += _ct_{nid}*({dlx_dp[i]}) - _st_{nid}*({dly_dp[i]})',
+                    f'{pad}J[{ry}, col["p_{nid}"]] += _st_{nid}*({dlx_dp[i]}) + _ct_{nid}*({dly_dp[i]})',
+                    f'{pad}J[{rx}, col["beta_{nid}"]] += _ct_{nid}*({dlx_db[i]}) - _st_{nid}*({dly_db[i]})',
+                    f'{pad}J[{ry}, col["beta_{nid}"]] += _st_{nid}*({dlx_db[i]}) + _ct_{nid}*({dly_db[i]})',
+                    f'{pad}J[{rx}, col["q_{nid}"]] += _ct_{nid}*({dlx_dq[i]}) - _st_{nid}*({dly_dq[i]})',
+                    f'{pad}J[{ry}, col["q_{nid}"]] += _st_{nid}*({dlx_dq[i]}) + _ct_{nid}*({dly_dq[i]})',
+                ]
 
     # -- Forward Jacobian ----------------------------------------------------
 
