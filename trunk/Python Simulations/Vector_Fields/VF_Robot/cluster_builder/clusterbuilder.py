@@ -1284,8 +1284,8 @@ class Visualizer:
                 robots = node.robot_indices
                 color = leaf_colors[robots[0]]
                 if node.size == 2:
-                    xa, ya = positions[robots[0]]
-                    xb, yb = positions[robots[1]]
+                    xa, ya = positions[robots[0]][:2]
+                    xb, yb = positions[robots[1]][:2]
                     ax.plot([xa, xb], [ya, yb], '-', color=color, lw=2, zorder=2)
                     mx, my = (xa + xb) / 2, (ya + yb) / 2
                     ax.annotate(f"L_{nid}", (mx, my), fontsize=7, color=color,
@@ -1309,7 +1309,8 @@ class Visualizer:
         draw_leaf_edges(root)
 
         # Draw robots
-        for ri, (xi, yi) in positions.items():
+        for ri, pos in positions.items():
+            xi, yi = pos[0], pos[1]
             color = leaf_colors.get(ri, 'gray')
             ax.scatter(xi, yi, s=200, color=color, zorder=5,
                        edgecolors='black', linewidths=1.2)
