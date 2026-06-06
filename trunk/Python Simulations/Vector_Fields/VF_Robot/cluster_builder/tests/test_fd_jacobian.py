@@ -24,6 +24,11 @@ import copy
 import numpy as np
 import pytest
 
+
+def _wrap_diff(a, b):
+    """Signed difference a - b wrapped to [-pi, pi] (for angle quantities)."""
+    return (a - b + math.pi) % (2 * math.pi) - math.pi
+
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -86,7 +91,16 @@ def _fd_jacobian(kin, state, orientation, eps=1e-6):
         pos_bwd = kin.inverse_kinematics(s_bwd)
         f_bwd = _robot_output_vec(pos_bwd, N, orientation)
 
-        J_fd[:, j] = (f_fwd - f_bwd) / (2 * eps)
+        # For heading rows (indices 2*N onwards when orientation=on) the difference
+        # must be wrapped to avoid a 2*pi jump when the angle straddles the branch cut.
+        if orientation:
+            diff = np.empty(out_dim)
+            diff[:2 * N] = f_fwd[:2 * N] - f_bwd[:2 * N]
+            for row in range(2 * N, out_dim):
+                diff[row] = _wrap_diff(f_fwd[row], f_bwd[row])
+            J_fd[:, j] = diff / (2 * eps)
+        else:
+            J_fd[:, j] = (f_fwd - f_bwd) / (2 * eps)
 
     return J_fd
 
@@ -146,6 +160,13 @@ COC_TREES = [
     "(2,2,2)",
     "((2,2),2)",
     "((2,2,2),(2,2))",
+    # size-3 leaf coverage (previously missing).
+    # Note: "(3)" alone (single-leaf root) is not permitted; use (3,3) instead.
+    "(3,3)",
+    "((3,3),(2,2))",
+    "((2,3),2)",
+    # SAS meta-node over SAS leaves (exact bug class from commit ac24cf6)
+    "(3,3,3)",
 ]
 
 

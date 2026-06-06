@@ -6,6 +6,23 @@ Automatically generates kinematics, Jacobians, a config file, a simulation class
 
 ## How to Run
 
+Step 1, Change directory to:  /Users/christopherwaight/Desktop/Multirobot_Testbed/trunk/Python Simulations/Vector_Fields/VF_Robot/cluster_builder
+
+Step 2, run ../venv/bin/python3 clusterbuilder.py <num_robots> <cluster_config> <cluster_name> <run_mode> [config_tree]
+
+Examples to show ckitts:
+
+
+../venv/bin/python3 clusterbuilder.py 4 2 my_diamond_with_phi full --symbolic --orientation on
+../venv/bin/python3 clusterbuilder.py 4 2 my_diamond full --symbolic
+
+../venv/bin/python3 clusterbuilder.py 6 2 my_star image_only
+../venv/bin/python3 clusterbuilder.py 6 2 my_star2 image_only "(3,3)"
+../venv/bin/python3 yaml_visualize.py my_pentagon.yaml
+
+../venv/bin/python3 clusterbuilder.py 6 1 my_star image_only 
+
+
 ```bash
 cd "/Users/christopherwaight/Desktop/Multirobot_Testbed/trunk/Python Simulations/Vector_Fields/VF_Robot/cluster_builder"
 ../venv/bin/python3 clusterbuilder.py <num_robots> <cluster_config> <cluster_name> <run_mode> [config_tree]

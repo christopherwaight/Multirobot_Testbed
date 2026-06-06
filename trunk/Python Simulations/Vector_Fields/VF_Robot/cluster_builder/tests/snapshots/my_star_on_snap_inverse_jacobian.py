@@ -1,20 +1,34 @@
-"""Analytical inverse Jacobian for my_star_snap (6 robots).
-Maps q_dot (12 state vars) to r_dot (12 robot coords).
-State var order: ['x_c', 'y_c', 'theta_c', 'p_1', 'beta_1', 'q_1', 'L_2', 'theta_2', 'L_3', 'theta_3', 'L_4', 'theta_4']
-Robot row order: [x1,y1, x2,y2, ..., x6,y6]
+"""Analytical inverse Jacobian for my_star_on_snap (6 robots).
+Maps q_dot (18 state vars) to r_dot (18 robot coords).
+State var order: ['x_c', 'y_c', 'theta_c', 'p_1', 'beta_1', 'q_1', 'L_2', 'theta_2', 'L_3', 'theta_3', 'L_4', 'theta_4', 'phi_1', 'phi_2', 'phi_3', 'phi_4', 'phi_5', 'phi_6']
+Robot row order: [x1,y1,...,x6,y6, theta_1,...,theta_6]
 """
 import math
 import numpy as np
 
-STATE_VARS = ['x_c', 'y_c', 'theta_c', 'p_1', 'beta_1', 'q_1', 'L_2', 'theta_2', 'L_3', 'theta_3', 'L_4', 'theta_4']
+STATE_VARS = ['x_c', 'y_c', 'theta_c', 'p_1', 'beta_1', 'q_1', 'L_2', 'theta_2', 'L_3', 'theta_3', 'L_4', 'theta_4', 'phi_1', 'phi_2', 'phi_3', 'phi_4', 'phi_5', 'phi_6']
 
 def inverse_jacobian(state):
-    """Returns (12 x 12) numpy array."""
-    J = np.zeros((12, 12))
+    """Returns (18 x 18) numpy array."""
+    J = np.zeros((18, 18))
     # Analytical Jacobian: numerically evaluated at current state
     # using the closed-form composition of pair/SAS blocks.
     # This calls the runtime kinematics objects.
     _fill_jacobian(state, J)
+    # Heading rows: theta_i = theta_ref(i) + phi_i
+    _col = {v: i for i, v in enumerate(STATE_VARS)}
+    J[12, _col["phi_1"]] = 1.0
+    J[12, _col["theta_2"]] += 1.0
+    J[13, _col["phi_2"]] = 1.0
+    J[13, _col["theta_2"]] += 1.0
+    J[14, _col["phi_3"]] = 1.0
+    J[14, _col["theta_3"]] += 1.0
+    J[15, _col["phi_4"]] = 1.0
+    J[15, _col["theta_3"]] += 1.0
+    J[16, _col["phi_5"]] = 1.0
+    J[16, _col["theta_4"]] += 1.0
+    J[17, _col["phi_6"]] = 1.0
+    J[17, _col["theta_4"]] += 1.0
     return J
 
 def _fill_jacobian(state, J):

@@ -1,4 +1,4 @@
-"""Forward kinematics for my_star_snap cluster-of-clusters (6 robots)."""
+"""Forward kinematics for my_star_on_snap cluster-of-clusters (6 robots)."""
 import math
 
 def forward_kinematics(x1, y1, x2, y2, x3, y3, x4, y4, x5, y5, x6, y6):
