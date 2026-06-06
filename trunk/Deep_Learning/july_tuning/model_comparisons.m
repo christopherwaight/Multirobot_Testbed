@@ -5,17 +5,18 @@
 
 %% Define dataset names and parameters
 dataset_names = {'celeste_ver', 'tidal_ver', 'pacific_blue_ver', 'redwood_ver', 'redwood_cal', 'celeste_cal', 'tidal_cal', 'pacific_blue_cal'};
-dataset_files = {'celeste_ver.csv', 'tidal_ver.csv', 'pacific_blue_ver.csv', 'redwood_ver.csv', 'redwood_cal.csv', 'celeste_cal.csv', 'tidal_cal.csv', 'pacific_blue_cal.csv'};
+dataset_files = {'data/celeste_ver.csv', 'data/tidal_ver.csv', 'data/pacific_blue_ver.csv', 'data/redwood_ver.csv', 'data/redwood_cal.csv', 'data/celeste_cal.csv', 'data/tidal_cal.csv', 'data/pacific_blue_cal.csv'};
 
 %% Load the trained neural networks
 fprintf('Loading trained neural networks...\n');
-% Try loading from final combined file first
-if exist('everything_nets_final.mat', 'file')
-    load('everything_nets_final.mat', 'everything_hue_net', 'everything_sat_net');
+% Get the directory where this script is located
+script_dir = fileparts(mfilename('fullpath'));
+nn_path = fullfile(script_dir, 'nn_training', 'everything_nets_final.mat');
+
+if exist(nn_path, 'file') == 2
+    load(nn_path, 'everything_hue_net', 'everything_sat_net');
 else
-    % Fall back to individual files
-    load('best_hue_net.mat', 'everything_hue_net');
-    load('best_sat_net.mat', 'everything_sat_net');
+    error('Cannot find everything_nets_final.mat at: %s', nn_path);
 end
 
 %% Initialize storage for all data
@@ -28,9 +29,10 @@ all_hsv_calculated = cell(8, 1);
 fprintf('\nReading and processing datasets...\n');
 for i = 1:8
     fprintf('Processing %s...\n', dataset_names{i});
-    
-    % Read data
-    data = readmatrix(dataset_files{i});
+
+    % Read data (use full path relative to script location)
+    data_path = fullfile(script_dir, dataset_files{i});
+    data = readmatrix(data_path);
     
     % Determine number of rows to use
     if i <= 4  % _ver files
