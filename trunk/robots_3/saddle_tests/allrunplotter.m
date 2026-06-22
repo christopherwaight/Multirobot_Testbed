@@ -135,13 +135,13 @@ axis equal;
 xlim([-0.65 0.65]);
 ylim([-0.65 0.65]);
 
-% Add vortex field
+% Add saddle field (negated to get correct orientation)
 [X, Y] = meshgrid(linspace(-1, 1, 15), linspace(-1, 1, 15));
 center_x = 0; center_y = 0;
 r = sqrt((X - center_x).^2 + (Y - center_y).^2);
 theta = atan2(Y - center_y, X - center_x);%-pi/2;
-U = r .* sin(theta);
-V = r .* cos(theta);
+U = -r .* sin(theta);  % Negated for correct saddle orientation
+V = -r .* cos(theta);  % Negated for correct saddle orientation
 scale_factor = 0.5;
 U_norm = scale_factor * U;
 V_norm = scale_factor * V;
