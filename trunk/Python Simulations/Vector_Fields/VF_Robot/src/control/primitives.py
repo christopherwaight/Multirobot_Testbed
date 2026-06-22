@@ -344,3 +344,129 @@ def find_sink_center(cluster):
         move_v = v_hat_v
 
     return attraction_strength * move_u, attraction_strength * move_v
+
+
+# ============================================================================
+# Scalar Field Primitives
+# ============================================================================
+
+def estimate_gradient_from_scalar_readings(cluster):
+    """
+    Estimate ∇φ from scalar readings using plane fitting.
+    
+    Works for both 3-robot (exact) and 4-robot (overdetermined least squares).
+    
+    Args:
+        cluster: OmniCluster or QuadCluster with scalar field
+    
+    Returns:
+        (dφ/dx, dφ/dy): Gradient at centroid
+    """
+    positions = cluster.get_robot_positions()
+    readings = cluster.sample_field_at_robots()  # [φ1, φ2, φ3] or [φ1, φ2, φ3, φ4]
+    
+    # Determine number of robots from readings
+    num_robots = len(readings)
+    
+    # Build system: φ = a*x + b*y + c
+    # For 3 robots: exactly determined (standard solve)
+    # For 4 robots: overdetermined (least squares)
+    
+    if num_robots == 3:
+        x1, y1, x2, y2, x3, y3 = positions
+        A = np.array([[x1, y1, 1],
+                      [x2, y2, 1],
+                      [x3, y3, 1]])
+        b = np.array([readings[0], readings[1], readings[2]])
+        coeffs = np.linalg.solve(A, b)  # Exact solution
+        
+    elif num_robots == 4:
+        x1, y1, x2, y2, x3, y3, x4, y4 = positions
+        A = np.array([[x1, y1, 1],
+                      [x2, y2, 1],
+                      [x3, y3, 1],
+                      [x4, y4, 1]])
+        b = np.array([readings[0], readings[1], readings[2], readings[3]])
+        # Overdetermined - use least squares (same as vectors do)
+        coeffs = np.linalg.lstsq(A, b, rcond=None)[0]
+    else:
+        raise ValueError(f"Expected 3 or 4 robots, got {num_robots}")
+    
+    return coeffs[0], coeffs[1]  # (∂φ/∂x, ∂φ/∂y)
+
+
+def scalar_gradient_descent(cluster, descent=True):
+    """
+    Move in -∇φ direction (descent) or +∇φ (ascent).
+    Works for both 3-robot and 4-robot clusters.
+    
+    Args:
+        cluster: OmniCluster or QuadCluster with scalar field
+        descent: If True, move toward minimum (-∇φ). If False, toward maximum (+∇φ)
+    
+    Returns:
+        (vx_c, vy_c): Desired centroid velocity
+    """
+    dφ_dx, dφ_dy = estimate_gradient_from_scalar_readings(cluster)
+    
+    gain = 1.0
+    if descent:
+        return -gain * dφ_dx, -gain * dφ_dy
+    else:
+        return gain * dφ_dx, gain * dφ_dy
+
+
+def scalar_extremum_finder(cluster):
+    """
+    Find where ∇φ = 0 (max/min/saddle).
+    Uses plane fitting to estimate critical point location.
+    Works for 3-robot and 4-robot.
+    
+    For planar approximation, gradient is constant, so this
+    effectively does gradient descent toward lower gradient magnitude.
+    
+    Args:
+        cluster: OmniCluster or QuadCluster with scalar field
+    
+    Returns:
+        (vx_c, vy_c): Velocity toward estimated extremum
+    """
+    dφ_dx, dφ_dy = estimate_gradient_from_scalar_readings(cluster)
+    
+    # Move in direction of -∇φ (gradient descent)
+    # This will move toward local minimum
+    gain = 1.0
+    return -gain * dφ_dx, -gain * dφ_dy
+
+
+def scalar_gradient_with_rotation(cluster, rotation_gain=0.3, descent=True):
+    """
+    Gradient descent/ascent with formation rotation aligned to gradient.
+    From rotation control research (kr=0.3 for 100% success).
+    Works for 3-robot and 4-robot.
+    
+    Note: 3-robot formations don't have independent rotation control,
+    so this just returns translation. For 4-robot, rotation can be added.
+    
+    Args:
+        cluster: OmniCluster or QuadCluster with scalar field
+        rotation_gain: Gain for rotation control (default 0.3 from research)
+        descent: If True, move toward minimum. If False, toward maximum
+    
+    Returns:
+        (vx_c, vy_c): Desired centroid velocity
+    """
+    # Estimate gradient
+    dφ_dx, dφ_dy = estimate_gradient_from_scalar_readings(cluster)
+    
+    # Movement direction (descent or ascent)
+    if descent:
+        vx = -dφ_dx
+        vy = -dφ_dy
+    else:
+        vx = dφ_dx
+        vy = dφ_dy
+    
+    # For now, just return translation
+    # Rotation control would require cluster to support orientation
+    return vx, vy

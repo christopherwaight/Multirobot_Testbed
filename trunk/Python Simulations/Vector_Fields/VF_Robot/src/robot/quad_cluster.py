@@ -86,10 +86,10 @@ class QuadCluster:
 
     def _initialize_robots(self):
         """Initialize 4 robots in approximate desired formation."""
-        # Start at a random position in the field
-        x_c_init = np.random.rand() * 0.5 + 0.01
-        y_c_init = np.random.rand() * 0.5 + 0.01
-        theta_c_init = np.pi  # Initial orientation
+        # Start at fixed position (0.5, 0.5)
+        x_c_init =  np.random.uniform(0.5, 1.0)# 0.5
+        y_c_init = np.random.uniform(-2.2, -2.25)#0.5
+        theta_c_init = np.random.uniform(0, np.pi)#np.pi/2  # Initial orientation
 
         # Store initial theta for unwrapping
         self.prev_theta_c = theta_c_init
@@ -246,12 +246,12 @@ class QuadCluster:
         Reset cluster to a new position.
 
         Args:
-            x_c, y_c: New centroid position (random if None)
+            x_c, y_c: New centroid position (defaults to (0.5, 0.5) if None)
         """
         if x_c is None:
-            x_c = np.random.rand() * 0.5 + 0.01
+            x_c = 0.5
         if y_c is None:
-            y_c = np.random.rand() * 0.5 + 0.01
+            y_c = 0.5
 
         theta_c = np.pi
         self.prev_theta_c = theta_c

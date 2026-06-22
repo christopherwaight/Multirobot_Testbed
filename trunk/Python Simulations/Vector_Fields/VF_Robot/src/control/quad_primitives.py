@@ -5,6 +5,13 @@ All primitives take a QuadCluster object and return desired centroid velocity (v
 or (vx_c, vy_c, omega_c) for orientation control.
 
 Ported from VF_4_Robot/primitives/control_primitives.py
+
+Vector-field contour-tracking primitives (Logic G):
+  logic_g_zero_flow_quad -- 4-robot port of Logic G from separatrix_interactive_v002.
+                            Drives the cluster onto the det(J)=0 Okubo-Weiss contour
+                            using the heuristic gradient/flow blend from v002.
+                            Returns (vx_c, vy_c, omega_c); omega rotates the square
+                            diagonal toward the motion direction.
 """
 
 import numpy as np
@@ -40,6 +47,20 @@ def calculate_angle_error_bidirectional(current_angle, desired_angle):
     else:
         return error_opposite
 
+def calculate_angle_error_quad_symmetric(current_angle, desired_angle):
+    """
+    4-fold symmetry: d1 parallel, d2 parallel, d1 anti-parallel, d2 anti-parallel
+    are all equally valid alignments for a square formation.
+    """
+    best_error = None
+    min_abs = float('inf')
+    for k in range(4):
+        candidate = desired_angle - k * np.pi / 2
+        error = np.mod(candidate - current_angle + np.pi, 2 * np.pi) - np.pi
+        if abs(error) < min_abs:
+            min_abs = abs(error)
+            best_error = error
+    return best_error
 
 def calculate_jacobian_from_triangle(positions, readings):
     """
@@ -274,9 +295,10 @@ def find_line_intersection(p1, d1, p2, d2):
 
 def estimate_center_and_radius(cluster):
     """
-    Estimate center and radius using dual Jacobian approach.
+    Estimate center using dual Jacobian approach - clean, no fallbacks.
 
-    Uses both top and bottom triangles to find intersection of direction vectors.
+    Each triangle estimates center position using plane fitting (just like 3-robot).
+    Average the two position estimates.
 
     Args:
         cluster: QuadCluster object
@@ -284,50 +306,82 @@ def estimate_center_and_radius(cluster):
     Returns:
         center_estimate (np.array), radius (float) or (None, None) if fails
     """
-    # Get robot positions
+    # Get robot positions for top triangle (1, 2, 3)
     x1, y1, x2, y2, x3, y3, x4, y4 = cluster.get_robot_positions()
 
-    # Calculate triangle centers
-    top_triangle_center = np.array([(x1 + x2 + x3) / 3.0, (y1 + y2 + y3) / 3.0])
-    bottom_triangle_center = np.array([(x4 + x2 + x3) / 3.0, (y4 + y2 + y3) / 3.0])
+    # Get field readings
+    readings = cluster.sample_field_at_robots()
+    u1, v1 = readings[0]
+    u2, v2 = readings[1]
+    u3, v3 = readings[2]
+    u4, v4 = readings[3]
 
-    # Get center directions from both triangles
-    dir1 = calculate_center_direction_top(cluster)
-    dir2 = calculate_center_direction_bottom(cluster)
+    # ========== TOP TRIANGLE (1, 2, 3) ==========
+    # Matrix A for top triangle
+    A_top = np.array([
+        [x1, y1, 1],
+        [x2, y2, 1],
+        [x3, y3, 1]
+    ])
 
-    # If either direction is None, fail
-    if dir1 is None or dir2 is None:
+    b_u_top = np.array([u1, u2, u3])
+    b_v_top = np.array([v1, v2, v3])
+
+    try:
+        # Solve for plane coefficients
+        abc_top = np.linalg.solve(A_top, b_u_top)
+        def_top = np.linalg.solve(A_top, b_v_top)
+
+        a_top, b_top, c_top = abc_top
+        d_top, e_top, f_top = def_top
+
+        # Form Jacobian
+        J_top = np.array([[a_top, b_top], [d_top, e_top]])
+
+        # Solve for critical point
+        rhs_top = np.array([-c_top, -f_top])
+        critical_point_top = np.linalg.solve(J_top, rhs_top)
+
+    except np.linalg.LinAlgError:
+        # Singular matrix - can't estimate
         return None, None
 
-    # Check angle between directions
-    dot_product = np.dot(dir1, dir2)
-    angle = np.arccos(np.clip(dot_product, -1.0, 1.0)) * 180 / np.pi
+    # ========== BOTTOM TRIANGLE (2, 3, 4) ==========
+    # Matrix A for bottom triangle
+    A_bot = np.array([
+        [x2, y2, 1],
+        [x3, y3, 1],
+        [x4, y4, 1]
+    ])
 
-    # Current cluster centroid
+    b_u_bot = np.array([u2, u3, u4])
+    b_v_bot = np.array([v2, v3, v4])
+
+    try:
+        # Solve for plane coefficients
+        abc_bot = np.linalg.solve(A_bot, b_u_bot)
+        def_bot = np.linalg.solve(A_bot, b_v_bot)
+
+        a_bot, b_bot, c_bot = abc_bot
+        d_bot, e_bot, f_bot = def_bot
+
+        # Form Jacobian
+        J_bot = np.array([[a_bot, b_bot], [d_bot, e_bot]])
+
+        # Solve for critical point
+        rhs_bot = np.array([-c_bot, -f_bot])
+        critical_point_bot = np.linalg.solve(J_bot, rhs_bot)
+
+    except np.linalg.LinAlgError:
+        # Singular matrix - can't estimate
+        return None, None
+
+    # ========== AVERAGE THE TWO POSITION ESTIMATES ==========
+    center_estimate = (critical_point_top + critical_point_bot) / 2.0
+
+    # Calculate distance from current centroid
     p0 = cluster.get_centroid()
-
-    # Find intersection
-    center_estimate = find_line_intersection(top_triangle_center, dir1, bottom_triangle_center, dir2)
-
-    if center_estimate is None:
-        # Fallback: use averaged direction
-        combined_dir = (dir1 + dir2) / 2
-        combined_dir = combined_dir / np.linalg.norm(combined_dir)
-
-        # Default distance
-        default_distance = 0.3
-        center_estimate = p0 + default_distance * combined_dir
-        estimated_distance = default_distance
-    else:
-        # Calculate distance from centroid to estimated center
-        estimated_distance = np.linalg.norm(center_estimate - p0)
-
-        # Sanity check - cap at reasonable distance
-        max_reasonable_distance = 1.0
-        if estimated_distance > max_reasonable_distance:
-            unit_vector = (center_estimate - p0) / estimated_distance
-            center_estimate = p0 + max_reasonable_distance * unit_vector
-            estimated_distance = max_reasonable_distance
+    estimated_distance = np.linalg.norm(center_estimate - p0)
 
     return center_estimate, estimated_distance
 
@@ -700,18 +754,19 @@ def center_orbiter_quad_planar(cluster, desired_radius=0.15):
 
     return vx_c, vy_c, omega_c
 
-def dual_jacobian_center_finder_advanced(cluster):
+def dual_jacobian_center_finder_advanced(cluster, use_angular_control=True):
     """
-    Move toward estimated center with orientation control (advanced version).
+    Move toward estimated center with optional orientation control.
 
     Uses dual Jacobian approach to estimate center, then:
     1. Moves toward the center (like dual_jacobian_center_finder)
-    2. Orients d1 diagonal to point toward the center
+    2. Optionally orients d1 diagonal to point toward the center
 
     Designed for use with quad_rectangle formation where d1 is the short diagonal.
 
     Args:
         cluster: QuadCluster object
+        use_angular_control: If False, disables omega_c (for unstable fields like saddles)
 
     Returns:
         (vx_c, vy_c, omega_c): Desired centroid velocity and angular velocity
@@ -752,11 +807,13 @@ def dual_jacobian_center_finder_advanced(cluster):
     # d1 (robot 1→3) always points toward center
     angle_error = desired_theta - current_theta_c
 
-    # Angular velocity control (proportional)
-    # Note: Use lower gain to avoid overwhelming formation control
-    omega_gain = 0.3  # Angular gain (reduced from 1.0 to prevent formation distortion)
-    max_omega = 0.5  # Maximum angular velocity (rad/s)
-    omega_c = np.clip(omega_gain * angle_error, -max_omega, max_omega)
+    # Angular velocity control (purely reactive)
+    if use_angular_control:
+        omega_gain = 2.5  # Angular gain (allows some lag)
+        max_omega = 3.0  # Maximum angular velocity (rad/s)
+        omega_c = np.clip(omega_gain * angle_error, -max_omega, max_omega)
+    else:
+        omega_c = 0.0  # No angular control
 
     # Translational velocity control (proportional to distance)
     gain = 1.0  # Proportional gain
@@ -835,10 +892,9 @@ def center_orbiter_quad_advanced(cluster, desired_radius=0.15):
     # d1 (robot 1→3) always points toward center
     angle_error = desired_theta - current_theta_c
 
-    # Angular velocity control (proportional)
-    # Note: Use lower gain to avoid overwhelming formation control
-    omega_gain = 0.3  # Angular gain (reduced from 1.0 to prevent formation distortion)
-    max_omega = 0.5  # Maximum angular velocity (rad/s)
+    # Angular velocity control (purely reactive)
+    omega_gain = 3  # Angular gain (allows some lag)
+    max_omega = 5.0  # Maximum angular velocity (rad/s)
     omega_c = np.clip(omega_gain * angle_error, -max_omega, max_omega)
 
     # Perpendicular direction for orbit (90° rotation)
@@ -867,3 +923,354 @@ def center_orbiter_quad_advanced(cluster, desired_radius=0.15):
     vy_c = velocity_command[1]
 
     return vx_c, vy_c, omega_c
+
+
+# ============================================================================
+# Scalar Field Primitives (4-Robot specific)
+# ============================================================================
+
+def estimate_hessian_from_scalar_readings(cluster):
+    """
+    Estimate Hessian matrix using 4-robot formation.
+    
+    Strategy (overdetermined system):
+    1. Compute 4 gradient estimates using all combinations of 3 robots:
+       - Triangle (1,2,3): gradient at centroid₁
+       - Triangle (1,2,4): gradient at centroid₂
+       - Triangle (1,3,4): gradient at centroid₃
+       - Triangle (2,3,4): gradient at centroid₄
+    2. Now have 4 gradient samples at 4 different locations
+    3. Fit spatial variation of gradient to estimate Hessian (overdetermined least squares)
+    
+    Args:
+        cluster: QuadCluster with scalar field
+    
+    Returns:
+        H: 2x2 Hessian matrix [[∂²φ/∂x², ∂²φ/∂x∂y],
+                                [∂²φ/∂x∂y, ∂²φ/∂y²]]
+        gradient: (dφ/dx, dφ/dy) at cluster centroid
+    """
+    x1, y1, x2, y2, x3, y3, x4, y4 = cluster.get_robot_positions()
+    readings = cluster.sample_field_at_robots()  # [φ1, φ2, φ3, φ4]
+    
+    # 4 combinations of 3 robots
+    robot_combos = [
+        (0, 1, 2),  # robots 1, 2, 3
+        (0, 1, 3),  # robots 1, 2, 4
+        (0, 2, 3),  # robots 1, 3, 4
+        (1, 2, 3),  # robots 2, 3, 4
+    ]
+    
+    positions_all = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+    
+    centroids = []
+    gradients = []
+    
+    for combo in robot_combos:
+        # Get 3 robot positions and readings
+        pos_subset = [positions_all[i] for i in combo]
+        readings_subset = [readings[i] for i in combo]
+        
+        # Centroid of these 3 robots
+        cx = np.mean([p[0] for p in pos_subset])
+        cy = np.mean([p[1] for p in pos_subset])
+        centroids.append([cx, cy])
+        
+        # Estimate gradient using plane fitting
+        A = np.array([[p[0], p[1], 1] for p in pos_subset])
+        b = np.array(readings_subset)
+        coeffs = np.linalg.solve(A, b)  # [a, b, c] where φ = ax + by + c
+        
+        gradients.append([coeffs[0], coeffs[1]])  # (∂φ/∂x, ∂φ/∂y)
+    
+    # Now have 4 gradients at 4 centroids
+    centroids = np.array(centroids)    # Shape: (4, 2)
+    gradients = np.array(gradients)    # Shape: (4, 2)
+    
+    # Fit spatial variation of gradient components (overdetermined system)
+    # Model: ∂φ/∂x = H[0,0]*x + H[0,1]*y + c1
+    #        ∂φ/∂y = H[1,0]*x + H[1,1]*y + c2
+    
+    A_fit = np.column_stack([centroids, np.ones(4)])  # [x, y, 1], shape (4, 3)
+    
+    # Least squares for ∂φ/∂x variation
+    coeffs_x = np.linalg.lstsq(A_fit, gradients[:, 0], rcond=None)[0]  # [H[0,0], H[0,1], c1]
+    
+    # Least squares for ∂φ/∂y variation
+    coeffs_y = np.linalg.lstsq(A_fit, gradients[:, 1], rcond=None)[0]  # [H[1,0], H[1,1], c2]
+    
+    # Build symmetric Hessian
+    # Extract second partials:
+    # From ∂φ/∂x fit: d²φ/dx² = coeffs_x[0], d²φ/dxdy_from_x = coeffs_x[1]
+    # From ∂φ/∂y fit: d²φ/dxdy_from_y = coeffs_y[0], d²φ/dy² = coeffs_y[1]
+    # 
+    # Average mixed partials for symmetry (Schwarz theorem)
+    d2phi_dx2 = coeffs_x[0]
+    d2phi_dy2 = coeffs_y[1]
+    d2phi_dxdy = (coeffs_x[1] + coeffs_y[0]) / 2
+    
+    H = np.array([[d2phi_dx2, d2phi_dxdy],
+                  [d2phi_dxdy, d2phi_dy2]])
+    
+    # Gradient at main cluster centroid (average of 4 gradient estimates)
+    gradient = np.mean(gradients, axis=0)
+    
+    return H, gradient
+
+
+def scalar_newton_saddle_finder(cluster, max_step=1.0):
+    """
+    Newton's method for finding saddles in scalar fields.
+    Requires 4-robot QuadCluster.
+    
+    From path_quality_analysis.py research.
+    
+    Args:
+        cluster: QuadCluster with scalar field
+    
+    Returns:
+        (vx_c, vy_c): Newton step direction
+    """
+    try:
+        H, gradient = estimate_hessian_from_scalar_readings(cluster)
+        
+        # Newton step: -H^(-1) * ∇φ
+        det = np.linalg.det(H)
+        if abs(det) > 1e-10:
+            step = -np.linalg.solve(H, gradient)
+        else:
+            # Use pseudoinverse for singular/near-singular Hessian
+            step = -np.linalg.pinv(H) @ gradient
+        
+        # Limit step size (pass max_step parameter or use default)
+        step_norm = np.linalg.norm(step)
+        if step_norm > max_step:
+            step = step / step_norm * max_step
+        
+        return step[0], step[1]
+    
+    except (np.linalg.LinAlgError, ValueError):
+        # Fallback to gradient descent using helper from primitives
+        import sys
+        import os
+        # Add project root to path
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sys.path.insert(0, project_root)
+        from control.primitives import scalar_gradient_descent
+        return scalar_gradient_descent(cluster, descent=True)
+
+
+def scalar_newton_with_rotation(cluster, translation_gain=0.3626, rotation_gain=1,
+                                 max_speed=0.3513, max_omega=1.0):
+    """
+    Newton's method with formation rotation control.
+    Returns centroid velocities directed toward the Newton step target.
+
+    Args:
+        cluster: QuadCluster with scalar field
+        translation_gain: Speed proportional to step magnitude (m/s per unit)
+        rotation_gain: Angular velocity gain
+        max_speed: Maximum translational speed (m/s)
+        max_omega: Maximum angular velocity (rad/s)
+
+    Returns:
+        (vx_c, vy_c, omega_c): centroid velocities + angular velocity
+    """
+    try:
+        H, gradient = estimate_hessian_from_scalar_readings(cluster)
+
+        # Newton step (displacement, not velocity)
+        det = np.linalg.det(H)
+        if abs(det) > 1e-10:
+            step = -np.linalg.solve(H, gradient)
+        else:
+            step = -np.linalg.pinv(H) @ gradient
+
+        # Convert step to velocity: scale by gain, clamp magnitude
+        step_norm = np.linalg.norm(step)
+        if step_norm > 1e-10:
+            speed = np.clip(translation_gain * step_norm, 0, max_speed)
+            direction = step / step_norm
+            vx_c = speed * direction[0]
+            vy_c = speed * direction[1]
+            print('vx_c',vx_c,vy_c)
+        else:
+            vx_c, vy_c = 0.0, 0.0
+
+        # Rotation control (4-fold symmetry)
+        step_angle = np.arctan2(step[1], step[0])
+        current_formation = cluster.get_current_formation()
+        current_theta = current_formation.get('theta_c', 0)
+
+        rotation_error = calculate_angle_error_quad_symmetric(current_theta, step_angle)
+        print('rotation error', rotation_error)
+        omega_c = np.clip(rotation_gain * rotation_error, -max_omega, max_omega)
+        print('omega_c', omega_c)
+
+        return vx_c, vy_c, omega_c
+
+    except (np.linalg.LinAlgError, ValueError):
+        import sys, os
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        sys.path.insert(0, project_root)
+        from control.primitives import estimate_gradient_from_scalar_readings
+        dphi_dx, dphi_dy = estimate_gradient_from_scalar_readings(cluster)
+        # print('exception')
+        return -dphi_dx, -dphi_dy, 0.0
+
+
+# ============================================================================
+# Vector-field contour tracking: Logic G (Okubo-Weiss det(J)=0 boundary)
+# Ported from separatrix_interactive_v002.ipynb
+# ============================================================================
+
+def _normalise(v, eps=1e-12):
+    """Return v / ||v||, or v unchanged if ||v|| < eps."""
+    n = np.linalg.norm(v)
+    if n < eps:
+        return v
+    return v / n
+
+
+def _perp_aligned_with(direction, reference):
+    """
+    Return the unit vector perpendicular to `direction` whose dot product
+    with `reference` is non-negative (the one that agrees with `reference`).
+    """
+    perp = np.array([-direction[1], direction[0]])
+    if np.dot(perp, reference) < 0:
+        perp = -perp
+    return perp
+
+
+def _zero_seeking_descent(det_J, grad_det, eps=1e-10):
+    """
+    Return the gradient-descent direction that drives det(J) toward zero.
+
+    Specifically: -sign(det_J) * grad_det / ||grad_det||.
+    Returns None when the gradient is below `eps` (degenerate).
+    """
+    n = np.linalg.norm(grad_det)
+    if n < eps:
+        return None
+    return -np.sign(det_J) * grad_det / n
+
+
+def _estimate_det_and_grad_quad(cluster):
+    """
+    Estimate det(J), grad(det(J)), and mean flow for a 4-robot QuadCluster.
+
+    Strategy:
+      1. 4-point affine LS over all robots gives the full-cluster Jacobian J
+         and det_J = det(J).
+      2. Enumerate the C(4,3) = 4 three-robot sub-formations.  For each,
+         fit a linear plane to get a sub-Jacobian, take its determinant, and
+         record the sub-centroid.  Then fit a linear plane through the four
+         (sub-centroid, sub-det) triples to get the raw gradient of det(J).
+      3. mean_flow = mean of the 4 raw (u, v) readings.
+
+    Returns:
+        (det_J, raw_grad_det, mean_flow)  all as numpy arrays / scalars.
+    """
+    x1, y1, x2, y2, x3, y3, x4, y4 = cluster.get_robot_positions()
+    readings = cluster.sample_field_at_robots()   # list of (u, v) tuples
+
+    positions_all = [(x1, y1), (x2, y2), (x3, y3), (x4, y4)]
+    u_all = np.array([r[0] for r in readings])
+    v_all = np.array([r[1] for r in readings])
+
+    # -- Full 4-robot linear fit for det_J ----------------------------------
+    A4 = np.array([[p[0], p[1], 1.0] for p in positions_all])
+    abc, _, _, _ = np.linalg.lstsq(A4, u_all, rcond=None)
+    def_, _, _, _ = np.linalg.lstsq(A4, v_all, rcond=None)
+    J_full = np.array([[abc[0], abc[1]], [def_[0], def_[1]]])
+    det_J = float(np.linalg.det(J_full))
+
+    # -- C(4,3) sub-formation gradients for grad_det ------------------------
+    combos = [(0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3)]
+    sub_centroids = []
+    sub_dets = []
+
+    for idx in combos:
+        pos3 = [positions_all[i] for i in idx]
+        u3 = u_all[list(idx)]
+        v3 = v_all[list(idx)]
+        A3 = np.array([[p[0], p[1], 1.0] for p in pos3])
+        # Use calculate_jacobian_from_triangle if it gives a clean path,
+        # but we need the det directly; recompute via lstsq for safety.
+        try:
+            abc3 = np.linalg.solve(A3, u3)
+            def3 = np.linalg.solve(A3, v3)
+        except np.linalg.LinAlgError:
+            abc3, _, _, _ = np.linalg.lstsq(A3, u3, rcond=None)
+            def3, _, _, _ = np.linalg.lstsq(A3, v3, rcond=None)
+        J3 = np.array([[abc3[0], abc3[1]], [def3[0], def3[1]]])
+        cx = np.mean([p[0] for p in pos3])
+        cy = np.mean([p[1] for p in pos3])
+        sub_centroids.append([cx, cy])
+        sub_dets.append(float(np.linalg.det(J3)))
+
+    # Fit linear plane to (sub_centroid, sub_det): det ~ a*x + b*y + c
+    A_grad = np.array([[sc[0], sc[1], 1.0] for sc in sub_centroids])
+    b_grad = np.array(sub_dets)
+    grad_coeffs, _, _, _ = np.linalg.lstsq(A_grad, b_grad, rcond=None)
+    raw_grad_det = np.array([grad_coeffs[0], grad_coeffs[1]])
+
+    mean_flow = np.array([float(np.mean(u_all)), float(np.mean(v_all))])
+
+    return det_J, raw_grad_det, mean_flow
+
+
+def logic_g_zero_flow_quad(cluster, step_size=0.04, correction_weight=0.0,
+                           rotation_rate=0.15):
+    """
+    Logic G contour tracker for 4-robot QuadCluster.
+
+    Drives the cluster centroid onto the det(J)=0 Okubo-Weiss boundary
+    by blending a zero-seeking gradient direction with the mean flow vector.
+    Rotates the square diagonal toward the motion direction via omega.
+
+    Ported verbatim from separatrix_interactive_v002.ipynb (Logic G driver).
+
+    Args:
+        cluster:           QuadCluster with a vector field attached.
+        step_size:         Commanded speed magnitude (m/s), default 0.04.
+        correction_weight: Flow blend weight w in [0, 1].  0.0 = pure gradient
+                           direction (v002 default).  Increase to bias toward
+                           the local field direction.
+        rotation_rate:     Proportional gain mapping diagonal angle error (rad)
+                           to angular velocity (rad/s).
+
+    Returns:
+        (vx_c, vy_c, omega_c)
+    """
+    det_J, grad_det, flow = _estimate_det_and_grad_quad(cluster)
+
+    # -- Direction selection (verbatim Logic G) -----------------------------
+    zero_dir = _zero_seeking_descent(det_J, grad_det)
+    if zero_dir is None:
+        # Gradient degenerate: drift with flow.
+        direction = _normalise(flow)
+    else:
+        flow_unit = _normalise(flow)
+        cos_sim = float(np.dot(zero_dir, flow_unit))
+        if cos_sim >= 0:
+            blend = ((1.0 - correction_weight) * zero_dir
+                     + correction_weight * flow_unit)
+            direction = _normalise(blend)
+        else:
+            direction = _perp_aligned_with(zero_dir, flow_unit)
+
+    # -- Omega: rotate square diagonal toward direction ----------------------
+    formation = cluster.get_current_formation()
+    # th_c is the angle of diagonal d1 (robot1 -> robot3).
+    # The square's sensing axis aligned with motion is the diagonal, so the
+    # "tracking angle" is th_c (no pi/4 offset needed for a symmetric square).
+    current_angle = float(formation['th_c'])
+    target_angle = float(np.arctan2(direction[1], direction[0]))
+    angle_error = float(np.mod(target_angle - current_angle + np.pi, 2 * np.pi) - np.pi)
+    omega = rotation_rate * angle_error
+
+    vx = step_size * float(direction[0])
+    vy = step_size * float(direction[1])
+    return vx, vy, omega

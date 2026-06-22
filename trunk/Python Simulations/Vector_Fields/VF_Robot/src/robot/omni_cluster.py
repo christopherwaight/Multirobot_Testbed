@@ -51,6 +51,9 @@ class OmniCluster:
         # For tracking velocities
         self.velocity_history = []
 
+        # For diagnostic tracking
+        self.diagnostics = []
+
     def _load_formation_config(self, config_path):
         """Load desired formation parameters from YAML file."""
         # Resolve path relative to project root if it's not absolute
@@ -67,15 +70,21 @@ class OmniCluster:
         self.desired_q = formation['q']
         self.desired_beta = np.radians(formation['beta_degrees'])
         self.position_gain = formation.get('position_gain', 1.0)
+        self.angle_gain = formation.get('angle_gain', self.position_gain)  # Default to position_gain if not specified
 
         print(f"Loaded formation config: p={self.desired_p}, q={self.desired_q}, "
               f"beta={np.degrees(self.desired_beta):.1f}°")
 
     def _initialize_robots(self):
         """Initialize 3 robots in approximate desired formation."""
-        # Start at a random position in the field
-        x_c_init = np.random.rand() * 0.5 + 0.01
-        y_c_init = np.random.rand() * 0.5 + 0.01
+        # Start at fixed position (0.5, 0.5)
+        # x_c_init = 0.5
+        # y_c_init = 0.5
+        # theta_c_init = np.pi  # Initial orientation
+
+        # Random starting position (uncomment above and comment below to revert)
+        x_c_init = np.random.uniform(-0.5, 0.5)
+        y_c_init = np.random.uniform(-0.5, 0.5)
         theta_c_init = np.pi  # Initial orientation
 
         # Compute initial robot positions using inverse kinematics
@@ -141,12 +150,18 @@ class OmniCluster:
         # Compute formation errors
         error_p = self.desired_p - current_formation['p']
         error_q = self.desired_q - current_formation['q']
+
+        # Wrap angle error to [-π, π] for shortest path
         error_beta = self.desired_beta - current_formation['beta']
+        while error_beta > np.pi:
+            error_beta -= 2 * np.pi
+        while error_beta < -np.pi:
+            error_beta += 2 * np.pi
 
         # Compute shape velocities (proportional control)
         vp = self.position_gain * error_p
         vq = self.position_gain * error_q
-        vbeta = self.position_gain * error_beta
+        vbeta = self.angle_gain * error_beta  # Use separate angle gain for beta
 
         # Angular velocity (for now, keep current orientation stable)
         omega_c = 0.0
@@ -173,6 +188,27 @@ class OmniCluster:
         centroid = self.get_centroid()
         self.center_history.append(centroid.copy())
 
+        # Collect diagnostics
+        diagnostic_data = {
+            'timestep': len(self.diagnostics),
+            'x_c': centroid[0],
+            'y_c': centroid[1],
+            'radius': np.linalg.norm(centroid),
+            'p_current': current_formation['p'],
+            'q_current': current_formation['q'],
+            'beta_current': np.degrees(current_formation['beta']),
+            'p_error': error_p,
+            'q_error': error_q,
+            'beta_error': np.degrees(error_beta),
+            'vp': vp,
+            'vq': vq,
+            'vbeta': vbeta,
+            'vx_c': vx_c_desired,
+            'vy_c': vy_c_desired,
+            'jacobian_cond': np.linalg.cond(J_inv)
+        }
+        self.diagnostics.append(diagnostic_data)
+
         # Record individual robot positions for trajectory tracking
         x1, y1, x2, y2, x3, y3 = self.get_robot_positions()
         robot_positions = np.array([[x1, y1], [x2, y2], [x3, y3]])
@@ -198,17 +234,25 @@ class OmniCluster:
         """
         return np.array(self.robot_history)
 
+    def get_diagnostics(self):
+        """Get diagnostic data collected during simulation.
+
+        Returns:
+            list of diagnostic dictionaries
+        """
+        return self.diagnostics
+
     def reset(self, x_c=None, y_c=None):
         """
         Reset cluster to a new position.
 
         Args:
-            x_c, y_c: New centroid position (random if None)
+            x_c, y_c: New centroid position (defaults to (0.5, 0.5) if None)
         """
         if x_c is None:
-            x_c = np.random.rand() * 0.5 + 0.01
+            x_c = 0.5
         if y_c is None:
-            y_c = np.random.rand() * 0.5 + 0.01
+            y_c = 0.5
 
         theta_c = np.pi
 
