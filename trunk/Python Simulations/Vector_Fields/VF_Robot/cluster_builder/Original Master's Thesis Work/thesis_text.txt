@@ -1,0 +1,2465 @@
+Santa Clara University
+DEPARTMENT of MECHANICAL ENGINEERING
+
+Date: December 6, 2016
+
+
+
+I HEREBY RECOMMEND THAT THE THESIS PREPRED UNDER MY
+SUPERVISION BY
+
+
+Christopher Jude Waight
+
+ENTITLED
+
+An Algorithm for Calculating the Inverse Jacobian of Multirobot Systems 
+in a Cluster Space Formulation
+
+
+
+
+
+BE ACCEPTED IN PARTIAL FULLFILMENT OF THE REQUIREMENTS FOR THE
+DEGREE OF
+
+
+
+MASTERS OF SCIENCE IN MECHANICAL ENGINEERING
+
+
+
+
+
+___________________
+CHRISTOPHER KITTS
+THESIS ADVISOR
+
+
+
+___________________
+DRAZEN FABRIS
+DEPARTMENT CHAIR
+
+
+An Algorithm for Calculating the Inverse Jacobian of Multirobot Systems in a Cluster Space Formulation
+
+by
+
+Christopher Jude Waight 
+
+
+
+MASTERS OF SCIENCE THESIS
+
+
+
+
+
+
+
+
+
+
+Submitted in partial fulfillment of the requirements
+for the degree of
+Masters of Science in Mechanical Engineering
+School of Engineering
+Santa Clara University
+
+
+
+
+
+
+
+
+
+Santa Clara, California
+December 5, 2016
+
+
+
+
+
+An Algorithm for Calculating the Inverse Jacobian of Multirobot Systems 
+in a Cluster Space Formulation
+
+
+Christopher Jude Waight
+
+
+
+Department of Mechanical Engineering
+Santa Clara University
+2016
+
+
+
+
+
+Abstract
+
+Multirobot systems have characteristics such as high formation re-configurability that allow them to perform dynamic tasks that require real time formation control. These tasks include gradient sensing, object manipulation, and advanced field exploration. In such instances, the Cluster Space Control approach is attractive as it is both intuitive and allows for full degree of freedom control. Cluster Space Control achieves this by redefining a collection of robots as a single geometric entity called a cluster.  To implement, it requires knowing the inverse Jacobian of the robotic system for use in the main control loop. Historically, the inverse Jacobian has been computed by hand, and is an arduous process. However, a set of frame propagation equations that generate both the inverse position kinematics and inverse Jacobian has recently been developed. These equations have been used to manually compile the inverse Jacobian Matrix. The objective of this thesis was to automate this overall process. To do this, a formal method for representing cluster space implementations using graph theory was developed. This new graphical representation was used to develop an algorithm that computes the new frame propagation equations. This algorithm was then implemented in Matlab and saved to a Matlab toolbox. A collection of several cluster definitions were developed to test the algorithm, and the results were verified by comparing to a derivation based technique. The result is the initial version of a Matlab Toolbox that successfully automates the computation of the inverse Jacobian Matrix for a cluster of robots.
+
+
+
+
+
+
+
+
+
+
+Keywords: Multirobot, Cluster Control, Inverse Jacobian, Propagation Equations, Algorithm
+Acknowledgements
+
+I would like to thank my advisor, Dr. Chris Kitts, for suggesting exploring this technique, and for providing the framework needed for this research. I would also like to thank him for his encouragement, patience, and perspectives on several issues that were encountered throughout this research.
+
+	I would also like to thank everyone in the SCU Robotics Lab. Thanks goes to former students, as much of their previous research was used as references for my understandings. Thanks goes to current students who are also working on Cluster Control, and offering insights and explanations to some of the finer details of the control method. Thanks goes to all others too, for the encouragement, and for the company through the long hours of work.
+	I would like to thank my family for their support and enthusiasm as I pursued this degree. Thanks mom and dad for all the encouraging words, and to my brothers and cousins for understanding the business of my schedule. I would also like to thank Irene and Harry Partridge for all their help, encouragement, support, and for being awesome people. Without them, none of this would be possible.
+
+	A final thank you to all my close friends, for all the care packages, providing good music to work to, and for reminding me to go big, or to go home.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Table of Contents
+Abstract	ii
+Acknowledgements	iii
+List of Figures	vi
+List of Tables	vii
+Chapter 1: Introduction	1
+1.1 Formation Control of Multirobot Systems	1
+1.2 Cluster Space Control	2
+1.3 Inverse Jacobian Matrices	4
+1.4 Project Statement	6
+1.5 Readers Guide	6
+Chapter 2: Graph Based Representations of Clusters	7
+2.1 Determining Suitable Cluster Space Variables	7
+2.2 The Homogeneous Transform in terms of Cluster Space	8
+2.3: Graph Based Representations of Clusters	9
+2.4 Determining the Inverse Kinematics from the Graph Based Representations	11
+2.5	A few notes on the Tree Representation of a cluster space formulation	12
+Chapter 3: Jacobian Propagation Algorithm	14
+3.1 The Inverse Jacobian Algorithm	14
+3.2 An implementation of the Formula	16
+3.3 Run Time Analysis of this algorithm	21
+Chapter 4: Matlab Implementation of Algorithm	23
+4.1 The Cluster_Builder Folder	24
+4.2 The Inverse Kinematics Folder	27
+4.3 The Test_Bed Folder	28
+4.4 The Velocity_Propagation_Technique Folder	32
+Chapter 5: Results	34
+5.1 Results from Test_Bed Examples	34
+5.2 Results from a Third Party Cluster	34
+5.3 Further Testing II	36
+Chapter 6: Conclusions	37
+6.1 Summary	37
+6.2 Future Work	38
+References	39
+Appendix A – Examples used in the test bed	41
+Appendix B – Code used in Toolbox	58
+Appendix C - The Inverse Jacobian Formula Tutorial	76
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+List of Figures
+
+Figure 1: A Resolved Rate Cluster space control architecture for a generic multirobot system …….……..…3
+Figure 2: A Cluster of 3 robots, with the distance variables M, N, and L shown………………………………..….…8
+Figure 3: A Physical View of Example3, a cluster of two 2-robot clusters…………………………………………….….9
+Figure 4: A group of unconnected vertices representing all the frames in a cluster.………………………….……9
+Figure 5: Two 2-Robot Clusters represented by the set of edges E1. ……………………………………………….……10
+Figure 6: A 2 robot cluster in a leader follower relationship with another 2 robot cluster and a
+ fifth robot in a leader follower relationship with cluster frame C2 …………………………………….……10
+Figure 7: A completed Cluster Graph of a 5 Robot Cluster …………………………………………………………….……..11
+Figure 8: A Robot with two leaders ………………………………………………………………………………………………………13
+Figure 9: Initial tree with all nodes colored white …………………………………………………………………………………17
+Figure 10: Tree with current node colored yellow ………………………………………………………………………………..17
+Figure 11: Cluster tree with explored node colored red and current node yellow ………………………………..18
+Figure 12: Cluster tree with all nodes from leaf to root explored once. ………………………………………………..18
+Figure 13: Returning to the robot node of the current subroutine ……………………………………………………….18
+Figure 14: Cluster Tree with Explored nodes are green and current node is yellow ………………………………19
+Figure 15: Returning to robot node being computed and mark as current node …………………………………..20
+Figure 16: A cluster tree with a single fully explored robot node ………………………………………………………….20
+Figure 17: A fully explored robot node and a new robot node selected ………………………………………………..20
+Figure 18: A fully explored cluster tree …………………………………………………………………………………………………21
+Figure 19: Directory of the Cluster Space Control Inverse Jacobian Toolbox …………………………………………23
+Figure 20: User entering tree information for example3 into clusterbuiler2.m …………………………………….25
+Figure 21: User entering HTM matrices for each edge on the tree of example3 …………………………………...25
+Figure 22: Display of attributes initially saved in the Matlab variable example3 …………………………………..26
+Figure 23: The function invkin.m being used on example3 variable ……………………………………………………...27
+Figure 24: The function dirvinvjac.m being used on example3 variable ………………………………………………..28
+Figure 25: A Physical View of Example3, a cluster of two 2-robot clusters …………………………………………...28
+Figure 26: A Graph representing a cluster of clusters. Cluster {C1} and {C2} form a single cluster {C} ……29
+Figure 27: The function invjacfxn.m being used on example3 variable ………………………………………………… 33
+Figure 28: The Alex Cluster. A 5 robot cluster with robots 1 and 2 forming the main cluster, robot 4 
+	following robot 2, robot 3 following robot 1, and robot 5 following robot 3 …………………………….35
+Figure 29: Columns 1 through 7 of the inverse Jacobian of the Alex Cluster …………………………………………35
+Figure 30: Columns 8 through 15 of the inverse Jacobian of the Alex Cluster ……………………………………….36
+List of Tables
+
+Table 1: A list of all the files in the Cluster_Builder folder……………………………………………………………………24
+Table 2: A list of all the variable attributes saved in each example variable ………………………………………..26
+Table 3: Description of all Files in the Inverse Kinematics folder …………………………………………………………27
+Table 4: Examples in the test bed folder and an explanation of their configuration ……………………………31
+Table 5: Descriptions of the files in the Velocity_Propagation_Technique Folder ……………………………….32
+Table 6: Other Cluster Definition to test Robustness of Toolbox …………………………………………………………36
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Chapter 1: Introduction
+
+Robots have been instrumental in developing many industries in modern culture. This is because a robot can be developed to complete tasks faster, with higher precision, and more cost effectively than human labor.  It can work in harsh environments, complete repetitive tasks with less wear and tear than humans, and can perform tasks that are far more complicated. As the tasks that a robot can perform grow in complexity, so does the task of developing a system to control the robot. This challenge in developing a system of control grows even more complicated when multiple robots need to be controlled at the same time. This has created the current demand for a control approach that is intuitive, reliable, and most importantly, scalable.
+
+1.1 Formation Control of Multirobot Systems
+
+A multirobot system (MRS) can be defined as a set of robots operating in the same environment in an independent, cooperative, or competitive manner.  The term robot applies to any electro-mechanical agent that is guided by a computer program or electronic circuitry. This definition allows the MRS scope to range from a group of two sensor equipped actuators to a large set of complex humanoid machines with hundreds of sensors and actuators that interact with the environment and each other using very complex decision making [1].
+
+An MRS offers many advantages when compared to a single robot system. Having multiple robots performing the same task can increase coverage, production scales, and redundancy. Other advantages include increasing configurability, more modularity, and the ability to share sensor information. Some benefits of a MRS can only be achieved as a result of robots working in a cooperative fashion to complete a task that an individual robot cannot complete on its own. For example, a robot can hand off a task that it is unable to complete to another robot in the system. Robots can even work through coordinated and cooperative behaviors to accomplish tasks such as manipulating large unbalanced objects through obstacle filled paths. These advantages can be realized on land based agents, and also for applications in air, sea, and space [2].
+
+Systems of multiple robots have their origins in the late-1980s, and, to date, have been applied in several domains that require complex co-ordination. For example, the CENTIBOTS project created an experimental demonstration showing a large team of robots (approximately 100) that could autonomously patrol a building for an extended period of time. [4] In the FIRE project, a simulation of a team of intelligent heterogeneous robots that explored harsh, humanly inaccessible planetary surfaces was created [5]. Other projects include simulations of satellite formations [6], a test bed of underwater robot fleets [7], and a test bed of unmanned aerial robots [8]. Implementation of MRS’s is still in its infancy, with none of the mentioned examples operating routinely due to ongoing technical challenges. Nonetheless, the study of MRS’s is a growing field of interest especially as technological improvements in both hardware and software are developing exponentially [3].
+
+The control of robotic systems is a matter of ongoing exploration and draws on work in control theory, robotics, biology, and artificial intelligence. The control strategy employed is dependent on the classification of the MRS based on the level of awareness, coordination, cooperation, and information sharing required [1]. Sometimes, it is possible to control a system of robots by controlling the behavior of each robot independently. More often, however, systems need to be strongly coordinated, and the system needs to combine sensor information across multiple robots to make an informed decision of how the system as a whole should be controlled. Several control techniques have been proposed, each with its own pros and cons.
+
+One version of control includes the use of leader follower techniques, in which ‘follower’ robots regulate their position relative to a designated ‘leader’ robot [9] [10]. This approach requires diligence on part of the operator defining the system, as two robots with similar ‘follow’ instructions can compete to occupy the same space and result in collision. A variation of this technique is to conduct leader-follower chains. In a leader follower chain, one robot may be following a ‘leader’ robot, while simultaneously acting as a leader for another robot [11]. These techniques are highly susceptible to propagation error as errors accumulate down the follower chains. Furthermore, the failure of a single robot can cause the entire chain to no longer function.
+
+Another technique used for formation control is the creation of artificial potential fields. These fields can be used to attract individual robots to their desired formation location, while others are used to repel them from nearby robots or other obstacles. In this approach, a robot (or robots) can emit some signal that assigns some ‘penalty’ to other robots nearby based on their position. The robots receiving this penalty have some heuristic (usually to minimize penalty) and can then change its own location to minimize this penalty. Similarly, the robot might have a heuristic to get equal penalties from two or more other robots in this system. This technique is widely used in obstacle avoidance algorithms, as it allows robots to arrange themselves in formations that prevents them from colliding with each other or some other obstacle [12] [13] [14] [15]. These methods allow for fast computation, but do not offer a high level of controllability. 
+
+Multirobot control has also been a growing interest in the field of artificial intelligence. Algorithms considering multiagent systems composed of multiple interacting intelligent agents being developed and simulated for possible use in search and rescue, transportation, and reconnaissance [16] [17]. These techniques tend to be very computationally expensive, but work is being done to improve the computational costs [19].
+
+Cluster space control, a control methodology developed and tested at the Santa Clara University Robotic Systems Lab offers an approach that is intuitive, stable, and scalable. It also allows a full degree of freedom to be maintained, and results in very precise control over individual robot control. This strategy conceptualizes an ‘n’ robot system as a single entity called a cluster. The desired positions and motions of the individual robots are then specified as a function of cluster states [18]. This method comes at the cost that the controller can be quite complex to develop. This research aims to make developing new cluster space controllers easier.
+
+
+1.2 Cluster Space Control
+
+Cluster Space Control is a control methodology that allows for the specification, control and monitoring of the motion a MRS [14]. This strategy considers a system of n robots as a single entity, known as a cluster. This cluster is modeled as a virtual articulating mechanism with a full degree of freedom. 
+In this methodology, we first consider  to be set of robot state pose variables. These variables describe the position and orientation of each robot relative to the global frame. We then consider a selection of cluster space variables, ,   which describe the position and orientation of overall cluster, the shape of the cluster, and the orientation of individual robots within the cluster. This set of variables,,  can be defined through a formal set of forward kinematic transforms of robot state variables, .
+						(Eq 1)
+Similarly, we can use the inverse kinematic transforms to take us from cluster space pose variables to robot state variables.
+					(Eq 2)
+In other words, we can control the positions, motions, and even the actuator states of each robot can be specified as a function of cluster state variables.
+
+In order to map the velocities from Robot Space,  to Cluster Space,, the velocity kinematics of the system also need to be known. The velocity kinematics can be found by computing the partial derivatives of the kinematic equations, gi, with respect to each robot variable, ri.
+			(Eq 3)
+This matrix of partial derivatives, , is known in Cluster Space as the Jacobian Matrix. It is also referred to as simply the Jacobian. 
+
+Similarly, the inverse Jacobian,, transforms Cluster Space velocities to robot space velocities. The Inverse Jacobian can be found by taking the partial derivatives of the inverse kinematics, hi, with respect to each cluster space variable, ci:
+		(Eq 4)
+Using KIN, J, and J-1, a cluster space controller can be developed as shown in figure 1 below:
+
+Figure 1: A Resolved Rate Cluster space control architecture for a generic multirobot system.
+
+In this architecture in figure 1, the desired velocity control action is inputted in cluster space. The control actions are converted to robot space using the inverse Jacobian, and then passed to the individual robots. This example architecture also shows a feedback loop returning to the controller.
+
+As figure 1 shows, determining the Jacobian and inverse Jacobian is essential to developing a cluster space controller [14] [18]. However, determining the inverse Jacobian can be quite difficult, and many approaches have been suggested over the years.
+
+It is worth noting also that a different version of a controller for cluster space has been developed. This other version is a full dynamic controller and uses the transpose Jacobian as a replacement for the inverse Jacobian [30]. This controller requires further work to develop a systematic way to compute the forward Jacobian.
+
+1.3 Inverse Jacobian Matrices
+
+The need for finding the inverse Jacobian is not unique to developing cluster space controllers. When developing a controller for serial manipulators, the most common method involves using a Jacobian based Controller [20]. As a result, finding different efficient methods of determining the inverse Jacobian is essential for continued work in the field. Several methods for determining the inverse Jacobians exist with analytical methods generally being infeasible and computational methods commonly yielding less accurate results.
+
+One technique for determining the inverse Jacobian is to solve for the inverse kinematics of the system, and then compute the partial derivatives. For a serial link manipulator, the closed form inverse kinematic solution can be obtained symbolically by writing a system of equations defining the forward kinematic relationships, and then solving the system of equations for the joint angles [20] [21]. However, this often cannot be solved in closed form. Geometric and trigonometric methods of determining an analytic form of inverse kinematics exist, but usually do not contain the full geometric description. Therefore, these methods provide solutions that are only valid in some local vicinity, and often allow for multiple solutions [21] [22] [24]. Other methods still are based on Denavit-Hartenberg, and rely on transformation matrices [23]. These approaches are also limited, as they restrict frame assignments throughout the entire robot. As a result, the inverse kinematics are typically solved numerically [25].
+
+ On the other hand, parallel-link manipulators often have a geometry that allow for closed form solutions to the inverse kinematics. Hence, the inverse Jacobian can be calculated by direct partial differentiation. A drawback in these systems is that the forward kinematics are nonlinear, and often require numerical approaches, and as a direct result, the forward Jacobian is solved numerically [26].
+
+Instead of solving for the inverse Jacobian directly, another approach is to solve for the analytic form of the Jacobian, then invert it. The kinematics can be defined symbolically, then differentiated directly, as the Jacobian Matrix is a matrix of partial derivatives [27]. But for some systems, as seen with the case of the parallel link manipulators, calculating the symbolic form of the kinematics is not always possible. Furthermore, when this method is possible, it is not particularly efficient computationally, as it requires using a computational toolbox that has a symbolic differentiation library.
+
+ Several other methods for computing the Jacobian, particularly in serial manipulators, have been developed over the years. One method by Vukobratovic and Potkonjak recursively computes the Jacobian for each joint in the manipulator. It does this by making use of frame propagations. First, it computes the Jacobian for a manipulator with the first link only, then for the first two links, and so on and so forth up N links plus the end effector. More efficient methods based on the works of Pieper and Whitney utilize the property that rotational joint velocities add linearly, and translational velocities may be determined by taking appropriate cross-products of in the individual joint rate vectors and the position vector from that joint. Others have also used skew symmetric matrices to compute the Jacobian geometrically. These methods have been used widely throughout the field and their computational efficiencies have been compared to each other [28]. 
+
+When the Jacobian cannot be found analytically, it is often found using a perturbation method using a first order numerical difference. A small change in each joint (or parameter) is made systematically, and the resulting movement is used to obtain an approximate numerical solution [25].  This method is only sufficient in the vicinity which the Jacobian was determined. Furthermore, difficulties arise when choosing the size of the small difference to use for the method. Too large a change will result in an inaccurate function if the systems dynamics are nonlinear. Too small a change will lead to numerical problems and greater inaccuracies [25].
+
+While finding the Jacobian can be challenging on its own, several problems can arise when inverting the Jacobian Matrix. Typically, problems arise when the matrix is singular or has a poor condition number. Other problems arise when the Jacobian Matrix is not square. If the Jacobian is in numerical form but is not square, a Moore Penrose Inverse, or least squares inverse, can be used to compute the pseudo-inverse. In the event that the matrix is singular, or has a poor condition number, a damped least squares approach can be used. The damped least squares approach will not yield to an accurate result, but usually one that is close enough for engineering purposes. [29] These techniques to inverting the matrix only work numerically. The analytic form of the Jacobian matrix may be evaluated to make use of these numerical techniques.
+
+Historically, determining both the kinematics and inverse kinematics of a system has been quite difficult. For this reason, some roboticists use a transpose Jacobian instead to create a dynamic controller instead of the Inverse Jacobian for use in a resolved rate controller [20]. This technique can be implemented both analytically and numerically. In a strictly Cartesian manipulator, the inverse of the Jacobian, J, is equal to the transpose of the Jacobian (JT = J-1). This is not true for other cases, but often a dynamic controller yields satisfactory results. However, poor performance has also been noted from this type of controller. Cluster space control, however, is a system that allows for systematic determination of both the forward kinematics and inverse kinematics, therefore, allowing for quick computation of both the forward and inverse Jacobian by computing the partial derivatives. This allows a resolved rate controller to be developed systematically.
+
+This research will present a systematic method to compute the analytic inverse Jacobian for cluster space control systems given only the geometric description. Similarly, to the serial manipulators, frame propagation will provide the foundation to the approach. A collection of Matlab files has been created to compute this inverse Jacobian for a large variety of MRS systems. Creating an algorithm to implement this technique provides a quick and accurate way to determine the inverse Jacobian compared to the method of computing partial derivatives of the inverse kinematics. This is essential to further the study of cluster space control.
+
+1.4 Project Statement
+
+The purpose of this research is to develop a software suite to implement a new frame propagation technique for generating the inverse Jacobian matrix for cluster space formation of mobile robots. In carrying out this work, a significant amount of effort and interest has been directed toward the following tasks:
+
+	•	Developing a small library of Cluster Space Formulations as a test bed.
+	•	Formalizing a method for representing cluster space formulations using graph theory.
+	•	Using this graphical representation to develop an algorithm for implementing the new frame propagation technique.
+	•	Writing an implementation of the algorithm in Mathworks Matlab.
+	•	Writing additional Matlab files that compute the inverse Jacobian using a known technique.
+	•	Calculating the inverse Jacobian of all examples in the test bed using both techniques and comparing results against each other as a verification process.
+The discovery and successful implementation of this new technique will allow for cluster space controllers to be developed more rapidly. Further work on this software suite can add features such as automatically developing an entire controller for a given cluster, a plot creator to compare velocities in different spaces, as well as adding more examples to the example folder.
+
+1.5 Readers Guide
+
+This section, Chapter 1, provides a quick introduction to the control of multirobot systems, challenges in developing these control methods, and possible drawbacks for each proposed method. This chapter also introduces the cluster control architecture and provides some background on current ways to determine the inverse Jacobian of a system. 
+
+Chapter 2 introduces the homogeneous transformation matrix, and shows how it can be used to represent a cluster as a graph. The conventions for creating such a graph are outlined, and a systematic way of calculating the inverse kinematics of a cluster is shown.
+
+Chapter 3 will introduce the homogenous transformation matrix, as well as give a description of what information in contains. It will then explain how the homogeneous transformation matrix can be obtained for each robot and for each cluster.
+
+	Chapter 4 presents a new formula to compute the inverse Jacobian for a cluster space formulation. It then describes an algorithm on how this formula can be implemented.
+
+Chapter 5 describes the Matlab implementation of this new formula.  It shows the result of using this new technique on the continuing examples and compares the results to an analytic technique. 
+
+Chapter 6 concludes the report with a summary of the findings and possible directions this work can be extended.
+Chapter 2: Graph Based Representations of Clusters
+
+In this chapter, we discuss factors that go into cluster variable selection. The chapter continues to define the homogenous transformation matrix is presented and explained in terms of cluster space control. The cluster is then represented as graph based representation, and certain conventions are outlined for this. Finally, the inverse kinematics for the entire robot cluster are computed by navigating through the graph.
+
+2.1 Determining Suitable Cluster Space Variables
+
+A cluster is a system of “n” robots that are considered a single entity. These robots may be located in the plane, or in three dimensional space. Each robot, n, is free to have “pn” degrees of spatial and orientation freedom. Since the system is considered a single entity, a single frame of reference, known as a cluster frame, can be assigned to the cluster. While the location of the cluster frame is typically chosen as the average location of all the robots in the cluster, this placement is not a requirement.
+
+Other cluster variables are then chosen based on the application at hand. Regardless of which variables are chosen, the other variables are chosen to describe the rotation of the cluster frame, describe the shape of the cluster, and describe the relative of each robot.
+
+
+  The act of defining the cluster variables as equations of robot variables is known as finding the Forward Position Kinematics (Eq 1). As mentioned in section 1, this set of expressions is collectively described by the function KIN(R). 
+				(Eq 5)
+
+The cluster variables chosen do not need to be independent, but collectively, they must span the space. In order to fully span the cluster space of an ‘n’ robot system a total of ‘q’ variables are needed to describe the geometry of the system, where q is:
+
+   						(Eq 6)
+
+Having fewer variables than q leads to the cluster not being fully defined. Having more than q variables results in one or more of the variables being over-constrained (some variables will be dependent variables). 
+
+Since cluster variables are used in describing the geometry, the cluster variables also have implicit constraints. For example, consider the cluster variables L, M, and N, where L is the distance between Robot 1 and Robot 2, M is the distance between Robot 1 and Robot 3, and N is the distance between Robot 2 and Robot 3. As a result of the triangle inequality [24] of geometry, L must be such that L ≤ M+N. Furthermore, if L = M+N, it becomes impossible to change the value of only one variable. See figure 2 below. 
+
+
+Figure 2: A Cluster of 3 robots, with the distance variables M, N, and L shown
+
+2.2 The Homogeneous Transform in terms of Cluster Space
+	
+The homogeneous transform matrix, (also referred to as the Transformation Matrix or the ‘T’ matrix) has the following form, and describes the position of frame {i} relative to frame {i-1}:
+ 						(Eq 7)
+
+Where   is a 3x3 Matrix that describes the rotation of frame {i} relative to frame {i-1} and  is a 3x1 vector that describes the position of frame {i} relative to frame {i-1}. In terms of cluster space control, these transformation matrices are used in several key ways. First, it can describe the robot’s position and orientation relative to the cluster frame which it helps to define. It also describes the relationship between two robots in a leader follower configuration, or two systems in a leader follower configuration (robot following robot, robot following a cluster, cluster following another cluster, etc.)  These matrices also describe the relationship between a cluster frame and global frame.
+By Euler’s Rotation Theorem, any rotation in three dimensional space can be represented as a single rotation about some axis.  By this theorem, we can decompose the rotation  into the product of three rotations:
+ 				(Eq 8)
+
+Which can further be expanded as follows:	
+       (Eq 9)
+
+This is useful to us, as we can now determine the angles for each rotation, creating a vector representing these rotations as follows:
+					(Eq 10)
+Obtaining these angles can be an involved process, based on the hierarchical depth of the rotations.
+
+Since these rotations are orthogonal to each other, rows are linearly independent, and, they can be added and subtracted without affecting each other. This will prove to be very useful in creating computer algorithms that involve robotic systems that have multiple degrees of rotational freedom.
+
+2.3: Graph Based Representations of Clusters
+
+A cluster can be represented in many different ways. Naturally, one way of representing a cluster is to draw a physical of the robots, and then add the cluster variables to the sketch as angle and distance dimensions. 
+
+
+Figure 3: A Physical View of Example3, a cluster of two 2-robot clusters.
+
+
+This research proposes a new representation for clusters space formation architecture. This new representation is a formal methodology for defining the cluster based on graph theory. A graph based representation lends itself well to graph theory and to algorithmic information theory, allowing for existing theories and techniques for efficient computation can be applied to the cluster space architecture. Graphs were also chosen as they are capable of capturing hierarchal information needed while using the new propagation based equations.
+
+To represent a cluster as a graph, G, first consider each frame used in the cluster (robot frames, cluster frame, and global frame), as a vertex, V. 
+
+
+Figure 4: A group of unconnected vertices representing all the frames in a cluster.
+
+Then, for each cluster frame, draw an edge connecting that cluster frame to each robot frame or cluster frame that is used to define that cluster frame’s position. This set of edges, E1, shall be colored red. A transformation matrix, T, that describes the component frame’s position and orientation relative to the cluster must be defined for each of these edges.
+
+
+
+
+Figure 5: Two 2-Robot Clusters represented by the set of edges E1.
+
+Leader follower relationships are then added to the graph, connecting follower vertices to their leader vertices. This set of edges, E2, shall be colored blue. A transformation matrix, T, that describes the position and orientation of the frame of the follower relative to its leader must be defined for each of the edges in this set.
+
+
+
+Figure 6: A 2 robot cluster in a leader follower relationship with another 2 robot cluster and a fifth robot in a leader follower relationship with cluster frame C2
+
+Finally, a single edge, E3, is drawn from the primary cluster frame to the global frame. E3 is to be painted black. A transformation matrix, T, that describes the position and orientation of the primary cluster frame relative to the global frame must be defined for this edge.
+
+This edge also indicates which robot or cluster is leader or follower. The vertex closes to the ground frame is leader, with the other vertex on the other end of the blue edge is the follower.
+
+
+
+Figure 7: A completed Cluster Graph of a 5 Robot Cluster.
+
+The cluster is then the graph, G, that is described by the set of all vertices and edges described by G = {V, E1, E2, E3}. By assigning the global frame as the root frame, the graph G is now considered a tree.
+
+By following this convention, we have a standard way of creating and understanding cluster trees. For example, the tree shown in figure 7 can be described as: two systems of 2-robot clusters, with cluster 2 (R3 and R4) following cluster 1 (R1 and R2), and a fifth robot, R5, following cluster 2.
+
+
+2.4 Determining the Inverse Kinematics from the Graph Based Representations
+
+By defining all necessary T matrices in a cluster, we can compute the inverse kinematics of the system. The inverse position kinematics allow computation of the ‘robot-space’ pose variables, the elements of , as a function of the cluster space variables, the elements of  Collectively, this set of equations is known as the Inverse Kinematic Equations. This can be defined as the function INVKIN():
+ 			(Eq 11)
+
+In order to compute the inverse Kinematics, not only must we compute the individual transformation matrices from each vertex to its parent vertex, but the entire transformation from each robot node frame to the global frame must be determined. This can be done by performing a depth first search from the root node down to the robot nodes. Once a robot node is found, the ‘T’ matrices defined along the path from the root node to the robot node are then multiplied together.
+This, in fact, implements a technique proposed by Dr. Chris Kitts to compute inverse kinematics. In this proposal, the inverse kinematics can be found my finding the product of intermediate homogeneous transforms, such that the homogeneous transform for any robot, i, is found by:
+ 				(Eq 12)
+
+Where d is the number of hierarchical frame steps between {G} and {i}, and  is the nth local cluster frame between {G} and {i}. In the case that n<2, the product term vanishes. In the case of a 1 robot system, it is assumed that the robot is following some cluster frame, even if that frame is incident with the robot frame, resulting in a T matrix which is equal to the identity matrix.
+The result of equation 12 will also have the form of a homogeneous transform matrix. The resulting matrix will yield:
+ 					(Eq 13)
+
+Where  is the position vector of robot i relative to the global frame, and  is the relative rotation of robot i with respect to the global frame.
+From this matrix, the position  for each robot i can be recovered from . Furthermore,   can be decomposed into   for each robot i. Finding these yields the inverse kinematic equations of the system.
+This shows that the tree structure described in section 2.3 accurately produces the inverse kinematics for a given cluster. This result lends credibility that this particular method for describing a cluster as a graph is valid.
+
+	•	A few notes on the Tree Representation of a cluster space formulation 
+
+Just like with serial manipulator, this method is much simpler than algebraically rearranging the forward kinematic equations to isolate the individual robot variables. However, this method allows for the possibility of some information contained the forward kinematic equations to be lost. In other words, if one were to try to isolate the robot variables from the system of equations obtained from the propagation technique for the inverse kinematics, then multiple solutions can be obtained for some of the robot variables. This can possibly be avoided with a more rigorous method of selecting cluster variable (see further work).
+There are other similarities of this technique to the propagation technique used by serial manipulators.  If a homogeneous transformation matrix, , is an edge that describes a path from vertex {A} to vertex {B}, then the matrix , the edge E2 that is a path from {B} to {A}, can be found by inverting   This frame transformation technique is also used in serial and parallel manipulators.
+
+ 						(Eq 14)
+
+Using equation 12 and 14, it is possible, although unnecessary, to create an edge from any vertex in the graph to each vertex in the graph, including itself. This may be useful if you need to describe one robot in a cluster relative to another.
+
+Furthermore, it is possible for a robot to have two leaders. For example, in figure 7, R3 can be following R1 at a specific distance and angle, but follow the orientation of R2. Another example is that robot R3 can be told to stay a distance d1 from R2, and a distance d2 from R3. If this occurs, the ‘T’ matrices for each blue edge will be ill-defined. Configurations like those shown in figure 7 do not present a problem mathematically, and can be solved with incomplete HTM’s like equations 15 and 16. The trick is to propagate from R3 to R1 to C1 to G, and then from R3 to R2 to C1 to G. Then, toss out any results containing xx and yy. The rest of this research will assume that each follower has only one leader.
+
+
+
+Figure 8: A Robot with two leaders.
+
+
+  				(Eq 15)
+
+
+
+ 				(Eq 16)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Chapter 3: Jacobian Propagation Algorithm
+
+This section presents the given formulas used for determining the inverse Jacobian of a cluster. This also lays the mathematical foundation for the implementation of these formulae. A particular way to implement these formulas is then presented. This chapter concludes with a run time analysis of this particular implementation. 
+
+
+3.1 The Inverse Jacobian Algorithm
+
+The Robot Space position variables, , and the Cluster Space variables, , are mapped by the functions KIN (Eq 1) and INVKIN (Eq 2).  To map the velocities from Robot Space,  to Cluster Space,, the matrix of partial derivatives, , known as the Jacobian Matrix is used. Similarly, the inverse Jacobian, , transforms Cluster Space velocities to robot space velocities.
+
+
+					(Eq 17)
+
+
+For cluster space control, the inverse Jacobian historically has been computed by taking partial derivatives of the inverse kinematics. This process is a time consuming and computationally expensive process. There is a need for faster calculation of the Jacobian for uses in high speed systems.
+
+It was proposed by Dr. Kitts that each row of the matrix, hi , can be developed by performing a velocity propagation analysis for each robot n. The propagation starts with determining the velocity of a robot, n, relative to its local cluster frame (C}. These velocities are then propagated from frame to frame (from cluster to leader cluster or to parent cluster). The propagation continues until the last frame; that of global frame {G}. The result of performing these propagations for each robot leads to a system of linear equations that are assembled to form the inverse Jacobian. 
+
+					(Eq 18)
+
+To find the linear and angular velocities of robot n with a fixed object frame {n} in frame {i}, the rate of change of their linear and angular position can be taken as follows:
+
+					(Eq 19)
+						(Eq 20)
+
+Where:
+ = The total linear velocity of the object, n, relative to frame i
+ = The position of the object n relative to frame i
+ = The derivative of or 
+ = The angle of the two argument arctangent of the position vector, 
+  = the derivative of , or  ∇, or 
+Since the linear and angular velocities of the frame {n} in frame {i} are known, then it is possible to calculate the velocities of that frame relative to frame {i-1} as follows:
+
+			(Eq 21)
+				(Eq 22)
+Where:
+ = The total linear velocity of the object n relative to frame {i-1}
+ = The total linear velocity of frame {i} relative to frame {i-1}
+= The rotation matrix that describes the fixed rotation of frame {i} relative to frame {i-1} 
+ the angular velocity of frame {i} about frame {i-1}
+ = the angular velocity of the object n relative to frame {i-1}
+
+Therefore, for any robot, n, with hierarchical depth m, these equations can be applied recursively from the robot through the hierarchal path of frames back to the global frame {G}. Doing so results in the equations:
+
+ 			(Eq 23)
+ 				(Eq 24)
+Where:
+	 = The total linear velocity of robot n relative to global frame
+	 = The total angular velocity of frame k relative to the global frame
+	 = The rotation matrix that describes the fixed rotation of frame {j} relative to {j-1}
+	 = The instantaneous position of frame {k} relative to frame {k-1}
+	 = The rate of change of instantaneous position of frame {k} relative to frame {k-1}
+
+For equations 23 and 24, j is the number of steps that the current frame is away from the cluster frame, and m depth level of robot n. It is worth noting that when j = 1, becomes the identity matrix, and when k=1,    becomes a zero vector.
+
+By applying these formulas for each robot in a given cluster, we can determine the inverse Jacobian of that entire system. A derivation of these formulas can be found in Appendix C.
+
+
+
+
+
+3.2 An implementation of the Formula
+
+The recursive nature of the formulas in section 3.1 lend themselves to creating an algorithm for execution. In an attempt to do this as quickly and as efficiently as possible, the Cluster Tree Inverse Jacobian algorithm was created. This algorithm is outlined as follows:
+
+invJ = invjacfxn(clusterTree)
+
+Initialization
+	{
+	Index all nodes on clusterTree
+	Create list of cluster variables
+	Create list of all robot nodes
+	Create empty invJ matrix to populate
+	}
+Main Loop 
+	{
+For each node listed in list of all robot nodes
+	Linear Velocity Propagation Subroutine
+	Save Result to invJ matrix
+		Angular Velocity Propagation Subroutine
+		Save Result to invJ matrix
+	End
+}
+Termination
+	{
+	Terminate after all elements in list of all robot nodes has been visited
+	Display final invJ Matrix showing the inverse Jacobian
+}
+
+Both subroutines in the Main Loop are rather involved sequences which require traversal of the Cluster Tree that is taken as an input. A detailed of explanation of the initialization, main loop, and termination steps are as follows:
+
+
+Initialization
+
+	•	Let us start by creating a cluster tree as listed in section 2.3. This tree must have all T matrices defined and recorded as edges. Let all nodes in the tree begin colored white, with all edges retaining their previous coloration. Nodes on the tree are indexed by a breadth first search algorithm.
+	•	Create a list containing the derivatives of each of the cluster variables. (‘cluster_var’)
+	•	Create a list of all the robot nodes that are present in the tree, as well as their index in the tree. (‘robot_node’)
+	•	We shall also create a blank matrix mxn in size named  . The size of m is the sum of all the degrees of freedom of all the robots in a cluster, and n is determined by the number of cluster variables. Initialize all entries in this matrix to 0.
+
+Figure 9: Initial tree with all nodes colored white.
+
+
+Main Loop 
+	•	Visit the first element in the ‘robot_node’ list, and color the node yellow. 
+
+Figure 10: Tree with current node colored yellow.
+
+	•	Perform Linear Velocity Propagation Subroutine
+2.1) Create a variable, . Each expression in this variable is automatically factored  by the list ‘cluster_var’. Initialize all entries to 0.
+2.2) Compute the conjugate rotation of the yellow node from the global frame.
+2.2.1) Extract the local rotation of current frame from the parent frame by extracting it from the HTM. Save this as the variable RR.
+2.2.2) Update the current node to the parent node, coloring the new node yellow, and the old node red. Repeat step 2.2.1, adding the previously extracted rotation to the new rotation (RR=RR+new result).
+
+Figure 11: Cluster tree with explored node colored red and current node yellow
+
+2.2.3) Repeat until root node is current node. Save result as RR. Turn this node red
+
+Figure 12: Cluster tree with all nodes from leaf to root explored once.
+
+2.3) Return to red node with the highest index, and make this node the current node, by changing the color of the node to yellow. Extract the local position of this node from the HTM, and get the local velocity by partial differentiation.
+
+
+Figure 13: Returning to the robot node of the current subroutine.
+
+2.4) Rotate the local velocity in step A.3 and rotate it by the RR calculated in step A.2
+2.5) Find the global angular velocity by differentiating the variable RR from step A.2. Then take the cross product of that with the position of the current node relative to its parent node.
+2.6) Rotate the cross product calculated in step A.5 by RR determined in step A.2
+2.7) Update the value of varA to include the the results of steps A.4 and A.6 as follows: varA+= step2.4 + step2.6
+2.8) Update the current node on the tree by changing the color of the current node to the color green and its parent to yellow, thus making the parent the new current node.
+
+
+
+Figure 14: Cluster Tree with Explored nodes are green and current node is yellow.
+
+2.9) Repeat steps A.2 thru A.8 until the root node is reached.
+2.10) Get the local position of the root node and differentiate it.
+2.11) Add the result to varA. (varA += stepA.10). Color the root node green.
+
+	•	 Save the result of step A.11 to the first rows of the matrix named   below where varb was last stored. If this is the first iteration of the loop, save to the top rows of   .
+
+	•	Perform Angular Velocity Propagation Subroutine
+
+4.1) Create a variable, . Each expression in this variable is automatically split and sorted by the list ‘cluster_var’. Initialize all entries to 0.
+4.2) Perform a search to find the green node with the largest index. Make this node the current node (colour it yellow).
+
+Figure 15: Returning to robot node being computed and mark as current node
+
+	4.3) Calculate RR for the current node similarly to step A.2. Use red again.
+4.4) Calculate global angular velocity by differentiating the result of step B.3. Save the result to varb.
+
+	•	Save the varB to rows of the matrix named   directly below where varA was stored.
+	•	 Return to red node with the highest index and color this node black. Restore all non-black nodes to the color white.
+
+Figure 16: A cluster tree with a single fully explored robot node
+
+	•	Go to the following element listed in the robot_node list and color it yellow.
+
+
+Figure 17: A fully explored robot node and a new robot node selected.
+
+	•	Repeat steps 2 through 7 of Main Loop
+
+Termination
+
+	•	Continue Repeating steps 2 through 7 until all nodes for elements in the list ‘robot_node’ are colored black.
+
+Figure 18: A fully explored cluster tree.
+
+
+Upon completion of this algorithm, the inverse Jacobian will be obtained and saved into the  matrix   .
+
+This implementation only supports non-cyclic graphs, and clusters that are defined in a Cartesian co-ordinate system
+
+3.3 Run Time Analysis of this algorithm
+
+Scalability of this algorithm is important to consider with respect to the number of cluster variables, number of robots, and hierarchical depths present in a cluster. To analyze how this algorithm would respond to an increase in any of these conditions, runtime analyses were performed, and the growth rates expressed in Big O notation.
+
+It was determined that the runtime increases linearly to an increase in number of cluster variables. In the algorithm above, there are no loops that are affected by the length of the list ‘cluster_var’.  However, the length of ‘cluster_var’ affects how ‘varA’ and ‘varB’ are factored, and how many partial derivatives need to be calculated for each step involving a differentiation. If we assume a parsing function scales linearly with the number of delimiters, and if we assume that taking partial derivatives scales linearly with the number of partials taken, then the above algorithm has a runtime of O(n) with respect to number of cluster variables.
+
+The algorithm also scales linearly with an increase in the number of robots. The number of robots in the cluster directly affects the length of the list ‘robot_node’. For each element in this list, subroutine A is performed exactly once, and so is subroutine B. Therefore, the algorithm above scales linearly with the number of robots. Therefore, this algorithm scales like O(n) with respect to number of robots in the cluster.
+
+An exponential increase occurs with an increase in hierarchal depth. For any vertex at depth d, step 2.2 of the linear velocity propagation subroutine, as well as all of the angular velocity propagation subroutine, needs to compute with the d-1 vertices above it in the tree already solved. Since the algorithm didn’t save the previous result, it recomputed this information every time the current node updated to the parent node. Therefore, this algorithm scales like O(n2) with respect to overall hierarchal depth of the cluster.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Chapter 4: Matlab Implementation of Algorithm
+
+This section will describe a Matlab toolbox that was created to test the algorithm stated in Chapter 3. It will outline each file used in each of the folders of the toolbox. The first major folder, Cluster_Builder, contains files that guide the user in creating a cluster tree to use for their custom cluster space configuration of robots. The second major folder contains files that compute the inverse kinematics and the inverse Jacobian analytically by taking partial derivatives of the inverse kinematics. The third folder contains a list of examples used for verifying the algorithm described in section three. Finally, the fourth major folder contains files that implement the algorithm stated above. The Archive folders contained deprecated files, and the @tree folder contains the definition of the tree class.
+
+
+
+
+Figure 19: Directory of the Cluster Space Control Inverse Jacobian Toolbox
+4.1 The Cluster_Builder Folder
+
+The files in this folder allows the user of the toolbox to enter information about their custom clusters, and then compute the inverse Jacobian for that cluster using either the direct approach, or the propagation based approach. 
+
+To build a cluster tree using the files in this folder, one must manually create a cluster tree and have all edges defined and ready to be inputted. The user must also have downloaded the tree class from the MathWorks website, as it is not a standard class. This class was created by Jean-Yves Tinevez on 13 March 2012 and updated on 18 Nov 2015  It can be downloaded from the link:
+http://www.mathworks.com/matlabcentral/fileexchange/35623-tree-data-structure-as-a-matlab-class
+
+The file clusterbuilder2.m is then given the number of robot nodes and number of cluster nodes as input, and then guides the user on how to enter all the cluster information into a single Matlab variable. Table 4 lists all the files in this folder, and provides a description of what each file does. Figure 19 and 20 shows how this function looks on screen.
+
+Table 1: A list of all the files in the Cluster_Builder folder
+File Name
+Description
+
+Clusterbuilder2.m
+This is the main function that calls all the other subroutines. It takes the number of robot nodes and the number of cluster nodes as input, and the final result in a variable containing  the cluster information. The function command is 
+[ obj_out ] = clusterbuilder2( num_robots,num_clusters  )
+
+Robotnamer.m
+This program names all the robots as R1, R2, R3. Etc… The name of the robot at node (n) can later be renamed by using the command example.txt_tree=example.txt_tree.set(n,’newrobotname’).
+
+Clusternamer.m
+This program names all the clusters as C, C1, C2, C3…,. The name of the cluster at node ‘m’ can later be renamed by using the command example.txt_tree=example.txt_tree.set(‘m’,‘newclustername’).
+Variablecreator.m
+Asks the user to list all variable names that will be used to describe geometric features of the cluster. It stores this information in a vector.
+Symbolicbank.m
+Loads a bank of symbolic variables to memory. It also loads all assumptions on symbolic variables.
+Treecreator.m
+Asks user to arrange the robot nodes and cluster nodes into an arborescence. (Tree structure, not a graph) that spans all nodes with only one root. Calls subroutines robot_tree.m and cluster_tree.m
+
+Robot_tree.m
+Subroutine of treecreator.m. It adds robot nodes to the tree
+Cluster_tree.m
+Subroutine of treecreator.m It adds cluster nodes to the tree.
+Htmdefiner.m
+asks the user to enter the homogeneous transformation matrix that describes the position and orientation of each node relative to its parent.
+Msot.m
+Compiles all the information into a single structure containing all the attributes listed in table 4.1
+
+
+
+
+Figure 20: User entering tree information for example3 into clusterbuiler2.m
+
+
+
+
+Figure 21: User entering HTM matrices for each edge on the tree of example3
+
+
+Once the user finishes the entry sequence for that cluster, the clusterbuilder2.m function outputs a variable as seen in figure 22 with the attributes listed in table 2. The attributes example.propinvjac, example.inv_kin, and example.dirinvjac are not initially saved in this variable. They are only created after the inverse kinematics or the respective Jacobian function is used on the variable.
+
+
+Table 2: A list of all the variable attributes saved in each example variable.
+Attribute
+Description
+example.robotnodes
+A vector containing all nodes in the cluster tree that belong to robot nodes. Each value that describes a node is saved as type double.
+example.clusternodes
+A vector containing all cluster type nodes in the cluster tree.
+
+
+
+example.htm_tree
+Tree type class. Each node of this tree contains the homogeneous transformation matrix of the corresponding example.txt_tree node relative to the parent of that node.
+Each contains a 3x3 or 4x4 array whose elements are all type symbolic.
+To view the tree structure, use the command disp(example.htm_tree.tostring).
+ To view the homogeneous transform matrix at a particular node (n), use the command example.htm_tree.get(n)
+example.txt_tree
+Contains the information about the cluster tree. To view this attribute, use the command disp(example.txt_tree.tostring). 
+example.var
+A vector of symbolic type elements. The vector contains all the cluster variables needed to describe the system
+example.propinvjac
+Contains the inverse Jacobian of the cluster as computed by the velocity propagation approach
+example.inv_kin
+Contains the inverse kinematics for each robot as computed by the direct approach.
+example.dirinvjac
+Contains the inverse Jacobian of the cluster as computed by direct differentiation of the inverse kinematics
+
+
+Figure 22: Display of attributes initially saved in the Matlab variable example3.
+
+4.2 The Inverse Kinematics Folder
+
+The third major folder of the Toolbox contains files that execute the algorithm described in section 3. This folder contains files that work for clusters with 6 degrees of freedom, and an optimized set of subroutines for working with clusters that are limited to the plane. Table 3 is a list of all the files and which steps in the algorithm that they refer to. Figures 23 and 24 show the result of using these functions.
+
+Table 3: Description of all Files in the Inverse Kinematics folder 
+File Name
+Description
+Invkin.m
+This file computes the inverse kinematics for each robot by tracing a path from each robot node back to the root node. It then multiplies the homogeneous transform matrices from root back down to the leaf nodes (robot nodes). It then saves the results as a variable attribute, example.inv_kin
+Dirinvjac.m
+This file first calls the program invkin.m to compute the inverse kinematics of each robot. Each element in the vector example.inv_kin is It then differentiated by each symbolic element in the vector example.syms. The resulting array is saved as the variable attribute example.dirinvjac
+
+
+
+
+
+Figure 23: The function invkin.m being used on example3 variable
+
+
+
+Figure 24: The function dirvinvjac.m being used on example3 variable
+
+4.3 The Test_Bed Folder
+
+The third major folder of the Toolbox is full of example clusters. Each sample cluster is saved as a variable, and each attribute of the variable contains information that describes the cluster. A full list of all the attributes can be found in table 2.
+
+Each of the examples saved in the test bed represent a different type of cluster. These examples vary in number of robots, number of degrees of freedom, hierarchical depth of robots, and clusters of different types of configurations. To load an example to the active workspace, use the command load('example.mat'). All examples included in this folder are listed in table 4.
+
+Figures 25 and 26 show the physical view and graphical view of Example3. The Cluster frame, C, is determined by two subclusters, C1 and C2. Robot1 and Robot2 form the subcluster C1, and Robot3 and Robot4 form subcluster C2. Equations 25 and 33 give the forward and inverse kinematics of the system respectively. Equations 26-32 give the HTM’s for each edge needed for the graph.
+
+
+{C}
+{C}
+Figure 25: A Physical View of Example3, a cluster of two 2-robot clusters.
+
+
+ 			(Eq 25)
+
+
+
+
+
+
+Figure 26: A Graph representing a cluster of clusters. Here cluster {C1} and {C2} form a single cluster {C}. 
+
+
+				(Eq 26)
+ 				(Eq 27)
+ 				(Eq 28)
+				(Eq 29)
+				(Eq 30)
+				(Eq 31)
+				(Eq 32)
+ 			(Eq 33)
+
+
+
+
+
+
+
+
+Table 4: Examples in the test bed folder and an explanation of their configuration
+Name
+Number of Robots
+Configuration
+Example1
+2
+2 robots with cluster frame defined as midpoint between both robots. The robots are limited to the plane.
+Example2
+4
+2 robots with cluster frame defined as midpoint between both robots with the cluster frame acting as leader to another cluster frame. The follower cluster has 2 robots with its cluster frame defined as midpoint between the robots in that frame. The robots are limited to the plane.
+Example3
+4
+A cluster of clusters. Two clusters of 2 robots each form a cluster. The robots are limited to the plane.
+Example4
+2
+A cluster of 2 robots with one robot being located directly above the cluster frame and is free to have a different orientation than the cluster frame. The robots are limited to the plane.
+Example5
+2
+A cluster of 2 robots with one robot being located directly above the cluster frame. This robot is also forced to be aligned with the cluster frame. This system represent over constrained. The robots are limited to the plane.
+Example6
+2
+A cluster of 2 robots with the cluster frame arbitrarily placed. This system will have redundant degrees of freedom. The robots are limited to the plane.
+Example7
+2
+Example 1 extended into 6 degrees of freedom per robot
+Example8
+3
+3 robots with cluster frame defined as the average location of the three 3 robots. The robots are limited to the plane.
+Example9
+3
+3 robots with cluster frame as the midpoint between Robot 1 and Robot 2 with Robot 3 following the cluster frame.
+Example10
+3
+3 robots. Robot 1 is it’s own cluster with the cluster frame incident with robot 1. That cluster frame plus robot 2 form another cluster frame located at the midpoint. Finally, robot 3 is following the robot 1 cluster. The robots in this example are also limited to the plane.
+
+A full description of each cluster, including the physical view, the forward kinematics, the graph based representation, the heterogeneous transform matrices used and the inverse kinematics can be found in the Appendix B.
+4.4 The Velocity_Propagation_Technique Folder
+
+The main computation of this subfolder is to execute the algorithm described in section 3.4. It does this by taking the cluster tree that was built, and traversing it accordingly. It is also capable of determining the number of degrees of freedom based on the size of the heterogeneous transform matrices, and adjusts the computation accordingly. Below is a list of all the files associated with this velocity propagation approach.
+
+Table 5: Descriptions of the files in the Velocity_Propagation_Technique Folder
+File Name
+Description
+Invjacfxn.m
+This is the main function of the algorithm. It takes the cluster tree as an input and outputs the inverse jacobian of the system. It also saves the inverse Jacobian as an attribute to the input. The tree implementation described in section 3 made used of different color nodes. This toolbox circumvents color usage by using additional indices and counters. It also distinguishes between 3x3 and 4x4 HTMs, and calls other files as appropriate.
+gettheRR3.m
+Calculates the product of rotations for the current node. Does Step A.2 of Section 3. Only works with 3 Degrees of Freedom (3DOF)
+getthev3.m
+Calculates the local velocity of one frame relative to its parent. Performs step A.3
+rotatedwxp3.m
+Calculates the local angular velocity, and rotates it with respect to the Step A.5 and A.6
+getthefinv3.m
+Calculates the local velocity of the main cluster frame relative to global frame. This is the step A.10 and step A.11
+getthewthing3.m
+Calculates the local angular velocity. This is the same as subroutine B.
+gettheRR6.m
+The same as get the RR6, but is only called when dealing with more than 3DOF per robot.
+getthev6.m
+Does the same as getthev3, but is called when user enters a 4x4 matrix.
+rotatedwxp6.m
+Does the same as rotatedwxp6, but is called when user enters a 4x4 matrix.
+getthefinv6.m
+Does the same as getthefinv3, but is called when user enters a 4x4 matrix.
+getthewthing6.m
+Does the same as getthewething3, but is called when user enters a 4x4 matrix.
+
+
+To use the main function, one uses the command [ inv_jac_prop, example] = invjacfxn(example). Figure 27 shows what this execution looks like in the Matlab environment.
+
+
+
+
+
+Figure 27: The function invjacfxn.m being used on example3 variable
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Chapter 5: Results
+
+This section will state the results of implementing this algorithm in Matlab. It will present the findings from 10 examples that the algorithm developer created, and an example from another researcher in Santa Clara University’s Robotic Systems Lab. Finally, it outlines some additional testing that can be done to test the robustness of this Matlab implementation.
+
+5.1 Results from Test_Bed Examples
+
+Each of the ten systems in the Test_Bed Folder had the inverse Jacobian computed using the functions dirinvjac.m and invjacfxn.m. Each result for each example was compared element by element in the matrix to ensure that they are indeed the same. For all ten examples, the matrices produce matched. An example of these can be seen in Chapter 4 in figures 24 and figure 27.
+
+An interesting finding was that by using the function which uses the newly created algorithm, a less compact form of each of the elements in the matrix were obtained. This may be the result of some optimization within Matlab’s built-in ‘Symbolic Math Toolbox’. However, after using simplification features, it is clear that the results were the same. An attempt was made to automate this step, but was unsuccessful.
+
+5.2 Results from a Third Party Cluster
+
+To remove any bias that may be present in the ten example clusters listed above, it was suggested that the algorithm be tested on a cluster definition not previously encountered by the author. Alex Mulcahy of Santa Clara University’s Robotic Systems Lab requested an analysis of the following cluster given his use of this particular cluster definition in his own research.
+
+
+
+
+Figure 28: The Alex Cluster. A 5 robot cluster with robots 1 and 2 forming the main cluster, robot 4 following robot 2, robot 3 following robot 1, and robot 5 following robot 3.
+
+After discussing the cluster with him for a few minutes, we sketched out the robot tree together, and then entered the transformation matrices into the cluster builder program. At first, it appears that the results are very different. However, after running the simplify function on both results, more compact forms were of each were obtained. In compact form, it is clear that both techniques yielded the same result for this cluster. This result has significantly helped test against any bias that might have been created using an internal test bed. 
+
+Figure 29: Columns 1 through 7 of the inverse Jacobian of the Alex Cluster.
+
+
+Figure 30: Columns 8 through 15 of the inverse Jacobian of the Alex Cluster.
+
+
+
+
+
+5.3 Further Testing II
+
+Currently, there are about 200 variables in symbolicbank file. This means that there are enough variables to describe a cluster with up to about 33 robots, each with 6 degrees of freedom. This limitation can be increased by adding more variables to the symbolicbank file. However, clusters that approach this limit in size have not yet been tested. There are also other types of cluster definitions that should also be compatible with this implementation, but have not yet been tested. Examples of these are recorded in Table 6. This testing may be helpful in demonstrating the robustness of this implementation of the algorithm.
+
+
+Table 6: Other Cluster Definition to test Robustness of Toolbox
+Example
+Number of Robots
+Configuration
+Reason for Testing
+Example 11
+20
+Each with 3 degrees of Freedom. 
+Will test the ability to work work with a large number of robots.
+Example 12
+4
+Each with 6 degrees of freedom, not limited to the plane. Cluster frame at the centre of the pyramid formed.
+This will fully test its ability to work with spacecraft and other 6DOF vehicles.
+Example 13
+4
+Each with 6 degrees of freedom, tested in nonstandard axes.
+Results could be used to expand the field of cluster control in a mathematical sense.
+Example 14
+16
+A cluster of clusters of clusters. 
+Test ability to scale depth.
+
+Chapter 6: Conclusions
+
+This Chapter summarizes the work that has been done in this research. It summarizes the results and conclusions drawn, as well as outlines possibilities for future work.
+
+6.1 Summary
+
+This thesis has completed its main objective of automating the process of computing the inverse Jacobian. Several steps were taken in order to achieve this objective.
+
+The frame equations that were presented by Dr. Chris Kitts were studied in depth to guarantee a throughout understanding of the mathematics involved in this computation. From there, a few test cases were computed manually to ensure proper understanding of the equations.
+
+Once the equations were understood, substantial effort was put into finding a graph based representation for cluster space formulations. Graphs were considered as they lend themselves to existing theories from algorithmic information theory. Trees were considered particularly for clusters as it was an easy way to capture hierarchal information.
+
+Once this graph based representation was formalized, an algorithm was developed that makes use of this representation. The algorithm, by traversing the tree and visiting relevant nodes, executed the frame propagation equations, thus allowing for the inverse Jacobian to be built.
+
+This algorithm was then implemented in Matlab, and all the files created were saved to a Matlab toolbox. A collection of several cluster definitions were then developed to test the algorithm. This included defining the formal set of kinematic equations, depicting them as tree structures, and determining the heterogeneous transform matrices needed.
+
+The result is the initial version of a Matlab Toolbox that successfully automates the computation of the inverse Jacobian Matrix for a cluster of robots.
+
+The results were verified by comparing the Jacobian Matrix that was obtained to one obtained by a derivation based technique. All results were mathematically equal, although certain elements in the matrix were sometimes obtained in a more compact form.
+
+By completing this research, a systematic way for determining the inverse Jacobian of a cluster of robots can now be done quickly and systematically. This allows us to build controllers for more cluster configurations rapidly. Doing this can allow for a group of robots to be tested in simulation in different geometric descriptions, and may help a researcher decide if he wants a more or less centralized description for the group of robots being controlled.
+
+It also expands on previous work in cluster control on Jacobian analysis, such as poor condition number avoidance. Rapid development of these matrices means that they can be studied more readily.
+
+6.2 Future Work
+
+Currently this toolbox only works as a proof of concept and is not optimized for run-time. The program can be optimized in Matlab, or transcribed into another language such as python for possibly faster runtimes.
+
+Further optimization in computational efficiency can be achieved by modification of the algorithm. For example, the angular velocity propagation subroutine is already computed as part of the linear velocity propagation subroutine. Capturing that information would prevent the need to re-compute it.
+
+The toolbox can also be developed further to provide more value to fellow researchers. Further files can be written that would automatically populate the computed inverse Jacobian into a controller in a Simulink model. It can also be modified to replace the symbols with actual values and compute a numerical value for the inverse Jacobian based on the analytical model.
+
+Further work could also involve creating a tool to help researches create a physical sketch of the multirobot system, and use that information to automatically create a cluster tree, as well as to determine the HTM’s for each node.
+
+The forward Jacobian is also still computed manually. Finding a faster technique for quicker computation of the forward Jacobian would directly compliment the work that has been done in this research.
+
+	Aside from graph theory, other mathematical techniques can be explored. For example, utilizing certain features of skew symmetric matrices can also be used to increase efficiency. Forcing our matrices to be skew symmetric may only work on certain clusters with restricted types of movements. This may be beneficial when small computation size required at the cost of some loss in performance.
+	
+	Other techniques such as quaternions promise even faster computational efficiency, although this may require thinking of clusters in new ways and formalizing a way to think of them. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+References
+
+[1] A. Farinelli, L. l. (2004, Oct). Multirobot systems: a classification focused on coordination. IEEE 	Transactions on Systems, Man, and Cybernetics, Part B (Cybernetics), 2015-2028.
+[2] Christopher A. Kitts, I. M. (2009, April). Cluster Space Specification and Control of Mobile Multirobot 	Systems. IEEE/ASME Transactions on Mechatronics, 14(2), 207-218.
+[3] L. E. Parker, G. B. (2000). Current state of the art in distributed autonomous mobile robots. 	Distributed Autonomous Robotic Systems, 4, 3-12.
+[4] C. Ortiz, K. K. (2004). Centibots: Very large scale distributed robotic teams. 16th Innovative Applied 	Artificial Intelligence Conference (IAAI) (pp. 1022-1033). San Jose, California: MIT Press.
+[5] S. O. Anderson, R. S. (2003). Maintaining line of sight communications networks between planetary 	rovers. Intelligent Robots and Systems (pp. 2266-2272 vol.3). IEEE.
+[6] Wei Ren, R. B. (2004). Decentralized Scheme for Spacecraft Formation Flying via the Virtual Structure 	Approach. Journal of Guidance, Control, and Dynamics, 27, 73-82.
+[7] Kitts, C., Adamek, T., Vlahos, M., Mahacek, A., Poore, K., Guerra, J., . . . Rasay, M. (2014). An 	underwater robotic testbed for multi-vehicle control. 2014 IEEE/OES Autonomous Underwater 	Vehicles (AUV) (pp. 1-8). Oxford, MS: IEEE.
+[8] Nathan Michael, D. M. (2010, Sept). The GRASP Multiple Micro-UAV Testbed. IEEE Robotics & 	Automation Magazine , 17(3), 56-65.
+[9] Gian Luca Mariottini, M. I. (2009, December). Vision-Based Localization for Leader–Follower 	Formation Control. IEEE Transactions on Robotics, 25, 1431-1438.
+[10] Brian Smith, A. H.-M. (2008). Multi-robot deployment and coordination with Embedded Graph 	Grammars. Auton Robot, 79-98.
+ [11] Das, A., Fierro, R., Kumar, V., Ostrowski, J. P., Spletzer, J., & Taylor, C. J. (2002, Oct). A vision-based 	formation control framework. IEEE Transactions on Robotics , 18(5), 813 - 825.
+[12] Vail, D., & Veloso, M. (2003). Multi-robot dynamic role assignment and coordination through shared 	potential fields. Multi-robot systems, 87-98.
+[13] Schneider, F. E., & Wildermuth, D. (2003, October). A potential field based approach to multirobot 	formation navigation. In Robotics, Intelligent Systems and Signal Processing, 2003. Proceedings. 	2003 IEEE International Conference on (Vol. 1, pp. 680-685). IEEE.
+[14] Kitts, C. A., Stanhouse, K., & Chindaphorn, P. (2009, October). Cluster space collision avoidance for 	mobile two-robot systems. In 2009 IEEE/RSJ International Conference on Intelligent Robots and 	Systems (pp. 1941-1948). IEEE.
+[15] Leonard, N. E., & Fiorelli, E. (2001). Virtual leaders, artificial potentials and coordinated control of 	groups. In Decision and Control, 2001. Proceedings of the 40th IEEE Conference on (Vol. 3, pp. 	2968-2973). IEEE.
+[16] Xie, X. F., Smith, S. F., & Barlow, G. J. (2012, June). Schedule-Driven Coordination for Real-Time 	Traffic Network Control. In ICAPS.
+[17] Olfati-Saber, R. (2006). Flocking for multi-agent dynamic systems: Algorithms and theory. IEEE 	Transactions on automatic control, 51(3), 401-420.
+[18] Mas, I., & Kitts, C. A. (2014). Dynamic Control of Mobile Multirobot Systems: The Cluster Space 	Formulation. IEEE Access, 2, 558-570.
+[19] Ferber, J. (1999). Multi-agent systems: an introduction to distributed artificial intelligence (Vol. 1). 	Reading: Addison-Wesley.
+[20] Craig, J. J. (2005). Introduction to Robotics: Mechanics and Control (3rd Edition ed.). Upper Saddle 	River: Pearson Prentice Hall.
+[21] Tokarz, K., & Kieltyka, S. (2010, July). Geometric approach to inverse kinematics for arm 	manipulator. In Proceedings of the 14th WSEAS international conference on Systems (ICS'10): 	part of the 14th WSEAS CSCC multiconference (Vol. 2, pp. 682-687).
+[22] Lilly, K. W., & Orin, D. E. (1991). Alternate formulations for the manipulator inertia matrix. The 	International Journal of Robotics Research, 10(1), 64-74.
+[23] Wang, X., & Verriest, J. P. (1998). A geometric algorithm to predict the arm reach posture for 	computer-aided ergonomic evaluation. The journal of visualization and computer animation, 	9(1), 33-47.
+[24] Raghavan, M., & Roth, B. (1990). Kinematic analysis of the 6R manipulator of general geometry. In 	Proc. Fifth Int. Symposium on Robotics Research, MIT Press, Cambridge.
+[25] Corke, P. (2011). Robotics vision and control: fundamental algorithms in MATLAB (Vol. 73). Springer.
+[26] Tsai, L. W. (1999). Robot analysis: the mechanics of serial and parallel manipulators. John Wiley & 	Sons.
+[27] Wolfram Research, Inc. (n.d.). WolframAlpha. Retrieved March 9, 2016, from 	http://www.wolframalpha.com/Jacobian.html
+[28] Boullion, T. L., & Odell, P. L. (1971). Generalized inverse matrices.
+[29] Orin, D. E., & Schrader, W. W. (1984). Efficient computation of the Jacobian for robot manipulators. 	The International Journal of Robotics Research, 3(4), 66-75.
+
+[30] Mas, I. (2011). Cluster space framework for multi-robot formation control (Doctoral dissertation, Santa Clara University).
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Appendix A – Examples used in the test bed
+
+Example 1: A Cluster of 2 Robots
+
+
+Figure 19: A Graph representing a cluster of 2 robots.
+
+The Transformations for this system are:
+				(Eq 26)
+				(Eq 27)
+				(Eq 28)
+		(Eq 29)
+	(Eq 30)
+
+
+
+
+
+Therefore, the inverse kinematics of the system are:
+				(Eq 31)
+
+
+
+
+
+
+
+Example 2: 2 Clusters of 2 Robots in a Cluster Chain
+
+
+
+Figure 20: A Graph representing 2 clusters of 2 robots each in a leader follower configuration, where cluster {C1} is leader and {C2} is follower. 
+
+The Transformations for this system are:
+
+ 			(Eq 32)
+			(Eq 33)
+			(Eq 34)
+			(Eq 35)
+			(Eq 36)
+			(Eq 37)
+	(Eq 38)
+	(Eq 39)
+(Eq 40)
+ 
+(Eq 41)
+		
+
+Therefore, the inverse kinematics of the system are:
+
+
+		(Eq 42)
+
+
+
+
+
+
+Example 3: A Cluster of two 2-robot clusters
+
+
+
+
+
+Figure 5: A Physical View of Example3, a cluster of two 2-robot clusters.
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 21: A Graph representing a cluster of clusters. Here cluster {C1} and {C2} form a single cluster {C}. 
+
+The homogeneous transforms for this system are:
+
+				(Eq 43)
+ 				(Eq 44)
+ 				(Eq 45)
+				(Eq 46)
+				(Eq 47)
+				(Eq 48)
+				(Eq 49)
+The inverse Kinematics are:
+ 			(Eq 50)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Example 4: Two Robot Cluster – 3 DOF each, cluster located on top of Robot 1
+
+Figure 12: A Two robot cluster sharing a single cluster frame. The Cluster frame is located on top of Robot 1. However, both robots are described relative to the cluster frame
+							(Eq 51)
+						(Eq 52)
+				(Eq 53)
+				(Eq 54)
+ 						(Eq 55)
+						(Eq 56)
+
+
+The Transformations for this system are:
+				(Eq 57)
+				(Eq 58)
+				(Eq 59)
+		(Eq 60)
+		(Eq 61)
+
+
+Therefore, the inverse kinematics of the system are:
+			(Eq 62)
+
+
+
+
+
+
+
+
+
+
+Example 5: Two Robot Cluster – 3 DOF each, cluster located incident to Robot 1
+
+Figure 13: A Two robot cluster sharing a single cluster frame. The Cluster frame is located on top of and oriented with Robot 1. However, both robots are described relative to the cluster frame.
+							(Eq 63)
+						(Eq 64)
+							(Eq 65)
+				(Eq 66)
+							(Eq 67)
+						(Eq 68)
+
+The Transformations for this system are:
+				(Eq 69)
+					(Eq 70)
+				(Eq 71)
+				(Eq 72)
+	  	 (Eq 73)
+
+
+
+
+
+Therefore, the inverse kinematics of the system are:
+			(Eq 74)
+
+
+
+
+Example 6
+
+
+Figure 14: A Graph representing a cluster of 2 robots.
+						(Eq 75)
+						(Eq 76)
+				(Eq 77)
+					(Eq 78)
+						(Eq 79)
+						(Eq 80)
+ 						(Eq 81)
+						(Eq 82)
+
+The Transformations for this system are:
+				(Eq 83)
+				(Eq 84)
+				(Eq 85)
+		(Eq 86)
+	(Eq 87)
+
+Therefore, the inverse kinematics of the system are:
+				(Eq 88)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Example 7
+
+
+
+
+Figure 15: Two Robots in 3 Dimensional Space 
+
+The Transformations for this system are:
+
+
+
+
+
+
+
+
+
+
+The inverse Kinematics are:
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Example 8
+Three Robot Cluster with the cluster frame located at the average position and the axis pointed towards robot1.
+
+
+
+
+Figure 17: Cluster tree of a three robot Cluster with different cluster variables.
+
+					(Eq 93)
+					(Eq 94)
+	 + π/2				(Eq 95)
+
+				(Eq 96)
+
+				(Eq 97)
+
+ 				(Eq 98)
+
+						(Eq 99)
+
+						(Eq 100)
+
+						(Eq 101)
+
+Below are a few extra variables that we will define for the sake of easier computation. The variables below are not independent. They are simply manipulations of the variables above.
+
+
+
+
+
+
+
+
+
+
+
+The transformation Matrices are:
+
+				(Eq 108)
+				(Eq 109)
+				(Eq 110)
+				(Eq 111)
+
+Therefore, the inverse kinematics of this system are:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Example 9
+
+
+
+Figure 18: Three Robots with Cluster Frame Located at the centre of Robot 1 and Robot 2. The third Robot follows the same cluster.
+
+
+				(Eq 113)
+				(Eq 114)
+				(Eq 115)
+				(Eq 116)
+
+ 		(Eq 117)
+ 		(Eq 118)
+ 		(Eq 119)
+Therefore, the inverse kinematics of this system are:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Example 10
+
+
+The forward kinematics of this system are:
+ 						(Eq 121)
+						(Eq 122)
+				(Eq 123)
+				(Eq 124)
+				(Eq 125)
+ 				(Eq 126)
+ 						(Eq 127)
+						(Eq 128)
+						(Eq 129)
+
+The Transformations for this system are:
+
+
+
+
+
+
+
+
+
+
+Therefore, the inverse Kinematics are
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Appendix B – Code used in Toolbox
+
+Tree data Structure as MATLAB Class
+By Jean-Yves Tinevez
+13 Mar 2012 (Update 13 Feb 2016)
+A per-value class that implements a generic tree data structure
+
+https://www.mathworks.com/matlabcentral/fileexchange/35623-tree-data-structure-as-a-matlab-class
+
+Description:
+A tree is a hierarchical data structure where every node has exactly one parent (expect the root) and no or several children.  Along with this relational structure, each node can store any kind of data.
+This class implements it using plain MATLAB syntax and arrays. Most useful methods are implemented, using overloading of MATLAB functions for tree objects.
+For instance you can type:
+>> find ( (a.^2 .* b) > (c - 5) & d )
+with a, b, c and d being tree objects.
+Very handy, trivial to use. A rather long tutorial is included to walk you through trees, and show how to make the best out of them.
+The tutorial can be found here:  http://tinevez.github.io/matlab-tree/
+
+
+
+
+
+
+
+
+
+
+
+
+
+Variablecreator.m
+
+Treecreator.m
+
+Symbolicbank.m
+% Lists some variables that can be used as cluster variables
+% If your cluster variable is not listed, please add it here
+ 
+syms a b c d e f g h i j k l m n o p q r s t u v w x y z;
+syms A B C D E F G H I J K L M N O P Q R S T U V Q X Y Z;
+syms alpha1 alpha2 alpha3 alpha4 alpha5 alpha6 alpha7 alpha8 alpha9;
+syms beta1 beta2 beta3 beta4 beta5 beta6 beta7 beta8 beta9 beta10;
+syms theta1 theta2 theta3 theta4 theta5 theta6 theta7 theta8 theta9;
+syms xc yc zc;
+syms phic phic1 phic2 phic3 phic4 phic5 phic6 phic7 phic8 phic9 phic10;
+syms phic11 phic12 phic13 phic14 phic15 phic16 phic17 phic18 phic19 phic20;
+syms phi1 phi2 phi3 phi4 phi5 phi6 phi7 phi8 phi9 phi10 phi11 phi12 phi13;
+syms phi14 phi15 phi16 phi17 phi18 phi19 phi20 phi21 phi22 phi23 phi24;
+syms tc tc1 tc2 tc3 tc4 tc5 tc6 tc7 tc8 tc9 tc10 tc11 tc12 tc13 tc14 tc15;
+syms tc16 tc17 tc18 tc19 tc20;
+syms aa bb cc dd ee ff gg hh ii jj kk ll mm nn oo pp qq rr ss tt uu vv;
+syms ww xx yy zz;
+syms AA BB CC DD EE FF GG HH II JJ KK LL MM NN OO PP QQ RR SS TT UU VV WW;
+syms XX YY ZZ;
+
+robotnamer.m
+% This function names all the robots as R1, R2, R3 etc.....
+ 
+for ii=1:(num_robots+1)
+    robotarray(ii)= 'R';
+end
+ 
+ 
+robotcellinit = num2cell(robotarray);
+robotcell = genvarname(robotcellinit);
+robotcell = robotcell(2:numel(robotcell));
+ 
+ 
+ for ii=1:(num_robots)
+    robotsyms(ii)= sym(robotcell(ii));
+ end
+ 
+ clear robotcellinit;
+ clear robotarray;
+
+
+
+
+
+
+
+robot_tree.m
+function [the_cluster, node_count, robot_nodes,rc] = robot_tree(the_cluster,robotcell,node_count,robot_nodes, rc, cluster_nodes,cp)
+ 
+ 
+    x = cluster_nodes(cp);
+    y = the_cluster.get(x);
+    if cp>1
+        y=num2str(cell2mat(y));
+    end
+ 
+    fprintf('How many robot children does %s have? \n', y )
+    prompt4 = input(' : ');
+ 
+    for i=(1+rc):(prompt4+rc)
+        the_cluster = the_cluster.addnode(x, robotcell(i));
+        node_count = node_count+1;
+        robot_nodes = [robot_nodes, node_count]; 
+        rc = rc+1;
+    end
+ 
+end
+
+
+
+
+msot.m
+% Creates a structure type data type containing all the tree information
+ 
+obj_out.robotnodes=robot_nodes;
+obj_out.clusternodes=cluster_nodes;
+obj_out.htm_tree=t;
+obj_out.txt_tree=the_cluster;
+obj_out.var=variablesyms;
+
+
+
+
+
+
+
+htmdefiner.m
+% Defines the homogenous transforms for each edge in the arborescence
+ 
+t = the_cluster;
+namt=t;
+fprintf('The Cluster tree we created is visible above. \n')
+prompt6 = input('Enter the 3x3 or 4x4 T matrix from cluster frame to Ground Frame \n >> ');
+            tst = prompt6;
+            sz = length(prompt6);
+            if sz <3
+                error('Not a Valid Homogeneous transform matrix');
+            elseif sz > 4
+                error('Not a Valid Homogeneous transform matrix');
+            else
+            end
+            
+t=t.set(1,prompt6);
+ 
+ 
+for i=2:node_count
+        var1 = t.get(i);
+        var1=num2str(cell2mat(var1));
+        var2 = t.getparent(i);
+        if var2>1
+            var2 = namt.get(var2);
+            var2=num2str(cell2mat(var2));
+        else
+            var2 = namt.get(var2);    
+        end
+        
+        
+        fprintf('What is the Transformation from %s to %s \n >>', var1, var2)
+        subt = input(' : ');
+        t=t.set(i,subt);
+end
+
+
+
+
+
+
+
+
+
+clusternamer.m
+% Creating a cell with the cluster frame names. Saves them symbollicaly.
+ 
+ 
+for ii=1:(num_clusters+1)
+    clusterarray(ii)= 'C';
+end
+ 
+ 
+ clustercellinit = num2cell(clusterarray);
+ clustercell = genvarname(clustercellinit);
+ clustercell = clustercell(2:numel(clustercell));
+ 
+ 
+ for ii=1:(num_clusters)
+    clustersyms(ii)= sym(clustercell(ii));
+ end
+
+
+
+
+clusterbuilder2.m
+function [ obj_out ] = clusterbuilder2( num_robots,num_clusters  )
+ 
+    % CLUSTERBUILDER2 - create your own cluster tree
+ 
+    %num_robots = number of robots in the cluster
+    %num_clusters = number of clusters to consider (main cluster + subclusters)
+    % Check number of inputs.
+ 
+    if nargin > 2t
+        error('clusterbuilder2 requires at most 2 inputs');
+    elseif nargin < 2
+        error('clusterbuilder 2 requires at least 3 inputs')
+    end
+ 
+    robotnamer           % Names the Robots R1, R2, R3, etc....
+    clusternamer         % Names the Cluster Frames C, C1, C2, C3, etc...
+    variablecreator      % Asks user for the cluster variables to be used
+    symbolicbank         % Variables listed are loaded from this variable bank
+    treecreator          % Arranges the tree into an Arborescence
+    htmdefiner           % Arranges the  homogeneous transformation matrices
+    msot                 % Matlab Structure containing all information on the tree
+ 
+end
+
+cluster_tree.m
+function [the_cluster, node_count, cluster_nodes,cc,cp ] = cluster_tree( the_cluster, clustercell,node_count,cluster_nodes,cc,cp )
+ 
+    x = cluster_nodes(cp);
+    y = the_cluster.get(x);
+    if cp>1
+        y=num2str(cell2mat(y));
+    end
+ 
+    fprintf('How many cluster children does %s have \n', y )
+    prompt5 = input(' : ');
+        
+    for i=(cc):(prompt5+cc-1)
+        the_cluster = the_cluster.addnode(x, clustercell(i));
+        node_count = node_count+1;
+        cluster_nodes = [cluster_nodes, node_count];
+    end
+        cc= cc+prompt5;
+        cp = cp+1;
+end
+
+
+
+
+dirinvjac.m
+function [ d_invjac, cluster ] = dirinvjac(cluster, opt1)
+% This will use the htm to compute the inverse kinematics, then solve for
+% the inverse Jacobian
+% If 2 is chosen in the option 1 field, then the calculation assumed a 4x4
+% transformation matrix that can be optimized for a 3x3 case.
+tic
+    if nargin > 2
+        error('dirinvjac requires at most 2 inputs');
+    elseif nargin ==2
+        [inv_kin, cluster] = invkin(cluster, opt1);
+    elseif nargin ==1
+        [inv_kin, cluster] = invkin(cluster);
+    elseif nargin < 1
+        error('dirinvjac requires at least 1 input')
+    end
+ 
+    d_invjac = jacobian(inv_kin,cluster.var);
+    cluster.dirinvjac = d_invjac;
+toc
+end
+    
+
+invkin.m
+function [ inv_kin, cluster ] = invkin(cluster, opt1)
+% This will use the htm to get the inverse kinematics
+% It automatically defaults to option0 or option 1 based on the size of the
+% homogeneous transform matices
+% Option 2 is an optimized version of Option 0. If selected, the program
+% assumes the cluster is in the z=0 plane, and optimizes the matrix
+% multiplication accordingly.
+     if nargin > 2
+        error('invkin requires at most 2 inputs');
+        
+    elseif nargin ==1
+            tst = cluster.htm_tree.get(cluster.robotnodes(1));
+            sz = length(tst);
+            if sz == 4
+                opt1 = 0;
+            elseif sz == 3
+                opt1= 1;
+            else
+                error('This cluster has invalid transformation matrices');
+            end
+    elseif nargin < 1
+        error('clusterbuilder 2 requires at least 1 input')
+    end
+ 
+    page = 1; y=5;         %Initializaing some variables
+ 
+%Option1 == 0 - Case where the matrices are 4x4 matrices
+ if opt1==0
+    
+    for i=cluster.robotnodes
+        y=i;
+        x = cluster.htm_tree.get(i);
+        y = cluster.htm_tree.getparent(i);
+        while y>0
+            x = cluster.htm_tree.get(y)*x;
+            y = cluster.htm_tree.getparent(y);
+        end         
+   
+        T(:,:,page)=x;
+        page = page+1;
+    end
+ 
+    inv_kin = [];
+    page = page-1;
+    
+    for i=1:page
+        ry = asin(-T(3,1,i));
+        rz =asin(T(2,1,i)/cos(ry));
+        rx =asin(T(3,2,i)/cos(ry));
+        inv_kin = [inv_kin; T(1:3,4,i); rx;ry;rz];
+        inv_kin = simplify(inv_kin);
+    end
+    cluster.inv_kin=inv_kin;
+ 
+%Option1 ==1 - Case where the HTM Matrices are 3x3 case
+elseif opt1==1
+    
+    for i=cluster.robotnodes
+       y=i;
+       x = cluster.htm_tree.get(i);
+       y = cluster.htm_tree.getparent(i);
+       while y>0
+            x = cluster.htm_tree.get(y)*x;
+            y = cluster.htm_tree.getparent(y);
+       end 
+ 
+       T(:,:,page)=x;
+       page = page+1;
+    end
+ 
+    inv_kin = [];
+    page = page-1;
+    
+    for i=1:page
+         inv_kin = [inv_kin; T(1:2,3,i); acos(T(1,1,i))];
+         inv_kin = simplify(inv_kin);
+    end
+    cluster.inv_kin=inv_kin;
+ 
+ 
+%Option 2 - Solving the 4x4 case as the 3x3 case
+else
+    page =1;
+    y=5;
+    for i=cluster.robotnodes
+        y=i;
+        x = cluster.htm_tree.get(i);
+        x = x([1,2,4],[1,2,4]);
+        y = cluster.htm_tree.getparent(i);
+        while y>0
+            z= cluster.htm_tree.get(y);
+            x = z([1,2,4],[1,2,4])*x;
+            y = cluster.htm_tree.getparent(y);
+        end  
+       T(:,:,page)=x;
+        page = page+1;
+    end
+ 
+    inv_kin = [];
+    page = page-1;
+    
+    for i=1:page
+        inv_kin = [inv_kin; T(1:2,4,i); acos(T(1,1,i))];
+        inv_kin = simplify(inv_kin);
+    end
+    cluster.inv_kin=inv_kin;
+end
+
+thewthing6.m
+function [ wxarray ] = thewthing6( t, current_node, variablesyms )
+%THEWTHING6 Calculates the angular velocity
+%   This function is called from the function invjacfxn.m
+ 
+    par=5;
+    wxarray = zeros(3,numel(variablesyms));
+    while par>=0
+        tpar = t.get(current_node);
+        ry = asin(-tpar(3,1));
+        rz = asin(tpar(2,1)/cos(ry));
+        rx = asin(tpar(3,2)/cos(ry));
+ 
+        for j=1:numel(variablesyms) % Gets Ry's position in cluster.var
+            check = 2* (variablesyms(j)/ry);
+            if check ==2
+                wxarray(2,j) = 1;
+                break;
+            else
+                wxarray(2,j) = 0;
+            end
+        end
+ 
+ 
+        for k=1:numel(variablesyms) % Gets Rz's position in cluster.var
+            check = 2* (variablesyms(k)/rz);
+            if check ==2
+                wxarray(3,k) = 1;
+                break;
+            else
+                wxarray(3,k) = 0;
+            end
+        end
+ 
+        for l=1:numel(variablesyms) % Gets Rx's position in cluster.var
+            check = 2* (variablesyms(l)/rx);
+            if check ==2
+                wxarray(1,k) = 1;
+                break;
+            else
+                wxarray(1,k) = 0;
+            end
+        end
+ 
+        if current_node==1
+            break
+        else
+            current_node = t.getparent(current_node);
+            par = t.getparent(current_node);
+        end
+    end
+end
+thewthing3.m
+
+function [ wxarray ] = thewthing3( t, current_node, variablesyms )
+%THEWTHING3 Calculates the angular velocity
+%   This program calculates the angular velocity for the cluster. It is
+%   called in the function invjacfxn.m
+ 
+    par=5;
+    wxarray = zeros(1,numel(variablesyms));
+    while par>=0
+        tpar = t.get(current_node);
+        ww = acos(tpar(1,1));
+ 
+        %To find ww's position in variable syms
+        for j=1:numel(variablesyms)
+            check = 2* (variablesyms(j)/ww);
+            if check ==2
+               wxarray(j) = 1;     
+               break
+            else
+               % wxarray(j) = 0;
+            end
+        end
+ 
+        
+        
+        if current_node==1
+            break;
+        else
+            current_node = t.getparent(current_node);
+            par = t.getparent(current_node);
+        end
+    end
+end
+
+ 
+
+
+
+
+
+
+
+
+
+
+Thefinv6.m
+
+function [ wvarray ] = thefinv6( t, current_node,variablesyms )
+% This Function calculates the final velocity
+    v1 = t.get(current_node);
+    wxx = v1(1,4);
+    wyy = v1(2,4);
+    wzz = v1(3,4);
+    
+%To find ww's position in variably syms
+    wvarray = zeros(1,numel(variablesyms)); 
+ 
+    for j=1:numel(variablesyms)
+        check = 2* (variablesyms(j)/wxx);
+        if check ==2
+            break;
+        else
+        end
+    end
+    
+    for k=1:numel(variablesyms)
+        check = 2* (variablesyms(k)/wyy);
+        if check ==2
+            break;
+        else
+        end
+    end
+    
+    for l=1:numel(variablesyms)
+        check = 2* (variablesyms(l)/wzz);
+        if check ==2
+            break;
+        else
+        end
+    end
+    
+    wvarray(1,j) = 1;
+    wvarray(2,k) = 1;
+    wvarray(3,l) = 1;
+end
+
+
+
+
+
+
+
+
+Thefinv3.m
+
+function [ wvarray ] = thefinv3( t, current_node,variablesyms )
+% This function calculates the final velocity
+ 
+    v1 = t.get(current_node);
+    wxx = v1(1,3);
+    wyy = v1(2,3);
+ 
+% To find ww's position in variably syms
+    wvarray = zeros(1,numel(variablesyms));
+ 
+    for j=1:numel(variablesyms)
+        check = 2* (variablesyms(j)/wxx);
+        if check ==2
+            break;
+        else
+        end
+    end
+    
+    for k=1:numel(variablesyms)
+        check = 2* (variablesyms(k)/wyy);
+        if check ==2
+            break;
+        else
+        end
+    end
+ 
+    wvarray(1,j) = 1;
+    wvarray(2,k) = 1;
+ 
+end
+
+
+
+
+
+
+
+
+
+
+
+Rotatedwxp6.m
+function [ RRwxp, RRwyp, RRwzp ] = rotatedwxp6( t, current_node, variablesyms,RR,py,px, pz )
+% This function gets the cross product, then multiplies it by the Rotation
+% Matrices
+    par =5;
+    wxarray = zeros(3,numel(variablesyms));
+ 
+    while par>0
+        par = t.getparent(current_node);
+        tpar = t.get(par);
+        ry = asin(-tpar(3,1));
+        rz = asin(tpar(2,1)/cos(ry));
+        rx = asin(tpar(3,2)/cos(ry));
+ 
+        for j=1:numel(variablesyms) % Find Rx's position in the cluster.var
+            check = 2* (variablesyms(j)/rx);
+            if check ==2
+                wxarray(1,j) = 1;
+      %          break;                     %Removing breaks to allow angle
+      %          sums
+            else
+                wxarray(1,j) = 0;
+            end
+        end
+ 
+        for k=1:numel(variablesyms) % Find Ry's position in the cluster.var
+            check = 2* (variablesyms(k)/ry);
+            if check ==2
+                wxarray(2,k) = 1;
+       %         break;
+            else
+                wxarray(2,k) = 0;
+            end
+        end
+ 
+        for l=1:numel(variablesyms) % Find Rz's position in the cluster.var
+            check = 2* (variablesyms(l)/rz);
+            if check ==2
+                wxarray(3,l) = 1;
+        %        break;
+            else
+                wxarray(3,l) = 0;
+            end
+        end
+        
+        current_node = par;
+        par = t.getparent(current_node);
+    end
+
+
+RRwxp= (RR(1,1)*(wxarray(2,:)*pz- wxarray(3,:)*py)   + RR(1,2)*(wxarray(3,:)*px- wxarray(1,:)*pz)    + RR(1,3)*(wxarray(1,:)*py- wxarray(2,:)*px));
+    RRwyp= (RR(2,1)*(wxarray(2,:)*pz- wxarray(3,:)*py)   + RR(2,2)*(wxarray(3,:)*px- wxarray(1,:)*pz)    + RR(2,3)*(wxarray(1,:)*py- wxarray(2,:)*px));
+    RRwzp= (RR(3,1)*(wxarray(2,:)*pz- wxarray(3,:)*py)   + RR(3,2)*(wxarray(3,:)*px- wxarray(1,:)*pz)    + RR(3,3)*(wxarray(1,:)*py- wxarray(2,:)*px));
+end
+ 
+
+rotatedwxp3.m
+function [ RRwxp, RRwyp ] = rotatedwxp3( t, current_node, variablesyms,RR,py,px )
+ 
+    par =5;
+    wxarray = zeros(1,numel(variablesyms));
+ 
+    while par>0
+        par = t.getparent(current_node);
+        tpar = t.get(par);
+        rz = acos(tpar(1,1));
+        
+        for j=1:numel(variablesyms)    % To find rz's position in cluster.var
+            check = 2* (variablesyms(j)/rz);
+            if check ==2
+                break;
+            else
+            end
+        end
+ 
+        wxarray(j) = 1;
+        current_node = par;
+        par = t.getparent(current_node);
+    end
+ 
+    RRwxp= wxarray* (-RR(1,1)*py +RR(1,2)*px);
+    RRwyp= wxarray* (-RR(2,1)*py +RR(2,2)*px);
+end
+
+
+
+
+
+
+
+
+
+Invjacfxn.m
+
+function [ inv_jac_prop , cluster] = invjacfxn(cluster)
+% This function solves for the inverse Jacobian using a propagation
+% technique. It first checks the size of the T matrices, and executes the
+% algorithm.
+% This function, in its current form, does not have an optimization for 4x4
+%matrices that are limited to the xy plane.
+% Furthermore, this algorithm doesn't work if a cluster variable is used to
+% define an actuation state.
+ 
+tic
+ 
+% Determining to run 3 DOF case or 6 DOF
+    sz = length(cluster.htm_tree.get(cluster.robotnodes(1)));
+    if sz == 4
+        opt1 = 0; dof = 6;
+    elseif sz == 3
+        opt1= 1; dof = 3;
+    else
+        error('This cluster has invalid transformation matrices');
+    end
+ 
+ 
+% Propagation Algorithm
+ 
+    if opt1 == 1
+ 
+        for i=1:numel(cluster.robotnodes)
+            current_node = cluster.robotnodes(i);
+            parent_node = cluster.htm_tree.getparent(current_node);
+            rrall = zeros(1,numel(cluster.var));
+            rrall= sym(rrall);
+            rrall2=rrall;
+ 
+            while parent_node>0
+                [RR] = gettheRR3( cluster.htm_tree,current_node);                                  % Product of rotations, RR
+                [ppjac, px, py ] = getthev3( current_node,cluster.htm_tree, i,cluster.var,dof);      %local Velocity (linear component)
+                v_rotated((1 + (dof*(i-1))),:) = ppjac((1+(dof*(i-1))),:)*(RR(1,1))+ ppjac((2+(dof*(i-1))),:)*RR(1,2); %Local Velocity
+                v_rotated((2 + (dof*(i-1))),:) = ppjac((1+(dof*(i-1))),:)*(RR(2,1))+ ppjac((2+(dof*(i-1))),:)*RR(2,2); %Rotated
+                [RRwxp, RRwyp] = rotatedwxp3( cluster.htm_tree, current_node, cluster.var,RR,py,px ); % Global angular Velocity rotated
+                rrall = rrall +(v_rotated((1+(dof*(i-1))),:) +RRwxp);                                 % Summing after each iteration
+                rrall2 =rrall2 +(v_rotated((2+(dof*(i-1))),:) +RRwyp);                                % Summing after each iteration
+                current_node = parent_node;                                                           % Updating current node
+                parent_node = cluster.htm_tree.getparent(current_node);                               %Updating parent node
+            end
+ 
+            [wvarray] = thefinv3( cluster.htm_tree, current_node ,cluster.var );  % Adding the final Velocity Term
+            current_node = cluster.robotnodes(i);                                 % Recalling current node
+            [wxarray] = thewthing3( cluster.htm_tree, current_node, cluster.var); % Product of rotations
+ 
+            inv_jac_prop((1+(dof*(i-1))),:) = rrall + wvarray(1,:);  % Assembling into one matrix
+            inv_jac_prop((2+(dof*(i-1))),:) = rrall2 + wvarray(2,:); % Assembling into one matrix
+            inv_jac_prop((3+(dof*(i-1))),:) = wxarray;              % Assembling into one matrix
+ 
+            cluster.propinvjac = inv_jac_prop;                    toc   % Adds jacobian to cluster structure
+ 
+        end
+ 
+ 
+    else
+ 
+        for i=1:numel(cluster.robotnodes)
+            current_node = cluster.robotnodes(i);
+            parent_node = cluster.htm_tree.getparent(current_node);
+            rrall = zeros(1,numel(cluster.var));
+            rrall= sym(rrall);
+            rrall2=rrall;
+            rrall3 = rrall2;
+ 
+            while parent_node>0
+                [RR ] = gettheRR6( cluster.htm_tree,current_node);
+                [ppjac, px, py,pz ] = getthev6( current_node,cluster.htm_tree, i,cluster.var,dof);
+                v_rotated((1 + (dof*(i-1))),:) = ppjac((1+(dof*(i-1))),:)*(RR(1,1))+ ppjac((2+(dof*(i-1))),:)*RR(1,2) + ppjac((3+(dof*(i-1))),:)*RR(1,3);
+                v_rotated((2 + (dof*(i-1))),:) = ppjac((1+(dof*(i-1))),:)*(RR(2,1))+ ppjac((2+(dof*(i-1))),:)*RR(2,2) + ppjac((3+(dof*(i-1))),:)*RR(2,3);
+                v_rotated((3 + (dof*(i-1))),:) = ppjac((1+(dof*(i-1))),:)*(RR(3,1))+ ppjac((2+(dof*(i-1))),:)*RR(3,2) + ppjac((3+(dof*(i-1))),:)*RR(3,3);
+                [RRwxp, RRwyp, RRwzp ] = rotatedwxp6( cluster.htm_tree, current_node, cluster.var,RR,py,px, pz );
+                rrall = rrall +(v_rotated((1+(dof*(i-1))),:) +RRwxp);
+                rrall2 = rrall2 +(v_rotated((2+(dof*(i-1))),:) +RRwyp);
+                rrall3 = rrall3 + (v_rotated((3+(dof*(i-1))),:) +RRwzp);
+                current_node = parent_node;
+                parent_node = cluster.htm_tree.getparent(current_node);
+            end
+ 
+            [wvarray ] = thefinv6( cluster.htm_tree, current_node ,cluster.var );
+            current_node = cluster.robotnodes(i);
+            [wxarray ] = thewthing6( cluster.htm_tree, current_node, cluster.var );
+ 
+            inv_jac_prop((1+(dof*(i-1))),:) = rrall + wvarray(1,:);
+            inv_jac_prop((2+(dof*(i-1))),:) = rrall2 + wvarray(2,:);
+            inv_jac_prop((3+(dof*(i-1))),:) = rrall3 + wvarray(3,:);
+            inv_jac_prop((4+(dof*(i-1))),:) = wxarray(1,:);
+            inv_jac_prop((5+(dof*(i-1))),:) = wxarray(2,:);
+            inv_jac_prop((6+(dof*(i-1))),:) = wxarray(3,:);
+            cluster.propinvjac = inv_jac_prop;
+        end
+    end
+    toc
+end
+ 
+ 
+ 
+% Further notes
+% For each Robot in the cluster, the following Algorithm is compiled.
+% V = V_final + sumall ((product of rotations)*(local_velocity + (global_angular_velocity x local position) ) )
+ 
+%However, the algorithm expands this as
+ %V = V_final + sumall ((product of rotations)*local_velocity + (product of rotations)*(global_angular_velocity x local position) ) )
+
+
+
+
+
+
+
+
+
+
+
+
+
+Getthev6.m
+function [ ppjac ,px,py,pz] = getthev6(  current_node,t, i,variablesyms,tpg)
+% This function gets the local velocity of each robot. See also geththev3
+ 
+    trans = t.get(current_node);
+    px = trans(1,4);
+    py =trans(2,4);
+    pz = trans(3,4);
+    ppjac((1+(tpg*(i-1))),:) = jacobian(px,variablesyms);
+    ppjac((2+(tpg*(i-1))),:) = jacobian(py,variablesyms);
+    ppjac((3+(tpg*(i-1))),:) = jacobian(pz,variablesyms);
+    
+end
+
+
+
+
+getthev3.m
+function [ ppjac ,px,py] = getthev3(current_node,t, i,variablesyms,dof)
+% This function gets the local velocity of each robot
+ 
+    trans = t.get(current_node);
+    px = trans(1,3);
+    py =trans(2,3);
+    ppjac((1+(dof*(i-1))),:) = jacobian(px,variablesyms);
+    ppjac((2+(dof*(i-1))),:) = jacobian(py,variablesyms);
+    
+end
+
+gettheRR6.m
+function [ RR ] = gettheRR6( t, current_node)
+% This function computes the product of all rotations from ground to
+% current node. See also gettheRR3
+ 
+    RR = eye(3);
+    y = t.getparent(current_node);     
+    
+    while y>0
+        FTpar = t.get(y);
+        Rpar = FTpar(1:3,1:3);
+        RR = Rpar *RR;
+        y= t.getparent(y);
+    end
+    
+    RR = simplify(RR);
+end
+ 
+
+gettheRR3.m
+
+function [ RR ] = gettheRR3( t, current_node)
+% This function computes the product of all rotations from ground to
+% current node.
+ 
+    RR = eye(2);
+    y = t.getparent(current_node);     
+    
+    while y>0
+        FTpar = t.get(y);
+        Rpar = FTpar(1:2,1:2);
+        RR = Rpar *RR;
+        y= t.getparent(y);
+    end
+    
+    RR = simplify(RR);
+ 
+end
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+Appendix C - The Inverse Jacobian Formula Tutorial
+
+This approach starts with a re-imagining of the inverse Jacobian. Instead of thinking about inverse Jacobian as a matrix of partial derivatives:
+					(Eq 139)
+Consider the Inverse Jacobian as a matrix that is applied to a vector composed of the derivative of each cluster variable. The result of this applying the inverse Jacobian to this vector is a vector,, of velocities in robot coordinates.
+
+					(Eq 140)
+Further, consider each element,  in the vector  as a function of cluster variables, and the derivatives of the cluster variables. This vector with functions as elements shall be called H.
+
+				(Eq 141)
+
+If each function hi is a linear function of each , then the vector H is a system of linear equations. Therefore, the system of linear equations can be rewritten in matrix form 
+
+ 		(Eq 142)
+
+Where each  is a function of cluster space variables. Using equations 70,71, and 72, it can be concluded that the matrix F is equal to the inverse Jacobian. As a result, finding the functions hi can lead to a quick method for obtaining the inverse Jacobian.
+The functions hi can be developed by performing a velocity propagation analysis for each robot n. The propagation starts with determining the velocity of a robot, n, relative to its local cluster frame (C}. These velocities are then propagated from frame to frame (from cluster to leader cluster or to parent cluster). The propagation continues until the last frame; that of global frame {G}. The result of these propagations will lead to a system of linear equations that are used to form the inverse Jacobian. 
+
+						(Eq 143)
+
+To find the linear and angular velocities of an object {n} in frame {i}, the rate of change of their linear and angular position can be taken as follows:
+
+				(Eq 144)
+					(Eq 145)
+Where:
+ = The total linear velocity of the object, n, relative to frame i
+ = The position of the object n relative to frame i
+ = The derivative of or 
+ = The angle of the two argument arctangent of the position vector, 
+  = the derivative of , or  ∇, or 
+
+
+If the linear and angular velocities of on an object {n} in frame {i} are known, then it is possible to calculate the velocities of that object relative to frame {i-1} as follows:
+
+			(Eq 146)
+				(Eq 147)
+Where:
+ = The total linear velocity of the object n relative to frame {i-1}
+ = The total linear velocity of frame {i} relative to frame {i-1}
+= The rotation matrix that describes the fixed rotation of frame {i} relative to frame {i-1} 
+ the angular velocity of frame {i} about frame {i-1}
+ = the angular velocity of the object n relative to frame {i-1}
+
+For any robot, m, these equations can be applied recursively from the robot through the hierarchal path of frames back to the global frame {G}. Doing so results in the equations:
+ 			(Eq 148)
+ 				(Eq 149)
+Where:
+ = The total linear velocity of robot n relative to global frame
+ = The total angular velocity of frame k relative to the global frame
+ = The rotation matrix that describes the fixed rotation of frame {j} relative to {j-1}
+ = The instantaneous position of frame {k} relative to frame {k-1}
+ = The rate of change of instantaneous position of frame {k} relative to frame {k-1}
+
+When m is the number of each robot, j is the number of steps that the current frame is away from the cluster frame, and n depth level of robot m.
+When j = 1, becomes the identity matrix, and when k=1,    becomes a zero vector.
+
+Lets take a slightly different approach to the situation:
+ Take a look at this expanded form 
+				(Eq 150)
+ 			(Eq 151)
+ 			(Eq 152)
+ (Eq 153)
+By taking a look at the final matrix, the position vector can be recovered:
+				(Eq 154)
+This can be written more compactly as:
+ 			(Eq 155)
+Taking a derivative of the above expression, the following is obtained:
+ 			(Eq 156)
+This equation is identical to the equation that was obtained via the propagation technique (Equation 78).
+Let us now consider the final matrix also provides the rotation matrix, , which gives the rotation of robot n relative to the global frame.
+ 					(Eq 157)
+From this a new vector can be created to represent these rotations:
+ 					(Eq 158)
+Where are the sum of all rotations about the z, y, and x axis respectively.
+For example, all the rotations about the z axis are found by:
+ 	(Eq 159)
+This can be written in compact form as 
+			(Eq 160)
+Taking a derivative of this yields:
+ 			(Eq 161)
+This equation is also identical to the equation that was obtained via the propagation technique (Equation 149).
+Reaching the propagation based equations via a previously verified method supports the new method that has been introduced.
+

@@ -1,0 +1,287 @@
+\documentclass[journal]{IEEEtran}
+\usepackage{amsmath,amssymb,bm,mathtools}
+
+% ---- convenience macros ----
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Sym}{\mathbb{S}}
+\newcommand{\Rp}{R_{\pi/2}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+\begin{document}
+
+\section{Estimator Structure and Robustness}
+
+\subsection{Equivalence of the Symmetric-Formation Estimator and Local Least Squares}
+\label{sec:equiv}
+
+Let $\sigma\in C^{3}(\R^{2})$ be sampled by $m$ robots at positions
+$r_{i}=c+\bar r_{i}$, with $s_{i}=\sigma(r_{i})$. Fit a local quadratic model
+about $c$ in the basis
+\begin{equation}
+\phi(\bar r)=\big[\,1,\;x,\;y,\;\tfrac12 x^{2},\;xy,\;\tfrac12 y^{2}\,\big]^{\!\top},
+\qquad \bar r=(x,y),
+\end{equation}
+chosen so that the coefficient vector is the local Taylor data itself,
+$\theta=[\,\sigma(c),\;\nabla\sigma(c)^{\!\top},\;H_{11},\,H_{12},\,H_{22}\,]^{\!\top}$,
+where $H=H_{\sigma}(c)$. With $\Phi=[\phi(\bar r_{1})\cdots\phi(\bar r_{m})]^{\!\top}$
+and $s=[s_{1}\cdots s_{m}]^{\!\top}$, the ordinary least-squares (OLS) estimate is
+$\hat\theta=(\Phi^{\!\top}\Phi)^{-1}\Phi^{\!\top}s$, and all structure resides in the
+Gram (moment) matrix $G=\Phi^{\!\top}\Phi=\sum_{i}\phi(\bar r_{i})\phi(\bar r_{i})^{\!\top}$.
+
+Consider the formation of [Bri\~n\'on-Arranz \emph{et al.}]: $N$ robots uniformly
+spaced on a circle of radius $D$, $\bar r_{i}=D(\cos\varphi_{i},\sin\varphi_{i})$,
+$\varphi_{i}=\varphi_{0}+2\pi i/N$, plus one robot at the center. The angular
+identities $\sum_{i}e^{\,\jmath m\varphi_{i}}=0$ for $0<m<N$ annihilate every odd
+moment and every anisotropic even moment up to order four once $N\ge5$, so $G$ is
+block diagonal,
+\begin{equation}
+G=\operatorname{blkdiag}\!\Big(\,G_{\mathrm{tr}}\in\Sym^{3},\;\;
+\tfrac{ND^{2}}{2}I_{2},\;\;\tfrac{ND^{4}}{8}\,\Big),
+\end{equation}
+on the index groups $\{1,\tfrac12x^{2},\tfrac12y^{2}\}$, $\{x,y\}$, and $\{xy\}$,
+respectively. The OLS normal equations therefore \emph{decouple}, and the $6\times6$
+solve reduces to scalar divisions:
+\begin{align}
+\widehat{\nabla\sigma}(c) &= \frac{2}{ND^{2}}\sum_{i=1}^{N} s_{i}\,\bar r_{i}, \\
+\widehat{H}_{12} &= \frac{8}{ND^{4}}\sum_{i=1}^{N} s_{i}\,x_{i}y_{i},
+\end{align}
+while the $\{1,\tfrac12x^{2},\tfrac12y^{2}\}$ block, after eliminating $\sigma(c)$
+using the \emph{center} sample $s_{c}$, returns the diagonal curvatures through
+\begin{equation}
+\label{eq:K}
+3\widehat{H}+\Rp\,\widehat{H}\,\Rp^{\!\top}
+=\frac{16}{ND^{4}}\sum_{i=1}^{N}\big(s_{i}-s_{c}\big)\,\bar r_{i}\bar r_{i}^{\!\top}
+=:K .
+\end{equation}
+Because $H+\Rp H\Rp^{\!\top}=\tr(H)\,I$ for any symmetric $H$, the operator in
+\eqref{eq:K} is the isotropic map
+\begin{equation}
+\mathcal{L}(H)\;=\;3H+\Rp H\Rp^{\!\top}\;=\;\tr(H)\,I+2H,
+\end{equation}
+which acts as a gain of $4$ on the trace (spin-$0$) component and $2$ on the
+deviatoric (spin-$2$) component; it is thus invertible, with
+\begin{equation}
+\label{eq:Hinv}
+\widehat{H}=\tfrac12\!\left(K-\tfrac14\tr(K)\,I\right).
+\end{equation}
+Equations \eqref{eq:K}--\eqref{eq:Hinv} are exactly the closed form of
+[Bri\~n\'on-Arranz \emph{et al.}]. Hence the symmetric-formation estimator
+\emph{is} the OLS estimator specialized to a configuration whose Gram matrix is
+block diagonal; symmetry is what converts the matrix solve into averages. For
+quadratic $\sigma$ the third-order remainder vanishes and $\widehat{H}=H$ exactly.
+
+Two design facts follow directly. The threshold $N\ge5$ is the vanishing of the
+$m=4$ (spin-$4$) harmonic, which removes the orientation dependence of the
+deviatoric channel; $N\ge4$ suffices for the gradient (vanishing $m=3$).
+Cocircularity ($\norm{\bar r_{i}}=D$ for all ring robots) makes the column
+$\tfrac12x^{2}+\tfrac12y^{2}$ collinear with the constant column, so the trace
+(Laplacian) becomes identifiable only after an off-circle sample---the center
+robot---is added.
+
+\subsection{Robustness to Formation Error and the Centralization Coupling}
+\label{sec:robust}
+
+Let the realized positions be $r_{i}=r_{i}^{\circ}+\delta_{i}$, with $r_{i}^{\circ}$
+the nominal symmetric positions. The closed form \eqref{eq:K}--\eqref{eq:Hinv}
+forms $K$ from the realized $\bar r_{i}$ but inverts the \emph{ideal} operator
+$\mathcal{L}$. Under perturbation the moment cancellations of
+Section~\ref{sec:equiv} no longer hold: the gradient term re-appears and the
+operator is perturbed, $K=\mathcal{L}_{\delta}(H)+B(\nabla\sigma,\delta)+\Psi_H$,
+so that
+\begin{equation}
+\widehat{H}=H+\mathcal{L}^{-1}\!\big(\Delta\mathcal{L}(\delta)\,H+B(\nabla\sigma,\delta)\big)+\mathcal{O}(MD),
+\end{equation}
+a \emph{bias} of order $\norm{\delta}/D$ that has nonzero expectation and is not
+reduced by averaging over measurement-noise realizations. (Numerically, a
+zero-mean position jitter of standard deviation $0.08D$ produced errors of
+$\sim40\%$ in $H_{11}$ and $\sim65\%$ in $H_{12}$ on a pure quadratic field.)
+
+If, instead, the realized positions are \emph{known}, OLS uses the true Gram
+matrix $G(r)=\sum_{i}\phi(\bar r_{i})\phi(\bar r_{i})^{\!\top}$. For quadratic
+$\sigma$ then $\hat\theta=\theta$ exactly for \emph{any} non-degenerate
+configuration, and under i.i.d.\ measurement noise OLS is the best linear unbiased
+estimator (Gauss--Markov). Formation error degrades only the conditioning of
+$G(r)$ (curable by nondimensionalizing the basis columns by their natural powers
+of $D$), never introducing bias.
+
+Crucially, OLS does not require centralization. It depends on the data only
+through the additive sufficient statistics
+\begin{equation}
+A=\sum_{i}\phi(\bar r_{i})\phi(\bar r_{i})^{\!\top}\in\Sym^{6},
+\qquad b=\sum_{i}\phi(\bar r_{i})\,s_{i}\in\R^{6},
+\end{equation}
+each obtainable by average consensus over any connected communication graph with
+$\mathcal{O}(1)$ message size ($27$ scalars), after which every node solves the
+common $6\times6$ system locally. An unbiased estimate is thus available with no
+central node, provided each robot can form $\phi(\bar r_{i})$, i.e.\ knows its
+position in a shared frame.
+
+This exposes a coupling between the two assumptions. The closed form's distinctive
+advantage is that it uses the \emph{prescribed} role positions $r_{i}^{\circ}$
+rather than measured ones; but this is valid only when $\norm{\delta_{i}}$ is
+negligible, which itself requires relative localization and formation control of
+sufficient quality---precisely what decentralized OLS needs to populate
+$\phi(\bar r_{i})$. Consequently, an inability to centralize does not by itself
+favor the closed form: decentralized OLS already covers that case. What favors the
+closed form is the strictly narrower regime in which positions can be
+\emph{commanded} accurately but not \emph{measured} relatively (e.g.\ timed
+circular sweeps with known phase $\varphi_{i}(t)=\omega t$). Whenever localization
+is good enough to certify the symmetry the closed form assumes, it is good enough
+to run decentralized OLS, which is unbiased on the realized geometry.
+
+\subsection{Extension to Vector Fields: the Jacobian and its Determinant}
+\label{sec:jacobian}
+
+Let $F=(u,v):\R^{2}\to\R^{2}$ and $J=\nabla F=\!\begin{bsmallmatrix}u_{x}&u_{y}\\v_{x}&v_{y}\end{bsmallmatrix}$
+(in general nonsymmetric). Applying the scalar estimator of
+Section~\ref{sec:equiv} to each component shares the same design matrix $\Phi$, so
+the stacked system is block diagonal and inherits all of its properties. A full
+quadratic per component has $6$ coefficients; two components give $12$ unknowns,
+while each robot supplies the pair $(u_{i},v_{i})$, i.e.\ two equations. Hence
+\emph{six robots in general position exactly determine the quadratic vector field}
+(for quadratic $F$), yielding $J(c)$, the component Hessians (equivalently
+$\nabla J$), and therefore
+\begin{equation}
+\det J(c)=u_{x}v_{y}-u_{y}v_{x},
+\qquad
+\nabla\!\det J(c)\ \text{(by the product rule on }\nabla J).
+\end{equation}
+The pentagon-plus-center attains this minimum isotropically and in a single
+determined solve.
+
+The lower-order needs are smaller. The Jacobian $J(c)$ alone is first-order: a
+ring of $N\ge4$ recovers $\nabla u,\nabla v$ exactly via the gradient estimator
+(no center robot), hence $J(c)$ and $\det J(c)$. The minimum for a single
+determined plane fit of each component is $N=3$ (a triangle), which returns $J$ at
+the triangle \emph{centroid} with an $\mathcal{O}(D)$ curvature bias, since the
+plane-fit gradient is not the true gradient at the centroid for a curved field.
+
+At an equilibrium $F(c^{\star})=0$, the sign of $\det J(c^{\star})$ classifies the
+critical point ($\det J<0\Leftrightarrow$ saddle), while $\nabla\!\det J$ and the
+eigenstructure of $J$ govern the motion of $c^{\star}$ and the local separatrices.
+The six-robot pentagon-plus-center therefore supplies, in one determined solve,
+the quantities required to locate and track a moving saddle.
+
+Finally, an information bound bears on multi-point Jacobian estimation. $N$ robots
+provide exactly $2N$ scalar samples of $F$. Any set of Jacobian estimates at
+$k>1$ points obtained from \emph{overlapping} robot subsets are linear images of
+these same $2N$ samples and are therefore statistically correlated; treating them
+as independent---e.g.\ refitting over triple-centroids that share robots---
+understates their covariance and, for non-quadratic $F$, injects a
+model-dependent bias. Independent Jacobian estimates at $k$ points require
+disjoint subsets, hence $\ge 3k$ robots. The two-stage
+``plane-fit-then-fit-centroids'' pipeline is thus dominated by a single quadratic
+fit over the robots, which returns $J$ and $\nabla J$ at any interior point with a
+consistent covariance and no centroid bookkeeping.
+
+\subsection{Closed-Form Curvature of the Determinant Field}
+\label{sec:detcurv}
+
+The second-order structure of $\det J$ need not be estimated by a separate
+formation: it is fixed algebraically by the component fits of
+Section~\ref{sec:jacobian}. We make this precise and then delimit its domain of
+validity, since the distinction governs the required number of robots.
+
+Write the fitted components in the monomial basis
+$\{1,x,y,x^{2},xy,y^{2},x^{3},x^{2}y,xy^{2},y^{3}\}$ as $u=\sum_{k}a_{k}\phi_{k}$
+and $v=\sum_{k}b_{k}\phi_{k}$, so that $(a_{3},a_{4},a_{5})$ and
+$(b_{3},b_{4},b_{5})$ are the curvature (quadratic) coefficients and
+$(a_{6},\dots,a_{9})$, $(b_{6},\dots,b_{9})$ the cubic ones.
+
+\paragraph{Quadratic fit (six robots)}
+When the components are fit at degree two, every first derivative
+$u_{x},u_{y},v_{x},v_{y}$ is affine in $\bar r$; hence
+$\det J=u_{x}v_{y}-u_{y}v_{x}$, a product of affine functions, is exactly
+quadratic and its Hessian $H_{\det J}$ is \emph{constant} over the patch.
+Differentiating twice gives, in basis-free form,
+\begin{equation}
+\label{eq:detHquad}
+H_{\det J}=
+\begin{pmatrix}
+2\!\left(u_{xx}v_{xy}-u_{xy}v_{xx}\right) & u_{xx}v_{yy}-u_{yy}v_{xx}\\[3pt]
+u_{xx}v_{yy}-u_{yy}v_{xx} & 2\!\left(u_{xy}v_{yy}-u_{yy}v_{xy}\right)
+\end{pmatrix},
+\end{equation}
+or equivalently, in the fit coefficients,
+\begin{equation}
+\label{eq:detHminor}
+H_{\det J}=4
+\begin{pmatrix}
+\begin{vmatrix}a_{3}&a_{4}\\ b_{3}&b_{4}\end{vmatrix} &
+\begin{vmatrix}a_{3}&a_{5}\\ b_{3}&b_{5}\end{vmatrix}\\[10pt]
+\begin{vmatrix}a_{3}&a_{5}\\ b_{3}&b_{5}\end{vmatrix} &
+\begin{vmatrix}a_{4}&a_{5}\\ b_{4}&b_{5}\end{vmatrix}
+\end{pmatrix},
+\end{equation}
+the three entries being the maximal minors of the curvature-coefficient matrix
+$\left[\begin{smallmatrix}a_{3}&a_{4}&a_{5}\\ b_{3}&b_{4}&b_{5}\end{smallmatrix}\right]$.
+Thus $H_{\det J}$ depends \emph{only} on the second-order coefficients of $u$ and
+$v$; the gradient and constant terms cancel identically. The six-robot
+pentagon-plus-center of Section~\ref{sec:jacobian} therefore yields $H_{\det J}$ in
+closed form with no additional measurement.
+
+\paragraph{Redundancy of a second stage}
+Sampling $\det J$ at further interior points and refitting a quadratic recovers
+\eqref{eq:detHminor} \emph{exactly}---$\det J$ is already quadratic---so the extra
+stage contributes only round-off and, by the information bound of
+Section~\ref{sec:jacobian}, statistically correlated samples: each sampled value is
+a deterministic function of the same six measurements. The two-stage
+``plane-fit-then-fit-centroids'' pipeline is strictly dominated by direct
+differentiation of the component fit.
+
+\paragraph{The third-order obstruction}
+Identity \eqref{eq:detHquad} is exact \emph{for a quadratic field}, but a generic
+$C^{3}$ field is modeled only to second order by a six-robot fit. Differentiating
+$\det J$ twice \emph{without} truncation yields two groups of terms; for the
+$xx$ entry,
+\begin{equation}
+\label{eq:obstruction}
+\partial^{2}_{xx}\!\det J=
+\underbrace{2\!\left(u_{xx}v_{xy}-u_{xy}v_{xx}\right)}_{\text{curvature}\,\times\,\text{curvature}}
++\underbrace{\left(u_{xxx}v_{y}-v_{xxx}u_{y}\right)+\left(u_{x}v_{xxy}-v_{x}u_{xxy}\right)}_{\text{gradient}\,\times\,\text{third order}},
+\end{equation}
+and analogously for the other entries. A degree-two component fit sets all third
+derivatives to zero and so returns only the curvature$\times$curvature part; the
+omitted gradient$\times$third-order contribution is an $O(MD)$ bias that does not
+average out under measurement noise. Restoring it requires the third derivatives of
+$u$ and $v$, i.e.\ a degree-\emph{three} component fit: with $10$ coefficients per
+component ($20$ unknowns) and two measurements per robot, the minimal determined
+formation is $10$ robots. The full Hessian then reads, entrywise,
+\begin{align}
+\label{eq:detHcubic}
+(H_{\det J})_{xx}&=4\!\left(a_{3}b_{4}-a_{4}b_{3}\right)
++2\!\left(a_{1}b_{7}-3a_{2}b_{6}+3a_{6}b_{2}-a_{7}b_{1}\right),\\
+(H_{\det J})_{xy}&=4\!\left(a_{3}b_{5}-a_{5}b_{3}\right)
++2\!\left(a_{1}b_{8}-a_{2}b_{7}+a_{7}b_{2}-a_{8}b_{1}\right),\notag\\
+(H_{\det J})_{yy}&=4\!\left(a_{4}b_{5}-a_{5}b_{4}\right)
++2\!\left(3a_{1}b_{9}-a_{2}b_{8}+a_{8}b_{2}-3a_{9}b_{1}\right),\notag
+\end{align}
+where the first term of each line is the quadratic result \eqref{eq:detHminor} and
+the second is the cubic correction. (For cubic components $\det J$ is quartic, so
+its Hessian is no longer constant; \eqref{eq:detHcubic} is its value at the
+formation center.) Expression \eqref{eq:detHcubic} is exact whenever $u$ and $v$
+are cubic and is the leading-order estimate otherwise.
+
+\paragraph{Interpretation}
+$H_{\det J}$ is the curvature of the scalar field $\det J$, whose zero level set
+locates the degeneracies of the flow---the loci where $J$ becomes singular.
+Together with $\det J(c)$ and $\nabla\!\det J(c)$ it furnishes a second-order local
+model of that set, i.e.\ how the singular locus, and with it a tracked saddle and
+its separatrices, bends near the formation center. The resolution hierarchy is
+therefore: \emph{six} robots recover $J$, $\det J$, $\nabla\!\det J$, and the
+curvature$\times$curvature part of $H_{\det J}$; \emph{ten} robots add the
+third-order terms of \eqref{eq:detHcubic} and resolve $H_{\det J}$ in full.
+
+\subsection{Exactness of the Six-Robot Formation for Quadratic Fields}
+\label{sec:exact_quadratic}
+
+When the underlying vector field $F=(u,v)$ is strictly quadratic, the cubic and higher-order coefficients vanish identically. In this regime, the six-robot formation is not merely a second-order approximation, but is both necessary and sufficient to recover the curvature of the determinant field exactly.
+
+To see this, consider the components of $F$ expressed in the purely quadratic basis $\{1, x, y, x^2, xy, y^2\}$. Each component is governed by six coefficients, yielding $12$ unknowns in total. Because each robot supplies two equations via the measured pair $(u_i, v_i)$, a configuration of six robots in general position---such as the pentagon-plus-center---forms a precisely determined system that extracts these coefficients with zero truncation error.
+
+For a quadratic field, the first derivatives $u_x, u_y, v_x, v_y$ are strictly affine functions of the spatial coordinates. Consequently, the determinant $\det J = u_x v_y - u_y v_x$ is a product of affine functions, rendering it exactly quadratic. Its Hessian, $H_{\det J}$, is therefore a constant matrix over the entire domain.
+
+Because $\det J$ contains no terms of degree higher than two, its second derivative depends exclusively on the curvature (quadratic) coefficients of $u$ and $v$; all gradient and constant terms cancel identically upon the second differentiation. Furthermore, because the true field possesses no cubic terms, the gradient-times-third-order obstruction identified in \eqref{eq:obstruction} evaluates to strictly zero. Therefore, the six-robot quadratic fit bypasses the need for a larger ten-robot formation, yielding the exact, unbiased $H_{\det J}$ in a single determined solve.
+
+\end{document}

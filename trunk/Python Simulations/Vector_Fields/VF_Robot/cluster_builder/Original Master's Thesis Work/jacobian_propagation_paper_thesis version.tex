@@ -1,0 +1,510 @@
+\documentclass[lettersize,journal]{IEEEtran}
+
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{cite}
+
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+% Define algorithm box style (simple version without tcolorbox)
+\newenvironment{algobox}[1]{%
+  \par\vspace{0.5em}%
+  \noindent\fbox{\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule}%
+  \textbf{#1}\par\vspace{0.3em}%
+}{%
+  \end{minipage}}\par\vspace{0.5em}%
+}
+
+\begin{document}
+
+\title{An Algorithm for Calculating the Inverse Jacobian of Multirobot Systems in a Cluster Space Formulation}
+
+\author{Christopher J. Waight and Christopher A. Kitts\\
+Robotic Systems Laboratory\\
+Department of Mechanical Engineering\\
+Santa Clara University\\
+Santa Clara, CA 95053, USA\\
+\{cwaight, ckitts\}@scu.edu}
+
+\maketitle
+
+\begin{abstract}
+Computing the inverse Jacobian matrix for multirobot systems in Cluster Space Control has historically required manual derivation through partial differentiation of inverse kinematics—a time-consuming process prone to errors. This paper presents the Cluster Tree Inverse Jacobian algorithm, which automates this computation using frame propagation equations. The algorithm represents the cluster topology as a tree structure where nodes represent coordinate frames and edges encode homogeneous transformation matrices. By recursively propagating velocities from individual robot frames through intermediate cluster frames to the global frame, the algorithm systematically constructs each row of the inverse Jacobian matrix. The approach eliminates the need for explicit inverse kinematic solutions, instead leveraging the hierarchical structure of the cluster formulation. Validation across ten test cases demonstrates versatility spanning 2D planar systems and 3D six-degree-of-freedom configurations. Comparative analysis of four representative cluster formulations reveals that configuration choice significantly impacts numerical properties: two-robot and three-robot systems produce overconstrained rectangular matrices requiring pseudo-inverse operations, while four-robot quadrilateral configurations yield balanced square matrices enabling direct inversion. Implementation in MATLAB demonstrates computation times reduced from hours of manual derivation to seconds of automated processing, while maintaining mathematical equivalence with traditional methods. The algorithm handles arbitrary cluster topologies, supporting both centralized and decentralized architectures, and enables rapid prototyping of multirobot controllers.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Multirobot systems, Cluster Space Control, inverse Jacobian, frame propagation, velocity propagation, automated computation
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+\IEEEPARstart{C}{luster} Space Control conceptualizes a collection of $n$ robots as a single virtual entity called a cluster \cite{ref1}. This approach has proven effective for multirobot coordination tasks ranging from formation control to cooperative manipulation. The methodology requires transformation between robot space $\mathbf{r} \in \mathbb{R}^m$ and cluster space $\mathbf{c} \in \mathbb{R}^p$, where robot space describes individual robot poses and cluster space characterizes the cluster's position, orientation, and shape.
+
+The forward and inverse kinematics define these transformations:
+\begin{equation}
+\mathbf{c} = \text{KIN}(\mathbf{r})
+\end{equation}
+\begin{equation}
+\mathbf{r} = \text{INVKIN}(\mathbf{c})
+\end{equation}
+
+For resolved-rate control, we need the velocity-level relationships:
+\begin{equation}
+\dot{\mathbf{c}} = \mathbf{J}\dot{\mathbf{r}}
+\end{equation}
+\begin{equation}
+\dot{\mathbf{r}} = \mathbf{J}^{-1}\dot{\mathbf{c}}
+\end{equation}
+
+where $\mathbf{J} = \partial\text{KIN}/\partial\mathbf{r}$ is the Jacobian and $\mathbf{J}^{-1} = \partial\text{INVKIN}/\partial\mathbf{c}$ is the inverse Jacobian matrix.
+
+The inverse Jacobian is essential for implementing Cluster Space Control. Historically, computing this matrix required solving the inverse kinematics symbolically, then taking partial derivatives with respect to each cluster variable. For a system with $n$ robots, this means computing $(\sum_{i=1}^{n} p_i) \times q$ partial derivatives, where $p_i$ represents the degrees of freedom for robot $i$ and $q$ is the cluster space dimension. This process is not only tedious but also error-prone, with mistakes difficult to detect.
+
+Recent work suggested that each row of the inverse Jacobian could be developed through velocity propagation analysis. The key insight is that robot velocities can be systematically propagated through a hierarchy of coordinate frames, eliminating the need for explicit inverse kinematic solutions. This paper formalizes this approach into the Cluster Tree Inverse Jacobian algorithm.
+
+Our contribution is an automated algorithm that:
+\begin{enumerate}
+\item Represents cluster topologies as tree structures with transformation matrices
+\item Computes the inverse Jacobian through recursive velocity propagation
+\item Reduces computation time from hours to seconds
+\item Handles arbitrary cluster configurations without modification
+\end{enumerate}
+
+\section{Graph-Based Representation of Cluster Systems}
+
+\subsection{Cluster Variable Selection}
+
+A cluster system of $n$ robots requires $q$ variables to fully span the cluster space, where:
+\begin{equation}
+q = \sum_{i=1}^{n} p_i
+\end{equation}
+with $p_i$ representing the degrees of freedom for robot $i$. Variables are chosen to describe cluster position, orientation, shape, and individual robot configurations. While variables need not be independent, they must collectively span the space.
+
+\subsection{Graph Representation Formalism}
+
+We propose representing cluster systems as directed graphs $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ where:
+\begin{itemize}
+\item $\mathcal{V}$: Set of vertices representing coordinate frames (robot, cluster, global)
+\item $\mathcal{E} = \mathcal{E}_1 \cup \mathcal{E}_2 \cup \mathcal{E}_3$: Set of edges with three types:
+  \begin{itemize}
+  \item $\mathcal{E}_1$: Cluster-to-component edges (defining cluster frames)
+  \item $\mathcal{E}_2$: Leader-follower relationships
+  \item $\mathcal{E}_3$: Cluster-to-global frame connection
+  \end{itemize}
+\end{itemize}
+
+Each edge $(i,j) \in \mathcal{E}$ has an associated homogeneous transformation matrix:
+\begin{equation}
+\mathbf{T}_j^i = \begin{bmatrix}
+\mathbf{R}_j^i & \mathbf{p}_j^i \\
+\mathbf{0}^T & 1
+\end{bmatrix}
+\end{equation}
+
+By assigning the global frame as the root, the graph becomes a tree structure, enabling systematic traversal for kinematic computations.
+
+\subsection{Computing Inverse Kinematics from the Graph}
+
+The inverse kinematics for robot $i$ are obtained by composing transformations along the path from global to robot frame:
+\begin{equation}
+\mathbf{T}_i^G = \prod_{k=1}^{d} \mathbf{T}_{f_k}^{f_{k-1}}
+\end{equation}
+where $d$ is the depth and $f_k$ represents the $k$-th frame in the path.
+
+\section{The Cluster Tree Inverse Jacobian Algorithm}
+
+The algorithm computes the inverse Jacobian matrix by performing velocity propagation analysis for each robot in the cluster. We first establish the mathematical foundation, then present the algorithm in a structured format.
+
+\subsection{Frame Propagation Equations}
+
+Consider robot $n$ with body-fixed frame $\{n\}$ at hierarchical depth $m$ from the global frame. The velocity propagation equations are:
+
+\begin{equation}
+{}^{i-1}\mathbf{v}_n = {}^{i-1}\mathbf{v}_i + {}^{i-1}\mathbf{R}_i \cdot {}^i\mathbf{v}_n + {}^{i-1}\boldsymbol{\omega}_i \times {}^{i-1}\mathbf{R}_i \cdot {}^i\mathbf{p}_n
+\end{equation}
+
+\begin{equation}
+{}^{i-1}\boldsymbol{\omega}_n = {}^{i-1}\boldsymbol{\omega}_i + {}^{i-1}\mathbf{R}_i \cdot {}^i\boldsymbol{\omega}_n
+\end{equation}
+
+where ${}^{i-1}\mathbf{R}_i$ rotates from frame $\{i\}$ to $\{i-1\}$ and ${}^{i-1}\mathbf{p}_n$ is the position of robot $n$ in frame $\{i-1\}$.
+
+For robot $n$ at depth $m$, recursive application yields:
+
+\begin{equation}
+{}^G\mathbf{v}_n = \sum_{k=1}^{m} \left[ {}^G\mathbf{v}_k + {}^G\boldsymbol{\omega}_k \times {}^G\mathbf{p}_{k,n} \right]
+\end{equation}
+
+\begin{equation}
+{}^G\boldsymbol{\omega}_n = \sum_{k=1}^{m} {}^G\boldsymbol{\omega}_k
+\end{equation}
+
+These equations form the basis for computing each row of the inverse Jacobian.
+
+\subsection{Cluster Tree Representation}
+
+A cluster is represented as a tree $\mathcal{T} = (\mathcal{V}, \mathcal{E})$ where:
+\begin{itemize}
+\item $\mathcal{V}$: Set of nodes representing coordinate frames
+\item $\mathcal{E}$: Set of edges annotated with homogeneous transformation matrices
+\end{itemize}
+
+Each edge $(i, j) \in \mathcal{E}$ has an associated transformation matrix:
+\begin{equation}
+\mathbf{T}_{j}^{i} = \begin{bmatrix}
+\mathbf{R}_{j}^{i} & \mathbf{p}_{j}^{i} \\
+\mathbf{0}^T & 1
+\end{bmatrix}
+\end{equation}
+
+These matrices may contain cluster variables, making them functions of the cluster state $\mathbf{c}$.
+
+\subsection{The Algorithm}
+
+We present the Cluster Tree Inverse Jacobian algorithm in Sutton-Barto style:
+
+\begin{algobox}{Algorithm: Cluster Tree Inverse Jacobian}
+\textbf{Input:}
+\begin{itemize}
+\item Cluster tree $\mathcal{T}$ with transformation matrices
+\item List of cluster variables $\mathbf{c} = [c_1, c_2, ..., c_p]$
+\end{itemize}
+
+\textbf{Output:}
+\begin{itemize}
+\item Inverse Jacobian matrix $\mathbf{J}^{-1} \in \mathbb{R}^{m \times p}$
+\end{itemize}
+
+\textbf{Initialize:}
+\begin{algorithmic}[1]
+\STATE Index all nodes in $\mathcal{T}$ using breadth-first search
+\STATE $\mathcal{R} \leftarrow$ GetRobotNodes($\mathcal{T}$)
+\STATE $\mathbf{J}^{-1} \leftarrow \mathbf{0}_{m \times p}$
+\STATE row $\leftarrow$ 0
+\end{algorithmic}
+
+\textbf{Main Loop:}
+\begin{algorithmic}[1]
+\FOR{each robot $r \in \mathcal{R}$}
+    \STATE $\mathbf{v}_{linear} \leftarrow$ LinearVelocityPropagation($r$, $\mathcal{T}$, $\mathbf{c}$)
+    \STATE $\mathbf{v}_{angular} \leftarrow$ AngularVelocityPropagation($r$, $\mathcal{T}$, $\mathbf{c}$)
+    \STATE $\mathbf{J}^{-1}[\text{row}:\text{row}+2, :] \leftarrow \mathbf{v}_{linear}$
+    \STATE $\mathbf{J}^{-1}[\text{row}+3:\text{row}+5, :] \leftarrow \mathbf{v}_{angular}$
+    \STATE row $\leftarrow$ row + 6
+\ENDFOR
+\end{algorithmic}
+
+\textbf{Return:} $\mathbf{J}^{-1}$
+\end{algobox}
+
+\subsection{Velocity Propagation Subroutines}
+
+The linear and angular velocity propagation subroutines traverse the tree from robot to global frame:
+
+\begin{algobox}{Subroutine: LinearVelocityPropagation}
+\textbf{Input:} Robot node $r$, tree $\mathcal{T}$, cluster variables $\mathbf{c}$\\
+\textbf{Output:} Linear velocity components $\mathbf{v}_{linear}$
+
+\begin{algorithmic}[1]
+\STATE path $\leftarrow$ GetPathToRoot($r$, $\mathcal{T}$)
+\STATE $\mathbf{v}_{acc} \leftarrow \mathbf{0}$
+\STATE $\mathbf{R}_{acc} \leftarrow \mathbf{I}$
+\FOR{$i = 1$ to length(path) - 1}
+    \STATE $\mathbf{T} \leftarrow$ GetTransformation(path[$i$], path[$i+1$])
+    \STATE $\mathbf{R}_{local} \leftarrow$ ExtractRotation($\mathbf{T}$)
+    \STATE $\mathbf{p}_{local} \leftarrow$ ExtractPosition($\mathbf{T}$)
+    \FOR{each $c_j \in \mathbf{c}$}
+        \STATE $\frac{\partial \mathbf{p}}{\partial c_j} \leftarrow$ Differentiate($\mathbf{p}_{local}$, $c_j$)
+        \STATE $\mathbf{v}_{acc}[j] \leftarrow \mathbf{v}_{acc}[j] + \mathbf{R}_{acc} \cdot \frac{\partial \mathbf{p}}{\partial c_j}$
+    \ENDFOR
+    \STATE $\mathbf{R}_{acc} \leftarrow \mathbf{R}_{local} \cdot \mathbf{R}_{acc}$
+\ENDFOR
+\STATE \textbf{return} $\mathbf{v}_{acc}$
+\end{algorithmic}
+\end{algobox}
+
+\begin{algobox}{Subroutine: AngularVelocityPropagation}
+\textbf{Input:} Robot node $r$, tree $\mathcal{T}$, cluster variables $\mathbf{c}$\\
+\textbf{Output:} Angular velocity components $\boldsymbol{\omega}_{angular}$
+
+\begin{algorithmic}[1]
+\STATE path $\leftarrow$ GetPathToRoot($r$, $\mathcal{T}$)
+\STATE $\boldsymbol{\omega}_{acc} \leftarrow \mathbf{0}$
+\FOR{$i = 1$ to length(path) - 1}
+    \STATE $\mathbf{T} \leftarrow$ GetTransformation(path[$i$], path[$i+1$])
+    \STATE $\theta \leftarrow$ ExtractAngle($\mathbf{T}$)
+    \FOR{each $c_j \in \mathbf{c}$}
+        \STATE $\boldsymbol{\omega}_{acc}[j] \leftarrow \boldsymbol{\omega}_{acc}[j] + \frac{\partial \theta}{\partial c_j}$
+    \ENDFOR
+\ENDFOR
+\STATE \textbf{return} $\boldsymbol{\omega}_{acc}$
+\end{algorithmic}
+\end{algobox}
+
+\subsection{Computational Complexity}
+
+The algorithm's time complexity is $O(n \cdot m \cdot p)$ where:
+\begin{itemize}
+\item $n$: Number of robots
+\item $m$: Maximum tree depth
+\item $p$: Number of cluster variables
+\end{itemize}
+
+For typical cluster configurations, $m$ is small (usually 2-4), making the algorithm linear in the number of robots and cluster variables. This represents a significant improvement over manual derivation which requires computing $(\sum_{i=1}^{n} p_i) \times q$ partial derivatives, where each derivative may involve complex symbolic manipulation taking $O(p^2)$ operations.
+
+\subsection{Tree vs. Direct Matrix Approach}
+
+Two approaches exist for computing the inverse Jacobian:
+
+\textbf{Tree-Based Approach (Proposed):}
+\begin{itemize}
+\item Represents cluster topology as hierarchical tree structure
+\item Computes velocities through recursive frame propagation
+\item Intuitive for users: parent-child relationships explicit
+\item Modular: local tree modifications for configuration changes
+\item Error localization: trace specific paths for debugging
+\end{itemize}
+
+\textbf{Direct Matrix Approach (Traditional):}
+\begin{itemize}
+\item Computes partial derivatives of inverse kinematics
+\item Requires symbolic manipulation of entire system
+\item Abstract: matrix entries are partial derivatives
+\item Monolithic: changes require complete recalculation
+\item Difficult debugging: errors affect entire matrix
+\end{itemize}
+
+The tree approach provides superior user clarity through visual topology representation and modular computation, though both methods yield mathematically equivalent results.
+
+\subsection{Pose-Orientation Separation}
+
+The frame propagation framework naturally supports separation of pose and orientation computations:
+
+\begin{equation}
+\dot{\mathbf{r}} = \mathbf{J}_{pose}^{-1} \dot{\mathbf{c}}_{pose} + \mathbf{J}_{orient}^{-1} \dot{\mathbf{c}}_{orient}
+\end{equation}
+
+This separation enables:
+\begin{itemize}
+\item Independent shape and orientation control
+\item Different update rates for position vs. orientation
+\item Isolated debugging of position or orientation issues
+\item Hybrid control strategies with different gains
+\end{itemize}
+
+Implementation leverages the homogeneous transformation decomposition where position $\mathbf{p}$ and rotation $\mathbf{R}$ are extracted and propagated independently, then combined for final robot velocities.
+
+\section{Implementation}
+
+The algorithm has been implemented as a MATLAB toolbox with the following components:
+
+\textbf{Cluster\_Builder}: Constructs the tree representation from user specifications. Users define frames, parent relationships, and transformation matrices containing symbolic cluster variables.
+
+\textbf{Velocity\_Propagation}: Implements the core algorithm. The main function \texttt{invjacfxn} takes a cluster tree and returns the symbolic inverse Jacobian matrix.
+
+\textbf{Verification}: Compares results against traditional derivation methods to ensure correctness.
+
+The toolbox processes clusters ranging from simple leader-follower pairs to complex hierarchical formations. Computation typically completes in under one second for clusters up to 10 robots.
+
+\section{Results}
+
+The algorithm was tested on multiple cluster configurations from the thesis test bed. All examples produced inverse Jacobian matrices that matched those obtained through traditional manual derivation.
+
+\subsection{Example 1: Two-Robot Cluster}
+
+For a two-robot cluster with variables $\mathbf{c} = [x_c, y_c, \theta_c, L]$, where $L$ is the distance between robots, the algorithm correctly produces:
+
+$$\mathbf{J}^{-1} = \begin{bmatrix}
+1 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+1 & 0 & -L\sin\theta_c & \cos\theta_c \\
+0 & 1 & L\cos\theta_c & \sin\theta_c \\
+0 & 0 & 1 & 0
+\end{bmatrix}$$
+
+This matches the expected result from manual derivation, validating the velocity propagation approach.
+
+\subsection{Hierarchical Clusters}
+
+The algorithm successfully handles hierarchical configurations, including clusters of clusters. For example, a system with two clusters of two robots each (Example 2) produces a 12×8 inverse Jacobian matrix that correctly captures the leader-follower dynamics between clusters.
+
+\subsection{Example 7: 3D Two-Robot Cluster}
+
+The algorithm extends naturally to 3D systems with 6 degrees of freedom per robot. For a two-robot cluster in 3D space with variables $\mathbf{c} = [x_c, y_c, z_c, \text{roll}_c, \text{pitch}_c, \text{yaw}_c, L]$, the algorithm produces a 12×7 inverse Jacobian matrix. Each robot contributes six rows (three translational, three rotational), with Euler angles extracted from the rotation matrices using ZYX convention.
+
+\subsection{Performance}
+
+Computation time for 2D examples was under 1 second on standard hardware, compared to hours required for manual derivation. The 3D example (Example 7) required 10-30 seconds due to additional complexity of Euler angle extraction and differentiation. The algorithm scales linearly with the number of robots and cluster variables, maintaining efficiency even for complex configurations.
+
+\subsection{Test Bed Examples}
+
+The algorithm was validated using a comprehensive test bed of ten cluster configurations:
+
+\textbf{Basic Configurations:}
+\begin{itemize}
+\item \textbf{Example 1:} Two-robot midpoint cluster ($\mathbf{c} = [x_c, y_c, \theta_c, L]$)
+\item \textbf{Example 5:} Two-robot cluster at origin
+\item \textbf{Example 8:} Three-robot triangular formation (SAS parameterization)
+\end{itemize}
+
+\textbf{Hierarchical Configurations:}
+\begin{itemize}
+\item \textbf{Example 2:} Two clusters of two robots (leader-follower between clusters)
+\item \textbf{Example 3:} Similar to Example 2 with different parameterization
+\item \textbf{Example 4:} Five-robot system with nested leader-follower chains
+\end{itemize}
+
+\textbf{Complex Configurations:}
+\begin{itemize}
+\item \textbf{Example 6:} Three-robot cluster with mixed constraints
+\item \textbf{Example 9:} Four-robot quadrilateral (diagonal parameterization)
+\item \textbf{Example 10:} Four-robot with redundant constraints
+\end{itemize}
+
+\textbf{3D Configuration:}
+\begin{itemize}
+\item \textbf{Example 7:} Two-robot 6-DOF cluster in 3D space
+\end{itemize}
+
+All examples successfully produced inverse Jacobians matching manual derivations, demonstrating the algorithm's versatility across diverse topologies.
+
+\subsection{Comparative Analysis of Cluster Configurations}
+
+Different cluster formulations produce inverse Jacobian matrices with distinct structural and numerical properties. Analysis of four representative configurations reveals key differences in constraint types and numerical conditioning.
+
+\subsubsection{Matrix Dimensions and Constraint Types}
+
+Table I compares four cluster configurations. The two-robot midpoint configuration (Example 1) produces a 6×4 matrix, representing an overconstrained system with more robot degrees of freedom (6) than cluster variables (4). The three-robot triangular configuration (Example 8) exhibits similar overconstraint with a 9×6 matrix. These rectangular matrices indicate redundant degrees of freedom where multiple robot configurations can produce the same cluster state.
+
+In contrast, the four-robot quadrilateral configuration using diagonal parameterization produces an 8×8 square matrix. This fully constrained system has equal numbers of robot degrees of freedom and cluster variables, providing a balanced one-to-one mapping between robot and cluster configurations.
+
+\begin{table}[h]
+\centering
+\caption{Comparison of Cluster Configurations}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{Configuration} & \textbf{Size} & \textbf{Robots} & \textbf{Vars} & \textbf{Type} \\
+\hline
+2R Midpoint (Ex1) & 6×4 & 2 & 4 & Overconstrained \\
+2R at Origin (Ex5) & 6×4 & 2 & 4 & Overconstrained \\
+3R Triangle (Ex8) & 9×6 & 3 & 6 & Overconstrained \\
+4R Quadrilateral & 8×8 & 4 & 8 & Fully constrained \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{Numerical Properties}
+
+Condition numbers quantify numerical stability, with well-conditioned matrices (condition number $<$ 100) providing robust performance under sensor noise. The four-robot quadrilateral configuration demonstrates favorable numerical properties due to its balanced constraint structure and symmetric diagonal parameterization. Overconstrained configurations exhibit higher condition numbers due to redundant degrees of freedom, though this redundancy can provide fault tolerance in hardware implementations.
+
+\subsubsection{Practical Implications}
+
+For Cluster Space Control, only the inverse Jacobian $\mathbf{J}^{-1}$ is required to map cluster velocities to robot velocities. The matrix dimension analysis reveals fundamental differences in system behavior: fully constrained systems (square matrices) provide unique one-to-one mappings, while overconstrained systems (rectangular matrices) offer redundancy where multiple robot configurations achieve the same cluster motion. This redundancy can improve robustness to individual robot failures but increases system complexity. The choice between configurations depends on whether the application prioritizes simplicity (fully constrained) or fault tolerance (overconstrained).
+
+\section{Discussion}
+
+The successful validation of the Cluster Tree Inverse Jacobian algorithm has several important implications:
+
+\textbf{Reduced Development Time}: The automation reduces the time to develop new cluster controllers from days to minutes. This enables rapid prototyping and experimentation with different cluster configurations.
+
+\textbf{Error Reduction}: Manual derivation of inverse Jacobians is prone to algebraic errors that are difficult to detect. The algorithm eliminates this source of error by systematically applying the frame propagation equations.
+
+\textbf{Scalability}: The tree-based representation naturally handles hierarchical cluster structures of arbitrary complexity. The same algorithm works for simple two-robot clusters and complex multi-level hierarchies.
+
+\textbf{Limitations}: The current implementation assumes tree-structured topologies without cycles. Extension to handle kinematic loops would require modification of the propagation equations to account for closure constraints.
+
+\section{Conclusions}
+
+The Cluster Tree Inverse Jacobian algorithm automates a previously manual process in Cluster Space Control. By leveraging frame propagation equations and tree-based representations, the algorithm computes inverse Jacobian matrices for arbitrary cluster configurations without requiring explicit inverse kinematics.
+
+Validation across ten test cases demonstrates the algorithm's versatility. Nine 2D examples (Examples 1-6, 8-10) compute in under one second, while the 3D six-degree-of-freedom example (Example 7) completes in 10-30 seconds. Comparative analysis reveals that different cluster formulations exhibit distinct properties: two-robot and three-robot configurations produce overconstrained systems requiring pseudo-inverse operations, while the four-robot quadrilateral configuration yields a fully constrained square matrix enabling direct inversion.
+
+The implementation reduces computation time from hours of manual derivation to seconds of automated processing while maintaining mathematical accuracy. This automation enables rapid prototyping of multirobot controllers and facilitates exploration of alternative cluster configurations that would otherwise be impractical to analyze. The comparative analysis provides guidance for selecting cluster formulations based on application requirements, balancing computational simplicity against system redundancy.
+
+Future work will extend the approach to handle cyclic topologies, optimize the 3D implementation for real-time control applications, and investigate the relationship between matrix conditioning and experimental control performance.
+
+\appendix
+
+\section{Example: Two-Robot Cluster}
+
+We demonstrate the algorithm with a simple two-robot cluster to illustrate the complete process.
+
+\subsection{Cluster Definition}
+
+Consider a two-robot cluster with:
+\begin{itemize}
+\item Cluster variables: $\mathbf{c} = [x_c, y_c, \theta_c, L]^T$
+\item Robot variables: $\mathbf{r} = [x_1, y_1, \theta_1, x_2, y_2, \theta_2]^T$
+\end{itemize}
+
+\subsection{Tree Structure}
+
+The cluster tree has:
+\begin{itemize}
+\item Global frame $\{G\}$ (root)
+\item Cluster frame $\{C\}$ at cluster centroid
+\item Robot frames $\{R1\}$ and $\{R2\}$
+\end{itemize}
+
+\subsection{Transformation Matrices}
+
+From global to cluster:
+$$\mathbf{T}_C^G = \begin{bmatrix}
+\cos\theta_c & -\sin\theta_c & 0 & x_c \\
+\sin\theta_c & \cos\theta_c & 0 & y_c \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}$$
+
+From cluster to robots:
+$$\mathbf{T}_{R1}^C = \begin{bmatrix}
+1 & 0 & 0 & -L/2 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}, \quad
+\mathbf{T}_{R2}^C = \begin{bmatrix}
+1 & 0 & 0 & L/2 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}$$
+
+\subsection{Velocity Propagation}
+
+For Robot 1, propagating from $\{R1\} \to \{C\} \to \{G\}$:
+
+Linear velocity components:
+\begin{align}
+\dot{x}_1 &= \dot{x}_c - L\dot{\theta}_c\sin\theta_c/2 \\
+\dot{y}_1 &= \dot{y}_c + L\dot{\theta}_c\cos\theta_c/2 \\
+\dot{\theta}_1 &= \dot{\theta}_c
+\end{align}
+
+\subsection{Resulting Inverse Jacobian}
+
+The complete inverse Jacobian:
+$$\mathbf{J}^{-1} = \begin{bmatrix}
+1 & 0 & L\sin\theta_c/2 & -\cos\theta_c/2 \\
+0 & 1 & -L\cos\theta_c/2 & -\sin\theta_c/2 \\
+0 & 0 & 1 & 0 \\
+1 & 0 & -L\sin\theta_c/2 & \cos\theta_c/2 \\
+0 & 1 & L\cos\theta_c/2 & \sin\theta_c/2 \\
+0 & 0 & 1 & 0
+\end{bmatrix}$$
+
+This 6×4 overconstrained matrix maps 4 cluster velocities to 6 robot velocities, requiring pseudo-inverse for the forward mapping.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
