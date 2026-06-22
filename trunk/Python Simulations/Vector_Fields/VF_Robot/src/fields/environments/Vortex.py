@@ -1,95 +1,59 @@
+"""
+Vortex vector fields.
+
+All three variants (vortex1, vortex2, vortex3) have a nominal center at
+(0, 0). When loaded with config/fields/vortex.yaml (eps > 0), the center
+wobbles in time:
+    x_cp(t) = eps * cos(omega * t)
+    y_cp(t) = eps * sin(omega * t)
+With eps=0 (default) the center is fixed at the origin and the output
+matches the original steady form.
+"""
 import numpy as np
-import matplotlib.pyplot as plt
 
-def vortex1(x, y,):
 
-    center_x = 0
-    center_y = 0
-    # Calculate radius and angle
-    r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10  # small epsilon to prevent divide-by-zero
+_DEFAULT_EPS   = 0.0
+_DEFAULT_OMEGA = 0.628318530717958   # 2*pi/10
+
+
+def _wobble_center(t, config):
+    """Return (x_center, y_center) at time t for the nominal-origin fields."""
+    cfg   = config or {}
+    eps   = cfg.get("eps",   _DEFAULT_EPS)
+    omega = cfg.get("omega", _DEFAULT_OMEGA)
+    return eps * np.cos(omega * t), eps * np.sin(omega * t)
+
+
+def vortex1(x, y, t=0.0, config=None):
+    center_x, center_y = _wobble_center(t, config)
+    r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10
     theta = np.arctan2(y - center_y, x - center_x)
-    
-    # Adjusting field components to create a "spinning plate" effect
-    u = -r * np.sin(theta) #/ r
-    v = r * np.cos(theta) #/ r
+
+    u = -r * np.sin(theta)
+    v =  r * np.cos(theta)
     return u, v
 
-    
-x = np.linspace(-5, 5, 20)
-y = np.linspace(-5, 5, 20)
-X, Y = np.meshgrid(x, y)
 
-
-
-def vortex2(x, y,):
-
-    center_x = 0
-    center_y = 0
-    # Calculate radius and angle
-    r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10  # small epsilon to prevent divide-by-zero
+def vortex2(x, y, t=0.0, config=None):
+    center_x, center_y = _wobble_center(t, config)
+    r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10
     theta = np.arctan2(y - center_y, x - center_x)
-    
-    # Adjusting field components to create a "spinning plate" effect
-    u =  np.sin(theta) #/ r
-    v =-np.cos(theta) #/ r
+
+    u =  np.sin(theta)
+    v = -np.cos(theta)
     return u, v
 
-    
-x = np.linspace(-5, 5, 20)
-y = np.linspace(-5, 5, 20)
-X, Y = np.meshgrid(x, y)
 
-
-# Calculate the vector field
-U, V = vortex2(X, Y)
-
-def vortex3(x, y,):
-
-    center_x = 0
-    center_y = 0
-    # Calculate radius and angle
-    r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10  # small epsilon to prevent divide-by-zero
+def vortex3(x, y, t=0.0, config=None):
+    center_x, center_y = _wobble_center(t, config)
+    r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10
     theta = np.arctan2(y - center_y, x - center_x)
-    
-    # Adjusting field components to create a "spinning plate" effect
+
     u =  np.sin(theta) / r
-    v =-np.cos(theta) / r
+    v = -np.cos(theta) / r
     return u, v
 
-    
-# x = np.linspace(-5, 5, 20)
-# y = np.linspace(-5, 5, 20)
-# X, Y = np.meshgrid(x, y)
 
-
-# # Calculate the vector field
-# U, V = vortex3(X, Y)
-
-
-# # Create the plot
-# fig, ax = plt.subplots(figsize=(10, 8))
-
-# # Plot the vector field using quiver
-# ax.quiver(X, Y, U, V, color='blue', alpha=0.6)
-
-# # Add streamlines for better visualization
-# ax.streamplot(X, Y, U, V, color='red', linewidth=1, density=1.5)
-
-# # Mark the sink center
-# ax.plot(0, 0, 'ko', markersize=8, label='Sink Center')
-
-# # Set equal aspect ratio and add grid
-# ax.set_aspect('equal')
-# ax.grid(True, alpha=0.3)
-
-# # Labels and title
-# ax.set_xlabel('x')
-# ax.set_ylabel('y')
-# ax.set_title('Sink Vector Field')
-# ax.legend()
-
-# # Set axis limits
-# ax.set_xlim(-5, 5)
-# ax.set_ylim(-5, 5)
-
-# plt.show()
+vortex1.config_name = "vortex"
+vortex2.config_name = "vortex"
+vortex3.config_name = "vortex"

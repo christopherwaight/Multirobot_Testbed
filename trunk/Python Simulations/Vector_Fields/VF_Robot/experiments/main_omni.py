@@ -18,6 +18,7 @@ import src.control.primitives as ocp
 import src.control.quad_primitives as qcp
 from src.simulation.runner import execute_omni_simulation
 from src.simulation.velocity_plotter import plot_robot_velocities
+from src.simulation.center_estimation_plotter import plot_center_estimation
 
 # ============================================================================
 # CONFIGURATION SECTION
@@ -39,22 +40,25 @@ FIELD_MODE = "analytical"  # Options: "analytical", "nn", "rbf", "blended"
 RBF_WEIGHT = 0.9  # Blending weight (0.9 = 90% RBF, 10% NN)
 
 # --- Environment Selection ---
-ENVIRONMENT = "vortex1"  # See environment_map below
+ENVIRONMENT =  "bimodal1" #"bimodal1" #"saddle_scalar1" #"bimodal1" #"vortex1" #"bowl1" #"vortex1"  # See environment_map below
 
 # --- Formation Configuration ---
 # For 3 robots:
 FORMATION_CONFIG_3 = "config/formations/equilateral_default.yaml"
 # For 4 robots:
-FORMATION_CONFIG_4 = "config/formations/quad_rectangle.yaml"
+FORMATION_CONFIG_4 = "config/formations/quad_square.yaml"
+
+#quad_square_default.yaml
 
 # Active formation config (set based on NUM_ROBOTS)
 FORMATION_CONFIG = FORMATION_CONFIG_3 if NUM_ROBOTS == 3 else FORMATION_CONFIG_4
 
+
 # --- Control Primitive Selection ---
 # For 3 robots:
-CONTROL_PRIMITIVE_3 = "critical_point_plane_fitting"
+CONTROL_PRIMITIVE_3 = "critical_point_plane_fitting" #"scalar_gradient_descent" #"critical_point_plane_fitting"
 # For 4 robots:
-CONTROL_PRIMITIVE_4 = "center_orbiter_quad"
+CONTROL_PRIMITIVE_4 = "scalar_newton_rotation" #"dual_jacobian_center_finder_advanced"
 
 # Active control primitive (set based on NUM_ROBOTS)
 CONTROL_PRIMITIVE = CONTROL_PRIMITIVE_3 if NUM_ROBOTS == 3 else CONTROL_PRIMITIVE_4
@@ -90,8 +94,20 @@ ENVIRONMENT_TO_PREDICTOR = {
     # Environments without ML models will automatically fall back to analytical
 }
 
+# --- Field-center wobble ---
+# Deterministic perturbation of the critical-point location (not sensor noise).
+# The center traces a circle of radius NOISE_EPS at angular frequency NOISE_OMEGA.
+# Modes:
+#   "none"           - steady field, eps=0 (default, original behavior)
+#   "initial"        - center offset by (NOISE_EPS, 0) for the entire run (t frozen at 0)
+#   "time_dependent" - center orbits (eps*cos(omega*t), eps*sin(omega*t)) each step
+# Only affects AnalyticalField and AnalyticalScalarField; NN/RBF/Blended are unaffected.
+NOISE_MODE  = "none"               # "none" | "initial" | "time_dependent"
+NOISE_EPS   = 0.0                  # wobble radius in world units (meters)
+NOISE_OMEGA = 0.628318530717958    # rad/s, default period = 10 seconds
+
 # --- Visualization Options ---
-FIGURE_SIZE = (12, 12)
+FIGURE_SIZE = (8, 18)
 SAVE_FIGURE = False
 OUTPUT_FILENAME = "simulation_output.png"
 
@@ -99,17 +115,29 @@ OUTPUT_FILENAME = "simulation_output.png"
 SAVE_VELOCITY_PLOTS = True  # Save velocity plots for multi_env mode
 VELOCITY_PLOT_DIR = "velocity_plots"  # Directory to save velocity plots
 
+# --- Center Estimation Plotting Options ---
+SAVE_CENTER_ESTIMATION_PLOTS = True  # Save center estimation plots (single mode only)
+CENTER_ESTIMATION_PLOT_DIR = "center_estimation_plots"  # Directory to save center estimation plots
+
 # ============================================================================
 # ENVIRONMENT SETUP
 # ============================================================================
 
-# Import all environment functions
+# Import all environment functions - VECTOR FIELDS
 from src.fields.environments.Sink import sink1, sink2, sink3
 from src.fields.environments.Source import source1, source2, source3
 from src.fields.environments.Vortex import vortex1, vortex2, vortex3
 from src.fields.environments.Sinking_Vortex import sinking_vortex1, sinking_vortex2, sinking_vortex3
 from src.fields.environments.Spewing_Vortex import spewing_vortex1, spewing_vortex2, spewing_vortex3
 from src.fields.environments.Saddle import saddle1, saddle2, saddle3
+from src.fields.environments.Double_Gyre import double_gyre_static
+
+# Import scalar field types and environments - SCALAR FIELDS
+from src.fields.field_types import AnalyticalScalarField
+from src.fields.environments.Scalar_Fields import (
+    bimodal_gaussian, quadratic_bowl, quadratic_peak,
+    hyperbolic_saddle, rosenbrock, himmelblau
+)
 
 # Environment mapping
 environment_map = {
@@ -131,6 +159,15 @@ environment_map = {
     "saddle1": (saddle1, "Saddle 1"),
     "saddle2": (saddle2, "Saddle 2"),
     "saddle3": (saddle3, "Saddle 3"),
+    "double_gyre1": (double_gyre_static, "Double Gyre Static"),
+
+    # Scalar fields
+    "bimodal1": (bimodal_gaussian, "Bimodal Gaussian (Scalar)"),
+    "bowl1": (quadratic_bowl, "Quadratic Bowl (Scalar)"),
+    "peak1": (quadratic_peak, "Quadratic Peak (Scalar)"),
+    "saddle_scalar1": (hyperbolic_saddle, "Hyperbolic Saddle (Scalar)"),
+    "rosenbrock1": (rosenbrock, "Rosenbrock (Scalar)"),
+    "himmelblau1": (himmelblau, "Himmelblau (Scalar)"),
 }
 
 # All 18 environments for multi_env mode (env_func, display_name, env_key)
@@ -155,15 +192,23 @@ environments_1 = [
 
 # Control primitive mapping - 3 robots
 control_primitive_map_3 = {
+    # Vector field primitives
     "vector_sum": ocp.vector_sum,
     "critical_point_plane_fitting": ocp.critical_point_plane_fitting,
     "critical_point_orbiter_plane_fitting": ocp.critical_point_orbiter_plane_fitting,
     "find_center": ocp.find_center,
     "find_sink_center": ocp.find_sink_center,
+
+    # Scalar field primitives (also work with 4-robot via overdetermined gradient)
+    "scalar_gradient_descent": ocp.scalar_gradient_descent,
+    "scalar_gradient_ascent": lambda c: ocp.scalar_gradient_descent(c, descent=False),
+    "scalar_extremum_finder": ocp.scalar_extremum_finder,
+    "scalar_gradient_rotation": ocp.scalar_gradient_with_rotation,
 }
 
 # Control primitive mapping - 4 robots
 control_primitive_map_4 = {
+    # Vector field primitives
     "dual_jacobian_center_finder": qcp.dual_jacobian_center_finder,
     "dual_jacobian_center_finder_advanced": qcp.dual_jacobian_center_finder_advanced,
     "four_planar_center_finder": qcp.four_planar_center_finder,
@@ -171,6 +216,14 @@ control_primitive_map_4 = {
     "center_orbiter_quad_planar": qcp.center_orbiter_quad_planar,
     "center_orbiter_quad_advanced": qcp.center_orbiter_quad_advanced,
     "vector_sum_quad": qcp.vector_sum_quad,
+
+    # Scalar field primitives (4-robot specific with Hessian)
+    "scalar_newton_saddle": qcp.scalar_newton_saddle_finder,
+    "scalar_newton_rotation": qcp.scalar_newton_with_rotation,
+
+    # Can also use 3-robot scalar primitives (will use overdetermined gradient)
+    "scalar_gradient_descent": ocp.scalar_gradient_descent,
+    "scalar_gradient_ascent": lambda c: ocp.scalar_gradient_descent(c, descent=False),
 }
 
 # Active control primitive map (based on NUM_ROBOTS)
@@ -180,9 +233,44 @@ control_primitive_map = control_primitive_map_3 if NUM_ROBOTS == 3 else control_
 # HELPER FUNCTIONS
 # ============================================================================
 
+def _apply_noise_mode(field):
+    """
+    Apply the global NOISE_MODE to an AnalyticalField or AnalyticalScalarField.
+
+    Modes:
+      "none"           - no-op; YAML default eps=0 keeps field steady.
+      "initial"        - override config with NOISE_EPS/NOISE_OMEGA and freeze
+                         field.t at 0 so the center offset is constant.
+      "time_dependent" - override config so the runner's step() calls advance t
+                         and the center orbits over time.
+
+    NN/RBF/Blended fields have no clock or config; the mode is silently ignored.
+    """
+    if NOISE_MODE == "none" or NOISE_EPS == 0.0:
+        return field
+
+    if not hasattr(field, "config"):
+        print(f"  Note: NOISE_MODE='{NOISE_MODE}' ignored (field type does not support wobble)")
+        return field
+
+    field.config = {"eps": NOISE_EPS, "omega": NOISE_OMEGA}
+
+    if NOISE_MODE == "initial":
+        # Freeze the clock: runner calls step() but t stays at 0
+        field.step = lambda dt: None
+    elif NOISE_MODE == "time_dependent":
+        pass  # runner advances field.t normally via step()
+    else:
+        print(f"  Warning: unknown NOISE_MODE '{NOISE_MODE}', treating as 'none'")
+        field.config = {}
+
+    return field
+
+
 def create_field(env_func, mode, env_name=None, predictor_dir=None, rbf_weight=0.9):
     """
     Create a field object based on the mode.
+    Auto-detects scalar vs vector fields by testing return type.
 
     Args:
         env_func: Analytical environment function
@@ -192,19 +280,34 @@ def create_field(env_func, mode, env_name=None, predictor_dir=None, rbf_weight=0
         rbf_weight: Weight for RBF in blended mode
 
     Returns:
-        VectorField instance (falls back to analytical if ML models don't exist)
+        Field instance (VectorField or ScalarField, falls back to analytical if ML models don't exist)
     """
     if mode == "analytical":
-        return AnalyticalField(env_func)
+        # Auto-detect scalar vs vector by testing return type
+        test_val = env_func(0.0, 0.0)
+        if isinstance(test_val, tuple):
+            print(f"  Detected VECTOR field")
+            field = AnalyticalField(env_func)
+        else:
+            print(f"  Detected SCALAR field")
+            field = AnalyticalScalarField(env_func)
+        return _apply_noise_mode(field)
 
     # Determine predictor directory
     if predictor_dir is None and env_name is not None:
         predictor_dir = ENVIRONMENT_TO_PREDICTOR.get(env_name)
 
-    # If no predictor directory found, fall back to analytical
+    # If no predictor directory found, fall back to analytical with auto-detection
     if predictor_dir is None:
         print(f"  No ML models available for '{env_name}', using analytical")
-        return AnalyticalField(env_func)
+        test_val = env_func(0.0, 0.0)
+        if isinstance(test_val, tuple):
+            print(f"  Detected VECTOR field")
+            field = AnalyticalField(env_func)
+        else:
+            print(f"  Detected SCALAR field")
+            field = AnalyticalScalarField(env_func)
+        return _apply_noise_mode(field)
 
     # Try to load ML models, fall back to analytical if they don't exist
     try:
@@ -219,7 +322,12 @@ def create_field(env_func, mode, env_name=None, predictor_dir=None, rbf_weight=0
     except (FileNotFoundError, Exception) as e:
         print(f"  ML models not found in '{predictor_dir}', using analytical")
         print(f"  (Error: {e})")
-        return AnalyticalField(env_func)
+        test_val = env_func(0.0, 0.0)
+        if isinstance(test_val, tuple):
+            field = AnalyticalField(env_func)
+        else:
+            field = AnalyticalScalarField(env_func)
+        return _apply_noise_mode(field)
 
 
 def create_cluster(field):
@@ -302,8 +410,12 @@ def run_single_simulation():
     if SAVE_VELOCITY_PLOTS:
         velocity_history = cluster.get_velocity_history()
         if len(velocity_history) > 0:
-            vel_plot_filename = f"{VELOCITY_PLOT_DIR}/{ENVIRONMENT}_velocity_{FIELD_MODE}.png"
+            # Make velocity plot directory absolute path
+            vel_dir = os.path.join(project_root, VELOCITY_PLOT_DIR)
+            vel_plot_filename = os.path.join(vel_dir, f"{ENVIRONMENT}_velocity_{FIELD_MODE}.png")
             plot_title = f"{env_name} - Robot Velocities ({FIELD_MODE.upper()})"
+
+            print(f"Saving velocity plot to: {vel_plot_filename}")
 
             plot_robot_velocities(
                 velocity_history,
@@ -311,6 +423,28 @@ def run_single_simulation():
                 title=plot_title,
                 save_path=vel_plot_filename,
                 num_robots=NUM_ROBOTS
+            )
+
+    # Generate center estimation plot if enabled
+    if SAVE_CENTER_ESTIMATION_PLOTS:
+        if hasattr(cluster, 'estimated_center_history') and len(cluster.estimated_center_history) > 0:
+            center_history = cluster.get_center_history()
+            estimated_center_history = cluster.estimated_center_history
+
+            # Make center estimation plot directory absolute path
+            center_dir = os.path.join(project_root, CENTER_ESTIMATION_PLOT_DIR)
+            center_plot_filename = os.path.join(center_dir, f"{ENVIRONMENT}_center_estimation_{FIELD_MODE}.png")
+            plot_title = f"{env_name} - Center Estimation Analysis ({FIELD_MODE.upper()})"
+
+            print(f"Saving center estimation plot to: {center_plot_filename}")
+
+            plot_center_estimation(
+                center_history,
+                estimated_center_history,
+                timestep=cluster.timestep,
+                title=plot_title,
+                save_path=center_plot_filename,
+                true_center=(0.0, 0.0)  # Assuming critical point is at origin
             )
 
     print("\n" + "=" * 60)
@@ -383,7 +517,7 @@ def run_comparison_simulation():
 
 
 def run_multi_environment_simulation():
-    """Run all 6 '1' variant environments in a 1x6 grid."""
+    """Run all 6 '1' variant environments in a 2x3 grid."""
     print("=" * 60)
     print(f"{NUM_ROBOTS}-ROBOT CLUSTER SIMULATION - 6 ENVIRONMENTS (VARIANT 1)")
     print("=" * 60)
@@ -397,8 +531,8 @@ def run_multi_environment_simulation():
     print("=" * 60)
     print()
 
-    # Create figure with 6x1 subplots (vertical layout) - publication quality
-    fig = plt.figure(figsize=(8, 48))
+    # Create figure with 3x2 subplots (2 columns, 3 rows)
+    fig = plt.figure(figsize=(6, 9))
 
     # Get control primitive
     control_func = get_control_primitive()
@@ -407,8 +541,8 @@ def run_multi_environment_simulation():
     for i, (env_func, env_name, env_key) in enumerate(environments_1, 1):
         print(f"[{i}/6] Running simulation with: {env_name}")
 
-        # Create subplot in 6x1 grid (vertical layout)
-        ax = plt.subplot(6, 1, i)
+        # Create subplot in 3x2 grid (3 rows, 2 columns)
+        ax = plt.subplot(3, 2, i)
 
         # Create field
         field = create_field(env_func, FIELD_MODE, env_name=env_key)
@@ -416,24 +550,32 @@ def run_multi_environment_simulation():
         # Create cluster
         cluster = create_cluster(field)
 
-        # Run simulation (skip_legend for all except last)
-        skip_legend = (i < 6)
-        execute_omni_simulation(cluster, control_func, env_name, ax=ax, skip_legend=skip_legend)
+        # Truncate " 1" from title
+        title = env_name.replace(" 1", "")
+
+        # Run simulation (only show legend in upper right box - Source, i==2)
+        skip_legend = (i != 2)
+        execute_omni_simulation(cluster, control_func, title, ax=ax, skip_legend=skip_legend)
 
         # Make subplot square with equal aspect ratio
         ax.set_aspect('equal', adjustable='box')
 
         # Adjust subplot
-        ax.tick_params(labelsize=10)
-        ax.set_xlabel('x', fontsize=10)
-        ax.set_ylabel('y', fontsize=10)
+        ax.tick_params(labelsize=8)
+        # Remove axis labels (keep tick marks)
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+
+        # Reduce title font size to prevent overlap
+        ax.title.set_fontsize(9)
 
         # Generate velocity plot if enabled
         if SAVE_VELOCITY_PLOTS:
             velocity_history = cluster.get_velocity_history()
             if len(velocity_history) > 0:
-                # Create filename
-                vel_plot_filename = f"{VELOCITY_PLOT_DIR}/{env_key}_velocity_{mode_str.lower()}.png"
+                # Make velocity plot directory absolute path
+                vel_dir = os.path.join(project_root, VELOCITY_PLOT_DIR)
+                vel_plot_filename = os.path.join(vel_dir, f"{env_key}_velocity_{mode_str.lower()}.png")
                 plot_title = f"{env_name} - Robot Velocities ({mode_str})"
 
                 # Generate plot
@@ -449,7 +591,8 @@ def run_multi_environment_simulation():
     print("ALL SIMULATIONS COMPLETED")
     print("=" * 60)
 
-    plt.tight_layout()
+    # plt.tight_layout(pad=2.5, h_pad=5.5, w_pad=7.0)  # Original - more spacing
+    plt.tight_layout(pad=1.5, h_pad=3.0, w_pad=4.5)    # Tighter subplots
 
     if SAVE_FIGURE:
         plt.savefig(OUTPUT_FILENAME, dpi=150, bbox_inches='tight')

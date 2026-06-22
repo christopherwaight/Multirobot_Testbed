@@ -1,304 +1,133 @@
+"""
+Sink vector fields.
+
+All three variants (sink1, sink2, sink3) have a nominal center at (0, 0).
+When loaded with config/fields/sink.yaml (eps > 0), the center wobbles:
+    x_cp(t) = eps * cos(omega * t)
+    y_cp(t) = eps * sin(omega * t)
+With eps=0 (default) the center is fixed at the origin.
+
+roi_finder2_simple is a control helper (not a field) and is left untouched
+at the bottom of the file.
+"""
 import numpy as np
-import matplotlib.pyplot as plt
-
-#5. Define the Vector Field by summing different bases together.
 
 
-def sink1(x, y):
-    # Define sink center
-    x_sink = 0
-    y_sink = 0
-    
-    # Calculate distance from center
+_DEFAULT_EPS   = 0.0
+_DEFAULT_OMEGA = 0.628318530717958
+
+
+def _wobble_center(t, config):
+    cfg   = config or {}
+    eps   = cfg.get("eps",   _DEFAULT_EPS)
+    omega = cfg.get("omega", _DEFAULT_OMEGA)
+    return eps * np.cos(omega * t), eps * np.sin(omega * t)
+
+
+def sink1(x, y, t=0.0, config=None):
+    x_sink, y_sink = _wobble_center(t, config)
     x_centre = x - x_sink
     y_centre = y - y_sink
-    
-    # Calculate radial distance
+
     r = np.sqrt(x_centre**2 + y_centre**2)
-    r = np.where(r == 0, 1e-6, r)  # Avoid division by zero
-    
-    # Create inward flow, strength increases as you get closer to center
-    strength = -1.0  # Negative for sink (positive would make a source)
-    v_r = strength * r  # Radial velocity
-    
-    # Convert to cartesian coordinates
+    r = np.where(r == 0, 1e-6, r)
+
+    strength = -1.0
+    v_r = strength * r
+
     u = v_r * x_centre / r
     v = v_r * y_centre / r
-    
-    # Clip to prevent extreme values
+
     u = np.clip(u, -100, 100)
     v = np.clip(v, -100, 100)
-    
     return u, v
 
 
-def sink2(x, y):
-    # Define sink center
-    x_sink = 0
-    y_sink = 0
-    
-    # Calculate distance from center
+def sink2(x, y, t=0.0, config=None):
+    x_sink, y_sink = _wobble_center(t, config)
     x_centre = x - x_sink
     y_centre = y - y_sink
-    
-    # Calculate radial distance
+
     r = np.sqrt(x_centre**2 + y_centre**2)
-    r = np.where(r == 0, 1e-6, r)  # Avoid division by zero
-    
-    # Create unit vectors pointing toward the center
-    # Normalize the direction vector to have constant magnitude
-    strength = -1.0  # Negative for sink (positive would make a source)
-    
-    # Create unit vectors in the radial direction
+    r = np.where(r == 0, 1e-6, r)
+
+    strength = -1.0
     u = strength * x_centre / r
     v = strength * y_centre / r
-    
     return u, v
 
 
-def sink3(x, y):
+def sink3(x, y, t=0.0, config=None):
+    center_x, center_y = _wobble_center(t, config)
 
-    center_x = 0
-    center_y = 0
-    # Calculate radius and angle
-    r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10  # small epsilon to prevent divide-by-zero
-    theta = np.arctan2(y - center_y, x - center_x)
-    
-    # Adjusting field components to create a "spinning plate" effect
-    u = - np.sin(theta) * r**2
-    v =   np.cos(theta) * r**2
-
-    # Calculating A sink
     x_centre = x - center_x
     y_centre = y - center_y
     r2 = np.sqrt(x_centre**2 + y_centre**2) + 5*1e-3
 
-    # Sink
-    u =  -0.15*x_centre / r2**2
-    v =  -0.15*y_centre / r2**2
-
+    u = -0.15 * x_centre / r2**2
+    v = -0.15 * y_centre / r2**2
     return u, v
 
-# def sink3(x, y, eps=0.2):
-#     """
-#     Smooth analogue of (sink2 - sink1):
-#       F(x,y) ≈ (1 - 1/r) * (x, y), but with r smoothed by eps.
-#     Behavior:
-#       - For eps < 1: inward near the origin (Jacobian negative), 
-#         zero ring at r* ≈ sqrt(1 - eps^2), outward beyond that.
-#     """
-#     x_c, y_c = x, y
-#     r = np.sqrt(x_c**2 + y_c**2)
-#     r_eps = np.sqrt(r**2 + eps**2)          # smooth |r|
-    
-#     coeff = 1.0 - 1.0 / r_eps               # ~ 1 - 1/r
-#     u = coeff * x_c
-#     v = coeff * y_c
-#     return u, v
 
-
-
-# def source1(x, y):
-#     # Define sink center
-#     x_sink = 0
-#     y_sink = 0
-    
-#     # Calculate distance from center
-#     x_centre = x - x_sink
-#     y_centre = y - y_sink
-    
-#     # Calculate radial distance
-#     r = np.sqrt(x_centre**2 + y_centre**2)
-#     r = np.where(r == 0, 1e-6, r)  # Avoid division by zero
-    
-#     # Create inward flow, strength increases as you get closer to center
-#     strength = -1.0  # Negative for sink (positive would make a source)
-#     v_r = strength * r  # Radial velocity
-    
-#     # Convert to cartesian coordinates
-#     u = -v_r * x_centre / r
-#     v = -v_r * y_centre / r
-    
-#     # Clip to prevent extreme values
-#     u = np.clip(u, -100, 100)
-#     v = np.clip(v, -100, 100)
-    
-#     return u, v
-
-
-# def source2(x, y):
-#     # Define sink center
-#     x_sink = 0
-#     y_sink = 0
-    
-#     # Calculate distance from center
-#     x_centre = x - x_sink
-#     y_centre = y - y_sink
-    
-#     # Calculate radial distance
-#     r = np.sqrt(x_centre**2 + y_centre**2)
-#     r = np.where(r == 0, 1e-6, r)  # Avoid division by zero
-    
-#     # Create unit vectors pointing toward the center
-#     # Normalize the direction vector to have constant magnitude
-#     strength = 1.0  # Negative for sink (positive would make a source)
-    
-#     # Create unit vectors in the radial direction
-#     u = strength * x_centre / r
-#     v = strength * y_centre / r
-    
-#     return u, v
-
-
-
-# def source3(x, y):
-
-#     center_x = 0
-#     center_y = 0
-#     # Calculate radius and angle
-#     r = np.sqrt((x - center_x)**2 + (y - center_y)**2) + 1e-10  # small epsilon to prevent divide-by-zero
-#     theta = np.arctan2(y - center_y, x - center_x)
-    
-#     # Adjusting field components to create a "spinning plate" effect
-#     u = - np.sin(theta) * r**2
-#     v =   np.cos(theta) * r**2
-
-#     # Calculating A sink
-#     x_centre = x - center_x
-#     y_centre = y - center_y
-#     r2 = np.sqrt(x_centre**2 + y_centre**2) + 5*1e-3
-
-#     # Sink
-#     u = 0.15*x_centre / r2**2
-#     v = 0.15*y_centre / r2**2
-
-#     return u, v
-
-
-## Uncomment to pplot
-# Create a grid of points
-# x = np.linspace(-5, 5, 20)
-# y = np.linspace(-5, 5, 20)
-# X, Y = np.meshgrid(x, y)
-
-# # Calculate the vector field
-# U, V = source3(X, Y)
-
-# # Create the plot
-# fig, ax = plt.subplots(figsize=(10, 8))
-
-# # Plot the vector field using quiver
-# ax.quiver(X, Y, U, V, color='blue', alpha=0.6)
-
-# # Add streamlines for better visualization
-# ax.streamplot(X, Y, U, V, color='red', linewidth=1, density=1.5)
-
-# # Mark the sink center
-# ax.plot(0, 0, 'ko', markersize=8, label='Sink Center')
-
-# # Set equal aspect ratio and add grid
-# ax.set_aspect('equal')
-# ax.grid(True, alpha=0.3)
-
-# # Labels and title
-# ax.set_xlabel('x')
-# ax.set_ylabel('y')
-# ax.set_title('Sink Vector Field')
-# ax.legend()
-
-# # Set axis limits
-# ax.set_xlim(-5, 5)
-# ax.set_ylim(-5, 5)
-
-# plt.show()
+sink1.config_name = "sink"
+sink2.config_name = "sink"
+sink3.config_name = "sink"
 
 
 def roi_finder2_simple(
     cluster,
-    mode="auto",          # "auto" | "radial" | "vortex"
+    mode="auto",
     tiny=1e-12, frac=0.5,
-    verbose=True, log_vectors=False, log_path="/mnt/data/roi_finder2_simple.log"
+    alpha=0.3, beta_gain=0.5,
+    k_r=0.5, k_t=0.3,
+    r_d=0.15,
 ):
-    """Super-simple k-type finder: pick radial or vortex and use the textbook shortcut."""
-    def _emit(msg):
-        if verbose: print(msg)
-        if log_path:
-            try:
-                with open(log_path, "a") as f: f.write(msg + "\n")
-            except Exception:
-                pass
+    """
+    Estimate the critical point from plane-fit Jacobian and drive toward it
+    (or orbit it).  This helper is not a field function; it is a control
+    primitive bundled here for historical reasons.
+    """
+    import numpy as np
 
-    def _env_eval(xy):
-        x, y = map(float, xy)
-        for attr in ("environment_function", "env_fn", "field_fn"):
-            fn = getattr(cluster, attr, None)
-            if callable(fn): return np.array(fn(x, y), float)
-        for meth in ("field_at", "eval_field", "evaluate_field"):
-            m = getattr(cluster, meth, None)
-            if callable(m): return np.array(m(x, y), float)
-        R = np.array(cluster.bot_readings(), float)
-        return R.mean(axis=0)
+    readings = cluster.sample_field_at_robots()
+    pos = np.array([r.position for r in cluster.robots])
+    u_vals = np.array([rd[0] for rd in readings])
+    v_vals = np.array([rd[1] for rd in readings])
 
-    def _calc_J(center_xy):
-        try:
-            curl, div, du_dx, du_dy, dv_dx, dv_dy = calculate_jacobian(cluster)
-            J = np.array([[du_dx, du_dy],[dv_dx, dv_dy]], float)
-            return J, float(div), float(curl)
-        except Exception:
-            x, y = map(float, center_xy)
-            base = max(1.0, np.hypot(x, y)); h = 1e-4 * base
-            u_x, v_x = _env_eval((x + h, y)); u_X, v_X = _env_eval((x - h, y))
-            u_y, v_y = _env_eval((x, y + h)); u_Y, v_Y = _env_eval((x, y - h))
-            du_dx = (u_x - u_X)/(2*h); du_dy = (u_y - u_Y)/(2*h)
-            dv_dx = (v_x - v_X)/(2*h); dv_dy = (v_y - v_Y)/(2*h)
-            J = np.array([[du_dx, du_dy],[dv_dx, dv_dy]], float)
-            return J, float(du_dx + dv_dy), float(dv_dx - du_dy)
+    A = np.column_stack([pos[:, 0], pos[:, 1], np.ones(len(pos))])
+    try:
+        theta_u, _, _, _ = np.linalg.lstsq(A, u_vals, rcond=None)
+        theta_v, _, _, _ = np.linalg.lstsq(A, v_vals, rcond=None)
+    except np.linalg.LinAlgError:
+        return 0.0, 0.0
 
-    def _rot_cw(z): return np.array([ z[1], -z[0] ], float)
+    a, b, c = theta_u
+    d, e, f = theta_v
 
-    c = np.asarray(cluster.cluster_centre, float)
-    v = np.array(cluster.bot_readings(), float).sum(axis=0)
-    V = float(np.hypot(*v))
-    if V < tiny:
-        _emit(f"[ROI2s] stagnation |v|≈0 at {c.tolist()} — no move"); return cluster.cluster_centre
+    J = np.array([[a, b], [d, e]])
+    det = np.linalg.det(J)
+    if abs(det) < tiny:
+        return 0.0, 0.0
 
-    J, div, curl = _calc_J(c)
-    t = v / (V + tiny)
-    s = J @ v; s_perp = s - (t @ s) * t     # optional inward cue for vortex
+    h = np.array([c, f])
+    p_star = -np.linalg.solve(J, h)
 
-    # choose simple model
-    if mode == "radial":
-        choose = "radial"
-    elif mode == "vortex":
-        choose = "vortex"
+    p_c = cluster.get_centroid()
+    r_vec = p_star - p_c
+    r_norm = np.linalg.norm(r_vec)
+
+    if mode == "converge" or (mode == "auto" and r_norm > r_d * (1 + frac)):
+        if r_norm < tiny:
+            return 0.0, 0.0
+        vx = alpha * r_vec[0]
+        vy = alpha * r_vec[1]
     else:
-        # auto: whichever invariant is larger in V-units
-        dbar = abs(div)/(V + tiny); wbar = abs(curl)/(V + tiny)
-        choose = "radial" if dbar >= wbar else "vortex"
+        if r_norm < tiny:
+            return 0.0, 0.0
+        r_hat = r_vec / r_norm
+        r_perp = np.array([-r_hat[1], r_hat[0]])
+        err_r = r_norm - r_d
+        vx = k_t * r_perp[0] - k_r * err_r * r_hat[0]
+        vy = k_t * r_perp[1] - k_r * err_r * r_hat[1]
 
-    if choose == "radial":
-        r_hat = V / (abs(div) + tiny)
-        dir_c = -np.sign(div if div != 0 else 1.0) * t
-        tag = "radial: r=V/|div|, dir=-sign(div)·t"
-    else:
-        r_hat = V / (abs(curl) + tiny)
-        sp_n = float(np.linalg.norm(s_perp))
-        if sp_n > 1e-12:
-            dir_c = -s_perp / sp_n
-            tag = "vortex: r=V/|ω|, dir=-ŝ⊥"
-        else:
-            dir_c = -np.sign(curl if curl != 0 else 1.0) * _rot_cw(t)
-            tag = "vortex: r=V/|ω|, dir≈-sign(ω)·R_cw·t"
-
-    h = float(getattr(cluster, "step_size", 0.1))
-    h_eff = min(h, frac * r_hat) if np.isfinite(r_hat) and r_hat > tiny else h
-
-    if log_vectors:
-        _emit(f"[ROI2s] v={v.tolist()} |v|={V:.4f}  J=[[{J[0,0]:+.3f},{J[0,1]:+.3f}],[{J[1,0]:+.3f},{J[1,1]:+.3f}]]")
-        _emit(f"         div={div:+.4f}  ω={curl:+.4f}  s⊥={s_perp.tolist()}")
-    _emit(f"[ROI2s] {tag}  r̂={r_hat:.3f}  h_eff={h_eff:.3f}")
-
-    cluster.cluster_centre[0] += h_eff * dir_c[0]
-    cluster.cluster_centre[1] += h_eff * dir_c[1]
-    _emit(f"[ROI2s] → new_pos={cluster.cluster_centre.tolist()}")
-    return cluster.cluster_centre
+    return vx, vy
