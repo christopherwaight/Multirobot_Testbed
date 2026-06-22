@@ -1,0 +1,77 @@
+================================================================================
+REAL WORLD PRIMITIVE PERFORMANCE ANALYSIS (Mean ± Std)
+================================================================================
+
+Configuration → Primitive Mapping:
+  0XX: critical_point_orbiter_plane_fitting (3-robot)
+  1XX: center_orbiter_quad_planar (4-robot planar)
+  2XX: center_orbiter_quad_advanced (4-robot dual Jacobian)
+
+================================================================================
+OVERALL REAL ROBOT PERFORMANCE
+================================================================================
+
+0XX:
+  Mean radius error:           0.1192 m
+  Std dev across configs:      0.0754 m (variability between runs)
+  Avg within-run std:          0.0218 m (variability during orbit)
+  Range: [0.0438, 0.1946] m
+
+1XX:
+  Mean radius error:           0.1310 m
+  Std dev across configs:      0.0760 m (variability between runs)
+  Avg within-run std:          0.0316 m (variability during orbit)
+  Range: [0.0550, 0.2071] m
+
+2XX:
+  Mean radius error:           0.1082 m
+  Std dev across configs:      0.0381 m (variability between runs)
+  Avg within-run std:          0.0427 m (variability during orbit)
+  Range: [0.0701, 0.1463] m
+
+================================================================================
+CONSISTENCY ANALYSIS
+================================================================================
+
+Which primitive is most CONSISTENT (lowest variability)?
+
+0XX: std = 0.0611 m, CV = 70.92% (higher = less consistent)
+1XX: std = 0.0655 m, CV = 70.16%
+2XX: std = 0.0536 m, CV = 58.06%
+
+MOST CONSISTENT: 2XX (lowest std dev)
+
+================================================================================
+PERFORMANCE BY RADIUS (with std dev)
+================================================================================
+
+Small Radius (0.01-0.20m):
+  0XX: 0.2020 ± 0.0476 m (n=3)
+  1XX: 0.2047 ± 0.0522 m (n=3)
+  2XX: 0.0888 ± 0.0451 m (n=3)  ← BEST
+
+Medium Radius (0.21-0.40m):
+  0XX: 0.0638 ± 0.0269 m (n=2)  ← BEST
+  1XX: 0.0821 ± 0.0279 m (n=2)
+  2XX: 0.1329 ± 0.0166 m (n=3)
+
+Large Radius (0.41+m):
+  0XX: 0.0734 ± 0.0375 m (n=3)
+  1XX: 0.0696 ± 0.0324 m (n=2)  ← BEST
+  2XX: 0.0922 ± 0.0000 m (n=1)
+
+================================================================================
+RELIABILITY SCORE (Lower is Better)
+================================================================================
+
+Score = Mean Error + Std Dev (penalizes both inaccuracy AND inconsistency)
+
+0XX: 0.0862 (mean) + 0.0611 (std) = 0.1473
+1XX: 0.0934 (mean) + 0.0655 (std) = 0.1589
+2XX: 0.0922 (mean) + 0.0536 (std) = 0.1458
+
+BEST RELIABILITY: 2XX  ← WINNER
+
+================================================================================
+FINAL VERDICT
+================================================================================

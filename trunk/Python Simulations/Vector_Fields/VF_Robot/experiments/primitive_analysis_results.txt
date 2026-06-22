@@ -1,0 +1,165 @@
+================================================================================
+CONTROL PRIMITIVE PERFORMANCE ANALYSIS
+================================================================================
+
+Configuration → Primitive Mapping:
+  0XX (3-robot):          critical_point_orbiter_plane_fitting
+  1XX (4-robot-square):   center_orbiter_quad_planar
+  2XX (4-robot-advanced): center_orbiter_quad_advanced
+
+================================================================================
+Q1: WHICH PRIMITIVE WORKS BEST IN REAL WORLD?
+================================================================================
+
+Real Robot Performance (absolute radius error):
+
+  0XX: 0.1192 ± 0.0754 m
+  1XX: 0.1310 ± 0.0760 m
+  2XX: 0.1082 ± 0.0381 m
+
+WINNER: Best real-world primitive
+  → 2XX (center_orbiter_quad_advanced): 0.1082m
+     4-robot dual Jacobian orbiter
+
+================================================================================
+Q2: HOW WELL DOES NN PREDICT REAL WORLD FOR EACH PRIMITIVE?
+================================================================================
+
+NN Simulation vs Real Robot Error (nn_vs_real):
+
+  0XX: 0.0548 ± 0.0312 m
+  1XX: 0.0612 ± 0.0421 m
+  2XX: 0.0512 ± 0.0288 m
+
+Interpretation:
+  Lower error = NN field better predicts real-world primitive behavior
+
+BEST NN PREDICTION:
+  → 2XX (center_orbiter_quad_advanced)
+     NN error: 0.0512m - Most predictable primitive
+
+================================================================================
+Q3: DETAILED PRIMITIVE COMPARISON
+================================================================================
+
+───────────────────────────────────────────────────────────────────────────
+PRIMITIVE: critical_point_orbiter_plane_fitting
+Description: 3-robot plane fitting orbiter
+───────────────────────────────────────────────────────────────────────────
+
+Real Robot Performance:
+  Average radius error:     0.1192 m
+  RMSE:                     0.4285 m
+  Center estimation error:  0.3685 m
+  Center estimation std:    0.0184 m
+
+NN Simulation Performance:
+  Average radius error:     0.0796 m
+  RMSE:                     0.4418 m
+  Center estimation error:  0.0646 m
+  Center estimation std:    0.0568 m
+
+Prediction Accuracy:
+  NN→Real error:            0.0548 m
+  Analytical→Real error:    0.0801 m
+
+  ✓ NN IMPROVES real-world prediction by 0.0253m (31.6%)
+
+───────────────────────────────────────────────────────────────────────────
+PRIMITIVE: center_orbiter_quad_planar
+Description: 4-robot planar (4-point) fitting orbiter
+───────────────────────────────────────────────────────────────────────────
+
+Real Robot Performance:
+  Average radius error:     0.1310 m
+  RMSE:                     0.4020 m
+  Center estimation error:  0.3420 m
+  Center estimation std:    0.0258 m
+
+NN Simulation Performance:
+  Average radius error:     0.0856 m
+  RMSE:                     0.4131 m
+  Center estimation error:  0.0488 m
+  Center estimation std:    0.0300 m
+
+Prediction Accuracy:
+  NN→Real error:            0.0612 m
+  Analytical→Real error:    0.0780 m
+
+  ✓ NN IMPROVES real-world prediction by 0.0168m (21.6%)
+
+───────────────────────────────────────────────────────────────────────────
+PRIMITIVE: center_orbiter_quad_advanced
+Description: 4-robot dual Jacobian orbiter
+───────────────────────────────────────────────────────────────────────────
+
+Real Robot Performance:
+  Average radius error:     0.1082 m
+  RMSE:                     0.4123 m
+  Center estimation error:  0.3157 m
+  Center estimation std:    0.0404 m
+
+NN Simulation Performance:
+  Average radius error:     0.0570 m
+  RMSE:                     0.3669 m
+  Center estimation error:  0.2314 m
+  Center estimation std:    0.1774 m
+
+Prediction Accuracy:
+  NN→Real error:            0.0512 m
+  Analytical→Real error:    0.0721 m
+
+  ✓ NN IMPROVES real-world prediction by 0.0209m (29.0%)
+
+================================================================================
+Q4: WHICH PRIMITIVE WORKS BEST AND WHY?
+================================================================================
+
+Summary by Target Radius:
+
+Small Radius (0.01-0.20m):
+  0XX (plane_fitting):      0.2020 m (n=3)
+  1XX (quad_planar):        0.2047 m (n=3)
+  2XX (dual_jacobian):      0.0888 m (n=3)
+
+Medium Radius (0.21-0.40m):
+  0XX (plane_fitting):      0.0638 m (n=2)
+  1XX (quad_planar):        0.0821 m (n=2)
+  2XX (dual_jacobian):      0.1329 m (n=3)
+
+Large Radius (0.41+m):
+  0XX (plane_fitting):      0.0734 m (n=3)
+  1XX (quad_planar):        0.0696 m (n=2)
+  2XX (dual_jacobian):      0.0922 m (n=1)
+
+================================================================================
+FINAL RECOMMENDATIONS
+================================================================================
+
+1. BEST REAL-WORLD PRIMITIVE:
+   → center_orbiter_quad_advanced (4-robot-advanced)
+
+2. NN FIELD PREDICTION QUALITY:
+   ✓ NN fields improve prediction by 27.6% across all primitives
+   NN understands real robot dynamics better than analytical model
+
+3. WHEN TO USE EACH PRIMITIVE:
+
+   → Use critical_point_orbiter_plane_fitting (3-robot) when:
+     • You have exactly 3 robots available
+     • You need simple, exact solution (3 points = unique plane)
+     • Formation can be maintained as equilateral triangle
+
+   → Use center_orbiter_quad_planar (4-robot) when:
+     • You have 4 robots in square/rectangular formation
+     • You want redundancy (overdetermined 4-point fit)
+     • Medium accuracy requirements
+
+   → Use center_orbiter_quad_advanced (4-robot) when:
+     • You have 4 robots in advanced formation (2 triangles)
+     • You need best accuracy and robustness
+     • Can maintain quadrilateral with two overlapping triangles
+
+================================================================================
+ANALYSIS COMPLETE
+================================================================================
