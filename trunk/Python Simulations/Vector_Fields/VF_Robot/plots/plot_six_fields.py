@@ -1,6 +1,10 @@
 """
 Plot 6 vector field environments in a 2x3 grid.
 Displays: vortex1, sinking_vortex1, sink1, source1, spewing_vortex1, saddle1
+
+This creates figure 1 in the paper.
+Figure 2 and 4 are in powerpoint
+figure 3 is borrowed from another paper
 """
 
 import numpy as np
@@ -24,18 +28,18 @@ def plot_vector_fields():
     """Create a 2x3 grid of vector field plots."""
 
     # Define the grid for plotting
-    x = np.linspace(-0.6, 0.6, 20)
-    y = np.linspace(-0.6, 0.6, 20)
+    x = np.linspace(-0.6, 0.6, 12)
+    y = np.linspace(-0.6, 0.6, 12)
     X, Y = np.meshgrid(x, y)
 
     # Define the environments to plot
     environments = [
-        (vortex1, "Vortex 1", "blue"),
-        (sinking_vortex1, "Sinking Vortex 1", "purple"),
-        (sink1, "Sink 1", "darkred"),
-        (source1, "Source 1", "darkgreen"),
-        (spewing_vortex1, "Spewing Vortex 1", "darkorange"),
-        (saddle1, "Saddle 1", "darkblue")
+        (vortex1, "Vortex", "blue"),
+        (sinking_vortex1, "Sinking Vortex", "purple"),
+        (sink1, "Sink", "darkred"),
+        (source1, "Source", "darkgreen"),
+        (spewing_vortex1, "Spewing Vortex", "darkorange"),
+        (saddle1, "Saddle", "darkblue")
     ]
 
     # Create figure with 2x3 grid
@@ -50,7 +54,11 @@ def plot_vector_fields():
         U, V = env_func(X, Y)
 
         # Plot the vector field using quiver with black arrows
-        quiver = ax.quiver(X, Y, U, V, color='black', alpha=0.7, scale=10, width=0.003)
+        # Make arrows bigger for sinking/spewing vortex
+        if title in ["Sinking Vortex", "Spewing Vortex"]:
+            quiver = ax.quiver(X, Y, U, V, color='black', alpha=0.7, scale=4, width=0.005)
+        else:
+            quiver = ax.quiver(X, Y, U, V, color='black', alpha=0.7, scale=8, width=0.005)
 
         # Mark the critical point
         ax.plot(0, 0, 'ro', markersize=10, label='Critical Point', zorder=5)
@@ -59,15 +67,17 @@ def plot_vector_fields():
         ax.set_aspect('equal')
         ax.grid(True, alpha=0.3, linestyle='--')
 
-        # Labels and title
-        ax.set_xlabel('x', fontsize=11)
-        ax.set_ylabel('y', fontsize=11)
-        ax.set_title(title, fontsize=13, fontweight='bold')
-        ax.legend(loc='upper right', fontsize=9)
+        # Title and legend
+        ax.set_title(title, fontsize=24, fontweight='bold')
+        ax.legend(loc='upper right', fontsize=24)
 
         # Set axis limits
         ax.set_xlim(-0.6, 0.6)
         ax.set_ylim(-0.6, 0.6)
+
+        # Remove tick marks
+        ax.set_xticks([])
+        ax.set_yticks([])
 
     # Adjust layout
     plt.tight_layout()

@@ -568,7 +568,7 @@ def main():
         x_range=(-0.65, 0.65), 
         y_range=(-0.65, 0.65),
         tolerance=0.005,  # Slightly less aggressive deduplication
-        target_size=15_000  # RBF can handle more points efficiently
+        target_size=10_000  # RBF can handle more points efficiently
     )
     
     # Step 3: Prepare data
