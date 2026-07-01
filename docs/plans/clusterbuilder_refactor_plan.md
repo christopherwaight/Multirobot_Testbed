@@ -25,13 +25,13 @@ Update this section after each step. Use `[x]` for done, `[~]` for in-progress, 
 Test baseline before refactor: 157/159 passing (2 failures are pre-existing Bug 6, unrelated).
 
 Backup of the original `cluster_builder/` directory exists at
-`trunk/Python Simulations/Vector_Fields/VF_Robot/cb2/` in case rollback is needed.
+`trunk/Python_Simulations/Vector_Fields/VF_Robot/cb2/` in case rollback is needed.
 
 ---
 
 ## Context
 
-`trunk/Python Simulations/Vector_Fields/VF_Robot/cluster_builder/clusterbuilder.py`
+`trunk/Python_Simulations/Vector_Fields/VF_Robot/cluster_builder/clusterbuilder.py`
 is a 2372-line monolith with 10 top-level classes covering tree parsing, two
 kinematics families, two leaf blocks, the SAS/Pair runtime math, a sympy backend,
 a matplotlib visualizer, and a 748-line code emitter for FK / IK / J_inv / J_fwd /
@@ -196,10 +196,10 @@ def test_cli_full(tmp_path):
 
 ## Critical files
 
-- `trunk/Python Simulations/Vector_Fields/VF_Robot/cluster_builder/clusterbuilder.py`
-- `trunk/Python Simulations/Vector_Fields/VF_Robot/cluster_builder/tests/conftest.py`
-- `trunk/Python Simulations/Vector_Fields/VF_Robot/cluster_builder/yaml_visualize.py`
-- `trunk/Python Simulations/Vector_Fields/VF_Robot/cluster_builder/tests/snapshots/`
+- `trunk/Python_Simulations/Vector_Fields/VF_Robot/cluster_builder/clusterbuilder.py`
+- `trunk/Python_Simulations/Vector_Fields/VF_Robot/cluster_builder/tests/conftest.py`
+- `trunk/Python_Simulations/Vector_Fields/VF_Robot/cluster_builder/yaml_visualize.py`
+- `trunk/Python_Simulations/Vector_Fields/VF_Robot/cluster_builder/tests/snapshots/`
 
 ## Identifiers to preserve verbatim
 
@@ -225,8 +225,8 @@ def test_cli_full(tmp_path):
 After each extraction step and at the end:
 
 ```bash
-source "trunk/Python Simulations/Vector_Fields/VF_Robot/venv/bin/activate"
-cd "trunk/Python Simulations/Vector_Fields/VF_Robot/cluster_builder"
+source "trunk/Python_Simulations/Vector_Fields/VF_Robot/venv/bin/activate"
+cd "trunk/Python_Simulations/Vector_Fields/VF_Robot/cluster_builder"
 pytest tests/ -v
 ```
 

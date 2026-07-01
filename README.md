@@ -15,7 +15,7 @@ This repository contains simulation and hardware validation code for multi-robot
 ```
 Multirobot_Testbed/
 ├── trunk/
-│   ├── Python Simulations/
+│   ├── Python_Simulations/
 │   │   ├── Vector_Fields/VF_Robot/     # Main simulation codebase
 │   │   └── Scalar Fields/              # Newton's method saddle finding
 │   ├── robots_3/                       # 3-robot hardware experiment data
@@ -35,7 +35,7 @@ Multirobot_Testbed/
 ### Entry Point
 
 ```bash
-cd "trunk/Python Simulations/Vector_Fields/VF_Robot"
+cd "trunk/Python_Simulations/Vector_Fields/VF_Robot"
 source venv/bin/activate
 python3 experiments/main_omni.py
 ```
@@ -68,7 +68,7 @@ CONTROL_PRIMITIVE_3 = "critical_point_orbiter_plane_fitting"
 ### Scalar Field Simulation
 
 ```bash
-cd "trunk/Python Simulations/Scalar Fields"
+cd "trunk/Python_Simulations/Scalar Fields"
 python3 path_quality_analysis.py
 ```
 
@@ -158,7 +158,7 @@ where r = p* - p_c is the radial vector to the estimated critical point, r_d is 
 
 ## Dependencies
 
-**Python** (venv at `trunk/Python Simulations/Vector_Fields/VF_Robot/venv/`):
+**Python** (venv at `trunk/Python_Simulations/Vector_Fields/VF_Robot/venv/`):
 - numpy, matplotlib, scipy, torch, scikit-learn, pandas, pyyaml
 
 **MATLAB:**
