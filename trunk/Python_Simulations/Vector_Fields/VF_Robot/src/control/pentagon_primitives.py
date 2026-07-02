@@ -360,23 +360,36 @@ def _sample_vector_at_robots(cluster):
     """
     Sample (u, v) from the vector field at each robot's position.
 
-    Position noise: if the cluster has a `position_noise_std` attribute > 0,
-    Gaussian noise N(0, position_noise_std^2) is added independently to each
-    robot's reported (x, y) before querying the field.  True robot state is
-    unchanged.  Default is 0 (no position noise) for backward compatibility.
+    Noise model (Paper_Draft_2A, Section VI Noise Model; both hooks default
+    to 0 for backward compatibility):
+
+    Position noise `cluster.position_noise_std`: Gaussian N(0, sigma_p^2)
+    is added independently to each robot's (x, y) before querying the field,
+    i.e. the field is sampled at a perturbed location while the quadratic
+    fit uses the nominal robot positions.  True robot state is unchanged.
+
+    Measurement noise `cluster.measurement_noise_std`: Gaussian
+    N(0, sigma_uv^2) is added independently to each robot's u and v reading
+    after the field query.  Same additive-sensor-noise model as the
+    `noise_std` hook in the archived 3-robot field_types.py and as
+    Michini et al. 2014 (T-RO), Eq. (6).
 
     Returns:
         u_arr: (6,) array of u-component readings
         v_arr: (6,) array of v-component readings
     """
     coords = cluster.get_robot_positions()
-    pos_sigma = getattr(cluster, 'position_noise_std', 0.0)
+    pos_sigma  = getattr(cluster, 'position_noise_std', 0.0)
+    meas_sigma = getattr(cluster, 'measurement_noise_std', 0.0)
     u_arr = np.zeros(6)
     v_arr = np.zeros(6)
     for i in range(6):
         x = coords[2*i]     + (np.random.randn() * pos_sigma if pos_sigma > 0.0 else 0.0)
         y = coords[2*i + 1] + (np.random.randn() * pos_sigma if pos_sigma > 0.0 else 0.0)
         u_arr[i], v_arr[i] = cluster.field.get_value(x, y)
+        if meas_sigma > 0.0:
+            u_arr[i] += np.random.randn() * meas_sigma
+            v_arr[i] += np.random.randn() * meas_sigma
     return u_arr, v_arr
 
 

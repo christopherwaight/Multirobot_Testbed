@@ -74,6 +74,13 @@ class PentagonCluster:
         self.position_gain   = f.get('position_gain', 1.0)
         self.angle_gain      = f.get('angle_gain', 0.1)
 
+        # Base angles from the yaml. reset(heading_offset=...) re-derives the
+        # desired angles from these so the whole formation rotates rigidly.
+        self._base_theta_c = self.desired_theta_c
+        self._base_theta_2 = self.desired_theta_2
+        self._base_theta_3 = self.desired_theta_3
+        self._base_theta_4 = self.desired_theta_4
+
         print(f"Loaded pentagon formation: p_1={self.desired_p_1:.3f}, "
               f"q_1={self.desired_q_1:.3f}, L_2={self.desired_L_2:.3f}")
 
@@ -201,11 +208,20 @@ class PentagonCluster:
     # Reset
     # ------------------------------------------------------------------
 
-    def reset(self, x_c=None, y_c=None):
+    def reset(self, x_c=None, y_c=None, heading_offset=0.0):
         if x_c is None:
             x_c = 0.5
         if y_c is None:
             y_c = 0.5
+
+        # Pair orientations theta_2/3/4 are global-frame angles (see
+        # pentagon_kinematics.forward_kinematics), so the desired angles must
+        # rotate together with theta_c; otherwise the shape controller would
+        # twist the pairs back to the yaml angles and break the pentagon.
+        self.desired_theta_c = self._base_theta_c + heading_offset
+        self.desired_theta_2 = self._base_theta_2 + heading_offset
+        self.desired_theta_3 = self._base_theta_3 + heading_offset
+        self.desired_theta_4 = self._base_theta_4 + heading_offset
 
         coords = inverse_kinematics(
             x_c, y_c, self.desired_theta_c,
