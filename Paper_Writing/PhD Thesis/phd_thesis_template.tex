@@ -1,0 +1,370 @@
+% Santa Clara University PhD Thesis Template
+% Document class: report, 12pt, letter paper, single-sided
+\documentclass[12pt, letterpaper, oneside]{report}
+
+% -----------------------------------------------------------------------
+% Packages
+% -----------------------------------------------------------------------
+\usepackage[left=1.5in, right=1in, top=1in, bottom=1in, headheight=15pt]{geometry}
+\usepackage{setspace}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+% -----------------------------------------------------------------------
+% Thesis metadata -- edit these fields
+% -----------------------------------------------------------------------
+\newcommand{\thesistitle}{The Title of the Dissertation Here}
+\newcommand{\thesisauthor}{Christopher J. Waight}
+\newcommand{\thesisdepartment}{Mechanical Engineering}
+\newcommand{\thesisdegreefield}{Mechanical Engineering}
+\newcommand{\thesisadvisor}{Christopher A. Kitts}
+\newcommand{\thesisreaderA}{Reader Name A}
+\newcommand{\thesisreaderB}{Reader Name B}
+\newcommand{\thesisreaderC}{Reader Name C}
+\newcommand{\thesisreaderD}{Reader Name D}
+\newcommand{\thesisdeptchair}{Department Chair Name}
+\newcommand{\thesisyear}{2026}
+\newcommand{\thesismonth}{Month}
+\newcommand{\thesisday}{Day}
+
+% -----------------------------------------------------------------------
+% Page style setup
+% -----------------------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+% Plain style used on chapter opening pages
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyhead[R]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+% -----------------------------------------------------------------------
+% TOC / LOF / LOT formatting
+% -----------------------------------------------------------------------
+\renewcommand{\contentsname}{Table of Contents}
+\renewcommand{\listfigurename}{List of Figures}
+\renewcommand{\listtablename}{List of Tables}
+
+% -----------------------------------------------------------------------
+% Hyphenation hints
+% -----------------------------------------------------------------------
+\hyphenation{multi-robot cluster-space Jacobian}
+
+% -----------------------------------------------------------------------
+% Document
+% -----------------------------------------------------------------------
+\begin{document}
+
+% Front matter uses roman numerals
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+% ===================================================================
+% 1. APPROVAL / SIGNATURE PAGE
+% ===================================================================
+\begin{titlepage}
+\begin{center}
+  \large
+  Santa Clara University \\[6pt]
+  Department of \thesisdepartment
+
+  \vspace{1.5in}
+
+  \normalsize
+  Date: \thesismonth\ \thesisday, \thesisyear
+
+  \vspace{1in}
+
+  I HEREBY RECOMMEND THAT THE THESIS PREPARED UNDER MY SUPERVISION BY
+
+  \vspace{0.5in}
+  \MakeUppercase{\thesisauthor}
+  \vspace{0.5in}
+
+  ENTITLED
+
+  \vspace{0.4in}
+  \textit{\thesistitle}
+  \vspace{0.4in}
+
+  BE ACCEPTED IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR THE DEGREE
+
+  \vspace{0.3in}
+  \textbf{DOCTOR OF PHILOSOPHY IN \MakeUppercase{\thesisdegreefield}}
+\end{center}
+
+\vspace{0.8in}
+
+\noindent
+\begin{tabular}{p{3in} p{0.3in} p{3in}}
+  \hrulefill & & \hrulefill \\[2pt]
+  Thesis Advisor & & Thesis Reader \\[24pt]
+  \hrulefill & & \hrulefill \\[2pt]
+  Chairman of Department & & Thesis Reader \\[24pt]
+  & & \hrulefill \\[2pt]
+  & & Thesis Reader \\[24pt]
+  & & \hrulefill \\[2pt]
+  & & Thesis Reader
+\end{tabular}
+
+\end{titlepage}
+
+% ===================================================================
+% 2. TITLE PAGE
+% ===================================================================
+\begin{titlepage}
+\begin{center}
+  \vspace*{1in}
+
+  {\Large \thesistitle}
+
+  \vspace{0.6in}
+  by \\[6pt]
+  \thesisauthor
+
+  \vspace{1.2in}
+  Dissertation \\[6pt]
+  Submitted in Partial Fulfillment of the Requirements \\
+  for the Degree of Doctor of Philosophy \\
+  in \thesisdegreefield \\[6pt]
+  in the School of Engineering at \\
+  Santa Clara University, \thesisyear
+
+  \vspace{1in}
+  Santa Clara, California \\
+  \thesisyear
+\end{center}
+\end{titlepage}
+
+% ===================================================================
+% 3. DEDICATION (optional)
+% ===================================================================
+\clearpage
+\thispagestyle{plain}
+\vspace*{3in}
+\begin{center}
+  \textit{Dedicated to ...}
+\end{center}
+\clearpage
+
+% ===================================================================
+% 4. ACKNOWLEDGEMENTS
+% ===================================================================
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+
+I would like to thank ...
+
+\clearpage
+
+% ===================================================================
+% 5. ABSTRACT
+% ===================================================================
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\begin{center}
+  \thesistitle \\[6pt]
+  \thesisauthor \\[6pt]
+  Department of \thesisdepartment \\
+  Santa Clara University \\
+  Santa Clara, California \\
+  \thesisyear
+\end{center}
+
+\vspace{0.4in}
+
+\noindent
+This dissertation presents ...
+
+\clearpage
+
+% ===================================================================
+% 6. TABLE OF CONTENTS
+% ===================================================================
+\tableofcontents
+\clearpage
+
+% ===================================================================
+% 7. LIST OF FIGURES
+% ===================================================================
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+\clearpage
+
+% ===================================================================
+% 8. LIST OF TABLES
+% ===================================================================
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+\clearpage
+
+% ===================================================================
+% BODY -- switch to arabic page numbering
+% ===================================================================
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\doublespacing
+
+% ===================================================================
+% CHAPTER 1: INTRODUCTION
+% ===================================================================
+\chapter{Introduction}
+
+\section{Motivation}
+
+Placeholder text for motivation ...
+
+\section{Problem Statement}
+
+Placeholder text for problem statement ...
+
+\section{Contributions}
+
+The main contributions of this dissertation are:
+\begin{enumerate}
+  \item Contribution one.
+  \item Contribution two.
+  \item Contribution three.
+\end{enumerate}
+
+\section{Organization}
+
+Chapter~\ref{ch:background} provides background ...
+
+% ===================================================================
+% CHAPTER 2: BACKGROUND
+% ===================================================================
+\chapter{Background}
+\label{ch:background}
+
+\section{Related Work}
+
+Placeholder text ...
+
+\subsection{Subtopic A}
+
+Placeholder text ...
+
+\subsection{Subtopic B}
+
+Placeholder text ...
+
+\section{Notation and Definitions}
+
+Throughout this dissertation, bold lowercase letters denote vectors, e.g., $\mathbf{p} \in \mathbb{R}^2$. Bold uppercase letters denote matrices, e.g., $\mathbf{J} \in \mathbb{R}^{m \times n}$.
+
+% ===================================================================
+% CHAPTER 3: RESEARCH CHAPTER
+% ===================================================================
+\chapter{Methodology}
+\label{ch:methodology}
+
+\section{Overview}
+
+Placeholder text ...
+
+\section{Technical Approach}
+
+An equation example:
+\begin{equation}
+  \dot{\mathbf{c}} = \mathbf{J} \dot{\mathbf{r}}
+  \label{eq:jacobian}
+\end{equation}
+
+\section{Example Figure}
+
+\begin{figure}[h]
+  \centering
+  % \includegraphics[width=0.7\textwidth]{figures/placeholder.png}
+  \fbox{\rule{0pt}{2in}\rule{0.7\textwidth}{0pt}}
+  \caption{Placeholder figure caption.}
+  \label{fig:placeholder}
+\end{figure}
+
+\section{Example Table}
+
+\begin{table}[h]
+  \centering
+  \caption{Placeholder table caption.}
+  \label{tab:placeholder}
+  \begin{tabular}{|l|c|c|}
+    \hline
+    \textbf{Parameter} & \textbf{Value} & \textbf{Units} \\
+    \hline
+    Control rate & 10 & Hz \\
+    Time constant & 0.3 & s \\
+    Max speed & 0.3 & m/s \\
+    \hline
+  \end{tabular}
+\end{table}
+
+% ===================================================================
+% CHAPTER 4: RESULTS
+% ===================================================================
+\chapter{Results and Validation}
+\label{ch:results}
+
+\section{Simulation Results}
+
+Placeholder text ...
+
+\section{Hardware Results}
+
+Placeholder text ...
+
+% ===================================================================
+% CHAPTER 5: CONCLUSIONS
+% ===================================================================
+\chapter{Conclusions}
+\label{ch:conclusions}
+
+\section{Summary}
+
+Placeholder text ...
+
+\section{Future Work}
+
+Placeholder text ...
+
+% ===================================================================
+% REFERENCES
+% ===================================================================
+\clearpage
+\singlespacing
+\addcontentsline{toc}{chapter}{References}
+
+\begin{thebibliography}{99}
+
+\bibitem{1} C. A. Kitts and I. Mas, ``Cluster space specification and control of mobile multirobot systems,'' \textit{IEEE/ASME Transactions on Mechatronics}, vol. 14, no. 2, pp. 207--218, Apr. 2009.
+
+\bibitem{2} Author, ``Title of paper,'' \textit{Journal Name}, vol. X, no. Y, pp. ZZ--ZZ, Year.
+
+\end{thebibliography}
+
+% ===================================================================
+% APPENDICES
+% ===================================================================
+\appendix
+
+\chapter{Appendix Title A}
+\label{app:a}
+
+Placeholder text for Appendix A ...
+
+\chapter{Appendix Title B}
+\label{app:b}
+
+Placeholder text for Appendix B ...
+
+\end{document}

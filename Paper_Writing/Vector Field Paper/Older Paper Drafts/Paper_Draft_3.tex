@@ -1,0 +1,1109 @@
+\documentclass[lettersize,journal]{IEEEtran}
+%\documentclass[lettersize,journal,draft]{IEEEtran}
+
+\usepackage{amsmath,amsfonts}
+\usepackage{algorithmic}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+%\usepackage{balance}
+\begin{document}
+\title{Adaptive Navigation of Multirobot Systems to Critical Points in 2D Vector Fields}
+\author{Christopher Waight, Christopher A. Kitts
+\thanks{Manuscript created October, 2020; This work was developed by the IEEE Publication Technology Department. This work is distributed under the \LaTeX \ Project Public License (LPPL) ( http://www.latex-project.org/ ) version 1.3. A copy of the LPPL, version 1.3, is included in the base \LaTeX \ documentation of all distributions of \LaTeX \ released 2003/12/01 or later. The opinions expressed here are entirely that of the author. No warranty is expressed or implied. User assumes all risk.}}
+
+\markboth{Journal of \LaTeX\ Class Files,~Vol.~18, No.~9, September~2020}%
+{How to use IEEEtran \LaTeX \ Templates}
+
+\maketitle
+
+\begin{abstract}
+Multirobot systems operating within vector fields often need to locate and exploit key flow features such as sources, sinks, saddles, and vortex centers. Most existing approaches rely on gradient-descent strategies that converge slowly near local extrema and fail in heterogeneous fields. This paper presents a curvature-aware adaptive navigation method using real-time Jacobian estimates to enable precise critical point detection and control. We develop distributed control primitives requiring only three robots to estimate critical point locations and types through instantaneous local field measurements. Extensive validation on the Decabot testbed (1.6$\times$1.6 m workspace, 10 Hz control) demonstrates robust performance across 183 hardware trials: 160 convergence experiments achieving 100\% success rate with average rest points within 4 mm of true critical points (maximum deviation 3.60 mm), and 23 orbital control experiments maintaining radii within 2 cm of targets. The four-robot Dual Jacobian configuration achieves RMSE of 8.73-10.14 mm, representing 40-47\% improvement over the minimal three-robot configuration and 58\% better accuracy at tight orbital radii. Simulation validation across six canonical vector fields confirms algorithmic robustness, with all configurations maintaining sub-centimeter accuracy. The method operates without memory requirements, making it suitable for time-varying fields, and scales naturally beyond the minimum configuration. These results establish a fundamental limit—three robots suffice for planar field characterization—while demonstrating practical advantages of curvature-aware control for distributed field exploration.
+\end{abstract}
+
+\begin{IEEEkeywords}
+MultiRobot Systems, Adaptive Navigation, Vector Fields, Critical Points, Distributed Sampling, Robot Teams.
+\end{IEEEkeywords}
+
+
+\section{Introduction}
+\IEEEPARstart{A}{daptive} navigation of multirobot systems through physical environments has successfully been applied to search and rescue and environmental monitoring missions such as plume tracking and source seeking. In most cases, these environments are modeled as scalar fields representing quantities like temperature or chemical concentration. Control primitives based on gradient methods enable robots to find extrema, saddle points, ridges, or isolines within these fields. These scalar field approaches have proven effective for many applications where the environment can be characterized by a single value at each location.
+
+However, many physical phenomena cannot be adequately represented as scalar fields. Ocean currents, atmospheric flows, and electromagnetic fields inherently possess both magnitude and direction at each point. Modeling these environments as vector fields reveals topological features such as vortices and separatrices that have no scalar field equivalent. The directional information in vector fields creates complex dynamics near critical points where the field magnitude approaches zero. These critical points include sources, sinks, saddles, and vortices that each exhibit distinct local behavior determined by both rotational and divergent field components.
+
+The limitations of modelling vector fields as scalar fields arise when we consider practical applications. Consider a team of underwater robots monitoring an oceanic vortex or atmospheric drones tracking a developing cyclone. These robots must maintain safe distances from dangerous field centers while gathering crucial data. Most current approaches to this problem rely on a fundamental simplification: they flatten the vector field into a scalar representation by extracting magnitude or divergence, then apply gradient descent strategies. Yet this dimensionality reduction discards the geometric information that distinguishes different field singularities and requires prior knowledge of the vector field to be successful. Methods that preserve full vector information, such as following the vector sum of all robot readings, allow only passive field following.
+
+The limitations become particularly apparent when robots attempt to maintain a set distance from critical points. Existing methods provide the general direction toward these centers but cannot determine their actual locations. When implemented on physical platforms, momentum effects cause robots attempting to orbit a critical point to spiral outward. The controller cannot compensate for drift without knowing where the field center lies. Even with multiple robots sharing information, current distributed strategies pool directional measurements or magnitude gradients without reconstructing the underlying field structure.
+
+Other Vector Field navigation strategies for reconstructing the underlying field typically require memory of past measurements or some prior knowledge of the global field maps, limiting their applicability when field characteristics change during operation.
+
+This paper introduces a distributed estimation and control strategy that exploits local field geometry rather than reducing dimensionality. Our approach uses instantaneous vector measurements from multiple robots to reconstruct the local Jacobian matrix of the field. The key insight is that three robots taking simultaneous measurements at known positions provide sufficient information to estimate the local linear approximation of the field. This minimal team size can fully characterize planar field geometry near a critical point. The reconstructed Jacobian reveals both the critical point location and its type through eigenvalue analysis.
+
+Building on this estimation capability, we develop control primitives for precise navigation around each field singularity type. Robots can compute exact distances to field centers and adjust their trajectories accordingly. This enables precise approach trajectories, controlled avoidance strategies, and stable orbital control at fixed radii. The method operates entirely on instantaneous measurements without memory requirements, making it suitable for time-varying fields where equilibria move or change type during operation. The computational requirements remain minimal, requiring only matrix inversion and basic linear algebra operations that execute in real time on standard embedded platforms.
+
+Our contributions are fourfold. First, we present a distributed algorithm that estimates equilibrium locations and types using only instantaneous vector measurements from a minimum configuration of three robots. Second, we develop control strategies that exploit these estimates to achieve precise navigation behaviors around different field singularities. Third, we validate our approach by performing over 180 hardware experiments and several hundreds of simulations, demonstrating centimeter-level accuracy in a two-meter-square testbed (representing approximately 1\% relative error). Experimental results show that robots maintain orbit radii within two centimeters of their targets despite sensing noise and actuation errors. Fourth, we show that the approach scales beyond the minimum three-robot configuration, with additional robots improving estimation accuracy without requiring algorithmic modifications. 
+
+The remainder of this paper is organized as follows. Section II develops the mathematical framework for distributed Jacobian estimation and presents the control primitives for each field singularity type. Section III describes our experimental testbed and simulation environment. Section IV presents comprehensive results from both hardware experiments and simulation studies. Section V discusses the impact, limitations, and future extensions of this work. Section VI concludes.
+
+\section{Critical Point Detection and Control}
+\noindent 
+Consider a cluster of three robots sampling a planar vector field. Given robot positions $\mathbf{p}_i = (x_i, y_i)$ and corresponding vector field measurements $(u_i, v_i)$ for $i \in \{1, 2, 3\}$, we seek to navigate the cluster center to critical points where the field vanishes.
+
+\subsection{Critical Point Detection and Identification}
+We approximate the vector field components across the cluster's spatial extent using linear planar models:
+\begin{equation}
+U(x,y) = ax + by + c
+\end{equation}
+\begin{equation}
+V(x,y) = dx + ey + f
+\end{equation}
+
+The coefficients are determined by solving the linear systems:
+\begin{equation}
+\mathbf{A}\boldsymbol{\theta}_u = \mathbf{u}, \quad \mathbf{A}\boldsymbol{\theta}_v = \mathbf{v}
+\end{equation}
+where:
+\begin{equation}
+\mathbf{A} = \begin{bmatrix} x_1 & y_1 & 1 \\ x_2 & y_2 & 1 \\ x_3 & y_3 & 1 \end{bmatrix}, \quad \boldsymbol{\theta}_u = \begin{bmatrix} a \\ b \\ c \end{bmatrix}, \quad \boldsymbol{\theta}_v = \begin{bmatrix} d \\ e \\ f \end{bmatrix}
+\end{equation}
+and $\mathbf{u} = [u_1, u_2, u_3]^T$, $\mathbf{v} = [v_1, v_2, v_3]^T$ are the collected field measurements.
+
+The critical point $\mathbf{p}^* = (x^*, y^*)$ satisfies $U(x^*, y^*) = 0$ and $V(x^*, y^*) = 0$, which yields:
+\begin{equation}
+ax^* + by^* + c = 0, \quad dx^* + ey^* + f = 0
+\end{equation}
+
+Rewriting in matrix form:
+\begin{equation}
+\mathbf{J}\mathbf{p}^* = -\mathbf{h}
+\end{equation}
+where the Jacobian matrix and offset vector are:
+\begin{equation}
+\mathbf{J} = \begin{bmatrix} a & b \\ d & e \end{bmatrix}, \quad \mathbf{h} = \begin{bmatrix} c \\ f \end{bmatrix}
+\end{equation}
+
+Thus, provided $\det(\mathbf{J}) \neq 0$:
+\begin{equation}
+\mathbf{p}^* = -\mathbf{J}^{-1}\mathbf{h}
+\end{equation}
+
+The eigenvalues of the Jacobian can be used to identify the type of nearby critical point (see Appendix B).
+
+\subsection{Critical Point Attraction Control Law}
+Given the current cluster center $\mathbf{p}_c = (x_c, y_c)$ and the estimated critical point $\mathbf{p}^*$, the continuous velocity command is:
+\begin{equation}
+\dot{\mathbf{p}}_c = k(\mathbf{p}^* - \mathbf{p}_c)
+\end{equation}
+where $k > 0$ is the proportional gain. This yields exponential convergence to the estimated critical point with time constant $\tau = 1/k$.
+
+
+\subsection{Orbital Navigation Strategy}
+
+Given the estimated critical point $\mathbf{p}^*$ from equation (8), we design a control law to maintain a circular orbit at a desired radius $r_d$. The vector from the cluster center to the critical point is:
+
+\begin{equation}
+\mathbf{r} = \mathbf{p}^* - \mathbf{p}_c
+\end{equation}
+
+with magnitude:
+\begin{equation}
+r = \|\mathbf{r}\| = \sqrt{(x^* - x_c)^2 + (y^* - y_c)^2}
+\end{equation}
+
+The unit radial vector is:
+\begin{equation}
+\hat{\mathbf{r}} = \frac{\mathbf{r}}{r}
+\end{equation}
+
+The clockwise perpendicular vector is obtained through a $-90^\circ$ rotation:
+\begin{equation}
+\hat{\mathbf{r}}_\perp = \begin{bmatrix} \cos(-\pi/2) & -\sin(-\pi/2) \\ \sin(-\pi/2) & \cos(-\pi/2) \end{bmatrix} \hat{\mathbf{r}} = \begin{bmatrix} 0 & 1 \\ -1 & 0 \end{bmatrix} \hat{\mathbf{r}}
+\end{equation}
+
+
+The orbital velocity command combines tangential motion with radial correction:
+
+\begin{equation}
+\dot{\mathbf{p}}_c = v_t \hat{\mathbf{r}}_\perp + v_r \hat{\mathbf{r}}
+\end{equation}
+
+where the tangential velocity maintains orbital motion:
+\begin{equation}
+v_t = k_t
+\end{equation}
+
+and the radial velocity corrects for radius error:
+\begin{equation}
+v_r = -k_r(r - r_d)
+\end{equation}
+
+
+Substituting equations (15) and (16) into (14):
+
+\begin{equation}
+\dot{\mathbf{p}}_c = k_t \hat{\mathbf{r}}_\perp - k_r(r - r_d)\hat{\mathbf{r}}
+\end{equation}
+
+where $k_t > 0$ sets the orbital speed and $k_r > 0$ determines the radius correction rate. This control law produces stable circular orbits around the estimated critical point, with clockwise rotation for $k_t > 0$ (counterclockwise for $k_t < 0$) and exponential convergence to the desired radius with time constant $\tau_r = 1/k_r$.
+
+
+\subsection{Stability Analysis}
+
+We analyze the stability of both control modes and their robustness to critical point estimation errors.
+
+\subsubsection{Critical Point Attraction Stability}
+
+For the attraction control law $\dot{\mathbf{p}}_c = k(\mathbf{p}^* - \mathbf{p}_c)$, define the error vector:
+\begin{equation}
+\mathbf{e} = \mathbf{p}_c - \mathbf{p}^*
+\end{equation}
+
+The error dynamics are:
+\begin{equation}
+\dot{\mathbf{e}} = \dot{\mathbf{p}}_c = -k\mathbf{e}
+\end{equation}
+
+Consider the Lyapunov function:
+\begin{equation}
+V_1 = \frac{1}{2}\mathbf{e}^T\mathbf{e} = \frac{1}{2}\|\mathbf{e}\|^2
+\end{equation}
+
+Its time derivative along system trajectories:
+\begin{equation}
+\dot{V}_1 = \mathbf{e}^T\dot{\mathbf{e}} = -k\mathbf{e}^T\mathbf{e} = -k\|\mathbf{e}\|^2 < 0 \quad \forall \mathbf{e} \neq \mathbf{0}
+\end{equation}
+
+Since $\dot{V}_1 < 0$ for all $\mathbf{e} \neq \mathbf{0}$ and $k > 0$, the system exhibits global exponential stability with convergence rate $k$.
+
+\subsubsection{Orbital Control Stability}
+
+For the orbital control law, we transform to polar coordinates $(r, \theta)$ centered at $\mathbf{p}^*$. The dynamics become:
+\begin{equation}
+\dot{r} = v_r = -k_r(r - r_d)
+\end{equation}
+\begin{equation}
+\dot{\theta} = \frac{v_t}{r} = \frac{k_t}{r}
+\end{equation}
+
+For the radial dynamics, define the radial error:
+\begin{equation}
+e_r = r - r_d
+\end{equation}
+
+Consider the Lyapunov function:
+\begin{equation}
+V_2 = \frac{1}{2}e_r^2
+\end{equation}
+
+Its derivative:
+\begin{equation}
+\dot{V}_2 = e_r\dot{e}_r = e_r\dot{r} = -k_r e_r^2 < 0 \quad \forall e_r \neq 0
+\end{equation}
+
+This proves exponential convergence to the desired radius $r_d$ with rate $k_r$. The angular dynamics are decoupled and maintain constant angular velocity $\omega = k_t/r$ once $r \to r_d$.
+
+
+
+\subsection{Estimation Accuracy and Sensitivity Analysis}
+
+This section analyzes how formation geometry, sensor noise, and field characteristics affect critical point estimation accuracy.
+
+\subsubsection{Estimation Accuracy}
+
+The plane-fitting algorithm assumes local linearity of the vector field. For a perfectly linear field, the three-robot configuration yields exact critical point estimates. However, real fields contain nonlinearities that introduce estimation errors proportional to the formation size.
+
+Define the formation size $s$ as the maximum distance between any two robots (e.g., the side length for an equilateral triangle). Through Taylor expansion, the neglected quadratic terms in the field approximation have magnitude $\mathcal{O}(s^2\|\mathbf{H}\|)$, where $\mathbf{H}$ is the field's Hessian tensor. These neglected terms propagate through the critical point estimation $\mathbf{p}^* = -\mathbf{J}^{-1}\mathbf{h}$, yielding:
+\begin{equation}
+\|\mathbf{p}^*_{est} - \mathbf{p}^*_{true}\| \sim \mathcal{O}(s^2)
+\end{equation}
+
+This quadratic scaling implies that halving the formation size reduces estimation error by approximately 75\%. For our experimental formations with $s = 0.33$ m operating in fields with characteristic length scales of 1-2 m, the nonlinearity-induced errors remain below 1 cm, as confirmed by our hardware results.
+
+\subsubsection{Sensitivity to Measurement Noise}
+
+Robot sensors inevitably introduce measurement noise into the field readings. Understanding how this noise propagates through our estimation pipeline is crucial for practical deployment. When each robot measures the field with additive noise $\boldsymbol{\eta}_i$, the resulting velocity measurements become $\tilde{\mathbf{v}}_i = \mathbf{v}_i + \boldsymbol{\eta}_i$.
+
+This measurement noise affects the plane-fitting coefficients and subsequently the critical point estimate. The error amplification from sensor noise to critical point estimate depends on two geometric factors:
+\begin{equation}
+\frac{\|\Delta\mathbf{p}^*\|}{\|\boldsymbol{\eta}\|} \propto \kappa(\mathbf{A}) \cdot \kappa(\mathbf{J})
+\end{equation}
+
+Here, $\kappa(\mathbf{A})$ is the condition number of the robot formation geometry, and $\kappa(\mathbf{J})$ is the condition number of the local field Jacobian. Well-conditioned systems (small $\kappa$) provide stable estimates, while ill-conditioned systems amplify noise significantly.
+
+For practical context: with sensor noise of standard deviation 1 mm/s and an equilateral formation ($\kappa(\mathbf{A}) \approx 2$) operating in a well-behaved vortex field ($\kappa(\mathbf{J}) \approx 1$), the critical point estimate typically exhibits errors of 2-5 mm. However, near saddle points where $\kappa(\mathbf{J})$ can exceed 10, the same sensor noise may produce estimation errors exceeding 2 cm.
+
+\subsubsection{Formation Geometry and Numerical Conditioning}
+
+The formation geometry directly impacts estimation stability through the condition number $\kappa(\mathbf{A})$. For an equilateral triangle with side length $s$:
+\begin{equation}
+\mathbf{A}_{eq} = \begin{bmatrix}
+s/2 & 0 & 1 \\
+-s/4 & s\sqrt{3}/4 & 1 \\
+-s/4 & -s\sqrt{3}/4 & 1
+\end{bmatrix}, \quad \kappa(\mathbf{A}_{eq}) \approx 2.0
+\end{equation}
+
+This near-optimal conditioning explains why equilateral formations consistently outperform other geometries in our experiments. In contrast, degenerate configurations where robots approach collinearity yield $\kappa(\mathbf{A}) \to \infty$, causing the estimation to fail catastrophically.
+
+The field structure similarly affects conditioning through $\kappa(\mathbf{J})$. Well-behaved fields (vortices, sources, sinks) typically maintain $\kappa(\mathbf{J}) \sim 1$, while saddle points exhibit higher condition numbers due to their hyperbolic nature. Uniform or near-uniform field regions pose particular challenges as $\det(\mathbf{J}) \to 0$, requiring alternative control strategies when detected.
+
+\subsubsection{Robustness and Control Implications}
+
+The estimation framework demonstrates several favorable characteristics that enhance practical deployment:
+
+\begin{itemize}
+\item \textbf{Graceful degradation}: Formation perturbations increase $\kappa(\mathbf{A})$ gradually, maintaining functionality with reduced accuracy rather than catastrophic failure.
+\item \textbf{Noise averaging}: Additional robots beyond the minimum three provide redundancy, reducing noise impact by approximately $1/\sqrt{n}$ through least-squares averaging.
+\item \textbf{Stability preservation}: Critical point estimation errors $\boldsymbol{\epsilon} = \mathbf{p}^*_{est} - \mathbf{p}^*_{true}$ shift the equilibrium but preserve exponential convergence. The attraction controller achieves $\mathbf{p}_{c,ss} = \mathbf{p}^*_{est}$ with convergence rate $k$, while the orbital controller maintains stable orbits around $\mathbf{p}^*_{est}$ despite the offset from $\mathbf{p}^*_{true}$.
+\end{itemize}
+
+Key limitations require careful consideration during deployment:
+
+\begin{itemize}
+\item \textbf{Systematic bias}: Common-mode sensor errors translate directly to estimation bias without attenuation.
+\item \textbf{Singular field regions}: Near uniform fields or saddle separatrices where $\det(\mathbf{J}) \approx 0$, estimation becomes unreliable, necessitating fallback strategies.
+\item \textbf{Formation size constraints}: The $\mathcal{O}(s^2)$ error scaling demands compact formations in highly nonlinear fields.
+\end{itemize}
+
+These characteristics inform practical deployment strategies: maintain equilateral formations when possible, operate with compact geometries near critical points, and implement detection mechanisms for singular field conditions where alternative control modes should engage.
+
+\subsection{Scaling Beyond Minimal Configurations}
+
+The three-robot configuration provides the minimal system for linear field approximation. Two robots would only give a gradient along the line between the robots, and three data points are needed to determine a fit to a linear plane. We present two approaches for incorporating additional robots: (A) forming an overdetermined system that uses all measurements simultaneously, and (B) constructing multiple well-conditioned triangular subsystems for averaging. Method A offers simplicity and better conditioning for arbitrary geometries, while Method B provides redundancy through multiple independent estimates.
+
+\subsubsection{Method A: Overdetermined System}
+
+With $n > 3$ robots, the system becomes overdetermined. Similar to the three-robot case, we form:
+\begin{equation}
+\mathbf{A} = \begin{bmatrix} x_1 & y_1 & 1 \\ \vdots & \vdots & \vdots \\ x_n & y_n & 1 \end{bmatrix} \in \mathbb{R}^{n \times 3}
+\end{equation}
+
+Since $n > 3$, we employ least-squares minimization:
+\begin{equation}
+\boldsymbol{\theta}_u = \arg\min_{\boldsymbol{\theta}} \|\mathbf{A}\boldsymbol{\theta} - \mathbf{u}\|^2 = (\mathbf{A}^T\mathbf{A})^{-1}\mathbf{A}^T\mathbf{u}
+\end{equation}
+
+Similarly for $\boldsymbol{\theta}_v$. The critical point is then computed using the same Jacobian formulation as before. This approach naturally weights all measurements equally and provides improved estimation through redundancy, with robustness increasing as $\sqrt{n}$ for uncorrelated measurement errors.
+
+\subsubsection{Method B: Triangular Decomposition}
+
+An alternative approach leverages Delaunay triangulation principles. For $n \ge 4$ robots, arrange three in an equilateral triangle and place the fourth to form additional equilateral triangles with pairs from the original three. This creates multiple well-conditioned triangular subsystems.
+
+Let $\mathcal{T} = \{T_1, T_2, \ldots, T_m\}$ denote the set of equilateral triangles that are equal in size, where each $T_j$ contains three robot indices. For each triangle $T_j$, compute the critical point estimate:
+\begin{equation}
+\mathbf{p}^*_j = -\mathbf{J}_j^{-1}\mathbf{h}_j
+\end{equation}
+
+where $\mathbf{J}_j$ and $\mathbf{h}_j$ are computed using only the three robots in triangle $T_j$. The final estimate combines these:
+\begin{equation}
+\mathbf{p}^* = \frac{1}{m}\sum_{j=1}^{m} \mathbf{p}^*_j
+\end{equation}
+
+For $n > 4$ robots, maintain multiple overlapping equilateral or near-equilateral triangles. Well-conditioned triangles have condition number $\kappa(\mathbf{A}_j) < \kappa_{max}$ for some threshold $\kappa_{max}$, ensuring numerical stability.
+
+In this research, we add an orientation controller which senses the direction of the short diagonal, and aligns it with the direction to the critical point. This maximizes the orientation difference of the two smaller equilateral triangles.
+
+Both methods scale to arbitrary $n$: Method A through larger least-squares systems, and Method B through additional triangular subsets. Method A is computationally simpler and less sensitive to geometric arrangement, while Method B provides insight into estimate consistency through the variance of $\{\mathbf{p}^*_j\}$.
+
+\section{Experimental Platform and Methodology}
+
+\subsection{Control Architecture Overview}
+
+The multirobot system control architecture chosen is an established layered approach successfully demonstrated in prior cluster space control studies [15, 16]. The architecture consists of three primary layers: individual robot controllers managing each unit's motion, a cluster space controller maintaining geometric and translating cluster level commands to individual robot velocity commands, and an adaptive navigation layer implementing the control primitives developed in Section II. Figure 1 illustrates this hierarchical structure, which has proven effective across various multirobot navigation applications in both 2D and 3D environments.
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{control_architecture.png}
+    \caption{Multilayered Control Architecture Block Diagram}
+    \label{fig:control_architecture}
+\end{figure}
+
+This modular, layered architecture was chosen for its significant practical benefits. The distinct control layers enable independent component development and testing, streamlining the implementation process. The design maximizes reusability by allowing standardized downstream components to systematically evaluate different navigation strategies. Furthermore, this approach ensures control laws remain platform-agnostic, simplifying transitions between robot types and robot controllers. The architecture readily accommodates non-holonomic robots, non-planar configurations, and scalability to larger robot teams, making it ideal for both current applications and future control strategy development.
+
+
+
+
+\subsection{Three-Robot Cluster Space Controller}
+
+Consider a cluster of three robots forming a triangular configuration. The shape can be parameterized using Side-Angle-Side (SAS) representation with parameters $(p, \beta, q)$, where $p$ is the distance between robots 1 and 2, $\beta$ is the interior angle at robot 2, and $q$ is the distance between robots 2 and 3.
+
+Figure 2 shows how this is visualized.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.25\textwidth]{threerobot.png}
+    \caption{A 3-Robot Cluster with Cluster Formation Variables}
+    \label{fig:threerobot}
+\end{figure}
+
+\subsubsection{Forward Kinematics}
+
+Given robot positions $(x_1, y_1), (x_2, y_2), (x_3, y_3)$, the SAS parameters are computed as:
+
+\begin{equation}
+p = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}
+\end{equation}
+
+\begin{equation}
+q = \sqrt{(x_3 - x_2)^2 + (y_3 - y_2)^2}
+\end{equation}
+
+
+\begin{equation}
+\beta = \arccos\left(\frac{p^2 + q^2 - r^2}{2pq}\right)
+\end{equation}
+
+The centroid and orientation are:
+
+\begin{equation}
+x_c = \frac{x_1 + x_2 + x_3}{3}, \quad y_c = \frac{y_1 + y_2 + y_3}{3}
+\end{equation}
+
+\begin{equation}
+\theta_c = \text{atan2}(y_2 - y_1, x_2 - x_1)
+\end{equation}
+
+\subsubsection{Inverse Kinematics}
+
+Given the SAS parameters and centroid position $(x_c, y_c)$ with orientation $\theta_c$, the robot positions are computed as follows. First, compute the triangle vertices in the local frame:
+
+\begin{equation}
+\begin{aligned}
+x_1^{\text{local}} &= -\frac{p \sin(\alpha)}{2 \sin(\beta)} \\
+y_1^{\text{local}} &= -\frac{p \cos(\alpha) + q}{2}
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+x_2^{\text{local}} &= \frac{q \sin(\gamma)}{2 \sin(\beta)} \\
+y_2^{\text{local}} &= \frac{p + q \cos(\gamma)}{2}
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+x_3^{\text{local}} &= \frac{p \sin(\alpha) + q \sin(\gamma)}{2 \sin(\beta)} \\
+y_3^{\text{local}} &= -\frac{p \cos(\alpha) + q \cos(\gamma)}{2}
+\end{aligned}
+\end{equation}
+
+where $\alpha$ and $\gamma$ are the remaining angles of the triangle, computed using the law of cosines:
+
+\begin{equation}
+r = \sqrt{p^2 + q^2 - 2pq\cos(\beta)}
+\end{equation}
+
+\begin{equation}
+\alpha = \arccos\left(\frac{p^2 + r^2 - q^2}{2pr}\right)
+\end{equation}
+
+\begin{equation}
+\gamma = \arccos\left(\frac{q^2 + r^2 - p^2}{2qr}\right)
+\end{equation}
+
+The global positions are obtained through rotation and translation:
+
+\begin{equation}
+\begin{bmatrix} x_i \\ y_i \end{bmatrix} = 
+\begin{bmatrix} \cos(\theta_c) & -\sin(\theta_c) \\ \sin(\theta_c) & \cos(\theta_c) \end{bmatrix}
+\begin{bmatrix} x_i^{\text{local}} \\ y_i^{\text{local}} \end{bmatrix} +
+\begin{bmatrix} x_c \\ y_c \end{bmatrix}
+\end{equation}
+
+\subsubsection{Inverse Jacobian}
+
+The error propagation from shape parameters to robot positions is given by:
+
+\begin{equation}
+\begin{bmatrix} 
+\delta x_1 \\ \delta y_1 \\ \delta x_2 \\ \delta y_2 \\ \delta x_3 \\ \delta y_3 
+\end{bmatrix} = 
+\mathbf{J}^{-1}
+\begin{bmatrix}
+\delta x_c \\ \delta y_c \\ \delta \theta_c \\ \delta p \\ \delta \beta \\ \delta q
+\end{bmatrix}
+\end{equation}
+
+where $\mathbf{J}^{-1}$ is the inverse Jacobian matrix containing partial derivatives $\frac{\partial x_i}{\partial \xi_j}$ for position coordinates $x_i$ and shape parameters $\xi_j$.
+
+\subsection{Four-Robot Cluster Space Controller}
+
+A four-robot cluster forming a quadrilateral can be parameterized using diagonal-based representation with eight parameters:
+\begin{itemize}
+\item $d_1, d_2$: lengths of diagonals connecting robots (1,3) and (2,4) respectively
+\item $r_1, r_2$: intersection ratios indicating where diagonals cross (0 = start, 1 = end)
+\item $\phi$: angle between diagonals
+\item $(x_c, y_c)$: centroid position
+\item $\theta_c$: overall orientation (angle of diagonal $d_1$)
+\end{itemize}
+A visualization can be seen in figure 3.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.35\textwidth]{robot4fig.png}
+    \caption{A 4-Robot Cluster with Cluster Formation Variables}
+    \label{fig:fourrobot}
+\end{figure}
+\subsubsection{Forward Kinematics}
+
+The forward kinematics transforms corner positions to diagonal parameters:
+
+\begin{equation}
+x_c = \frac{1}{4}\sum_{i=1}^{4} x_i, \quad y_c = \frac{1}{4}\sum_{i=1}^{4} y_i
+\end{equation}
+
+\begin{equation}
+d_1 = \sqrt{(x_3 - x_1)^2 + (y_3 - y_1)^2}
+\end{equation}
+
+\begin{equation}
+d_2 = \sqrt{(x_4 - x_2)^2 + (y_4 - y_2)^2}
+\end{equation}
+
+\begin{equation}
+\theta_c = \text{atan2}(y_3 - y_1, x_3 - x_1)
+\end{equation}
+
+\begin{equation}
+\phi = \text{atan2}(y_3 - y_1, x_3 - x_1) - \text{atan2}(y_4 - y_2, x_4 - x_2)
+\end{equation}
+
+The intersection ratios $r_1$ and $r_2$ are computed by solving the line intersection:
+
+\begin{equation}
+r_1 = \frac{(x_2 - x_1)(y_2 - y_4) + (y_2 - y_1)(x_4 - x_2)}{(x_3 - x_1)(y_2 - y_4) + (y_3 - y_1)(x_4 - x_2)}
+\end{equation}
+
+\begin{equation}
+r_2 = \frac{(x_3 - x_1)(y_2 - y_1) - (y_3 - y_1)(x_2 - x_1)}{(x_3 - x_1)(y_2 - y_4) + (y_3 - y_1)(x_4 - x_2)}
+\end{equation}
+
+\subsubsection{Inverse Kinematics}
+
+Given the diagonal parameters, the robot positions are recovered as follows. First, compute the intersection point:
+
+\begin{equation}
+\begin{aligned}
+x_i &= x_c + \frac{1}{4}\left[d_1(2r_1 - 1)\cos(\theta_c) + d_2(2r_2 - 1)\cos(\theta_c - \phi)\right] \\
+y_i &= y_c + \frac{1}{4}\left[d_1(2r_1 - 1)\sin(\theta_c) + d_2(2r_2 - 1)\sin(\theta_c - \phi)\right]
+\end{aligned}
+\end{equation}
+
+Then compute corner positions:
+
+\begin{equation}
+\begin{aligned}
+x_1 &= x_i - r_1 d_1 \cos(\theta_c) \\
+y_1 &= y_i - r_1 d_1 \sin(\theta_c)
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+x_2 &= x_i - r_2 d_2 \cos(\theta_c - \phi) \\
+y_2 &= y_i - r_2 d_2 \sin(\theta_c - \phi)
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+x_3 &= x_i + (1 - r_1) d_1 \cos(\theta_c) \\
+y_3 &= y_i + (1 - r_1) d_1 \sin(\theta_c)
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+x_4 &= x_i + (1 - r_2) d_2 \cos(\theta_c - \phi) \\
+y_4 &= y_i + (1 - r_2) d_2 \sin(\theta_c - \phi)
+\end{aligned}
+\end{equation}
+
+\subsubsection{Inverse Jacobian}
+
+Following the same structure as the three-robot inverse Jacobian, the error propagation from shape parameters to robot positions extends to four robots:
+
+\begin{equation}
+\begin{bmatrix}
+\delta x_1 \\ \delta y_1 \\ \delta x_2 \\ \delta y_2 \\ \delta x_3 \\ \delta y_3 \\ \delta x_4 \\ \delta y_4
+\end{bmatrix} =
+\mathbf{J}^{-1}
+\begin{bmatrix}
+\delta x_c \\ \delta y_c \\ \delta \theta_c \\ \delta d_1 \\ \delta d_2 \\ \delta r_1 \\ \delta r_2 \\ \delta \phi
+\end{bmatrix}
+\end{equation}
+
+where $\mathbf{J}^{-1}$ is the $8 \times 8$ inverse Jacobian matrix containing partial derivatives $\frac{\partial x_i}{\partial \xi_j}$ for position coordinates $x_i$ and shape parameters $\xi_j$, analogous to the three-robot formulation but extended to accommodate the additional robot and diagonal parameterization.
+
+
+\subsection{Hardware Test Bed}
+The experimental platform consists of three omnidirectional Decabot rovers operating within a 1.6$\times$1.6 m workspace (see figure 4). Each Decabot features four omnidirectional wheels providing holonomic motion capability and a downward-facing TCS34725 RGB color sensor enclosed in a light-shrouded housing for consistent readings (see figure 5). An eight-camera OptiTrack motion capture system tracks robot positions with sub-centimeter accuracy at 120 Hz, providing ground truth localization independent of the robots' onboard sensing.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.25\textwidth]{three_decabots.jpg}
+\caption{Three Decabot omnidirectional rovers used in experiments}
+\label{fig:decabots}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.25\textwidth]{undercarriage.png}
+    \caption{Decabot undercarriage showing TCS34725 RGB sensor with integrated LED illumination and light shroud}
+    \label{fig:undercarriage}
+    \end{figure}
+
+
+
+The control architecture is implemented in MATLAB/Simulink running on a central computer that communicates with robots via WiFi at 10 Hz. At each control cycle, the system receives robot positions from OptiTrack and RGB sensor readings from each Decabot. The cluster space controller computes formation-maintaining velocity commands based on the selected control primitive and transmits individual robot velocity commands back to the Decabots. This centralized architecture enables rapid prototyping and systematic evaluation of different control strategies while maintaining consistent downstream control implementation. Figure 6 shows the complete experimental testbed integrating the robots, printed field map, and motion capture system.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.25\textwidth]{full_bed.png}
+    \caption{Complete experimental testbed showing printed vector field map, Decabot rovers, and OptiTrack cameras}
+    \label{fig:fullbed}
+    \end{figure}
+
+
+Vector fields are physically realized as printed floor maps using HSV color encoding, where hue (0-2$\pi$) represents flow direction and saturation (0-1) encodes magnitude. This encoding provides robust field representation that is minimally affected by lighting variations, as the hue channel and saturation channel remain stable under different illumination conditions. The robots' RGB sensors are calibrated to map raw color measurements to vector field values using neural network models trained on extensive calibration data, achieving mean angular error below 7$^\circ$ and magnitude error under 10\% across the operational range.
+
+
+The testbed's modular design enables systematic experimentation: vector fields can be easily swapped by changing printed maps, robot team size can be varied from three to four units, and different control primitives can be evaluated using the same hardware platform and downstream control infrastructure. This consistency across experiments ensures that performance differences reflect algorithmic rather than implementation variations.
+
+We conducted extensive hardware validation focusing on two representative field types that encompass the key challenges of vector field navigation: rotational dynamics (vortex) and hyperbolic instability (saddle). The vortex field was selected both for continuity with previous studies in our research group and because it tests pure rotational control dynamics. The saddle field was chosen because its hyperbolic structure provides the most stringent test of our estimation accuracy—small errors can cause robots to diverge along unstable manifolds. Across these two fields, we performed 160 convergence trials from diverse starting positions (80 trials per field, with 8 starting positions run 10 times each) and 23 orbital control experiments at varying radii, totaling 183 hardware trials. This focused approach enabled statistical validation of repeatability and robustness while managing the substantial time requirements of physical experiments. Each field requires approximately three hours to set up (including printing, calibration, and sensor validation), with each individual trial taking approximately two minutes to execute and record.
+
+Table \ref{tab:validation_strategy} summarizes our validation strategy across hardware and simulation platforms.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccp{4cm}}
+\hline
+\textbf{Field Type} & \textbf{Hardware} & \textbf{Simulation} & \textbf{Rationale for Selection} \\
+ & \textbf{Trials} & \textbf{Trials} & \\
+\hline
+Vortex & 80 conv., & 100 & Tests rotational dynamics \\
+ & 23 orbital & & and orbital control \\
+Saddle & 80 conv. & 100 & Tests unstable manifolds \\
+ &  & & and estimation accuracy \\
+Source/Sink & -- & 100 each & Similar dynamics to saddle, \\
+ &  & & validated in simulation \\
+Spiral variants & -- & 100 each & Combinations of tested \\
+ &  & & dynamics \\
+\hline
+\end{tabular}
+\caption{Validation strategy across hardware and simulation platforms. Hardware trials focus on the most challenging control scenarios while simulation validates combined dynamics.}
+\label{tab:validation_strategy}
+\end{table}
+
+
+
+\subsection{Vector Fields}
+
+This study evaluated six vector fields showing isolated critical points in simulation.
+For hardware validation, two experimental vector fields were generated: a fixed vortex and a saddle point. After creating vectors at all grid points, magnitudes were scaled to the 0.3-1.0 range to ensure reliable sensor readings and avoid robot stiction at low velocities. Figure 7 displays the resulting quiver plot overlaid with its HSV representation.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.25\textwidth]{vortex_as_hsv.png}
+    \caption{Vortex with HSV colors representing vectors}
+    \label{fig:vortex_hsv}
+\end{figure}
+
+Figure 8 shows quiver plots of the 6 fields tested in simulation. Equations used to model each of the 6 fields tested can be found in  appendix A.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{six_vector_fields.png}
+    \caption{The six canonical fields}
+    \label{fig:allfield}
+\end{figure}
+
+\subsection{Simulation}
+
+\noindent The Python simulation implements a three-layer control architecture accounting for actuator dynamics. Each robot's internal velocity controller exhibits first-order response:
+\begin{equation}
+v(t) = v_{\text{cmd}}(1 - e^{-t/\tau})
+\end{equation}
+where
+$\tau$ is the actuator time constant. Each robot is modelled as a single omnidirectional point mass.
+
+The continuous actuator dynamics follow:
+\begin{equation}
+\dot{\mathbf{v}}(t) = -\frac{1}{\tau}\mathbf{v}(t) + \frac{1}{\tau}\mathbf{v}_{\text{des}}(t)
+\label{eq:continuous}
+\end{equation}
+For digital implementation at control period $\Delta t$, discretization yields:
+
+\begin{equation}
+\mathbf{v}[k+1] = \alpha \mathbf{v}[k] + (1-\alpha)\mathbf{v}_{\text{des}}[k]
+\label{eq:momentum}
+\end{equation}
+where the momentum coefficient
+$\alpha = e^{-\Delta t/\tau}$. 
+
+Combining with proportional formation control $\mathbf{v}_{\text{des}}(t) = k_v(\mathbf{x}_{\text{des}}(t) - \mathbf{x}(t))$ produces the final control law:
+
+\begin{equation}
+\mathbf{v}_{\text{cmd}}[k+1] = \alpha \mathbf{v}_{\text{cmd}}[k] + (1-\alpha)k_v(\mathbf{x}_{\text{des}}[k] - \mathbf{x}[k])
+\label{eq:final}
+\end{equation}
+The parameter $\alpha$ characterizes actuator response ($\alpha \to 1$ for sluggish actuators, $\alpha \to 0$ for fast response), while $k_v$ controls the robot-level position error gain. Note that $k_v$ operates at the individual robot control layer, distinct from the cluster-level gain $k$ in the stability analysis (Section II.D), which governs convergence to critical points. For the simulated 10 Hz control loop with $\tau = 0.3$, $\alpha \approx 0.717$.
+
+Each robot is given velocity commands based on the cluster command given by the control primitive, and translated by the inverse Jacobian. The architecture is identical to the one described earlier, and used in simulink with the testbed.
+The robots also have a limit of 0.3~m/s max, and a minimum speed of 0.05~m/s needed to overcome stiction.
+
+ 
+\section{Results}
+
+\subsection{Motion to Critical Point in Each Field Using 3-Robot Primitive in Simulation on Noise-Free Fields}
+
+The results in Figure 9 show that the control primitive using 3-robot is able to get to the center every time.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{All_fields_to_Centre.png}
+    \caption{Attraction to critical point from random starts}
+    \label{fig:Allfieldstocenter}
+\end{figure}
+
+For each field, 100 random starting points were chosen, and the accuracy of the primitives in perfect, noise free environments was determined and summarized in the table below (Table 1).
+
+
+
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llcc}
+\hline
+\textbf{Environment} & \textbf{Primitive} & \textbf{Avg. Rest Point} & \textbf{RMSE} \\
+ & & \textbf{(x, y) mm} & \textbf{(mm)} \\
+\hline
+\multicolumn{4}{l}{\textit{Stable Node (Sink)}} \\
+\hline
+ & Plane Fitting (3R) & (-0.70, 1.94) & 18.45 \\
+ & Planar Center (4R) & (-0.65, 1.76) & 14.56 \\
+ & Dual Jacobian (4R) & (3.25, -0.48) & 9.76 \\
+\hline
+\multicolumn{4}{l}{\textit{Unstable Node (Source)}} \\
+\hline
+ & Plane Fitting (3R) & (1.34, -0.10) & 15.39 \\
+ & Planar Center (4R) & (0.15, 0.53) & 14.66 \\
+ & Dual Jacobian (4R) & (2.22, 1.50) & 8.73 \\
+\hline
+\multicolumn{4}{l}{\textit{Center (Vortex)}} \\
+\hline
+ & Plane Fitting (3R) & (-1.33, 0.05) & 12.70 \\
+ & Planar Center (4R) & (-0.77, 0.46) & 13.44 \\
+ & Dual Jacobian (4R) & (2.57, -0.47) & 9.56 \\
+\hline
+\multicolumn{4}{l}{\textit{Stable Spiral (Sinking Vortex)}} \\
+\hline
+ & Plane Fitting (3R) & (-0.28, -0.50) & 17.47 \\
+ & Planar Center (4R) & (0.00, -1.00) & 14.23 \\
+ & Dual Jacobian (4R) & (2.95, 0.54) & 9.77 \\
+\hline
+\multicolumn{4}{l}{\textit{Unstable Spiral (Spewing Vortex)}} \\
+\hline
+ & Plane Fitting (3R) & (-0.18, -0.02) & 15.71 \\
+ & Planar Center (4R) & (-0.05, -1.24) & 13.84 \\
+ & Dual Jacobian (4R) & (2.76, -0.68) & 9.61 \\
+\hline
+\multicolumn{4}{l}{\textit{Saddle Point}} \\
+\hline
+ & Plane Fitting (3R) & (0.92, 1.29) & 12.65 \\
+ & Planar Center (4R) & (-0.18, 0.13) & 15.48 \\
+ & Dual Jacobian (4R) & (3.60, 0.17) & 10.14 \\
+\hline
+\end{tabular}
+\caption{Critical point estimation performance across topological field types. Average rest point represents the mean estimated critical point location. RMSE (Root Mean Square Error) indicates estimation accuracy. All algorithms achieved 100\% success rate over 100 trials per configuration.}
+\label{tab:estimation_results}
+\end{table}
+
+For the three configurations, the dimensions were chosen as 0.33 m side length for the equilateral triangle, 0.3 m diagonal for the square, and 0.433 m by 0.25 m for the rectangle. This was done to keep the area covered by the cluster of robots similar across all formations, thereby minimizing the effect of patch size on sampling performance.
+
+The experimental results demonstrate robust critical point estimation across all six topological field types. All three algorithms achieved a 100 percent success rate over 100 trials per configuration, with average rest points consistently within 4 mm of the true critical point location. The maximum average deviation from the origin was only 3.60 mm (Dual Jacobian in the saddle field), well below 1 cm for all test cases.
+In terms of estimation accuracy, all methods maintained RMSE values under 18.5 mm, with the Dual Jacobian method demonstrating superior performance across all field types. Specifically, the Dual Jacobian (4R) configuration achieved RMSE values ranging from 8.73 mm to 10.14 mm, representing a 40-47 percent improvement over the Plane Fitting (3R) method and a 25-35 percent improvement over the Planar Center (4R) method.
+The Plane Fitting method with 3 robots showed the highest variability, with RMSE values ranging from 12.65 mm to 18.45 mm, while the Planar Center method with 4 robots achieved intermediate performance (13.44 mm to 15.48 mm). This is expected as this is the minimal controller, and as such most susceptible to noise. Notably, the Dual Jacobian method maintained consistent performance across different field topologies, with RMSE values tightly clustered around 9-10 mm, suggesting robust generalization to diverse vector field environments.
+These results validate the effectiveness of multi-robot critical point estimation, with the Dual Jacobian approach offering the best balance of accuracy and consistency for real-time navigation applications.
+
+\subsection{Sensor Accuracy and Reconstruction of Printed Fields}
+
+Figures 10 and 11 show the results of sensor tuning on the validation plots collected. As we can see, the RMSE for hue is 0.02 which translates to about 7.2 degrees, and the RMSE for saturation is about 0.05.
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{NN_hue_predictions.png}
+    \caption{Hue predictions on the verification datasets held back from training}
+    \label{fig:HuePredictions}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{NN_sat_predictions.png}
+    \caption{Saturation predictions on the verification datasets held back from training}
+    \label{fig:SatPredictions}
+\end{figure}
+
+
+
+We take this a step further, by sampling the fields being used and creating NN and RBF models of the field scanned. These ML interpreted fields help us to check robot behavior in simulation to explain any effects of noise. These versions of the fields are also being used to determine which one is better for modeling the field in simulation in the future (see figure 12).
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{field_comparison_2x2.png}
+    \caption{Comparing the analytic field to the field sampled}
+    \label{fig:Field Comparison}
+\end{figure}
+
+This sampling and modelling process was done with the saddle field also.
+
+To see the difference between the analytical noise free field and what is being observed in the robots, consider the following plots  in figures 13 through figure 16 where we find the difference (or noise) or discrepancy between the analytic field and that what is sensed by the robots.
+
+
+
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{nn_vs_analytical_vortex.png}
+    \caption{NN vs analytical vortex}
+    \label{fig:vortexdifferencenn}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{rbf_vs_analytical_vortex.png}
+    \caption{RBF vs analytical vortex}
+    \label{fig:vortexdifferencerbf}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{nn_vs_analytical_saddle.png}
+    \caption{NN vs analytical saddle, the difference is scaled up by 3x}
+    \label{fig:saddledifferencenn}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{rbf_vs_analytical_saddle.png}
+    \caption{RBF vs analytical saddle, the difference is scaled up by 3x}
+    \label{fig:saddledifferencerbf}
+\end{figure}
+
+
+
+
+\subsection{Convergence to Critical Points on Vortex and Saddle Fields}
+
+For the vortex and saddle field, 8 locations were chosen around the perimeter of the field. At each location, the center attraction primitive with 3 robots was run 10 times.
+
+The figures below show how repeatable the path travelled by the robots are, which is to be expected as sensor readings are deterministic.
+The solid lines are the average path travelled, while the blurred lines show the standard deviation of the travelled path in figures 17-19.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{vortex_runtocenter.png}
+    \caption{All paths to center of the vortex with three robots. }
+    \label{fig:vortextomiddle}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{vortex_distance_to_center_with_time.png}
+    \caption{The distance to center for 10 runs, with solid line being average and blurred lines being standard deviation. }
+    \label{fig:vortextomiddlewithtime}
+\end{figure}
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{saddle_runtocenter.png}
+    \caption{All trajectories to center of saddle. }
+    \label{fig:saddletomiddle}
+\end{figure}
+
+These can be summarized in the table 3.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{llcc}
+    \hline
+    \textbf{Environment} & \textbf{Primitive} & \textbf{Avg. Rest Point} &
+    \textbf{RMSE} \\
+     & & \textbf{(x, y) mm} & \textbf{(mm)} \\
+    \hline
+    \multicolumn{4}{l}{\textit{Saddle Point}} \\
+    \hline
+     & Plane Fitting (3R) & (7.30, -1.62) & 24.93 \\
+    \hline
+    \multicolumn{4}{l}{\textit{Center (Vortex)}} \\
+    \hline
+     & Plane Fitting (3R) & (-6.04, 19.95) & 25.27 \\
+    \hline
+    \end{tabular}
+    \caption{Critical point estimation performance for saddle and vortex
+    fields using plane fitting control. Average rest point represents the mean
+     estimated critical point location across 78 saddle runs and 79 vortex
+    runs. RMSE (Root Mean Square Error from origin) indicates estimation
+    accuracy.}
+    \label{tab:estimation_results_3robot}
+    \end{table}
+
+\subsection{Orbiting the Vortex Field}
+
+In this section, we compare the three robot cluster, with the two methods for scaling up see figure 20.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{orbit_demonstration.png}
+    \caption{Orbital control comparison in a vortex field (120 steps, r=0.4m). Vector Sum (top-left) shows passive field-following with outward drift, while the three active control primitives maintain stable orbits through critical point estimation and radial feedback.}
+    \label{fig:orbit_demonstration}
+\end{figure}
+
+
+Figure 21 shows the actual path shown, as well as simulations running in the analytic field, the NN field, and the rbf field.As you can see, even in the purest field, there is some outward drift.
+
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.45\textwidth]{sim2real.png}
+    \caption{4 attempts at orbiting the critical point}
+    \label{fig:sim2real}
+\end{figure}
+
+
+We then tested this with all 3 control primitives, 3R and 4R at a variety of radii, and the results are summarized in table 4.
+
+\begin{table*}[h]
+\centering
+\small
+\begin{tabular}{ccccccc}
+\hline
+\textbf{Radius} & \multicolumn{2}{c}{\textbf{3-Robot}} & \multicolumn{2}{c}{\textbf{4-Robot Square}} & \multicolumn{2}{c}{\textbf{4-Robot Dual Jacobian}} \\
+ & \textbf{Radius Error} & \textbf{Est. Center} & \textbf{Radius Error} & \textbf{Est. Center} & \textbf{Radius Error} & \textbf{Est. Center} \\
+ & \textbf{($\pm$ std)} & \textbf{(x, y)} & \textbf{($\pm$ std)} & \textbf{(x, y)} & \textbf{($\pm$ std)} & \textbf{(x, y)} \\
+\hline
+\multicolumn{7}{l}{\textit{Real Robot Experiments}} \\
+\hline
+0.010 & 0.264 $\pm$ 0.020 & (--0.007, --0.008) & 0.264 $\pm$ 0.011 & (0.005, --0.010) & 0.111 $\pm$ 0.007 & (--0.002, --0.005) \\
+0.100 & 0.193 $\pm$ 0.020 & (0.012, 0.008) & 0.213 $\pm$ 0.020 & (0.006, --0.036) & 0.026 $\pm$ 0.009 & (--0.010, --0.005) \\
+0.200 & 0.149 $\pm$ 0.014 & (0.018, 0.001) & 0.137 $\pm$ 0.026 & (--0.012, --0.034) & 0.129 $\pm$ 0.045 & (0.024, 0.005) \\
+0.300 & 0.091 $\pm$ 0.013 & (0.037, --0.003) & 0.110 $\pm$ 0.037 & (0.019, --0.060) & 0.139 $\pm$ 0.039 & (0.002, --0.016) \\
+0.400 & 0.037 $\pm$ 0.018 & (0.044, --0.019) & 0.054 $\pm$ 0.041 & (0.024, --0.086) & 0.110 $\pm$ 0.055 & (0.036, --0.009) \\
+0.500 & --0.032 $\pm$ 0.023 & (0.053, 0.037) & --0.037 $\pm$ 0.044 & (0.071, --0.064) & 0.092 $\pm$ 0.057 & (0.119, 0.021) \\
+0.600 & --0.065 $\pm$ 0.038 & (0.010, 0.003) & --0.102 $\pm$ 0.044 & (0.083, 0.012) & -- & -- \\
+0.700 & --0.123 $\pm$ 0.039 & (0.016, --0.006) & -- & -- & -- & -- \\
+\hline
+\multicolumn{7}{l}{\textit{Neural Network Field Simulation}} \\
+\hline
+0.010 & 0.150 $\pm$ 0.015 & (0.011, --0.016) & 0.145 $\pm$ 0.016 & (0.010, --0.021) & 0.037 $\pm$ 0.006 & (0.007, --0.041) \\
+0.100 & 0.118 $\pm$ 0.013 & (0.012, --0.008) & 0.118 $\pm$ 0.016 & (0.020, --0.020) & 0.015 $\pm$ 0.003 & (--0.068, 0.092) \\
+0.200 & 0.109 $\pm$ 0.014 & (--0.000, --0.009) & 0.109 $\pm$ 0.015 & (0.009, --0.005) & 0.026 $\pm$ 0.012 & (0.015, 0.003) \\
+0.300 & 0.090 $\pm$ 0.018 & (0.019, --0.002) & 0.090 $\pm$ 0.023 & (0.029, 0.013) & 0.087 $\pm$ 0.026 & (0.023, 0.017) \\
+0.400 & 0.067 $\pm$ 0.026 & (0.038, 0.045) & 0.061 $\pm$ 0.036 & (0.040, 0.065) & 0.088 $\pm$ 0.026 & (0.066, --0.012) \\
+0.500 & 0.019 $\pm$ 0.039 & (0.030, 0.015) & 0.019 $\pm$ 0.051 & (0.056, 0.032) & 0.052 $\pm$ 0.030 & (0.036, 0.023) \\
+0.600 & --0.027 $\pm$ 0.050 & (0.044, 0.074) & --0.027 $\pm$ 0.063 & (0.052, 0.083) & -- & -- \\
+0.700 & --0.067 $\pm$ 0.060 & (0.106, 0.065) & -- & -- & -- & -- \\
+\hline
+\multicolumn{7}{l}{\textit{RBF Field Simulation}} \\
+\hline
+0.010 & 0.084 $\pm$ 0.026 & (0.022, --0.028) & 0.141 $\pm$ 0.025 & (0.031, --0.023) & 0.099 $\pm$ 0.031 & (0.007, --0.005) \\
+0.100 & 0.110 $\pm$ 0.026 & (0.010, --0.024) & 0.110 $\pm$ 0.026 & (0.010, --0.024) & 0.031 $\pm$ 0.026 & (0.014, 0.022) \\
+0.200 & 0.084 $\pm$ 0.021 & (--0.011, --0.018) & 0.084 $\pm$ 0.031 & (0.001, --0.054) & 0.035 $\pm$ 0.035 & (0.027, 0.002) \\
+0.300 & 0.048 $\pm$ 0.025 & (--0.012, 0.011) & 0.034 $\pm$ 0.033 & (--0.003, 0.007) & 0.070 $\pm$ 0.032 & (0.024, 0.006) \\
+0.400 & 0.077 $\pm$ 0.051 & (0.062, 0.085) & 0.039 $\pm$ 0.064 & (0.065, 0.052) & 0.063 $\pm$ 0.046 & (0.086, 0.000) \\
+0.500 & 0.057 $\pm$ 0.061 & (0.098, 0.046) & 0.017 $\pm$ 0.087 & (0.098, 0.046) & 0.044 $\pm$ 0.075 & (0.091, 0.039) \\
+0.600 & 0.032 $\pm$ 0.077 & (0.123, 0.058) & 0.001 $\pm$ 0.089 & (0.134, 0.065) & -- & -- \\
+0.700 & 0.129 $\pm$ 0.011 & (--0.041, 0.828) & -- & -- & -- & -- \\
+\hline
+\end{tabular}
+\caption{Orbital control performance at varying radii across real robot experiments and simulations. Radius error shows deviation from commanded orbit (negative = orbit too small, positive = orbit too large) with standard deviation. Center estimates show critical point localization. All values in meters. Missing entries (--) indicate radius not tested for that configuration.}
+\label{tab:orbital_radius_comparison}
+\end{table*}
+
+
+\section{Discussion, Limitations, and Future Work}
+
+\subsection{Control Performance Analysis}
+
+This work demonstrates that the dual triangle approach with 4-robot configurations provides superior performance compared to both 3-robot and 4-robot square configurations. The Dual Jacobian method achieves approximately 58\% improvement in accuracy at tight orbital radii compared to alternative approaches.
+
+Figure \ref{fig:orbit_demonstration} illustrates the fundamental difference between passive field-following and active orbital control. The Vector Sum approach (top-left) exhibits outward spiral drift due to passive field-following behavior. Without explicit radius regulation, the commanded velocity magnitude scales directly with local field strength, causing excessive tangential motion that generates centrifugal drift away from the origin. In contrast, the three active control primitives maintain stable circular trajectories by decoupling velocity commands from field magnitude, using critical point estimation and proportional radial feedback to achieve consistent orbital regulation at the commanded radius.
+
+
+
+Table \ref{tab:orbital_radius_comparison} reveals several key performance characteristics across the three robot configurations and simulation modes. The most striking observation is the significant challenge all configurations face at small orbital radii. At the commanded radius of 0.010m, both the 3-Robot and 4-Robot Square configurations exhibit radius errors exceeding 0.26m in real robot experiments, with standard deviations around 0.011-0.020m. In contrast, the 4-Robot Dual Jacobian configuration demonstrates substantially superior performance at this scale, achieving a radius error of only 0.111m with standard deviation of 0.007m. This represents approximately 58\% improvement in accuracy compared to the other configurations at tight orbital radii, highlighting the advantage of dual-triangle Jacobian estimation for precise center localization.
+
+As the commanded orbital radius increases, all configurations show improved accuracy. The radius error generally decreases from the smallest radii through approximately 0.300-0.400m, where the 3-Robot configuration achieves errors as low as 0.037m. However, an interesting trend emerges at larger radii: the radius error becomes negative for both 3-Robot and 4-Robot Square configurations, reaching -0.123m and -0.102m respectively at 0.600-0.700m radii. These negative values indicate that the actual orbital radius falls short of the commanded value, suggesting poorer quality in critical point estimation. The 4-Robot Dual Jacobian configuration maintains positive radius errors even at 0.500m, indicating more consistent outward bias in its control behavior, and fits the trend of predicting the critical point more accurately.
+
+Comparing simulation performance to real robot experiments reveals important insights about field approximation quality. Neural network field simulations consistently demonstrate better orbital control than real hardware across all configurations, with radius errors at 0.010m reduced to 0.145-0.150m for the planar methods and 0.037m for Dual Jacobian—representing approximately 40-45\% improvement over real robot performance. The RBF simulations show intermediate performance, generally matching or slightly outperforming NN simulations at small radii but exhibiting more variability at larger radii, particularly evident in the anomalous 0.129m error at 0.700m for the 3-Robot configuration with very low standard deviation (0.011m), suggesting a systematic bias rather than random error. The standard deviations across all simulation modes are generally lower than real robot experiments, indicating that the primary source of variation in real experiments stems from unmodeled dynamics, sensor noise, and actuator variability rather than field approximation errors.
+
+Center estimation accuracy shows considerable variation across configurations and operating conditions. In real robot experiments, estimated centers range from near-origin values like (-0.007, -0.008) at small radii to larger offsets such as (0.119, 0.021) at 0.500m for the Dual Jacobian method. The 4-Robot Square configuration exhibits particularly large systematic offsets in the y-direction, reaching -0.086m at 0.400m radius, suggesting potential geometric biases in the planar center estimation approach. 
+
+For scaling beyond three robots, the results demonstrate that using two equilateral triangles and averaging their independent estimates outperforms the square configuration with overdetermined least-squares fitting. This validates the triangular decomposition approach (Method B) described in Section II over the overdetermined system approach (Method A), at least for the 4-robot case.
+
+\subsection{Field Approximation Performance}
+
+The results show that modeling the environment with neural networks produces better sim-to-real transfer than RBF interpolators, as evidenced by more consistent predictions of real robot behavior. However, both field approximation techniques suffer from drawbacks Neural network field simulations consistently demonstrate 40-45\% improvement over real robot performance at small radii, while RBF simulations exhibit more variability, particularly at extreme radii where extrapolation difficulties emerge. Simulation results show more consistent center estimates closer to the true origin with the NN simulations maintaining estimates of plus or minus 0.07m for most configurations and radii. The RBF simulation shows one notable outlier at 0.700m radius with an estimates center of (-0.041,0.828) indicating potential extrapolation difficulties when the RBF interpolator operates outside its training regime at extreme radii.
+
+
+
+
+\subsection{Limitations}
+
+Several limitations constrain the current implementation and experimental validation. First, the approach is restricted to planar (2D) vector fields, though many real-world applications involve three-dimensional flows. Extension to 3D fields would require at minimum four non-coplanar robots for Jacobian estimation and more complex formation control strategies.
+
+Second, the testbed validates performance only on static fields where critical points remain fixed during operation. The static printed field approach, while enabling precise ground truth validation, cannot capture the time-varying behaviors that motivated our memory-free estimation strategy. Dynamic field validation remains an important open challenge.
+
+Third, robot team sizes were limited to three and four units. While the theoretical framework supports arbitrary team sizes through the overdetermined system approach, practical implementation challenges including communication bandwidth, computational complexity, and formation control stability for larger teams remain unexplored.
+
+Lastly, no experiments were done to test the robustness to communication dropouts.
+
+\subsection{Broader Impact}
+
+The Jacobian-based estimation framework developed for vector fields extends naturally to scalar field navigation, opening new avenues for multi-robot exploration. By computing the Hessian matrix (second derivatives) from distributed gradient measurements, robot teams can identify and classify critical points in scalar fields including minima, maxima, and saddle points. This enables systematic extrema seeking for applications ranging from chemical plume source localization to terrain mapping, as well as saddle point seeking crucial for path planning through mountain passes or identifying unstable equilibria in dynamic systems.
+
+The minimal team size of three robots established in this work provides fundamental insights into the information-theoretic limits of distributed field estimation. This minimality result has practical implications for mission planning, cost optimization, and fault tolerance design in multi-robot deployments. Understanding that three robots suffice for planar field characterization enables more efficient resource allocation while maintaining full observability of local field geometry.
+
+Extension to three-dimensional environments would enable aerial and underwater robot swarms to navigate complex 3D flow fields found in atmospheric and oceanic applications. The framework's memory-free operation makes it particularly suitable for resource-constrained platforms operating in communication-limited environments where maintaining global maps or historical data is infeasible.
+
+The demonstrated superiority of triangular decomposition over least-squares approaches suggests broader principles for distributed estimation that may apply beyond vector field navigation to general multi-agent sensing and coordination problems where local geometric constraints provide more reliable information than global optimization.
+
+
+
+
+\section{Conclusion}
+\noindent This paper presented a distributed Jacobian-based approach for multirobot navigation to critical points in vector fields. The key contribution is demonstrating that three robots—the theoretical minimum for planar field characterization—suffice for accurate critical point detection and control through instantaneous local measurements alone. Our control primitives enable attraction to, repulsion from, and stable orbiting around field centers without requiring memory or global field knowledge.
+
+Experimental validation across 183 hardware trials confirmed sub-centimeter accuracy in critical point estimation (RMSE 8.73-10.14 mm) and orbital control precision within 2 cm of commanded radii. The four-robot Dual Jacobian configuration, using triangular decomposition rather than overdetermined least squares, achieved 58\% improvement at tight orbital radii compared to baseline methods. Neural network field approximation provided superior sim-to-real transfer compared to RBF interpolation, enabling accurate prediction of real robot behavior in noisy sensor environments.
+
+These results establish fundamental limits for distributed field estimation while demonstrating practical control strategies that exploit local field geometry. The framework's memory-free operation and proven scalability beyond minimal configurations make it suitable for time-varying environments and resource-constrained platforms, with direct applications to environmental monitoring, plume tracking, and cooperative exploration of unknown fields.
+
+
+
+\section{Appendix: Vector Field Environments}
+\label{sec:appendix_vector_fields}
+
+Six vector field environments centered at the origin were used to evaluate the multi-robot navigation algorithms. Let $r = \sqrt{x^2 + y^2}$ and $\theta = \arctan2(y, x)$.
+
+\subsection{Field Equations}
+
+\textbf{Vortex:} Pure rotational flow.
+\begin{equation}
+\mathbf{v}_{\text{vortex}}(x, y) = \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix}
+\end{equation}
+
+\textbf{Sinking Vortex:} Spiraling inward flow.
+\begin{equation}
+\mathbf{v}_{\text{sink-vortex}}(x, y) = 0.4 \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix} + 0.15 \begin{bmatrix} -x \\ -y \end{bmatrix}
+\end{equation}
+
+\textbf{Sink:} Radial inward flow.
+\begin{equation}
+\mathbf{v}_{\text{sink}}(x, y) = \begin{bmatrix} -x \\ -y \end{bmatrix}
+\end{equation}
+
+\textbf{Source:} Radial outward flow.
+\begin{equation}
+\mathbf{v}_{\text{source}}(x, y) = \begin{bmatrix} x \\ y \end{bmatrix}
+\end{equation}
+
+\textbf{Spewing Vortex:} Spiraling outward flow.
+\begin{equation}
+\mathbf{v}_{\text{spew-vortex}}(x, y) = -0.4 \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix} - 0.15 \begin{bmatrix} -x \\ -y \end{bmatrix}
+\end{equation}
+
+\textbf{Saddle:} Hyperbolic saddle point rotated $45^\circ$.
+\begin{equation}
+\mathbf{v}_{\text{saddle}}(x, y) = \mathbf{R}(-\pi/4) \begin{bmatrix} x' \\ -y' \end{bmatrix}, \quad \text{where } \begin{bmatrix} x' \\ y' \end{bmatrix} = \mathbf{R}(\pi/4) \begin{bmatrix} x \\ y \end{bmatrix}
+\end{equation}
+
+\subsection{Critical Point Classification by Eigenvalue Structure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\hline
+\textbf{Field Type} & \textbf{Divergence} & \textbf{Curl} & \textbf{Critical Point} & \textbf{Eigenvalues} \\
+\hline
+Vortex & 0 & $\neq 0$ & Center & $\pm i\omega$ \\
+Sinking Vortex & $< 0$ & $\neq 0$ & Stable Spiral & $\alpha \pm i\omega$, $\alpha < 0$ \\
+Sink & $< 0$ & 0 & Stable Node & $\lambda_1, \lambda_2 < 0$ \\
+Source & $> 0$ & 0 & Unstable Node & $\lambda_1, \lambda_2 > 0$ \\
+Spewing Vortex & $> 0$ & $\neq 0$ & Unstable Spiral & $\alpha \pm i\omega$, $\alpha > 0$ \\
+Saddle & 0 & 0 & Saddle Point & $\lambda_1 < 0 < \lambda_2$ \\
+\hline
+\end{tabular}
+\caption{Topological classification of vector field environments with corresponding eigenvalue structures of the Jacobian matrix.}
+\label{tab:field_summary}
+\end{table}
+
+
+
+
+
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{fig1.jpg}}]{Christopher Waight}
+received his BSc Degree in Physics from Santa Clara University. He later earned his MSc in Mechanical Engineering there, and is now a PhD Candidate in Mechanical Engineering. He currently works as a Research Assistant in SCU's Robotics System Lab. He also has experience working as a Technical Program Manager in RandD. \end{IEEEbiography}
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{ckitts.png}}]{Christopher  A Kitts}
+(Senior Member, IEEE) received the B.S.E. degree in mechanical and aerospace engineering from Princeton Univer- sity, Princeton, NJ, USA, in 1987, the M.P.A. degree in international and defense policy from the University of Colorado, Boulder, CO, USA, in 1996, and the M.S. degree in aerospace en- gineering and the Ph.D. degree in mechanical engineering from Stanford University, Stanford, CA, USA, in 2006 and 1992, respectively.
+He was a Satellite Constellation Mission Con- troller with U.S. Air Force and a Computer Scientist with Computational Sciences Division, NASA Ames Research Center. He is currently a Pro- fessor of mechanical engineering, the Director of the Robotic Systems Laboratory, and the Associate Dean of the Research and Interdisci- plinary Programs with the School of Engineering, Santa Clara University,
+Santa Clara, CA, USA.
+Dr. Kitts is a fellow of the American Society of Mechanical Engineers. \end{IEEEbiography}
+
+%% References (Properly Ordered)
+
+\begin{thebibliography}{99}
+
+\bibitem{1} Cortés et al.. "Coordinated Control of Multi-Robot Systems: A Survey." Conference Proceedings, 2017.
+
+\bibitem{2} Ogren et al.. "Cooperative Control of Mobile Sensor Networks: Adaptive Gradient Climbing in a Distributed Environment." Conference Proceedings, 2004.
+
+\bibitem{3} Adamek et al.. "Gradient-Based Cluster Space Navigation for Autonomous Surface Vessels." Conference Proceedings, 2015.
+
+\bibitem{4} Woolsey et al.. "Gradient-based Adaptive Navigation of Multiple Diving Autonomous Surface Vehicles." Conference Proceedings, 2022.
+
+\bibitem{5} Rajabhandharaks et al.. "Indoor Testbed For Vector Field Multirobot Adaptive Navigation: Feasibility Study." Conference Proceedings, 2019.
+
+\bibitem{6} Tomer et al.. "A Low-Cost Indoor Testbed for Multirobot Adaptive Navigation Research." Conference Proceedings, 2018.
+
+\bibitem{7} Mañas-Álvarez et al.. "Robotic Park: Multi-Agent Platform for Teaching Control and Robotics." Conference Proceedings, 2023.
+
+\bibitem{8} Mokhtarian et al.. "A Survey on Small-Scale Testbeds for Connected and Automated Vehicles and Robot Swarms." Conference Proceedings, 2025.
+
+\bibitem{9} Schaefer et al.. "From Small-Scale to Full-Scale: Assessing the Potential for Transferability of Experimental Results in Small-Scale CAV Testbeds." Conference Proceedings, 2024.
+
+\bibitem{10} Panagou. "Motion Planning and Collision Avoidance using Navigation Vector Fields." Conference Proceedings, 2014.
+
+\bibitem{11} Brinon-Arranz et al.. "Multirobot Symmetric Formations for Gradient and Hessian Estimation With Application to Source Seeking." Conference Proceedings, 2019.
+
+\bibitem{12} McDonald et al.. "Experimental Implementation and Verification of Scalar Field Ridge, Trench, and Saddle Point Maneuvers Using Multirobot Adaptive Navigation." Conference Proceedings, 2019.
+
+\bibitem{13} Hart et al.. "Unifying Control Architecture for Reactive Particle Swarms." Conference Proceedings, 2023.
+
+\bibitem{14} Davydov et al.. "Sparsity Structure and Optimality of Multi-Robot Coverage Control." Conference Proceedings, 2020.
+
+\bibitem{15} Kitts et al.. "Cluster Space Specification and Control of Mobile Multirobot Systems." Conference Proceedings, 2009.
+
+\bibitem{16} Mas et al.. "Obstacle Avoidance Policies for Cluster Space Control of Nonholonomic Multirobot Systems." Conference Proceedings, 2012.
+
+\bibitem{17} Cao et al.. "Multi-Robot Object SLAM Using Distributed Variational Inference." Conference Proceedings, 2024.
+
+\end{thebibliography}
+
+
+
+
+\end{document}

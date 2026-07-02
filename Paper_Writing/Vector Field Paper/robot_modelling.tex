@@ -1,0 +1,104 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Momentum-Based Multi-Robot Control:\\A First-Order Actuator Perspective}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{System Model}
+
+\subsection{Robot Hardware}
+We consider $n \geq 3$ mobile robots operating on a 2D plane. Each robot accepts velocity commands $\mathbf{v}_i = [v_{x,i}, v_{y,i}, \omega_i]^T$ and possesses an internal velocity controller that tracks commands with a first-order response. 
+
+When a step velocity command of 0.3~m/s is applied from rest, the robot's actual velocity follows:
+\begin{equation}
+v(t) = v_{\text{cmd}}(1 - e^{-t/\tau})
+\end{equation}
+where $\tau$ is the time constant characterizing the actuator and its built-in controller.
+
+\subsection{Rigid Formation Assumption}
+We assume the robots maintain a rigid formation through a high-bandwidth formation controller. This allows us to model the entire cluster as a single rigid body with translational velocity $\dot{\mathbf{x}}$ at the geometric center and rotational velocity $\omega$ about that center.
+
+\subsection{Control Architecture}
+Our system has two layers:
+\begin{enumerate}
+    \item \textbf{Layer 1 -- Robot Inner Loop:} Each robot's built-in controller converts commanded velocity $\mathbf{v}_{\text{cmd}}$ into actual velocity $\mathbf{v}$ through a first-order low-pass response with time constant $\tau$.
+    
+    \item \textbf{Layer 2 -- Formation Controller:} Our controller computes desired cluster velocity from position error:
+    \begin{equation}
+    \mathbf{v}_{\text{des}}(t) = k_v(\mathbf{x}_{\text{des}}(t) - \mathbf{x}(t))
+    \end{equation}
+    where $k_v$ [Hz] is a proportional gain mapping position error to target velocity.
+\end{enumerate}
+
+The momentum behavior emerges directly from the first-order nature of Layer 1.
+
+\section{Continuous-Time Dynamics}
+
+The robot's actuator behaves as a first-order system:
+\begin{equation}
+\dot{\mathbf{v}}(t) = -\frac{1}{\tau}\mathbf{v}(t) + \frac{1}{\tau}\mathbf{v}_{\text{des}}(t)
+\label{eq:continuous}
+\end{equation}
+
+This is a low-pass filter: for constant commands, it produces exponential convergence to steady-state; for time-varying commands, it attenuates high-frequency changes. The time constant $\tau$ is determined purely by the actuator hardware—no virtual mass or damping is assumed.
+
+\section{Discrete-Time Implementation}
+
+\subsection{Discretization}
+For a digital controller with period $\Delta t$, we discretize Eq.~\eqref{eq:continuous}. Integrating the continuous dynamics over one time step yields:
+\begin{equation}
+\mathbf{v}[k+1] = \alpha \mathbf{v}[k] + (1-\alpha)\mathbf{v}_{\text{des}}[k]
+\label{eq:momentum}
+\end{equation}
+where the momentum coefficient is:
+\begin{equation}
+\alpha = e^{-\Delta t/\tau}
+\end{equation}
+
+This is the fundamental momentum equation. The parameter $\alpha \in (0,1)$ characterizes the actuator's physical response:
+\begin{itemize}
+    \item $\alpha \to 1$: Sluggish actuator, strong momentum retention (large $\tau$)
+    \item $\alpha \to 0$: Fast actuator, minimal momentum (small $\tau$)
+\end{itemize}
+
+\subsection{Complete Control Law}
+Substituting the formation controller's desired velocity into Eq.~\eqref{eq:momentum}, the final commanded velocity becomes:
+
+\begin{equation}
+\boxed{\mathbf{v}_{\text{cmd}}[k+1] = \alpha \mathbf{v}_{\text{cmd}}[k] + (1-\alpha)k_v(\mathbf{x}_{\text{des}}[k] - \mathbf{x}[k])}
+\label{eq:final}
+\end{equation}
+
+The same form applies to the rotational channel $\omega$. This controller has two intuitive parameters:
+\begin{itemize}
+    \item $k_v$: Controls how aggressively position error drives desired velocity
+    \item $\alpha$: Fixed by actuator dynamics (or increased for additional smoothing)
+\end{itemize}
+
+\section{Parameter Identification}
+
+\subsection{Experimental Procedure}
+To determine $\alpha$ from robot hardware:
+\begin{enumerate}
+    \item Start a robot at rest
+    \item Apply a step velocity command (e.g., 0 $\to$ 0.3 m/s)
+    \item Record the velocity response over time
+    \item Fit to $v(t) = v_{\text{cmd}}(1 - e^{-t/\tau})$ to extract $\tau$
+    \item Calculate $\alpha = e^{-\Delta t/\tau}$ for your control rate
+\end{enumerate}
+
+\subsection{Example}
+For a 10~Hz control loop ($\Delta t = 0.1$~s) with $\tau = 0.3$~s:
+\begin{equation}
+\alpha = e^{-0.1/0.3} = e^{-0.333} \approx 0.717
+\end{equation}
+
+Under the rigid formation assumption, this single measurement characterizes the entire cluster's momentum behavior.
+
+\end{document}

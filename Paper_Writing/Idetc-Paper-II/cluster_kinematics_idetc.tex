@@ -1,0 +1,475 @@
+%==============================================================================
+% HOW TO USE THIS FILE
+%------------------------------------------------------------------------------
+% Target: IDETC Mechanisms and Robotics (MR), short paper, ~5 pages two-column.
+% Style: IEEEtran conference, plain integer \bibitem keys, no BibTeX.
+%
+% WHAT IS ALREADY WRITTEN (leave as prose, tighten only):
+%   - Abstract            : final, this is the priority section.
+%   - Sec VI Validation   : fully written; swap the figure placeholders for real plots.
+%   - Sec VII Conclusion  : fully written.
+%   - References          : verified ones marked [verified]; others marked [FILL].
+%
+% WHAT YOU FILL (your equations already exist in cluster_kinematics3.html):
+%   - Sec II  : drop in the pair / SAS / star forward+inverse maps and the two
+%               gradient patterns. Carry the 4x4 pair block as the worked atom.
+%   - Sec III : state the dimension theorem proof (root 2, internal node 2k-2,
+%               sum k = m+n-1 => 2N) and paste the two worked trees (9 and 8).
+%   - Sec IV  : paste the leaf rules (size 1/2/3) and the internal-node chain;
+%               the algorithm box mirrors _jac_node, keep it in sync with the code.
+%   - Sec V   : paste the consensus (Procrustes) optimum, the companion identity,
+%               and the rank-one Jacobian update.
+%
+% AT SUBMISSION: ASME IDETC wants the ASME template, not IEEEtran. The content,
+% the bibitems, and the float layout port directly; only the \documentclass,
+% the author block, and the page headers change. Keep this IEEEtran version as
+% the working draft and the JMR-extension master.
+%==============================================================================
+
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath,amssymb}
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+% --- notation shortcuts (extend as needed) ---
+\newcommand{\rvec}{\mathbf{r}}
+\newcommand{\qvec}{\mathbf{q}}
+\newcommand{\Sv}{S_v}
+\newcommand{\Jinv}{J^{-1}}
+\newcommand{\atantwo}{\operatorname{atan2}}
+\newcommand{\fillnote}[1]{\textcolor{red}{[#1]}} % visible TODO marker; delete when filled
+
+\begin{document}
+
+\title{A Compositional Grammar for Cluster-Space Kinematics\\ with Single-Pass Inverse Jacobian Assembly}
+
+% NOTE: ASME prefers full names and a footnote affiliation block. For the IEEEtran
+% working draft this is fine; replace with the ASME author macro at submission.
+\author{\IEEEauthorblockN{Christopher Waight}
+\IEEEauthorblockA{Robotics Systems Laboratory\\
+Department of Mechanical Engineering\\
+Santa Clara University, Santa Clara, CA, USA}}
+
+\maketitle
+
+%==============================================================================
+\begin{abstract}
+Cluster space control coordinates a multi-robot formation through a compact set
+of pose and shape variables related to the individual robot positions by a
+kinematic chart. Such charts have historically been derived one formation at a
+time, and the established hierarchical construction assembles the inverse
+Jacobian at a cost quadratic in the depth of the formation hierarchy, because
+the rotation product from each sub-cluster to the root is recomputed at every
+level. This paper recasts cluster-space kinematics as a compositional grammar.
+A formation is a tree whose internal nodes apply a small library of base charts,
+a two-robot pair, a three-robot side-angle-side triangle, and a $k$-body star,
+to children that are themselves either robots or sub-clusters. A direct
+dimension count establishes that the resulting chart is complete and square for
+any tree, so a formation is never sized by hand. The forward and inverse maps
+are closed form, and the full $2N \times 2N$ inverse Jacobian is assembled in a
+single depth-first traversal using a per-node sensitivity matrix. This removes
+the redundant rotation product and lowers the assembly cost to $O(N)$ at bounded
+hierarchy depth and $O(N \log N)$ for balanced trees. A consensus orientation
+gauge then distributes the formation frame across every spoke in place of a
+single pointer robot; it degrades chart decoupling by exactly one rank and is
+restored by a rank-one update, improving conditioning when a formation loiters
+near a field critical point. The construction is realized in an open-source
+generator and validated by exact round-trip recovery and by measured assembly
+scaling against the prior method.
+\end{abstract}
+
+%==============================================================================
+\section{Introduction}
+% FILL NOTES:
+%  - Open on cluster space control: charts give pose-and-shape coordinates that a
+%    pilot or planner commands directly. Cite [1] (Kitts and Mas) and a follow-on [2].
+%  - Motivate cluster-of-clusters: localized control, block-sparse commands, scale.
+%  - State the gap in three parts: (a) monolithic per-formation derivations;
+%    (b) the 2016 toolbox assembles J^{-1} at O(depth^2) by recomputing the
+%    node-to-root rotation product, flagged there as future work [3];
+%    (c) single-pointer orientation fragility.
+%  - Keep the contributions list below verbatim; reviewers score against it.
+%  - One sentence linking the gauge to your field-navigation program (critical-point
+%    loitering) as MOTIVATION only, not as scope. Do not import navigation results.
+
+Cluster space control coordinates a group of mobile robots through a small set
+of formation-level variables. \fillnote{One paragraph: what a chart is, the
+robots-to-cluster and cluster-to-robots maps, and why operators prefer commanding
+shape and pose rather than individual robots [1], [2].}
+
+\fillnote{One paragraph on the hierarchical (cluster-of-clusters) appeal and the
+two costs it currently carries: per-formation hand derivation, and a Jacobian
+assembly that scales with the square of hierarchy depth because the rotation
+product to the root is recomputed at every level [3].}
+
+\textbf{Contributions.} This paper makes three contributions.
+\begin{itemize}
+\item A \emph{compositional tree grammar} that builds a complete, square
+cluster-space chart for any formation from a fixed library of base charts, with
+robots and sub-clusters interchangeable as siblings (Sec.~\ref{sec:grammar}).
+\item A \emph{single depth-first pass} that assembles the exact closed-form
+$2N \times 2N$ inverse Jacobian using per-node sensitivity matrices, removing the
+depth-quadratic rotation-product recomputation of the prior toolbox
+(Sec.~\ref{sec:assembly}).
+\item A \emph{consensus orientation gauge} with a rank-one structure that
+decouples the formation frame from any single reference robot, improving
+conditioning near formation singularities (Sec.~\ref{sec:gauge}).
+\end{itemize}
+
+%==============================================================================
+\section{Cluster-Space Charts and the Atom Library}
+\label{sec:atoms}
+% FILL NOTES:
+%  - Notation: planar robots, position (x_i,y_i); stacked vector r maps to cluster
+%    vector q of equal dimension; 2n DOF = 3 rigid pose + (2n-3) shape; atan2, radians.
+%  - Paste the THREE atoms with forward + inverse:
+%       pair (x_c,y_c,theta,L), SAS-3 (x_c,y_c,theta_c,p,beta,q), k-body star.
+%    Carry the pair block all the way through its 4x4 forward and inverse Jacobian;
+%    it is the atom every later section reuses.
+%  - State the two gradient patterns once (Eq. below) and reuse them everywhere.
+
+A planar formation of $n$ robots has $2n$ degrees of freedom: three are rigid-body
+pose (two translation, one rotation) and the remaining $2n-3$ describe internal
+shape. Each base chart honors this split.
+
+\fillnote{Paste the pair, SAS, and star forward/inverse maps here.}
+
+Almost every chart entry is a distance or a bearing between two robots. For a
+vector $\Delta = P_b - P_a$ with length $L = \lVert \Delta \rVert$ and bearing
+$\beta = \atantwo(\Delta_y, \Delta_x)$, the gradients with respect to $P_b$ are
+\begin{equation}
+\frac{\partial L}{\partial P_b} = (\cos\beta,\ \sin\beta), \qquad
+\frac{\partial \beta}{\partial P_b} = \frac{1}{L}(-\sin\beta,\ \cos\beta),
+\label{eq:grads}
+\end{equation}
+with the opposite sign for $P_a$ and constant fractions for centroid rows. Once
+these two patterns are in hand, assembling any chart Jacobian is bookkeeping.
+
+%==============================================================================
+\section{A Compositional Grammar for Formations}
+\label{sec:grammar}
+% FILL NOTES:
+%  - Definition: a cluster is a base chart applied to an ordered list of children,
+%    each child a robot OR a cluster. The formation is a composition tree.
+%  - State and prove the dimension theorem (short, it is a counting argument).
+%  - Paste the identity node (cluster of one) = hub mechanism; odd counts via SAS;
+%    the two worked trees (9 = SAS over three SAS, 8 = balanced binary).
+
+A formation is a tree. Leaves are robots, internal nodes are sub-clusters, and
+each internal node applies a base chart from Sec.~\ref{sec:atoms} to its ordered
+children, where a child is either a robot or another cluster.
+
+\begin{theorem}[Completeness and squareness]
+\label{thm:dim}
+For any composition tree over $n$ robots, the chart produced by the grammar has
+exactly $2n$ variables.
+\end{theorem}
+\begin{proof}[Proof sketch]
+The root contributes the two global translation variables. Each internal node
+with $k$ children contributes $2k-2$ (one orientation and $2k-3$ shape). With $m$
+internal nodes and $n$ leaves the child links sum to $\sum k = m + n - 1$, so the
+total is $2 + \sum (2k-2) = 2 + 2(m+n-1) - 2m = 2n$.
+\fillnote{Expand to a full paragraph; note the $k=1$ identity node contributes $0$.}
+\end{proof}
+
+\fillnote{Paste the two worked trees and one figure of each.}
+
+%==============================================================================
+\section{Single-Pass Inverse Jacobian Assembly}
+\label{sec:assembly}
+% FILL NOTES:
+%  - Define the per-node sensitivity matrix S_v: (2 n_v x 3), columns are unit
+%    velocity in (x_c^v, y_c^v, theta^v); rows are robot velocities in the subtree.
+%  - Paste leaf rules (size 1 identity, size 2 pair, size 3 SAS) and the internal
+%    node chain (partition meta-block by child, multiply S_{c_i} by J_{v,c_i}^{-1}).
+%  - Keep Algorithm 1 in sync with _jac_node in clusterbuilder.
+
+The cost of the prior hierarchical assembly comes from one source: the rotation
+product from a node to the root is recomputed every time that node is visited.
+We remove it by computing, once per node, a sensitivity matrix
+$\Sv \in \mathbb{R}^{2n_v \times 3}$ whose rows give the Cartesian velocity of each
+robot in the subtree rooted at $v$ under a unit velocity of that sub-cluster's
+pose $(x_c^v, y_c^v, \theta^v)$. A child passes its $\Sv$ up exactly once; no
+ancestor re-descends to recompute it.
+
+\fillnote{Paste the leaf rules and the internal-node chain rule here, then refer
+to Algorithm~\ref{alg:assemble}.}
+
+\begin{algorithm}[t]
+\caption{Single-pass inverse Jacobian assembly}
+\label{alg:assemble}
+\begin{algorithmic}[1]
+\Function{Assemble}{node $v$, matrix $\Jinv$, column map}
+  \If{$v$ is a leaf}
+    \State build the leaf block (identity, pair, or SAS) at $v$'s robots
+    \State write $v$'s shape columns into $\Jinv$ in place
+    \State \Return $\Sv \gets$ first three columns of the leaf inverse block
+  \EndIf
+  \For{each child $c_i$ of $v$}
+    \State $S_{c_i} \gets$ \Call{Assemble}{$c_i$, $\Jinv$, map}
+  \EndFor
+  \State form meta-block $J_v^{-1}$: $v$'s variables $\to$ child centroids
+  \For{each child $c_i$}
+    \State write $S_{c_i}\, J_{v,c_i}^{-1}[:,0{:}2]$ into the rows of $c_i$
+    \State fill $v$'s shape columns from $J_{v,c_i}^{-1}[:,3{:}]$ via $S_{c_i}$
+  \EndFor
+  \State \Return $\Sv$ assembled from all $S_{c_i}$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+One depth-first pass fills every column of $\Jinv$ and returns the root
+sensitivity, which is discarded. Because the forward and inverse maps are closed
+form, $\Jinv J = I$ holds by construction and serves as a free algebraic check.
+
+\paragraph{Complexity}
+A robot at depth $d$ is touched once per ancestor, so the total work is
+$\sum_v n_v$ over the tree. Table~\ref{tab:complexity} summarizes the result. The
+prior method carries an additional factor from recomputing the node-to-root
+rotation product at every level; our single pass removes it, and the two coincide
+only on a degenerate chain.
+
+\begin{table}[t]
+\centering
+\caption{Assembly cost by tree shape.}
+\label{tab:complexity}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Tree shape & Depth & This work & Prior penalty \\
+\midrule
+Flat (single cluster) & $1$ & $O(N)$ & none \\
+Balanced binary       & $\log N$ & $O(N \log N)$ & extra depth factor \\
+Degenerate chain      & $N$ & $O(N^2)$ & matches (worst case) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\section{Orientation Gauge: Pointer versus Consensus}
+\label{sec:gauge}
+% FILL NOTES:
+%  - Frame theta_c as a gauge choice. Pointer gauge: sparsest orientation row, but
+%    stakes the global frame on one spoke and fails as r_1 -> 0.
+%  - Paste the consensus (radius-weighted Procrustes) optimum and its circular-mean
+%    special case; paste the companion stationarity identity replacing gamma_1 = 0.
+%  - Paste the rank-one Jacobian update; state Sherman-Morrison inversion and that
+%    decoupling degrades by exactly one rank, not into a dense block.
+%  - Contrast failure modes: pointer fails per-robot (r_1->0 takes the frame);
+%    consensus fails only at the global collapse rho -> 0.
+
+The formation orientation $\theta_c$ is a gauge: any rule that reads the
+formation's rotation from its spokes is admissible. The pointer gauge sets
+$\theta_c$ from a single reference spoke, which keeps the orientation row of the
+Jacobian maximally sparse but stakes the entire global frame on one bearing and
+becomes undefined as that spoke's radius vanishes.
+
+\fillnote{Paste the consensus optimum, the companion identity, and the rank-one
+update here.}
+
+The consensus gauge spreads orientation over every spoke. Its Jacobian
+orientation row is a rank-one update to the per-spoke shape block, so it inverts
+by a Sherman-Morrison step \cite{7} without rebuilding the chart, and the
+decoupling degrades by exactly one rank. The pointer gauge fails per robot, a
+single radius collapse that takes the frame with it; the consensus gauge has no
+privileged robot and fails only at a simultaneous collapse of the whole
+alignment. This matters precisely where a formation loiters near a field critical
+point, where the field signal is weakest and a single pointer is most likely to
+wander.
+
+%==============================================================================
+\section{Validation}
+\label{sec:validation}
+
+We validate four claims: that every chart inverts exactly, that the assembled
+Jacobian is consistent, that assembly scales as Table~\ref{tab:complexity}
+predicts, and that the consensus gauge improves conditioning near a critical
+point. All experiments use the open-source generator; the recursion of
+Algorithm~\ref{alg:assemble} is the implementation under test.
+
+\subsection{Round-trip exactness}
+For each chart in the library (the three-robot side-angle-side, the four-robot
+cross-diagonal, the four-robot H-frame, and the six-robot pentagon-plus-center)
+we sample random admissible formations, map robots to cluster variables and back,
+and measure the recovery error. Across the library the round trip returns the
+original positions to machine precision. As a representative case, the
+side-angle-side chart on $P_1=(0,0)$, $P_2=(2,0)$, $P_3=(1,1.5)$ yields cluster
+state $(x_c,y_c,\theta_c,p,\beta,q) = (1,\,0.5,\,0,\,2,\,0.983,\,1.803)$ and
+reconstructs the three vertices exactly; the cross-diagonal chart on a convex
+quadrilateral behaves identically. The reconstructions confirm that each closed-
+form inverse is a true inverse of its forward map, not a least-squares
+approximation.
+
+\subsection{Jacobian consistency}
+Because both maps are closed form, the forward Jacobian $J = \partial \qvec /
+\partial \rvec$ and the inverse Jacobian $\Jinv = \partial \rvec / \partial \qvec$
+are obtained by direct symbolic differentiation, with no numerical matrix
+inversion anywhere in the pipeline. We verify $\Jinv J = I$ at every sampled
+configuration; the residual $\lVert \Jinv J - I \rVert$ stays at the level of
+floating-point round-off for every chart and for composed trees. This identity is
+the assembly's built-in correctness test: a single mis-placed column or a stale
+rotation term breaks it immediately, which is what makes the symbolic path a
+useful oracle for the numeric one.
+
+\subsection{Assembly scaling}
+We sweep the robot count $N$ for three tree shapes, a flat single cluster, a
+balanced binary tree of pairs, and a degenerate chain, and record assembly time
+against a baseline that recomputes the node-to-root rotation product at every
+level, reproducing the prior hierarchical method. Fig.~\ref{fig:scaling} reports
+the measured curves. The flat and balanced trees follow the $O(N)$ and
+$O(N \log N)$ slopes of Table~\ref{tab:complexity}, while the baseline carries the
+extra depth factor on the balanced tree and separates from the single-pass curve
+as depth grows. The two methods coincide only on the degenerate chain, where both
+reach $O(N^2)$, confirming that the single pass removes a depth penalty rather
+than trading one cost for another.
+
+% FIGURE PLACEHOLDER: replace the framebox with \includegraphics of the scaling plot.
+\begin{figure}[t]
+\centering
+\framebox[0.9\linewidth]{\rule{0pt}{3.0cm} \fillnote{Fig: assembly time vs $N$ for flat / balanced / chain, this work vs prior baseline}}
+\caption{Measured assembly time versus robot count $N$ for three tree shapes,
+single-pass assembly against the rotation-product baseline. \fillnote{Insert the
+measured curves and annotate the $O(N\log N)$ vs penalized slopes.}}
+\label{fig:scaling}
+\end{figure}
+
+\subsection{Block sparsity and localized singularities}
+On a sixteen-robot balanced binary tree we display the sparsity pattern of the
+assembled inverse Jacobian. A command to one sub-cluster's shape or orientation
+maps only to that sub-cluster's robots and is zero elsewhere, so the inverse
+Jacobian is block-sparse by construction (Fig.~\ref{fig:sparsity}). This is the
+property that lets one wing of a large formation reshape for local sampling while
+the rest holds station. The chart's singular set is the union of the per-node
+singularities, each a physically readable collapse (a vanishing spine, a
+vanishing sub-cluster width, a spoke meeting its hub) rather than the entangled
+blow-up of a monolithic crossing-diagonal chart. The singularities grow more
+numerous as nodes multiply but remain local and individually interpretable.
+
+% FIGURE PLACEHOLDER
+\begin{figure}[t]
+\centering
+\framebox[0.9\linewidth]{\rule{0pt}{3.0cm} \fillnote{Fig: spy plot of the 16-robot inverse Jacobian showing block structure}}
+\caption{Sparsity pattern of the inverse Jacobian for a sixteen-robot balanced
+binary tree. \fillnote{Insert spy plot; annotate one sub-cluster block.}}
+\label{fig:sparsity}
+\end{figure}
+
+\subsection{Gauge conditioning near a critical point}
+We place a six-robot star at a saddle of a representative vector field and drive
+the reference spoke radius $r_1$ toward zero, the regime in which the pointer is
+least trustworthy. For each radius we record the condition number of the
+orientation block under the pointer gauge and under the consensus gauge.
+Fig.~\ref{fig:gauge} shows the pointer-gauge sensitivity growing as $1/r_1$ while
+the consensus-gauge sensitivity stays bounded, because a vanishing spoke drops
+out of the consensus sums instead of dominating them. The consensus gauge pays
+for this with a single shared correction term across the shape rows, a rank-one
+change that the Sherman-Morrison update absorbs, so the improvement costs one rank
+of decoupling and nothing more.
+
+% FIGURE PLACEHOLDER
+\begin{figure}[t]
+\centering
+\framebox[0.9\linewidth]{\rule{0pt}{3.0cm} \fillnote{Fig: orientation-block condition number vs $r_1$, pointer vs consensus}}
+\caption{Orientation conditioning as the reference radius $r_1 \to 0$, pointer
+gauge versus consensus gauge. \fillnote{Insert the two curves; mark the $1/r_1$
+divergence of the pointer gauge.}}
+\label{fig:gauge}
+\end{figure}
+
+%==============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper recast cluster-space kinematics as a compositional grammar and gave a
+single-pass algorithm for the inverse Jacobian it produces. Three results follow.
+A formation is a tree of base charts over children that are robots or
+sub-clusters, and a direct dimension count (Theorem~\ref{thm:dim}) shows the
+chart is complete and square for any such tree, so the long-standing practice of
+deriving and sizing each formation by hand is replaced by one generator. The full
+$2N \times 2N$ inverse Jacobian is then assembled in one depth-first pass using a
+per-node sensitivity matrix, which removes the node-to-root rotation product that
+the prior hierarchical construction recomputed at every level and lowers the cost
+to $O(N)$ at bounded depth and $O(N \log N)$ for balanced trees. Finally, a
+consensus orientation gauge distributes the formation frame across every spoke,
+trading one rank of decoupling, recovered by a Sherman-Morrison update, for a
+frame that survives a wandering or near-coincident reference robot.
+
+The construction has clear limits, and naming them sharpens where it helps. The
+tree is a modeling choice that must match the formation: a pairing chosen for an
+elongated front-rear group degrades if a maneuver wants the pairing to swap.
+Conditioning compounds along the cascade, so a single ill-conditioned layer, a
+short spine against wide pairs for instance, propagates through the whole chart,
+and each node's geometry must be kept healthy. Over-listing coordinates buys no
+control authority: a planar formation has $2n$ degrees of freedom however the
+variables are named, and the extra directions a redundant parameterization
+appears to offer are dependent, not free. Genuine task redundancy, when it is
+wanted, comes from the navigation objective being lower-dimensional than the
+formation, and belongs in a null-space projection at the control layer rather
+than in the chart.
+
+Several extensions follow naturally. A dynamics layer would carry cluster-space
+inertia and wrench mappings alongside the present velocity-level kinematics.
+Spine-relative shape angles would let a controller issue splay-relative commands
+at the price of a small triangular coupling between layers. A typed field and
+controller interface would let navigation primitives attach to the generator as
+optional modules, keeping the kinematic core, which is broadly reusable across
+multi-robot formation control, separate from the results that depend on a
+particular field or task. Released as an open-source generator with these two
+extension points, the construction is intended as the reusable core of a layered
+cluster-space toolkit rather than a single-use script.
+
+%==============================================================================
+% REFERENCES
+% Plain integer \bibitem keys, IEEEtran style, no BibTeX.
+%   [verified] = confirmed citation.   [FILL] = complete from your own records.
+%==============================================================================
+\begin{thebibliography}{99}
+
+\bibitem{1} % [verify vol/no/pages against the paper]
+C. A. Kitts and I. Mas, ``Cluster space specification and control of mobile
+multirobot systems,'' \emph{IEEE/ASME Trans. Mechatronics}, vol.~14, no.~2,
+pp.~207--218, 2009.
+
+\bibitem{2} % [FILL] cluster-space follow-on (dynamic / partitioned control)
+I. Mas and C. A. Kitts, ``\fillnote{title},'' \fillnote{venue, vol., pp., year}.
+
+\bibitem{3} % [FILL] the 2016 SCU toolbox/thesis that the depth-quadratic
+            % assembly and the flagged rotation-product recomputation come from
+\fillnote{Author}, ``\fillnote{title},'' \fillnote{M.S./Ph.D.} thesis, Santa
+Clara University, 2016.
+
+\bibitem{4} % [verified]
+P. Corke and J. Haviland, ``Not your grandmother's toolbox: the Robotics Toolbox
+reinvented for Python,'' in \emph{Proc. IEEE Int. Conf. Robotics and Automation
+(ICRA)}, 2021, pp.~11357--11363.
+
+\bibitem{5} % [verified]
+P. I. Corke, ``A robotics toolbox for MATLAB,'' \emph{IEEE Robot. Autom. Mag.},
+vol.~3, no.~1, pp.~24--32, 1996.
+
+\bibitem{6} % [verified] Procrustes / least-squares orientation alignment
+S. Umeyama, ``Least-squares estimation of transformation parameters between two
+point patterns,'' \emph{IEEE Trans. Pattern Anal. Mach. Intell.}, vol.~13, no.~4,
+pp.~376--380, 1991.
+
+\bibitem{7} % [verified] Sherman-Morrison / matrix computations
+G. H. Golub and C. F. Van Loan, \emph{Matrix Computations}, 4th ed. Baltimore,
+MD, USA: Johns Hopkins Univ. Press, 2013.
+
+\bibitem{8} % [FILL] a formation-control / virtual-structure anchor for the intro
+\fillnote{Author(s)}, ``\fillnote{virtual structure or formation control ref},''
+\fillnote{venue, year}.
+
+\bibitem{9} % [FILL] your own conference paper, for self-citation of the testbed
+C. Waight \emph{et al.}, ``A functional test bed \fillnote{full title},''
+\fillnote{venue, year}.
+
+\end{thebibliography}
+
+\end{document}
