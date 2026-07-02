@@ -28,17 +28,17 @@ This will:
 
 Copy the exported data folder:
 ```bash
-cp -r real_robot_trajectories/ "../../../Python Simulations/Vector_Fields/VF_Robot/real_robot_data/"
+cp -r real_robot_trajectories/ "../../../Python_Simulations/Vector_Fields/VF_Robot/real_robot_data/"
 ```
 
 Or manually copy the `real_robot_trajectories/` folder to:
-`trunk/Python Simulations/Vector_Fields/VF_Robot/real_robot_data/`
+`trunk/Python_Simulations/Vector_Fields/VF_Robot/real_robot_data/`
 
 ### 3. Run the Comparison
 
 Navigate to the Python experiments directory:
 ```bash
-cd "trunk/Python Simulations/Vector_Fields/VF_Robot/experiments"
+cd "trunk/Python_Simulations/Vector_Fields/VF_Robot/experiments"
 ```
 
 Run the comprehensive comparison:

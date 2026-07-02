@@ -1,0 +1,781 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\setlength{\parskip}{4pt}
+
+\newtheorem{claim}{Claim}[section]
+
+\title{Teaching Notes for Paper\_Draft\_1A (Sections II through V)}
+\author{Companion document, not for submission}
+\date{July 2026}
+
+\begin{document}
+\maketitle
+
+\noindent A slow, pedantic walkthrough of the math-heavy sections. Each part
+restates what the paper claims, then derives it with every step shown. Read
+this side by side with the compiled paper. Where the paper compresses a
+derivation into one line, these notes expand it into all of its lines.
+
+\tableofcontents
+
+% ===========================================================================
+\section{Notation crib sheet}
+
+\begin{center}
+\begin{tabular}{>{$}l<{$} p{11cm}}
+\mathbf{p} & a position in the plane, $\mathbf{p} = (x, y)$ \\
+\mathbf{v}(\mathbf{p}) & the flow velocity at $\mathbf{p}$, components $(u, v)$ \\
+\mathbf{J}(\mathbf{p}) & the $2\times2$ matrix of first derivatives of the flow \\
+D(\mathbf{p}) & $\det(\mathbf{J}(\mathbf{p}))$; the single scalar landscape the whole paper navigates \\
+\mathbf{g}(\mathbf{p}) & $\nabla D$, a 2-vector pointing uphill in $D$ \\
+\mathbf{H}_D(\mathbf{p}) & the Hessian of $D$, symmetric $2\times2$ \\
+\mathbf{f} & the flow measured at the centroid, $(u_0, v_0)$ \\
+\mathbf{p}_c,\ \mathbf{p}_i & cluster centroid; position of robot $i$ \\
+(u_i, v_i) & robot $i$'s flow measurement \\
+\boldsymbol{\theta}_u, \boldsymbol{\theta}_v & the six fitted coefficients per component \\
+\boldsymbol{\Phi} & the $6\times6$ formation matrix; row $i$ is the basis at robot $i$ \\
+\rho & ring radius of the formation (pentagon circumradius) \\
+(\lambda_1, \mathbf{w}_1), (\lambda_2, \mathbf{w}_2) & eigenpairs of $\mathbf{H}_D$, ordered $\lambda_1 \leq \lambda_2$ \\
+\mathrm{sat}(c) & $v_{\max}\tanh(c/v_{\max})$, a smooth speed limiter \\
+n, s & coordinates across ($n$) and along ($s$) the trench \\
+\chi & cosine of the angle between the commanded drift and the true boundary tangent \\
+\end{tabular}
+\end{center}
+
+A hat ($\hat{D}$, $\hat{\mathbf{g}}$) means the estimate built from robot
+measurements; no hat means the true field quantity. The stability theorems
+first assume hats equal truth; the robustness subsection puts the error back.
+
+% ===========================================================================
+\section{Problem Formulation (paper Section II)}
+
+\subsection{Why a quadratic model}
+
+The previous paper fit a plane to each flow component. A plane's derivatives
+are constants, so a linear fit gives $\mathbf{J}$ at a point and nothing about
+how $\mathbf{J}$ varies. The structures here are defined by that variation:
+the Okubo-Weiss boundary is where $D = \det(\mathbf{J})$ crosses zero, and
+steering to it needs $\nabla D$; the separatrix sits in a valley of $D$, and
+recognizing a valley needs the second derivatives of $D$. Differentiating a
+product of first derivatives produces second derivatives, so the model of
+$u$ and $v$ must carry them. The cheapest such model is a quadratic:
+\begin{equation}
+u(\mathbf{p}_c + \tilde{\mathbf{p}}) \approx u_0 + u_x\tilde{x} + u_y\tilde{y}
++ \tfrac{1}{2}u_{xx}\tilde{x}^2 + u_{xy}\tilde{x}\tilde{y}
++ \tfrac{1}{2}u_{yy}\tilde{y}^2,
+\end{equation}
+and identically for $v$. The coefficients are exactly the Taylor data at the
+centroid; the one-half factors exist so that this identification is exact.
+
+\subsection{The Okubo-Weiss identity, every step}
+
+Define, from the four entries of $\mathbf{J}$,
+\begin{equation}
+s_n = u_x - v_y, \qquad s_s = v_x + u_y, \qquad \omega = v_x - u_y .
+\end{equation}
+The Okubo-Weiss parameter is $Q = \tfrac{1}{4}(s_n^2 + s_s^2 - \omega^2)$.
+Expand the three squares:
+\begin{align}
+s_n^2 &= u_x^2 - 2u_xv_y + v_y^2, \\
+s_s^2 &= v_x^2 + 2v_xu_y + u_y^2, \\
+\omega^2 &= v_x^2 - 2v_xu_y + u_y^2 .
+\end{align}
+Add the first two, subtract the third. The $v_x^2$ and $u_y^2$ terms cancel:
+\begin{align}
+s_n^2 + s_s^2 - \omega^2
+&= u_x^2 - 2u_xv_y + v_y^2 + 4v_xu_y \\
+&= \underbrace{(u_x + v_y)^2}_{(\nabla\cdot\mathbf{v})^2}
+ - 4u_xv_y + 4u_yv_x \\
+&= (\nabla\cdot\mathbf{v})^2 - 4\underbrace{(u_xv_y - u_yv_x)}_{D} .
+\end{align}
+(The second line adds and subtracts $2u_xv_y$ to complete the square.)
+Divide by four:
+\begin{equation}
+Q = \tfrac{1}{4}(\nabla\cdot\mathbf{v})^2 - D .
+\end{equation}
+For incompressible flow $\nabla\cdot\mathbf{v} = 0$, so $Q = -D$ exactly.
+The paper works with $D$, with the convention $D > 0$ inside vortex cores.
+
+\subsection{Why the eigenvalues are $\pm\sqrt{-D}$}
+
+The eigenvalues of a $2\times2$ matrix solve
+$\lambda^2 - \operatorname{tr}(\mathbf{J})\lambda + \det(\mathbf{J}) = 0$.
+Incompressibility gives $\operatorname{tr}(\mathbf{J}) = u_x + v_y = 0$, so
+\begin{equation}
+\lambda^2 = -D
+\qquad\Longrightarrow\qquad
+\lambda = \pm\sqrt{-D} \ (D<0), \qquad \lambda = \pm i\sqrt{D} \ (D>0).
+\end{equation}
+When $D < 0$ nearby particles separate like $e^{\sqrt{-D}\,t}$: the number
+$\sqrt{-D}$ is a literal instantaneous stretching rate. This is the bridge
+between the Eulerian quantity we can sense and the Lagrangian structure we
+care about: more negative $D$ means stronger hyperbolicity, so the trench of
+$D$ is the locus of strongest instantaneous attraction and repulsion.
+
+\subsection{The double-gyre closed forms, derived}
+
+The field, in field-frame coordinates $x_f = x + 1$, $y_f = y + \tfrac12$:
+\begin{equation}
+u = -\pi A \sin(\pi x_f)\cos(\pi y_f), \qquad
+v = \pi A \cos(\pi x_f)\sin(\pi y_f) .
+\end{equation}
+Abbreviate $s_x = \sin\pi x_f$, $c_x = \cos\pi x_f$, and likewise for $y$.
+Differentiate:
+\begin{equation}
+u_x = -\pi^2 A\, c_x c_y, \quad
+u_y = \pi^2 A\, s_x s_y, \quad
+v_x = -\pi^2 A\, s_x s_y, \quad
+v_y = \pi^2 A\, c_x c_y .
+\end{equation}
+Note $u_x = -v_y$: the flow is divergence free, as required for $Q = -D$.
+Now the determinant, keeping every sign:
+\begin{align}
+D &= u_x v_y - u_y v_x \\
+  &= (-\pi^2 A\, c_x c_y)(\pi^2 A\, c_x c_y)
+     - (\pi^2 A\, s_x s_y)(-\pi^2 A\, s_x s_y) \\
+  &= -\pi^4 A^2 c_x^2 c_y^2 + \pi^4 A^2 s_x^2 s_y^2 .
+\end{align}
+(The old appendix dropped the minus sign on the $u_yv_x$ product and obtained
+$-\pi^4A^2(c_x^2c_y^2 + s_x^2s_y^2)$, which is nonpositive everywhere. That
+would say the gyre cores are not rotation dominated, which is visibly false.)
+
+Reduce with the double-angle identities
+$c^2 = \tfrac{1}{2}(1 + \cos 2\alpha)$,
+$s^2 = \tfrac{1}{2}(1 - \cos 2\alpha)$.
+Write $C_x = \cos 2\pi x_f$, $C_y = \cos 2\pi y_f$:
+\begin{align}
+c_x^2 c_y^2 &= \tfrac{1}{4}(1 + C_x)(1 + C_y)
+             = \tfrac{1}{4}\bigl(1 + C_x + C_y + C_xC_y\bigr), \\
+s_x^2 s_y^2 &= \tfrac{1}{4}(1 - C_x)(1 - C_y)
+             = \tfrac{1}{4}\bigl(1 - C_x - C_y + C_xC_y\bigr), \\
+s_x^2 s_y^2 - c_x^2 c_y^2 &= \tfrac{1}{4}\bigl(-2C_x - 2C_y\bigr)
+             = -\tfrac{1}{2}(C_x + C_y) .
+\end{align}
+The constants and the cross terms $C_xC_y$ cancel exactly. Therefore
+\begin{equation}
+\boxed{\;D = -\frac{\pi^4 A^2}{2}\bigl(\cos 2\pi x_f + \cos 2\pi y_f\bigr)\;}
+\label{eq:Dclosed}
+\end{equation}
+Differentiate (\ref{eq:Dclosed}) once and twice:
+\begin{equation}
+\nabla D = \pi^5 A^2
+\begin{bmatrix} \sin 2\pi x_f \\ \sin 2\pi y_f \end{bmatrix},
+\qquad
+\mathbf{H}_D = 2\pi^6 A^2
+\begin{bmatrix} \cos 2\pi x_f & 0 \\ 0 & \cos 2\pi y_f \end{bmatrix}.
+\label{eq:gradHclosed}
+\end{equation}
+The Hessian is diagonal everywhere, i.e., $D$ is additively separable in
+$x_f$ and $y_f$. Three consequences carry the whole paper.
+
+\paragraph{(a) The zero set is a diamond.}
+Apply the sum-to-product identity
+$\cos P + \cos Q = 2\cos\frac{P+Q}{2}\cos\frac{P-Q}{2}$ with $P = 2\pi x_f$,
+$Q = 2\pi y_f$:
+\begin{equation}
+D = 0
+\iff \cos\pi(x_f + y_f)\,\cos\pi(x_f - y_f) = 0
+\iff x_f \pm y_f \in \tfrac{1}{2} + \mathbb{Z}.
+\end{equation}
+Straight lines at $\pm 45^\circ$, tracing a diamond around each gyre center.
+Sanity checks from (\ref{eq:Dclosed}): at a gyre center
+($x_f = \tfrac12$ or $\tfrac32$, $y_f = \tfrac12$), $C_x = C_y = -1$ and
+$D = +\pi^4A^2 > 0$ (rotation). At a corner saddle ($x_f = 1$, $y_f \in
+\{0,1\}$), $C_x = C_y$ gives $D = -\pi^4A^2 < 0$ (strain).
+
+\paragraph{(b) The separatrix is an exact valley of $D$.}
+On the line $x_f = 1$ (world $x = 0$):
+\begin{equation}
+\frac{\partial D}{\partial x}\Big|_{x_f=1} = \pi^5A^2 \sin 2\pi = 0,
+\qquad
+\frac{\partial^2 D}{\partial x^2}\Big|_{x_f=1} = 2\pi^6A^2 \cos 2\pi
+ = 2\pi^6A^2 > 0,
+\end{equation}
+for every $y$. Walking across the separatrix, $D$ dips to a local minimum
+exactly on it: a valley line, which the paper calls a trench. Moreover the
+vorticity is
+\begin{equation}
+\omega = v_x - u_y = -2\pi^2 A\, s_x s_y,
+\end{equation}
+which vanishes on $x_f = 1$ (since $s_x = \sin\pi = 0$). There $\mathbf{J}$
+is symmetric, and $\sqrt{-D}$ is not merely an eigenvalue but the actual
+principal strain rate. On this field the Eulerian trench and the Lagrangian
+separatrix are the same curve, exactly.
+
+\paragraph{(c) The trench floor has two wells and a crest.}
+Substitute $x_f = 1$ ($C_x = 1$) into (\ref{eq:Dclosed}):
+\begin{equation}
+D(0, y) = -\frac{\pi^4A^2}{2}\bigl(1 + \cos 2\pi y_f\bigr).
+\end{equation}
+At the flow saddles ($y_f = 0$ and $1$) this is $-\pi^4A^2$: the deepest
+points, the wells. At the midpoint ($y_f = \tfrac12$, the world origin) it
+is exactly $0$: the crest, where the two diamonds touch. A robot descending
+$D$ along the trench floor runs out of downhill at the crest, and from the
+upstream side downhill points the wrong way. The ambient flow on the
+separatrix runs from the upper saddle to the lower one and vanishes only at
+the saddles; it is what carries the team through the crest. Keep this
+picture in mind for the whole controller section.
+
+\subsection{The problem statement}
+
+Two tasks, both using only the six simultaneous position and velocity
+samples available at each control tick: (1) get onto the trench and ride it,
+with the flow, into the saddle; (2) drive $D$ to zero and circulate along
+the boundary. Deliberately absent: maps, forecasts, particle integration,
+memory across ticks. The estimator is memoryless.
+
+% ===========================================================================
+\section{Distributed Second-Order Estimation (paper Section III)}
+
+\subsection{The fit and the one-half convention}
+
+Each robot position, relative to the centroid, is pushed through the basis
+\begin{equation}
+\boldsymbol{\phi}(\tilde{\mathbf{p}})
+= \bigl[\,1,\ \tilde{x},\ \tilde{y},\ \tfrac{1}{2}\tilde{x}^2,\
+\tilde{x}\tilde{y},\ \tfrac{1}{2}\tilde{y}^2\,\bigr]^\top .
+\end{equation}
+Compare with the Taylor expansion of a smooth $u$ about the centroid:
+\begin{equation}
+u(\tilde{\mathbf{p}}) = u_0 + u_x\tilde{x} + u_y\tilde{y}
++ \tfrac{1}{2}u_{xx}\tilde{x}^2 + u_{xy}\tilde{x}\tilde{y}
++ \tfrac{1}{2}u_{yy}\tilde{y}^2 + O(\|\tilde{\mathbf{p}}\|^3).
+\end{equation}
+Term by term, $\boldsymbol{\phi}^\top\boldsymbol{\theta}_u$ reproduces this
+with $\boldsymbol{\theta}_u = [u_0, u_x, u_y, u_{xx}, u_{xy}, u_{yy}]^\top$.
+Without the halves, the fitted second-order coefficients would equal twice
+the true derivatives and every downstream Hessian formula would silently
+break. Stack the six basis rows into $\boldsymbol{\Phi}$ and solve
+$\boldsymbol{\Phi}\boldsymbol{\theta}_u = \mathbf{u}$,
+$\boldsymbol{\Phi}\boldsymbol{\theta}_v = \mathbf{v}$; one factorization
+serves both since $\boldsymbol{\Phi}$ depends only on geometry.
+
+\subsection{Six robots are necessary}
+
+The argument is information counting made rigorous. With $N < 6$ robots,
+$\boldsymbol{\Phi} \in \mathbb{R}^{N\times6}$ has a nontrivial null space:
+there exists $\boldsymbol{\theta}_0 \neq \mathbf{0}$ with
+$\boldsymbol{\Phi}\boldsymbol{\theta}_0 = \mathbf{0}$. Then the quadratic
+fields with coefficients $\boldsymbol{\theta}_u$ and
+$\boldsymbol{\theta}_u + \boldsymbol{\theta}_0$ produce byte-identical
+measurements at every robot. No estimator, linear or not, can distinguish
+data that are equal. Hence six robots minimum, per component, and the two
+components share positions, so six robots total.
+
+\subsection{Sufficiency is a statement about conics}
+
+$\boldsymbol{\Phi}$ fails to be invertible exactly when some nonzero
+$\mathbf{c}$ satisfies
+$\boldsymbol{\phi}(\tilde{\mathbf{p}}_i)^\top\mathbf{c} = 0$ for all six
+robots. But
+\begin{equation}
+q(\tilde{x}, \tilde{y}) = c_1 + c_2\tilde{x} + c_3\tilde{y}
++ \tfrac{c_4}{2}\tilde{x}^2 + c_5\tilde{x}\tilde{y}
++ \tfrac{c_6}{2}\tilde{y}^2
+\end{equation}
+is a general polynomial of degree at most two, and its zero set is a conic:
+ellipse, parabola, hyperbola, or a degenerate conic such as a pair of lines
+or a single line. So: $\boldsymbol{\Phi}$ singular $\iff$ all six robots lie
+on one conic. A complete characterization, not merely a sufficient
+condition.
+
+Two corollaries worth internalizing.
+\begin{itemize}
+\item \textbf{The ring trap.} Any six robots on a single circle lie on a
+conic (the circle), so a hexagon formation is singular at every size and
+heading. Rings are the most natural multirobot formation and are exactly
+wrong for quadratic sensing.
+\item \textbf{Pentagon plus center works.} Five points in general position
+(no three collinear) determine a unique conic; for the pentagon vertices
+that conic is the circumscribed circle; the center robot is not on it; so no
+conic passes through all six. The center robot is not a convenience, it is
+the reason the matrix inverts.
+\end{itemize}
+
+\subsection{Exact noise gains, with a worked example}
+
+If each measurement carries independent noise of standard deviation
+$\sigma_{uv}$, then
+$\hat{\boldsymbol{\theta}}_u - \boldsymbol{\theta}_u
+= \boldsymbol{\Phi}^{-1}\boldsymbol{\eta}$, so each coefficient's standard
+deviation is $\sigma_{uv}$ times the Euclidean norm of the matching row of
+$\boldsymbol{\Phi}^{-1}$. For the pentagon plus center at ring radius
+$\rho$ the row norms have exact values (verified symbolically):
+\begin{equation}
+\sigma_{u_0} = \sigma_{uv}, \qquad
+\sigma_{u_x} = \sigma_{u_y} = \frac{2}{\sqrt{10}}\frac{\sigma_{uv}}{\rho},
+\qquad
+\sigma_{u_{xx}} = \sigma_{u_{yy}} = \frac{8}{\sqrt{10}}
+\frac{\sigma_{uv}}{\rho^2},
+\qquad
+\sigma_{u_{xy}} = \frac{4}{\sqrt{10}}\frac{\sigma_{uv}}{\rho^2}.
+\end{equation}
+The value gain is $1$ because every basis function except the constant
+vanishes at the origin, so interpolation forces $\hat{u}_0$ to equal the
+center robot's reading verbatim. The gains are independent of formation
+heading, and the gradient error covariance is isotropic,
+$\tfrac{4}{10}\sigma_{uv}^2\rho^{-2}\mathbf{I}$.
+
+Worked example at the deployed scale, $\rho = 0.075$ m and $\sigma_{uv} =
+0.01$ m/s:
+\begin{equation}
+\sigma_{u_x} = \frac{0.6325 \times 0.01}{0.075} \approx 0.084,
+\qquad
+\sigma_{u_{xx}} = \frac{2.530 \times 0.01}{0.075^2} \approx 4.50 .
+\end{equation}
+Second derivatives are expensive: fifty times noisier than first
+derivatives at this scale. This single fact is why the boundary tracker
+(no Hessian needed) is intrinsically more noise tolerant than the
+separatrix tracker (which lives on the Hessian eigenbasis).
+
+\subsection{Truncation and the optimal radius}
+
+Split the scale out of the formation matrix:
+$\boldsymbol{\Phi} = \bar{\boldsymbol{\Phi}}\,\mathbf{S}_\rho$ with
+$\mathbf{S}_\rho = \mathrm{diag}(1, \rho, \rho, \rho^2, \rho^2, \rho^2)$
+and $\bar{\boldsymbol{\Phi}}$ shape-only. Then
+\begin{equation}
+\hat{\boldsymbol{\theta}} - \boldsymbol{\theta}
+= \mathbf{S}_\rho^{-1}\bar{\boldsymbol{\Phi}}^{-1}\,(\text{residual vector}).
+\end{equation}
+For measurement noise the residual is $O(\sigma_{uv})$, giving the
+$\sigma_{uv}/\rho$ and $\sigma_{uv}/\rho^2$ gains above. For model error,
+if third derivatives are bounded by $M_3$, Taylor's remainder at each robot
+is at most $\tfrac{M_3}{6}\rho^3$, so
+\begin{equation}
+|\hat{u}_x - u_x| \leq c_1 M_3 \rho^2, \qquad
+|\hat{u}_{xx} - u_{xx}| \leq c_2 M_3 \rho .
+\end{equation}
+The two error sources pull in opposite directions. Total Hessian error:
+\begin{equation}
+E(\rho) = c_2 M_3 \rho + c_2' \frac{\sigma_{uv}}{\rho^2},
+\qquad
+E'(\rho) = c_2 M_3 - 2c_2'\frac{\sigma_{uv}}{\rho^3} = 0
+\ \Longrightarrow\
+\rho^* = \left(\frac{2c_2'\sigma_{uv}}{c_2 M_3}\right)^{1/3}.
+\end{equation}
+Read $\rho^* \propto (\sigma_{uv}/M_3)^{1/3}$ as a design rule: noisy
+sensors want a bigger formation; a rapidly curving field wants a smaller
+one. This is the theory behind the formation-radius sweeps, including both
+observed failure modes (too small stalls in noise, too large blurs the
+structure).
+
+\subsection{The determinant perturbation identity}
+
+For $2\times2$ matrices the determinant expansion terminates. Write
+$\mathbf{J} = \begin{bmatrix} a & b \\ c & d \end{bmatrix}$ and perturb by
+$\mathbf{E} = \begin{bmatrix} e_{11} & e_{12} \\ e_{21} & e_{22}
+\end{bmatrix}$:
+\begin{align}
+\det(\mathbf{J} + \mathbf{E})
+&= (a + e_{11})(d + e_{22}) - (b + e_{12})(c + e_{21}) \\
+&= (ad - bc) + \bigl(a e_{22} + d e_{11} - b e_{21} - c e_{12}\bigr)
+ + \bigl(e_{11}e_{22} - e_{12}e_{21}\bigr) \\
+&= \det(\mathbf{J})
+ + \operatorname{tr}\!\bigl(\mathrm{adj}(\mathbf{J})\,\mathbf{E}\bigr)
+ + \det(\mathbf{E}),
+\end{align}
+where $\mathrm{adj}(\mathbf{J}) = \begin{bmatrix} d & -b \\ -c & a
+\end{bmatrix}$. No higher terms exist. Cauchy-Schwarz bounds the middle
+term by $\|\mathrm{adj}(\mathbf{J})\|_F\|\mathbf{E}\|_F$, and in two
+dimensions $\|\mathrm{adj}(\mathbf{J})\|_F = \|\mathbf{J}\|_F$ (same four
+entries up to sign and order). For the last term, from
+$|e_{11}e_{22}| \leq \tfrac{1}{2}(e_{11}^2 + e_{22}^2)$ and its twin,
+$|\det \mathbf{E}| \leq \tfrac{1}{2}\|\mathbf{E}\|_F^2$. Hence
+\begin{equation}
+|\hat{D} - D| \leq \|\mathbf{J}\|_F\|\mathbf{E}\|_F
++ \tfrac{1}{2}\|\mathbf{E}\|_F^2 :
+\end{equation}
+linear in the coefficient errors with slope $\|\mathbf{J}\|_F$, plus an
+explicitly known quadratic remainder.
+
+Finally, note that under the quadratic model each entry of $\mathbf{J}$ is
+affine in position, so $D$ (a difference of products of affine functions)
+is \emph{exactly} quadratic over the footprint. Its gradient and Hessian at
+the centroid are the closed polynomial formulas in the paper; no second fit
+happens.
+
+% ===========================================================================
+\section{The Controllers (paper Section IV)}
+
+\subsection{Newton in the eigenbasis, and what is wrong with it}
+
+On the estimated quadratic landscape the Newton step jumps to the
+stationary point in one move. Using the spectral decomposition
+$\mathbf{H}_D^{-1} = \sum_k \lambda_k^{-1}\mathbf{w}_k\mathbf{w}_k^\top$,
+\begin{equation}
+-\mathbf{H}_D^{-1}\mathbf{g}
+= -\sum_{k=1}^{2}\frac{\mathbf{w}_k^\top\mathbf{g}}{\lambda_k}\,\mathbf{w}_k .
+\end{equation}
+Two defects. Unbounded: near-singular curvature gives arbitrarily large
+commands. Indifferent: Newton solves $\nabla D = 0$ and converges to
+minima, maxima, and saddles alike; near the crest the along-trench
+curvature is negative and Newton deliberately climbs to the crest and
+parks.
+
+\subsection{The two repairs}
+
+\paragraph{Saturation.} Pass each component through
+$\mathrm{sat}(c) = v_{\max}\tanh(c/v_{\max})$. Since $\tanh z \approx z$
+for small $z$, the exact Newton component (and its superlinear local
+convergence) survives near the target; since $\tanh z \to \pm 1$, commands
+flatten at $v_{\max}$ far away. One parameter sets both the cruise speed
+and the width of the terminal boundary layer.
+
+\paragraph{The eigenvalue flip.} The \emph{attract step} keeps signed
+eigenvalues; the \emph{slide step} replaces $\lambda_k$ by $|\lambda_k|$:
+\begin{equation}
+\dot{\mathbf{p}}_c^{\,\text{des}} = \sum_k \mathrm{sat}\!\left(
+-\frac{\mathbf{w}_k^\top\hat{\mathbf{g}}}{\lambda_k}\right)\mathbf{w}_k
+\qquad\text{vs.}\qquad
+\dot{\mathbf{p}}_c^{\,\text{des}} = \sum_k \mathrm{sat}\!\left(
+-\frac{\mathbf{w}_k^\top\hat{\mathbf{g}}}{|\lambda_k|}\right)\mathbf{w}_k .
+\end{equation}
+In convex directions ($\lambda_k > 0$) they agree: snap to the trench
+floor. In concave directions the slide step flips the sign: instead of
+climbing to the stationary point it descends away from it, sliding along
+the trench. This is the saddle-free Newton idea from optimization
+(Dauphin et al.), repurposed as a motion primitive.
+
+Sign ambiguity of eigenvectors is harmless: each term contains
+$\mathbf{w}_k$ twice (projection and direction), so $\mathbf{w}_k \to
+-\mathbf{w}_k$ changes nothing. The one place a convention is needed is the
+selector, where it is imposed explicitly ($\mathbf{w}_1$ oriented downhill).
+
+\subsection{The separatrix tracker: three laws and a selector}
+
+The crest problem dictates the structure. Away from the separatrix, use
+eigensteps. On it, $|D|$ is small and the along-trench slope vanishes at
+the crest, so something else must carry the team through. That something is
+the flow: the separatrix is an invariant curve, the flow runs along it and
+vanishes only at the saddles. The \emph{flow step} commands the measured
+flow projected on the along-trench eigenvector plus the usual Newton snap
+across:
+\begin{equation}
+\dot{\mathbf{p}}_c^{\,\text{des}} =
+\mathrm{sat}(\mathbf{f}^\top\mathbf{w}_1)\,\mathbf{w}_1
++ \mathrm{sat}\!\left(-\frac{\hat{\mathbf{g}}^\top\mathbf{w}_2}
+{\lambda_2}\right)\mathbf{w}_2 .
+\end{equation}
+The band that activates it: $|\hat{D}| < \varepsilon_{\text{raw}}$ or
+$|\hat{D}|/\|\hat{\mathbf{H}}_D\|_F < \varepsilon_{\text{dim}}$. The second
+test is the important one; the ratio has units of length squared, roughly
+the squared distance to the zero set under the local model, so the band
+self-scales with the landscape.
+
+Off the band, orient $\mathbf{w}_1$ downhill
+($\hat{\mathbf{g}}^\top\mathbf{w}_1 \leq 0$) and ask whether the flow
+agrees with descent. Yes: slide (you are downstream of the crest; descent
+leads to the correct saddle). No: attract (you are upstream; the attract
+step climbs to the local stationary point, which is the crest, which is
+inside the band, which hands you to the flow). If $\hat{\mathbf{H}}_D$ has
+no saddle structure (both eigenvalues one sign, as in the basins near the
+wells), fall back to the plain attract step, which is exactly right there:
+the well is a nondegenerate minimum of $D$ sitting on the flow saddle.
+
+The one-sentence summary the proofs exploit: \emph{every mode moves the
+team with the flow along the trench and applies the same Newton snap
+across it.}
+
+\subsection{The boundary tracker}
+
+One equation, two terms, no modes. Transverse: treat $D = 0$ as scalar
+root finding. The displacement $-(\hat{D}/\|\hat{\mathbf{g}}\|^2)
+\hat{\mathbf{g}}$ is the smallest step that zeroes the linearized $D$
+(project any candidate step onto $\hat{\mathbf{g}}$ to see minimality), and
+its length $|\hat{D}|/\|\hat{\mathbf{g}}\|$ estimates the distance to the
+boundary. Tangential: drift along the perpendicular of the gradient,
+sign-chosen to move with the flow. With
+$\hat{\mathbf{u}} = -\mathrm{sign}(\hat{D})\hat{\mathbf{g}}/
+\|\hat{\mathbf{g}}\|$ and
+$\hat{\mathbf{t}} = \pm\mathbf{R}_{90^\circ}\hat{\mathbf{g}}/
+\|\hat{\mathbf{g}}\|$,
+\begin{equation}
+\dot{\mathbf{p}}_c^{\,\text{des}} =
+\mathrm{sat}\!\left(\frac{|\hat{D}|}{\|\hat{\mathbf{g}}\|}\right)
+\hat{\mathbf{u}}
++ \mathrm{sat}\!\left(\mathbf{f}^\top\hat{\mathbf{t}}\right)
+\hat{\mathbf{t}} .
+\end{equation}
+Radial correction plus tangential circulation: the same skeleton as the
+orbit controller of the previous paper, with boundary distance in place of
+radial error.
+
+\paragraph{Why the tangent is the gradient perpendicular.} Because that is
+what a level set's tangent \emph{is}: the directional derivative of $D$
+along $\hat{\mathbf{t}}$ is $\hat{\mathbf{g}}^\top\hat{\mathbf{t}} = 0$, so
+motion along $\hat{\mathbf{t}}$ does not change $D$ to first order. An
+earlier implementation used the $\mathbf{H}_D$ eigenvector of smallest
+$|\lambda|$ instead ("the direction $D$ curves least"). Head-to-head on the
+double gyre (noise-free and noisy) and on the 2 km Santa Barbara HFR field,
+it lost every arena; on the double gyre its residual was four orders of
+magnitude worse because on that field the two eigenvalue magnitudes
+coincide exactly on the boundary (from (\ref{eq:gradHclosed}) with
+$C_y = -C_x$ there), making the eigenvector ill-defined; it resolves to a
+coordinate axis $45^\circ$ off the true tangent. The eigen-tangent was
+removed from code and paper; this paragraph is its tombstone.
+
+% ===========================================================================
+\section{The Stability Results (paper Section V)}
+
+\subsection{What the setup buys}
+
+The analysis is at the navigation layer: the centroid moves exactly as
+commanded, $\dot{\mathbf{p}}_c = k\,\boldsymbol{\delta}(\mathbf{p}_c)$,
+with time rescaled so $k = 1$. This is a time-scale separation: the
+actuator constant is $0.3$ s against transits of tens of seconds, the same
+layering validated on hardware previously. Estimates are first taken exact;
+the last subsection reinstates bounded error.
+
+\subsection{Theorem 1 (attract step certificate), line by line}
+
+\textbf{Claim.} $V_A = \tfrac{1}{2}\|\mathbf{g}(\mathbf{p}_c)\|^2$ never
+increases under the attract step; trajectories converge to
+$\{\mathbf{g} = \mathbf{0}\}$.
+
+\textbf{Computation.} The gradient of $V_A$ as a function of position is
+$\nabla V_A = \mathbf{H}_D\mathbf{g}$ (the Hessian is the derivative of the
+gradient). Chain rule along the motion:
+\begin{equation}
+\dot{V}_A = \mathbf{g}^\top\mathbf{H}_D\,\dot{\mathbf{p}}_c .
+\end{equation}
+Substitute the attract step, written with the Newton components
+$z_k = (\mathbf{w}_k^\top\mathbf{g})/\lambda_k$, so
+$\dot{\mathbf{p}}_c = -\sum_k \mathrm{sat}(z_k)\mathbf{w}_k$:
+\begin{align}
+\dot{V}_A
+&= -\sum_k \mathrm{sat}(z_k)\;\mathbf{g}^\top\mathbf{H}_D\mathbf{w}_k
+ = -\sum_k \mathrm{sat}(z_k)\;\lambda_k(\mathbf{w}_k^\top\mathbf{g}) \\
+&= -\sum_k \mathrm{sat}(z_k)\;\lambda_k^2 z_k
+ = -v_{\max}\sum_{k}\lambda_k^2\, z_k\tanh\!\left(\frac{z_k}{v_{\max}}\right)
+ \;\leq\; 0,
+\end{align}
+using $\mathbf{H}_D\mathbf{w}_k = \lambda_k\mathbf{w}_k$ in the second
+equality and $\lambda_k(\mathbf{w}_k^\top\mathbf{g}) = \lambda_k^2 z_k$ in
+the third. Each summand is a product of $\lambda_k^2 \geq 0$ and
+$z\tanh z \geq 0$ ($\tanh$ has the sign of its argument). Equality forces
+$z_1 = z_2 = 0$, which for nonsingular $\mathbf{H}_D$ means
+$\mathbf{g} = \mathbf{0}$. LaSalle's invariance principle finishes:
+bounded trajectories converge to the critical set of $D$. Near an isolated
+critical point the saturations are inactive, the step is exact Newton,
+$\dot{\mathbf{p}}_c \approx -(\mathbf{p}_c - \mathbf{p}^\star)$, and
+convergence is locally exponential.
+
+\textbf{What it does not say.} Only "some critical point": crest, well, or
+core center. Selecting the right one is the selector's job; that is why
+this theorem alone is not the whole proof.
+
+\subsection{Lemma 1 (common transverse contraction)}
+
+Trench coordinates: $s$ along the valley, $n$ across, normal form
+\begin{equation}
+D(s, n) = \varphi(s) + \tfrac{1}{2}\lambda_\perp(s)\,n^2,
+\qquad \lambda_\perp \geq \underline{\lambda} > 0 .
+\end{equation}
+On the double gyre this is exact with $n = x$, because $D$ is additively
+separable (diagonal Hessian everywhere).
+
+The observation that does all the work: the cross-trench gradient
+component is $\partial D/\partial n = \lambda_\perp n$, and the cross
+eigenvalue is $\lambda_\perp > 0$. Compute the cross component of each law:
+\begin{center}
+\begin{tabular}{ll}
+attract: & $-\dfrac{\lambda_\perp n}{\lambda_\perp} = -n$ \\[6pt]
+slide: & $-\dfrac{\lambda_\perp n}{|\lambda_\perp|} = -n$
+\quad (positive eigenvalue: signed and magnitude agree) \\[6pt]
+flow: & the snap term was \emph{defined} as this same quantity, $-n$ .
+\end{tabular}
+\end{center}
+Three laws, one transverse behavior:
+\begin{equation}
+\dot{n} = -\mathrm{sat}(n) = -v_{\max}\tanh(n/v_{\max}),
+\end{equation}
+which drives $n$ to zero monotonically from either side. So
+$V_\perp = \tfrac{1}{2}n^2$ is a Lyapunov function \emph{common to all
+modes}, and switching, however erratic, cannot break it. That is the
+standard escape from dwell-time arguments for switched systems, obtained
+here by construction, because the three laws were built to share their
+transverse term.
+
+\subsection{Lemma 2 (flow-consistent progress)}
+
+\textbf{Claim.} On the trench, in every mode, the along-trench velocity
+never opposes the ambient flow, and away from small balls around the
+saddles its magnitude has a positive floor $m$.
+
+Mode by mode. \emph{Flow step:} tangential term
+$\mathrm{sat}(\mathbf{f}^\top\mathbf{w}_1)\mathbf{w}_1$; the projection
+appears once inside sat and once as the direction, so the result is a
+nonnegative multiple of the flow's tangential component. \emph{Slide:}
+selected only when the flow agrees with descent, and it moves along
+descent. \emph{Attract:} selected only when the flow opposes descent, and
+it moves along ascent (the concave along-trench eigenvalue flips the sign
+of the Newton component), which is then the flow direction. \emph{Fallback
+near the wells:} descends into the well, which is where the flow is
+heading, since the well sits at the stable-manifold endpoint. The floor
+$m$ combines the minimum flow speed on the trench away from the saddles
+with the minimum along-trench slope wherever the band is inactive; the
+assumption that places the crest inside the band makes those two cases
+cover the whole trench.
+
+\subsection{Theorem 2 (traversal and capture): assembly}
+
+Lemma 1: the tube around the trench is invariant and the team lands on the
+trench exponentially, switching notwithstanding. Lemma 2: the arc-length
+coordinate then advances monotonically with the flow at rate at least $m$,
+so the ball around the saddle is reached in time at most
+$L_\Gamma/m$. Inside the ball $\mathbf{H}_D \succ 0$ (at the double-gyre
+saddles $\mathbf{H}_D = 2\pi^6A^2\,\mathbf{I}$, as nondegenerate as it
+gets), the selector is in its fallback, and Theorem 1's local case gives
+exponential capture.
+
+What each assumption excludes: the normal form with
+$\lambda_\perp \geq \underline{\lambda}$ excludes flat-bottomed valleys;
+the eigengap excludes points where the eigenbasis itself is ill-defined;
+the invariance of the trench under the flow excludes trenches that are not
+flow curves (the flow step would push the team off those); the
+crest-inside-band condition is the contract between the band thresholds
+and the landscape.
+
+\subsection{Theorem 3 (boundary tracking): the bracket}
+
+With $V_1 = \tfrac{1}{2}D^2$ and the law
+$\boldsymbol{\delta} = s_\perp\hat{\mathbf{u}}
++ s_{\text{tan}}\hat{\mathbf{t}}$:
+\begin{equation}
+\dot{V}_1 = D\,\mathbf{g}^\top\boldsymbol{\delta}
+= D\,\mathbf{g}^\top\hat{\mathbf{u}}\,s_\perp
++ D\,\mathbf{g}^\top\hat{\mathbf{t}}\,s_{\text{tan}} .
+\end{equation}
+Perpendicular term: $\mathbf{g}^\top\hat{\mathbf{u}}
+= -\mathrm{sign}(D)\|\mathbf{g}\|$ and $s_\perp \geq 0$, so it equals
+$-|D|\|\mathbf{g}\|s_\perp$: always helpful. Tangential term: writing
+$\chi = (\mathbf{g}/\|\mathbf{g}\|)^\top\hat{\mathbf{t}}$ and using
+$|s_{\text{tan}}| \leq v_{\max}$, it is bounded by
+$|D|\|\mathbf{g}\|\bar{\chi}v_{\max}$. With
+$s_\perp = v_{\max}\tanh\bigl(|D|/(\|\mathbf{g}\|v_{\max})\bigr)$, factor:
+\begin{equation}
+\dot{V}_1 \leq -\|\mathbf{g}\|\,|D|\,v_{\max}
+\left[\tanh\!\left(\frac{|D|}{\|\mathbf{g}\|v_{\max}}\right)
+- \bar{\chi}\right].
+\end{equation}
+Everything lives in the bracket.
+
+\paragraph{Exact estimates.} The constructed tangent satisfies
+$\hat{\mathbf{t}} \perp \mathbf{g}$, so $\chi \equiv 0$ and the bracket is
+positive whenever $D \neq 0$. The elementary bound
+$\tanh z \geq \tanh(1)\min(z, 1)$ for $z \geq 0$ (concavity: $\tanh z / z$
+is decreasing, equals $\tanh 1$ at $z = 1$) yields two regimes:
+\begin{equation}
+\dot{V}_1 \leq -\tanh(1)\min\bigl\{D^2,\ |D|\,\|\mathbf{g}\|v_{\max}\bigr\}.
+\end{equation}
+Far away ($|D| \geq \|\mathbf{g}\|v_{\max}$) the min is the second entry
+and $|D|$ shrinks at fixed rate at least $\tanh(1)g_{\min}v_{\max}$: a
+constant-speed reach that hits the near zone in finite time. Near the
+boundary the min is $D^2$ and $\dot{V}_1 \leq -2\tanh(1)V_1$: plain
+exponential decay.
+
+\paragraph{Misaligned drift.} If errors tilt the commanded tangent by
+$\bar{\chi} > 0$, the bracket changes sign at
+$\tanh\bigl(|D|/(\|\mathbf{g}\|v_{\max})\bigr) = \bar{\chi}$, i.e., at
+$|D| = \|\mathbf{g}\|v_{\max}\operatorname{artanh}(\bar{\chi})$. Outside
+that band $V_1$ still decreases, so the band
+$|D| \leq g_{\max}v_{\max}\operatorname{artanh}(\bar{\chi})$ is attractive
+and invariant: practical convergence with an explicit residual.
+
+\paragraph{Where the premise fails.} The theorem needs
+$\|\mathbf{g}\| \geq g_{\min} > 0$, which fails at exactly four points per
+diamond: the corners, critical points of $D$ sitting on the boundary. They
+are isolated; the flow-drift fallback carries the team past them. The
+theorem tells you precisely where the fallback is needed, which is why it
+is not a hack.
+
+\subsection{The ISS proposition: noise moves the target, it does not break the loop}
+
+Every channel passes its argument through $\tanh$, which is 1-Lipschitz:
+an argument error of size $d$ perturbs the command by at most $d$. So
+bounded estimate errors act as a bounded additive disturbance. Transverse
+channel with disturbance:
+\begin{equation}
+\dot{n} = -v_{\max}\tanh(n/v_{\max}) + d(t), \qquad |d| \leq \bar{d} < v_{\max}.
+\end{equation}
+The right side is negative whenever
+$v_{\max}\tanh(|n|/v_{\max}) > \bar{d}$. Solve the equality for $|n|$:
+\begin{equation}
+\tanh\!\left(\frac{|n|}{v_{\max}}\right) = \frac{\bar{d}}{v_{\max}}
+\iff
+|n| = v_{\max}\operatorname{artanh}\!\left(\frac{\bar{d}}{v_{\max}}\right)
+\approx \bar{d} \quad (\bar{d} \ll v_{\max}),
+\end{equation}
+using $\operatorname{artanh}(z) = z + z^3/3 + \cdots$. Above that
+threshold $|n|$ shrinks; hence the ultimate bound. The boundary tracker's
+version adds the $D$-estimate error into the bracket of Theorem 3,
+inflating the residual band by a computable amount.
+
+The punchline tying Sections III and V together: $\bar{d}$ is not
+abstract. It splits into a noise part ($\sigma_{uv}/\rho$ or
+$\sigma_{uv}/\rho^2$ via the exact gain table) and a truncation part
+($M_3\rho$ or $M_3\rho^2$), so the ultimate tracking error is an explicit
+function of sensor quality and formation radius, minimized at the same
+$\rho^*$ as the estimation error.
+
+\subsection{Why the boundary theorem is stronger than the trench theory}
+
+Now stated in the paper's Discussion: the boundary is a codimension-one
+regular level set, so first-order information (a gradient that does not
+vanish) fully determines the transversal direction and yields a global
+certificate from a single Lyapunov function. The trench lives where that
+first-order information vanishes in the normal direction, so controller
+and proof alike must synthesize the missing direction from curvature, and
+the eigenstructure dependence, mode switching, and tube assumptions are
+the price of that synthesis. Harder problem, weaker guarantees; easier
+problem, stronger guarantees. The paper needs both halves to make the
+point.
+
+% ===========================================================================
+\section{Questions a reviewer (or a reader) might ask}
+
+\paragraph{Why not compute FTLE onboard?} FTLE needs particle trajectories
+integrated over a horizon, which needs the field everywhere along those
+trajectories, which needs a map or forecast. The team senses only its own
+footprint at the current instant. The paper's position: track the Eulerian
+surrogate online, validate against FTLE computed offline from the full
+radar record.
+
+\paragraph{Okubo-Weiss is not objective.} Correct, and the paper says so:
+$D$ is Galilean invariant but not invariant under time-varying rotating
+frames, unlike the OECS of Serra and Haller. The defense is pragmatic:
+slowly evolving surface currents, one-sample computability, and the FTLE
+comparison as the empirical check.
+
+\paragraph{Why exactly six robots?} Six is proven minimal; more robots are
+supported (least squares) and help with noise. Six is studied because
+minimality is the scientific question and the testbed fleet is fixed.
+
+\paragraph{What about time-varying fields?} The estimator is memoryless,
+so nothing assumes a frozen field; the structures become moving targets.
+The 28 hours of real radar data are the empirical answer; theory for
+drifting structures is future work.
+
+\paragraph{What if the formation deforms?} Gracefully: the fit stays exact
+for quadratic fields under any deformation short of the six robots landing
+on a common conic, conditioning is monitored via $\det(\boldsymbol{\Phi})$,
+and the noise gains worsen continuously, not abruptly. Contrast with
+fixed-weight symmetric estimators, which acquire bias proportional to the
+deformation.
+
+% ===========================================================================
+\section{Where the checks live}
+
+Every closed form in Section II and every constant in Section III was
+verified symbolically (sympy) and numerically; both controllers were
+verified in closed loop on the double gyre and on the 2 km Santa Barbara
+HFR field. The tangent-rule comparison that removed the eigen-tangent is
+recorded in the docstring of \texttt{logic\_g\_newton\_contour\_pentagon}
+in
+\texttt{trunk/Python\_Simulations/Vector\_Fields/VF\_Robot/src/control/pentagon\_primitives.py}
+and in the git history.
+
+\end{document}

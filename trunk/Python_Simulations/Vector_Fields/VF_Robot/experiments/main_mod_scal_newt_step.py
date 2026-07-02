@@ -5,7 +5,7 @@ main_mod_scal_newt_step.py
 scalar field using Primitive 5 (Adaptive Eigenstep).
 
 Port of the notebook:
-  trunk/Python Simulations/Separatrix_Control_testing/saddle_point_6_robot2.ipynb
+  trunk/Python_Simulations/Separatrix_Control_testing/saddle_point_6_robot2.ipynb
 
 The cluster uses a full quadratic (6-parameter) fit of the scalar field to
 recover the gradient and Hessian, then applies the adaptive eigenstep control

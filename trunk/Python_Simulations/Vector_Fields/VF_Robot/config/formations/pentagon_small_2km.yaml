@@ -1,0 +1,108 @@
+# Pentagon formation config dedicated to main_ocean_hfr_2km.py.
+#
+# Split off from pentagon_small.yaml (2026-07-01) because the 6km and 2km
+# experiments need different formation scales: 6km separatrix-tracking is
+# validated at 0.5x (see pentagon_small.yaml), but at 2km's noisier
+# resolution 0.5x picks the wrong branch at the bifurcation near
+# 34.1N,-120.4W (diverges into open water instead of following the ridge
+# past both islands, matching 6km's behavior). 0.7x formation averages over
+# enough of the small-scale 2km noise to recover the same branch 6km sees.
+# Sharing one yaml with an active/commented split (like pentagon_small.yaml)
+# would force one experiment's setting onto the other, so this is a
+# dedicated copy instead.
+
+# formation:
+#   type: cluster_of_clusters
+#   num_robots: 6
+#   cluster_config: 2
+#   config_tree: (2,2,2)
+#   L_2: 0.150000
+#   theta_2: -1.570796
+#   L_3: 0.176336
+#   theta_3: -1.884956
+#   L_4: 0.176336
+#   theta_4: 1.884956
+#   p_1: 0.161172
+#   beta_1: 0.772617
+#   q_1: 0.230827
+#   theta_c: -0.772617
+#   x_c: 0.0
+#   y_c: 0.0
+#   position_gain: 1.0
+#   angle_gain: 0.1
+
+# First working pass (2026-07-01): 0.5x, ported directly from the 6km
+# result. Gets past the bottleneck if gain is high enough, but at the
+# bifurcation near 34.1N,-120.4W it takes the wrong branch and diverges
+# into open water south/west, missing the ridge continuation past the
+# second island group entirely.
+# formation:
+#   type: cluster_of_clusters
+#   num_robots: 6
+#   cluster_config: 2
+#   config_tree: (2,2,2)
+#   L_2: 0.075000     # 0.150000 * 0.5
+#   theta_2: -1.570796
+#   L_3: 0.088168     # 0.176336 * 0.5
+#   theta_3: -1.884956
+#   L_4: 0.088168     # 0.176336 * 0.5
+#   theta_4: 1.884956
+#   p_1: 0.080586     # 0.161172 * 0.5
+#   beta_1: 0.772617
+#   q_1: 0.115414     # 0.230827 * 0.5
+#   theta_c: -0.772617
+#   x_c: 0.0
+#   y_c: 0.0
+#   position_gain: 1.0
+#   angle_gain: 0.1
+
+# Bifurcation-correct refinement (2026-07-01, same day): 0.7x formation
+# (same physical size as the original/un-scaled config) averages the local
+# Jacobian estimate over enough area to pick the same branch 6km follows at
+# the 34.1N,-120.4W bifurcation, staying on the ridge past the small island.
+# Combined with V_MAX=0.05/CONTROL_GAIN=3.0 (gentler than the 6km gains),
+# the path threads the gap between the small and middle islands cleanly in
+# water, loops briefly at the third island's coastline (still in water), and
+# continues to the domain edge. Confirmed sensitive to the exact start point
+# (34.44,-120.38) -- a ~1km shift sends it down a different, shorter-lived
+# branch. This is real separatrix/bifurcation behavior in the noisy 2km
+# field, not a tuning failure; documented as a known limitation.
+formation:
+  type: cluster_of_clusters
+  num_robots: 6
+  cluster_config: 2
+  config_tree: (2,2,2)
+  L_2: 0.105000     # 0.150000 * 0.7
+  theta_2: -1.570796
+  L_3: 0.123435     # 0.176336 * 0.7
+  theta_3: -1.884956
+  L_4: 0.123435     # 0.176336 * 0.7
+  theta_4: 1.884956
+  p_1: 0.112820     # 0.161172 * 0.7
+  beta_1: 0.772617
+  q_1: 0.161579     # 0.230827 * 0.7
+  theta_c: -0.772617
+  x_c: 0.0
+  y_c: 0.0
+  position_gain: 1.0
+  angle_gain: 0.1
+
+# formation:
+#   type: cluster_of_clusters
+#   num_robots: 6
+#   cluster_config: 2
+#   config_tree: (2,2,2)
+#   L_2: 0.037500     # 0.150000 * 0.25
+#   theta_2: -1.570796
+#   L_3: 0.044084     # 0.176336 * 0.25
+#   theta_3: -1.884956
+#   L_4: 0.044084     # 0.176336 * 0.25
+#   theta_4: 1.884956
+#   p_1: 0.040293     # 0.161172 * 0.25
+#   beta_1: 0.772617
+#   q_1: 0.057707     # 0.230827 * 0.25
+#   theta_c: -0.772617
+#   x_c: 0.0
+#   y_c: 0.0
+#   position_gain: 1.0
+#   angle_gain: 0.1

@@ -1,0 +1,151 @@
+# figures.yaml
+# Manifest for Paper_Draft_1A.tex figures.
+#
+# Each entry maps a figure name to the script that generates it and the
+# canonical parameters for the paper.  The scripts read these for reference
+# but own their PARAMS dict; override via CLI flags for ad-hoc runs.
+#
+# "slow: true" marks figures that run a Monte Carlo sweep; regen_all.py
+# skips them when called with --skip-slow.
+
+double_gyre_streamlines:
+  script: scripts/fig_double_gyre_streamlines.py
+  slow: false
+  params:
+    A: 0.1
+    grid_n: 60
+    domain: [-1.0, 1.0, -0.55, 0.55]
+    stream_density: 1.2
+    dpi: 220
+
+detJ_contour:
+  script: scripts/fig_detJ_contour.py
+  slow: false
+  params:
+    A: 0.1
+    grid_n: 200
+    domain: [-1.0, 1.0, -0.55, 0.55]
+    dpi: 220
+
+detJ_trench_cross_section:
+  script: scripts/fig_detJ_trench_cross_section.py
+  slow: false
+  params:
+    A: 0.1
+    x_range: [-1.0, 1.0]
+    nx: 400
+    y_values: [0.0, 0.2, 0.4]
+    dpi: 220
+
+pentagon_formation:
+  script: scripts/fig_pentagon_formation.py
+  slow: false
+  params:
+    formation_config: config/formations/pentagon_small.yaml
+    centroid: [0.0, 0.0]
+    dpi: 220
+
+estimator_accuracy_vs_noise:
+  script: scripts/fig_estimator_accuracy_vs_noise.py
+  slow: false
+  params:
+    seed: 42
+    sigma_uv_vals: [0.0, 0.001, 0.005, 0.01, 0.02, 0.05]
+    n_trials: 300
+    centroid: [-0.3, 0.1]
+    formation_config: config/formations/pentagon_small.yaml
+    dpi: 220
+
+separatrix_trajectories:
+  script: scripts/fig_separatrix_trajectories.py
+  slow: false
+  params:
+    seed: 0
+    sim_steps: 200
+    sigma_uv: 0.0
+    sigma_p: 0.0
+    control_gain: 3.0
+    v_max: 0.04
+    eps_raw: 0.001
+    eps_dim: 0.025
+    formation_config: config/formations/pentagon_small.yaml
+    start_points:
+      - [-0.45,  0.30]
+      - [ 0.05,  0.40]
+      - [ 0.00,  0.00]
+      - [ 0.10, -0.20]
+      - [ 0.25,  0.42]
+    dpi: 220
+
+separatrix_success_rate:
+  script: scripts/fig_separatrix_success_rate.py
+  slow: true
+  params:
+    seed_base: 0
+    n_trials_per_cell: 200
+    sim_steps: 200
+    sigma_uv_vals: [0.0, 0.001, 0.005, 0.01, 0.02, 0.05]
+    sigma_p_vals:  [0.0, 0.005, 0.01, 0.02]
+    control_gain: 3.0
+    v_max: 0.04
+    eps_raw: 0.001
+    eps_dim: 0.025
+    formation_config: config/formations/pentagon_small.yaml
+    success_dist_thresh: 0.08
+    dpi: 220
+
+ow_trajectories:
+  script: scripts/fig_ow_trajectories.py
+  slow: false
+  params:
+    seed: 0
+    sim_steps: 300
+    sigma_uv: 0.0
+    sigma_p: 0.0
+    control_gain: 3.0
+    v_max: 0.04
+    eps_grad: 1.0e-6
+    formation_config: config/formations/pentagon_small.yaml
+    start_points:
+      - [-0.50,  0.25]
+      - [-0.70,  0.00]
+      - [-0.30,  0.00]
+      - [ 0.50,  0.25]
+      - [ 0.30,  0.00]
+    dpi: 220
+
+ow_success_rate:
+  script: scripts/fig_ow_success_rate.py
+  slow: true
+  params:
+    seed_base: 0
+    n_trials_per_cell: 200
+    sim_steps: 300
+    sigma_uv_vals: [0.0, 0.001, 0.005, 0.01, 0.02, 0.05]
+    sigma_p_vals:  [0.0, 0.005, 0.01, 0.02]
+    control_gain: 3.0
+    v_max: 0.04
+    eps_grad: 1.0e-6
+    formation_config: config/formations/pentagon_small.yaml
+    success_det_thresh: 0.002
+    dpi: 220
+
+controller_comparison:
+  script: scripts/fig_controller_comparison.py
+  slow: false
+  params:
+    seed: 0
+    sim_steps: 200
+    sigma_uv: 0.005
+    sigma_p: 0.0
+    control_gain: 3.0
+    v_max: 0.04
+    eps_raw: 0.001
+    eps_dim: 0.025
+    eps_grad: 1.0e-6
+    formation_config: config/formations/pentagon_small.yaml
+    success_dist_sep: 0.08
+    success_det_ow: 0.002
+    ic_grid_n: 7
+    ic_range: [-0.75, 0.75, -0.40, 0.40]
+    dpi: 220

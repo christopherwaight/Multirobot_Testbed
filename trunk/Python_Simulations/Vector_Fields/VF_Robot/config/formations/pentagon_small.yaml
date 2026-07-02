@@ -1,19 +1,85 @@
+# formation:
+#   type: cluster_of_clusters
+#   num_robots: 6
+#   cluster_config: 2
+#   config_tree: (2,2,2)
+#   L_2: 0.150000
+#   theta_2: -1.570796
+#   L_3: 0.176336
+#   theta_3: -1.884956
+#   L_4: 0.176336
+#   theta_4: 1.884956
+#   p_1: 0.161172
+#   beta_1: 0.772617
+#   q_1: 0.230827
+#   theta_c: -0.772617
+#   x_c: 0.0
+#   y_c: 0.0
+#   position_gain: 1.0
+#   angle_gain: 0.1
+
+# formation:
+#   type: cluster_of_clusters
+#   num_robots: 6
+#   cluster_config: 2
+#   config_tree: (2,2,2)
+#   L_2: 0.105000     # 0.150000 * 0.7
+#   theta_2: -1.570796
+#   L_3: 0.123435     # 0.176336 * 0.7
+#   theta_3: -1.884956
+#   L_4: 0.123435     # 0.176336 * 0.7
+#   theta_4: 1.884956
+#   p_1: 0.112820     # 0.161172 * 0.7
+#   beta_1: 0.772617
+#   q_1: 0.161579     # 0.230827 * 0.7
+#   theta_c: -0.772617
+#   x_c: 0.0
+#   y_c: 0.0
+#   position_gain: 1.0
+#   angle_gain: 0.1
+
+# Separatrix-tracking tuning (2026-07-01): 0.5x scale is the smallest formation
+# that still resolves the local Jacobian well enough to lock onto the det(J)
+# trench through the narrow gap between the two islands (~34.0N, -120.4W).
+# 0.7x loses the trench there and drifts off the west/south domain edge;
+# 0.25x is small enough to stall/oscillate right at the first island.
+# Validated with main_ocean_hfr_v6r_timevarying.py (V_MAX=0.06, CONTROL_GAIN=4.0).
 formation:
   type: cluster_of_clusters
   num_robots: 6
   cluster_config: 2
   config_tree: (2,2,2)
-  L_2: 0.150000
+  L_2: 0.075000     # 0.150000 * 0.5
   theta_2: -1.570796
-  L_3: 0.176336
+  L_3: 0.088168     # 0.176336 * 0.5
   theta_3: -1.884956
-  L_4: 0.176336
+  L_4: 0.088168     # 0.176336 * 0.5
   theta_4: 1.884956
-  p_1: 0.161172
+  p_1: 0.080586     # 0.161172 * 0.5
   beta_1: 0.772617
-  q_1: 0.230827
+  q_1: 0.115414     # 0.230827 * 0.5
   theta_c: -0.772617
   x_c: 0.0
   y_c: 0.0
   position_gain: 1.0
   angle_gain: 0.1
+
+# formation:
+#   type: cluster_of_clusters
+#   num_robots: 6
+#   cluster_config: 2
+#   config_tree: (2,2,2)
+#   L_2: 0.037500     # 0.150000 * 0.25
+#   theta_2: -1.570796
+#   L_3: 0.044084     # 0.176336 * 0.25
+#   theta_3: -1.884956
+#   L_4: 0.044084     # 0.176336 * 0.25
+#   theta_4: 1.884956
+#   p_1: 0.040293     # 0.161172 * 0.25
+#   beta_1: 0.772617
+#   q_1: 0.057707     # 0.230827 * 0.25
+#   theta_c: -0.772617
+#   x_c: 0.0
+#   y_c: 0.0
+#   position_gain: 1.0
+#   angle_gain: 0.1

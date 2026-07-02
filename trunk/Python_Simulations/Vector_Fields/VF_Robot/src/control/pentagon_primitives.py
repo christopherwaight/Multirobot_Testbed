@@ -2,13 +2,13 @@
 Control primitives for the 6-robot pentagon cluster.
 
 Scalar-field primitives (1-6) are ported from the notebook:
-  trunk/Python Simulations/Separatrix_Control_testing/saddle_point_6_robot2.ipynb
+  trunk/Python_Simulations/Separatrix_Control_testing/saddle_point_6_robot2.ipynb
 Each takes a PentagonCluster and returns (vx_c, vy_c).  They call
 cluster.sample_field_at_robots() to get 6 scalar readings, then fit a full
 second-order model recovering the gradient and Hessian at the centroid.
 
 Primitive 7 is a vector-field primitive ported from:
-  trunk/Python Simulations/separatrix_interactive_v6r.ipynb
+  trunk/Python_Simulations/separatrix_interactive_v6r.ipynb
 It queries cluster.field.get_value() directly to obtain (u, v) readings and
 fits two independent quadratics (one per component) to estimate the Jacobian
 and its det(J) landscape.
@@ -27,9 +27,9 @@ Primitive summary:
   8. logic_g_zero_flow_pentagon -- vector: heuristic Logic G port; tracks det(J)=0
                                  Okubo-Weiss diamond using gradient/flow blend.
                                  Fixed orientation (no omega).
-  9. logic_g_newton_contour_pentagon -- vector: elegant Newton-step Logic G; drives
-                                 det(J) -> 0 via Newton step along gradient + Hessian
-                                 eigenbasis tangential drift. Fixed orientation.
+  9. logic_g_newton_contour_pentagon -- vector: Newton-step Logic G; drives
+                                 det(J) -> 0 via Newton step along gradient +
+                                 perp-gradient tangential drift. Fixed orientation.
 """
 import numpy as np
 
@@ -46,6 +46,14 @@ def _quadratic_basis(rx, ry):
 def _fit_quadratic(relative_positions, readings):
     """
     Fit a local quadratic scalar field model to 6 robot readings.
+
+    Well-posedness: the 6x6 Phi matrix is singular exactly when the six
+    sample points lie on a common conic (circle, ellipse, line pair, ...).
+    Six robots on one ring (e.g. a regular hexagon) is therefore always
+    singular; the pentagon-plus-center formation is not, because the only
+    conic through the five ring robots is their circumcircle, which
+    misses the center robot. Conditioning degrades smoothly as the
+    formation deforms toward a conic, hence the det check below.
 
     Args:
         relative_positions: (6, 2) array of (rx, ry) relative to centroid
@@ -620,21 +628,30 @@ def logic_g_zero_flow_pentagon(cluster, step_size=0.04, correction_weight=0.0):
 def logic_g_newton_contour_pentagon(cluster, v_max=0.04, eps_grad=1e-6,
                                     use_halley=False):
     """
-    Elegant Newton-step contour tracker for 6-robot PentagonCluster.
+    Newton-step contour tracker for 6-robot PentagonCluster.
 
     Drives det(J) -> 0 using a Newton step perpendicular to the contour and
-    slides along the contour tangent using the Hessian eigenbasis of det(J).
-    No heuristic flow blending.  Fixed orientation (no omega).
+    slides along the exact contour tangent perp(grad_D).  No heuristic flow
+    blending.  Fixed orientation (no omega).
 
     Perpendicular step:
       dp_perp = -(D / ||grad_D||^2) * grad_D     (linear Newton toward D=0)
       Saturated via v_max * tanh(c_per / v_max) in the descent direction.
 
     Tangential step:
-      v_tan = eigenvector of H_det with the smallest |eigenvalue|
-              (the direction along which D varies least = local contour tangent).
-      Sign-stabilized so the cluster orbits with the flow direction.
-      Saturated via v_max * tanh(c_tan / v_max).
+      t_hat = rot90(grad_D) / ||grad_D||   (exact level-set tangent),
+      sign-stabilized so the cluster orbits with the flow direction,
+      saturated via v_max * tanh(c_tan / v_max).
+
+    History (2026-07-02): an earlier version used the eigenvector of H_det
+    with the smallest |eigenvalue| as the tangent.  A head-to-head across
+    the double gyre (noise-free and noisy) and the 2km Santa Barbara HFR
+    field showed the perp-gradient tangent tracks 2x to 10^4x tighter and
+    circulates farther in every arena, so the eigen-tangent was removed.
+    The tangent of a level set is perpendicular to the gradient by
+    definition; the eigenvector only approximates it and is ill-defined
+    where the H_det eigenvalue magnitudes coincide (which happens exactly
+    on the double-gyre diamond).
 
     Degenerate fallback (||grad_D|| < eps_grad): drift with flow.
 
@@ -660,14 +677,12 @@ def logic_g_newton_contour_pentagon(cluster, v_max=0.04, eps_grad=1e-6,
         scale = v_max * float(np.tanh(f_norm / v_max)) / f_norm
         return float(flow[0] * scale), float(flow[1] * scale)
 
-    # -- Hessian eigenbasis: identify tangent direction ---------------------
-    lam, V = np.linalg.eigh(H_det)
-    i_tan = int(np.argmin(np.abs(lam)))
-    v_tan = V[:, i_tan].copy()
+    # -- Tangent direction: perp(grad_D), the exact level-set tangent -------
+    t_hat = np.array([-grad_det[1], grad_det[0]]) / g_norm
 
-    # Sign-stabilize: v_tan should point in the forward-flow direction.
-    if float(np.dot(flow, v_tan)) < 0:
-        v_tan = -v_tan
+    # Sign-stabilize: t_hat should point in the forward-flow direction.
+    if float(np.dot(flow, t_hat)) < 0:
+        t_hat = -t_hat
 
     # -- Perpendicular Newton step toward D=0 ------------------------------
     if use_halley:
@@ -689,9 +704,9 @@ def logic_g_newton_contour_pentagon(cluster, v_max=0.04, eps_grad=1e-6,
     step_per = s_per * u_hat
 
     # -- Tangential drift along contour ------------------------------------
-    c_tan    = float(np.dot(flow, v_tan))
+    c_tan    = float(np.dot(flow, t_hat))
     s_tan    = v_max * float(np.tanh(c_tan / v_max))
-    step_tan = s_tan * v_tan
+    step_tan = s_tan * t_hat
 
     delta = step_per + step_tan
     return float(delta[0]), float(delta[1])

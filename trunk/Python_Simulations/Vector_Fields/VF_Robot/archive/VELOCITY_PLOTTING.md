@@ -314,6 +314,6 @@ for env, mode in configurations:
 ## Related Documentation
 
 - **Main documentation**: `VF_Robot/CLAUDE.md`
-- **Parent project**: `Python Simulations/CLAUDE.md`
+- **Parent project**: `Python_Simulations/CLAUDE.md`
 - **Control primitives**: `src/control/primitives.py`
 - **Cluster classes**: `src/robot/omni_cluster.py`, `src/robot/quad_cluster.py`

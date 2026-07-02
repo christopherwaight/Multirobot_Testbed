@@ -2,14 +2,15 @@
 main_logic_g_newton_pentagon.py
 
 6-robot pentagon cluster tracking the det(J)=0 Okubo-Weiss contour of a static
-double-gyre vector field using logic_g_newton_contour_pentagon (elegant Newton-step).
+double-gyre vector field using logic_g_newton_contour_pentagon (Newton-step).
 
 Replaces the heuristic gradient/flow blend with a deterministic two-component step:
   Perpendicular: Newton step toward det(J)=0 along the gradient direction,
                  saturated via tanh to v_max.
-  Tangential:    Drift along the Hessian eigenbasis direction of smallest |lambda|
-                 (the local contour tangent), sign-stabilized to the flow direction,
-                 saturated via tanh to v_max.
+  Tangential:    Drift along perp(grad_D), the exact level-set tangent,
+                 sign-stabilized to the flow direction, saturated via tanh
+                 to v_max.  (An earlier Hessian eigen-tangent was removed
+                 2026-07-02 after a head-to-head; see the primitive docstring.)
 
 No heuristic branch flipping.  Fixed orientation (no omega).
 

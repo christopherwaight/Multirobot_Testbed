@@ -5,7 +5,7 @@ main_mod_dauph.py
 on the bimodal Gaussian scalar field.
 
 Port of Case 6 from the notebook:
-  trunk/Python Simulations/Separatrix_Control_testing/saddle_point_6_robot2.ipynb
+  trunk/Python_Simulations/Separatrix_Control_testing/saddle_point_6_robot2.ipynb
 
 The perpendicular direction (positive Hessian eigenvalue) snaps the formation
 to the trench at x = 0. The along-trench direction (negative Hessian

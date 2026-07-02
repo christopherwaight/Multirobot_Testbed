@@ -1,0 +1,264 @@
+% %%
+\documentclass[lettersize,journal]{IEEEtran}
+%\documentclass[lettersize,journal,draft]{IEEEtran}
+
+\usepackage{amsmath,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{cite}
+\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\usepackage{balance}
+\begin{document}
+\title{Tracking of Eulerian Structural Boundaries in 2D Vector Fields Using Multirobot Systems}
+\author{Christopher Waight, Christopher A. Kitts \IEEEmembership{Senior Member, IEEE}
+\thanks{Manuscript received Month Day, Year; revised Month Day, Year.}
+\thanks{C. Waight is a PhD Candidate in the Robotic Systems Laboratory, Department of Mechanical Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: cwaight@scu.edu)}
+\thanks{C. A. Kitts is Professor and Director of the Robotic Systems Laboratory, Department of Mechanical Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: ckitts@scu.edu)}
+}
+\markboth{Journal of \LaTeX\ Class Files,~Vol.~XX, No.~X, Month~Year}%
+{Waight, Kitts \MakeLowercase{\textit{et al.}: Tracking of Eulerian Structural Boundaries in 2D Vector Fields Using Multirobot Systems}}
+
+%\IEEEpubid{0000--0000/00\$00.00~\copyright~2025 IEEE}
+
+\maketitle
+
+\begin{abstract}
+    [placeholder: abstract to be written after results section is settled]
+\end{abstract}
+
+\begin{IEEEkeywords}
+Multirobot Systems, Adaptive Navigation, Vector Fields, Eulerian Coherent Structures, Okubo-Weiss, Cluster Control, Cooperative Estimation
+\end{IEEEkeywords}
+
+
+\section{Introduction}
+
+\IEEEPARstart{M}{ultirobot} systems have the ability to exploit the spatial distribution of robots to collect local samples of the environment and estimate features in their vicinity. These estimates guide adaptive navigation algorithms, enabling monitoring and exploration of environments too hazardous for humans or detection animals, and in environments with time-varying fields. Such systems have been deployed across multiple domains for missions including environmental monitoring, pollution tracking, and search-and-rescue operations using unmanned ground vehicles, surface vessels, and aerial vehicles [1,2,3,4,5,6].
+
+Adaptive navigation in scalar field environments requires each robot to collect a single value measurement as input to a navigation policy that drives the cluster to and along features of interest, such as extrema, saddle points, ridges, trenches, contour lines, and fronts [7,8]. A range of strategies has been used to locate these features, including gradient following, Hessian estimation, extended information consensus filters, constrained nonsmooth distributed optimization, and bio-inspired algorithms [9,10,11,12,13]. Among these, second-order methods incur the largest formation cost. The minimal symmetric formation for cooperative Hessian estimation in two dimensions established by Bri\~n\'on-Arranz et al.\ uses five robots arranged on a circle with an additional robot at the center [12], and this six-robot requirement has constrained the cluster sizes used for second-order scalar field methods.
+
+By contrast, multirobot navigation of physical vector fields has received considerably less attention. Most of the vector field literature uses artificial vector fields to describe path-following and obstacle avoidance strategies [14,15,16,17], with a smaller body of work addressing physically sensed fields, particularly for minimally actuated autonomous surface mobile sensors [18]. A separate line of work reconstructs the vector field model online for downstream navigation, including Koopman based active learning [19] and flow-aware multi-robot SLAM [20]. Our prior work [21] presented a distributed estimation strategy that uses a three-robot cluster to recover the local Jacobian of a planar vector field from instantaneous velocity measurements, and that work targeted the zero-dimensional features of the field, namely the critical points where the velocity vanishes.
+
+A second family of features organizes the global geometry of a 2D vector field. These are the one-dimensional curves that partition the domain into regions of qualitatively different flow behavior. In time-independent dynamical systems they are the stable and unstable manifolds of saddle critical points, called separatrices. In time-varying flows the analogous objects are Lagrangian Coherent Structures (LCS), defined through trajectory-based quantities such as the Finite-Time Lyapunov Exponent (FTLE) field [22,23]. Tracking these curves is useful for energy-efficient path planning in ocean currents, pollutant dispersion prediction, and prediction of transport in geophysical flows. Existing robotic approaches to this problem use a velocity-based or trajectory-based indicator of the boundary computed from a distributed formation. The PIM-triple inspired saddle-straddle method of Hsieh and coworkers uses a three-robot team in which two robots straddle the manifold on opposite sides while a third tracks the curve [24]. The tracker identifies the manifold as the point of extremal velocity along the line segment spanned by the two straddling robots. A later extension uses on-board FTLE computation to distinguish attracting from repelling LCS in time-varying flows [25], and the strategy has been validated in a flow tank, in real ocean data, and on scaled robotic platforms [24,25,26]. The correctness of these methods depends on initializing the team in a valid PIM-triple formation, with the two straddling robots placed on opposite sides of the manifold along a line segment that is orthogonal to the boundary [24]. Loss of this configuration during tracking results in loss of the boundary.
+
+An alternative family of structural descriptors is Eulerian: quantities computed from the spatial derivatives of the velocity field at a single instant, without trajectory integration. The most established of these is the Okubo-Weiss parameter [27,28], which partitions a 2D incompressible flow into strain-dominated and rotation-dominated regions. The boundary between these regions is the locus where the determinant of the flow-map Jacobian vanishes, $\det(\mathbf{J}) = 0$. This contour passes through the saddle critical points of the flow and, in many cases of practical interest, closely coincides with classical separatrices and with FTLE ridges [29]. Eulerian descriptors are attractive for multirobot implementation because they require only instantaneous spatial measurements of the field rather than the time histories of trajectories, and they avoid the numerical and timing challenges associated with on-line FTLE computation. To our knowledge, neither the $\det(\mathbf{J}) = 0$ contour nor the curve of minima of $\det(\mathbf{J})$ has been used as a direct navigation target for a multirobot system. Existing work on Eulerian flow analysis using mobile sensors has focused on offline reconstruction from sparse particle trajectories [29] or on active learning of the flow model itself [19], rather than on closed-loop tracking of the level sets of derived invariants in real time.
+
+This paper presents a method for distributed multirobot tracking of Eulerian structural boundaries in 2D scalar and vector fields. A four-robot cluster estimates first and second order information about the field at the cluster centroid using a combinatorial patchwise sampling strategy that exploits the four three-robot subsets of the cluster. In a vector field, each subset admits an exact linear Jacobian fit at its centroid, producing a $\det(\mathbf{J})$ sample, and a plane fit across the four resulting samples recovers $\nabla \det(\mathbf{J})$ at the cluster centroid. The same combinatorial structure recovers the Hessian of a scalar field at the cluster centroid by fitting a plane to four gradient samples taken at the centroids of the three-robot subsets. We use these estimates to drive the cluster centroid along the $\det(\mathbf{J}) = 0$ contour and, in fields where this contour is not realized as an interior locus, along the curve of minima of $\det(\mathbf{J})$. The side of the contour on which the cluster lies is recovered from the sign of $\det(\mathbf{J})$ at the cluster centroid rather than from the geometric arrangement of the formation, so the method does not require initialization of the formation in any specific topological relation to the boundary. The navigation command at each timestep depends only on the current measurement snapshot, in contrast to prior cluster-based feature tracking architectures that rely on a top-level state machine to recover from feature loss [30].
+
+This paper makes five contributions. First, we present a combinatorial patchwise sampling technique that recovers the Hessian of a scalar field at the cluster centroid using four robots, reducing the minimum cluster size for second-order scalar field methods relative to the symmetric circular formation requirement of [12]. Second, we extend the same combinatorial sampling technique to recover the gradient of the determinant scalar invariant $\nabla \det(\mathbf{J})$ of a 2D vector field from a single instantaneous four-robot measurement snapshot, identifying $\det(\mathbf{J})$ as a navigation target that has not previously been used in multirobot adaptive navigation. Third, we develop control laws that drive the four-robot cluster centroid along the $\det(\mathbf{J}) = 0$ contour of a vector field and, in fields where this contour is not realized as an interior locus, along the curve of minima of $\det(\mathbf{J})$, with the topological side of the boundary recovered from a scalar sign rather than from formation geometry. Fourth, we verify the approach in time-varying simulated scalar and vector fields without prestraddle initialization, using only the current measurement snapshot at each timestep and removing the explicit state-machine recovery of [30]. Fifth, we validate the approach on a physical multirobot testbed in a controlled lab environment with realistic sensor noise, extending the experimental scope of [31] from directly sensed vector field features to navigation targets defined by derived invariants of the flow.
+
+The rest of this paper is organized as follows. Section II develops the mathematical framework, including the relationship between $\det(\mathbf{J})$ and the Okubo-Weiss parameter, the four-robot combinatorial estimation of $\mathbf{J}$, the Hessian of a scalar field, and $\nabla \det(\mathbf{J})$, the controllers for tracking $\det(\mathbf{J}) = 0$ and the minima of $\det(\mathbf{J})$, and a discussion of limitations. Section III describes the layered control architecture used to verify these strategies in simulation and on hardware. Section IV presents simulation results in steady and time-varying scalar and vector fields. Section V describes the hardware testbed and presents validation results. Section VI compares performance with alternative navigation strategies and discusses limitations and future work. Section VII concludes.
+
+
+\section{Eulerian Structural Boundary Tracking}
+
+\subsection{The Okubo-Weiss Region and the $\det(\mathbf{J}) = 0$ Contour}
+
+For a planar vector field $\mathbf{v}(\mathbf{p}) = (u(x,y),\, v(x,y))$ with Jacobian $\mathbf{J} = \nabla\mathbf{v}$, the determinant of the Jacobian is a scalar function of position given by
+\begin{equation}
+\det(\mathbf{J}(x,y)) = \frac{\partial u}{\partial x}\frac{\partial v}{\partial y} - \frac{\partial u}{\partial y}\frac{\partial v}{\partial x}.
+\end{equation}
+
+This scalar has a direct geometric interpretation. For 2D incompressible flow, where $\partial u / \partial x + \partial v / \partial y = 0$, the velocity gradient tensor decomposes into a symmetric strain-rate tensor $\mathbf{S} = (\nabla\mathbf{v} + \nabla\mathbf{v}^\top)/2$ and an antisymmetric vorticity tensor $\boldsymbol{\Omega} = (\nabla\mathbf{v} - \nabla\mathbf{v}^\top)/2$. Direct calculation yields
+\begin{equation}
+\det(\mathbf{J}) = \tfrac{1}{4}\left(\omega^2 - s^2\right),
+\end{equation}
+where $\omega = \partial v/\partial x - \partial u/\partial y$ is the scalar vorticity and $s^2 = 2\,\mathrm{tr}(\mathbf{S}^\top \mathbf{S})$ is the squared strain-rate magnitude. This quantity, up to a conventional sign, is the Okubo-Weiss parameter $Q$ [Okubo1970, Weiss1991]. The sign of $\det(\mathbf{J})$ partitions the domain into two regions:
+\begin{itemize}
+\item $\det(\mathbf{J}) > 0$ corresponds to rotation-dominated regions (vortex interiors), where $\mathbf{J}$ has complex-conjugate eigenvalues.
+\item $\det(\mathbf{J}) < 0$ corresponds to strain-dominated regions, where $\mathbf{J}$ has real eigenvalues of opposite sign.
+\end{itemize}
+
+The zero set $\det(\mathbf{J}) = 0$ is the one-dimensional boundary between these two regions. Every saddle critical point of the field lies on this boundary, since at a saddle $\mathbf{J}$ has real eigenvalues of opposite sign and $\det(\mathbf{J}) < 0$ locally, while rotation-dominated regions have $\det(\mathbf{J}) > 0$. By continuity, a zero crossing must exist between them. This contour coincides with classical separatrices for flows with appropriate symmetries; in general flows it is a related but distinct Eulerian object, and we treat it as such throughout this work.
+
+Figure~\ref{fig:detJ_two_fields}~[placeholder] visualizes $\det(\mathbf{J})$ on two representative steady fields used in this work. The first is a counter-rotating vortex pair with vortices at $(-2,-1)$ and $(2,-1)$, blended with inverse-square distance weighting. In this field, $\det(\mathbf{J}) \geq 0$ everywhere, and the zero contour is the symmetry axis $x = 0$, which acts as a dividing streamline between the two rotation-dominated cells. The second is a heteroclinic saddle pair with saddles at $(3,3)$ and $(-3,-3)$, each rotated by $\pm \pi/4$, and distance-weighted. In this field $\det(\mathbf{J}) \leq 0$ throughout the region of interest, and no interior $\det(\mathbf{J}) = 0$ contour exists; the tracked structure must instead be recovered through the eigenstructure of $\mathbf{J}$, as discussed in Section II.C.
+
+These two fields represent distinct Eulerian regimes. The vortex pair has a realizable $\det(\mathbf{J}) = 0$ contour that coincides with a dividing streamline. The heteroclinic saddle pair has a realizable saddle connection but no interior $\det(\mathbf{J}) = 0$ contour. Together they illustrate the range of Eulerian topologies that a tracking method must handle.
+
+
+\subsection{Distributed Estimation of $\mathbf{J}$ and $\nabla\det(\mathbf{J})$}
+
+We refer to the group of four robots as a cluster, following the convention adopted in [Paper1, 23]. The cluster centroid is denoted $\mathbf{p}_c$, and robot $i$ is located at position $\mathbf{p}_i = (x_i, y_i)$ with vector field measurement $(u_i, v_i)$ for $i \in \{1, 2, 3, 4\}$.
+
+The Jacobian of the field at the cluster centroid is estimated by least-squares fit of a linear model across all four robots. As in [Paper1], the vector field components across the cluster's spatial extent are approximated as
+\begin{equation}
+U(x,y) = a_u x + b_u y + c_u, \qquad V(x,y) = a_v x + b_v y + c_v,
+\end{equation}
+and the six coefficients are recovered by solving
+\begin{equation}
+\underbrace{\begin{bmatrix} x_1 & y_1 & 1 \\ x_2 & y_2 & 1 \\ x_3 & y_3 & 1 \\ x_4 & y_4 & 1 \end{bmatrix}}_{\mathbf{A}}
+\begin{bmatrix} a_u \\ b_u \\ c_u \end{bmatrix}
+= \begin{bmatrix} u_1 \\ u_2 \\ u_3 \\ u_4 \end{bmatrix},
+\end{equation}
+and the analogous system for $(a_v, b_v, c_v)$. The Jacobian estimate at the cluster centroid is
+\begin{equation}
+\hat{\mathbf{J}} = \begin{bmatrix} a_u & b_u \\ a_v & b_v \end{bmatrix}.
+\end{equation}
+This is an overdetermined system (four measurements, three unknowns per component) and the least-squares solution is well-defined for any non-collinear cluster geometry.
+
+To estimate $\nabla\det(\mathbf{J})$ at the cluster centroid, we exploit the $\binom{4}{3} = 4$ three-robot subsets of the cluster. Each subset $\mathcal{S}_k \subset \{1,2,3,4\}$ with $|\mathcal{S}_k| = 3$ admits an \emph{exact} linear fit of the field, since three measurements fully determine the three unknowns $(a, b, c)$ per component. Each sub-fit produces a local Jacobian estimate $\hat{\mathbf{J}}_k$ and a local determinant $d_k = \det(\hat{\mathbf{J}}_k)$, associated with the centroid $\mathbf{c}_k$ of that sub-formation. The four pairs $(\mathbf{c}_k, d_k)$ are then treated as samples of the scalar field $\det(\mathbf{J})$ at four distinct spatial locations, and a planar model
+\begin{equation}
+D(x,y) = \alpha x + \beta y + \gamma
+\end{equation}
+is fit to these four samples by least squares. The resulting coefficients give the gradient estimate
+\begin{equation}
+\widehat{\nabla \det(\mathbf{J})} = (\alpha,\, \beta).
+\end{equation}
+This is an overdetermined second step: four sub-formation samples are used to fit a three-parameter planar model of $\det(\mathbf{J})$. The cluster thus recovers, from a single synchronous four-robot snapshot, both $\hat{\mathbf{J}}$ at the centroid and $\widehat{\nabla\det(\mathbf{J})}$ at the centroid, without trajectory integration and without any time history of measurements.
+
+This estimation structure generalizes to formations with $N > 4$ robots. With $N$ robots, $\binom{N}{3}$ sub-formations are available, each contributing a local $\det(\mathbf{J})$ sample at its centroid, with the planar fit of $\det(\mathbf{J})$ becoming more overdetermined as $N$ grows. Analysis of the scaling properties of larger formations is out of scope for this paper.
+
+
+\subsection{Controller Variants}
+
+With estimates of $\hat{\mathbf{J}}$ and $\widehat{\nabla\det(\mathbf{J})}$ at the cluster centroid, the cluster is commanded in a direction composed of two components: a primary direction derived from the eigenstructure of $\hat{\mathbf{J}}$, and a correction that descends $\det(\mathbf{J})$ toward zero.
+
+Let $(\lambda_1, \lambda_2)$ be the eigenvalues of $\hat{\mathbf{J}}$ with corresponding eigenvectors $(\mathbf{e}_1, \mathbf{e}_2)$, and let $\bar{\mathbf{f}} = \frac{1}{4}\sum_{i=1}^{4}(u_i, v_i)$ be the mean flow measured across the cluster. The cluster step direction is
+\begin{equation}
+\mathbf{d} = \mathbf{p} + w_c\, \mathbf{r}_\perp,
+\end{equation}
+where $\mathbf{p}$ is the primary direction (selected by one of three rules below), $w_c$ is a correction weight, and $\mathbf{r}_\perp$ is the component of the correction orthogonal to the primary direction:
+\begin{equation}
+\mathbf{r} = -\mathrm{sign}(\det(\hat{\mathbf{J}}))\, \widehat{\nabla\det(\mathbf{J})} / \|\widehat{\nabla\det(\mathbf{J})}\|,
+\end{equation}
+\begin{equation}
+\mathbf{r}_\perp = \mathbf{r} - (\mathbf{r} \cdot \mathbf{p})\mathbf{p}.
+\end{equation}
+The sign of $\det(\hat{\mathbf{J}})$ flips the correction across the zero contour, making $\det(\mathbf{J}) = 0$ the unique stable level of the correction dynamics. All other level sets are unstable under this correction term. The correction is projected orthogonal to the primary direction so that forward motion is not opposed by the correction when the cluster is already tracking the contour.
+
+The three controller variants differ only in how $\mathbf{p}$ is selected from the eigenvectors of $\hat{\mathbf{J}}$.
+
+\subsubsection{Flow-aligned}
+The primary direction is the eigenvector of $\hat{\mathbf{J}}$ most aligned with the local flow:
+\begin{equation}
+\mathbf{p} = \arg\max_{\mathbf{e} \in \{\mathbf{e}_1, \mathbf{e}_2\}}\, \left| \mathbf{e} \cdot \hat{\bar{\mathbf{f}}} \right|,
+\end{equation}
+where $\hat{\bar{\mathbf{f}}} = \bar{\mathbf{f}} / \|\bar{\mathbf{f}}\|$. The sign is then chosen so that $\mathbf{p} \cdot \hat{\bar{\mathbf{f}}} \geq 0$.
+
+\subsubsection{Eigenvector-aligned}
+The primary direction is the eigenvector of $\hat{\mathbf{J}}$ corresponding to the most negative real eigenvalue:
+\begin{equation}
+\mathbf{p} = \mathbf{e}_k, \qquad k = \arg\min_{j \in \{1,2\}}\, \mathrm{Re}(\lambda_j).
+\end{equation}
+The sign is chosen so that $\mathbf{p} \cdot \hat{\bar{\mathbf{f}}} \geq 0$. This rule is well-defined when the eigenvalues of $\hat{\mathbf{J}}$ are real. In regions where they are complex conjugates (rotation-dominated regions, where $\det(\mathbf{J}) > 0$ and $\mathrm{tr}(\mathbf{J})^2 < 4\det(\mathbf{J})$), the rule reduces to an arbitrary selection between the two complex eigenvector candidates.
+
+\subsubsection{Blended}
+A sigmoid weight $w$ depending on $\det(\hat{\mathbf{J}})$ interpolates between scoring rules based on eigenvalue sign and flow alignment:
+\begin{equation}
+w = \tfrac{1}{2}\!\left(1 + \tanh\!\left(\frac{\det(\hat{\mathbf{J}}) - c}{s}\right)\right),
+\end{equation}
+where $c$ and $s$ are blend-center and blend-steepness parameters. Each eigenvector receives a score
+\begin{equation}
+S_j = (1 - w)\, e^{-\max(0,\,\mathrm{Re}(\lambda_j))} + w\, \left| \mathbf{e}_j \cdot \hat{\bar{\mathbf{f}}} \right|,
+\end{equation}
+and the primary direction is the eigenvector with the higher score, signed for forward agreement with the flow. When $\det(\hat{\mathbf{J}})$ is large, the blended rule reduces to flow alignment; when it is small, the rule reduces to eigenvector alignment.
+
+Each of the three variants uses the same correction term, the same estimation architecture, and the same four-robot formation. They differ only in the eigenvector selection rule for the primary direction.
+
+
+\subsection{Limitations}
+
+We note several limitations of the method as presented.
+
+The method is formulated and demonstrated for steady 2D vector fields. The $\det(\mathbf{J}) = 0$ contour is defined from instantaneous spatial derivatives of the field and does not carry the frame-invariance properties required of Lagrangian coherent structures in time-varying flows [Haller2015]. Extension to time-varying fields, and to non-inertial reference frames, is left as future work.
+
+The $\det(\mathbf{J}) = 0$ contour is not equivalent to a classical separatrix in general. The two coincide for flows with appropriate symmetries, such as the counter-rotating vortex pair studied here, and share the property of passing through every saddle critical point. In general they are distinct Eulerian objects, and we do not claim general separatrix tracking.
+
+When $\det(\mathbf{J}) = 0$ is not realizable as an interior contour (for example in fields where $\det(\mathbf{J})$ does not change sign across the region of interest), the correction term cannot achieve a stable fixed point. In such fields the cluster's tracking behavior depends entirely on the primary direction rule, as will be shown on the heteroclinic saddle pair in Section IV.
+
+The eigenvector-aligned controller variant is well-defined only when the eigenvalues of $\hat{\mathbf{J}}$ are real. In rotation-dominated regions where the eigenvalues are complex, the selection rule reduces to an arbitrary choice between the two complex eigenvector candidates.
+
+Validation is presented in simulation only. Hardware validation is not performed in this work.
+
+The estimation uses four robots in planar geometry. Extension to three-dimensional vector fields, in which the Jacobian is $3 \times 3$ and the corresponding structural scalar is not simply $\det(\mathbf{J})$, is left as future work.
+
+
+\section{[placeholder: Simulation Setup]}
+
+\section{[placeholder: Results]}
+
+\section{[placeholder: Discussion]}
+
+\section{[placeholder: Conclusion]}
+
+
+\bibliographystyle{IEEEtran}
+
+\begin{thebibliography}{99}
+
+\bibitem{1} X. Chen and J. Huang, ``Odor source localization algorithms on mobile robots: A review and future outlook,'' \textit{Robotics and Autonomous Systems}, vol. 112, pp. 123--136, 2019.
+
+\bibitem{2} J. Cort\'es and M. Egerstedt, ``Coordinated control of multi-robot systems: A survey,'' \textit{SICE Journal of Control, Measurement, and System Integration}, vol. 10, no. 6, pp. 495--503, 2017.
+
+\bibitem{3} J. Zhang et al., ``Multi-AUV adaptive path planning and cooperative sampling for ocean scalar field estimation,'' \textit{IEEE Transactions on Instrumentation and Measurement}, vol. 71, pp. 1--14, 2022.
+
+\bibitem{4} J. Wang et al., ``Dynamic plume tracking by cooperative robots,'' \textit{IEEE/ASME Transactions on Mechatronics}, vol. 24, no. 2, pp. 609--620, 2019.
+
+\bibitem{5} T. Adamek, C. A. Kitts, and I. Mas, ``Gradient-based cluster space navigation for autonomous surface vessels,'' \textit{IEEE/ASME Transactions on Mechatronics}, vol. 20, no. 2, pp. 506--518, 2014.
+
+\bibitem{6} J. Burgu\'es and S. Marco, ``Environmental chemical sensing using small drones: A review,'' \textit{Science of the Total Environment}, vol. 748, p. 141172, 2020.
+
+\bibitem{7} C. A. Kitts, R. T. McDonald, and M. A. Neumann, ``Adaptive navigation control primitives for multirobot clusters: Extrema finding, contour following, ridge/trench following, and saddle point station keeping,'' \textit{IEEE Access}, vol. 6, pp. 17625--17642, 2018.
+
+\bibitem{8} R. T. McDonald, C. A. Kitts, and M. A. Neumann, ``Navigation of scalar fronts with multirobot clusters in simulation and experiment,'' \textit{IEEE Systems Journal}, vol. 14, no. 3, pp. 3755--3766, 2020.
+
+\bibitem{9} P. \"Ogren, E. Fiorelli, and N. E. Leonard, ``Cooperative control of mobile sensor networks: Adaptive gradient climbing in a distributed environment,'' \textit{IEEE Transactions on Automatic Control}, vol. 49, no. 8, pp. 1292--1302, 2004.
+
+\bibitem{10} F. Pagano et al., ``Distributed multi-robot active-sensing of a diffusive source,'' \textit{IEEE Robotics and Automation Letters}, vol. 10, no. 10, pp. 10810--10817, 2025.
+
+\bibitem{11} Z. Deng and J. Luo, ``Fully distributed algorithms for constrained nonsmooth optimization problems of general linear multiagent systems and their application,'' \textit{IEEE Transactions on Automatic Control}, vol. 69, no. 2, pp. 1377--1384, 2024.
+
+\bibitem{12} L. Bri\~n\'on-Arranz, A. Renzaglia, and L. Schenato, ``Multirobot symmetric formations for gradient and Hessian estimation with application to source seeking,'' \textit{IEEE Transactions on Robotics}, vol. 35, no. 3, pp. 782--789, 2019.
+
+\bibitem{13} Y. Deng, B. Zhu, and H. Duan, ``Bioinspired bearing-based target enclosing control for unmanned aerial vehicle swarm,'' \textit{IEEE/ASME Transactions on Mechatronics}, 2024.
+
+\bibitem{14} D. Panagou, ``Motion planning and collision avoidance using navigation vector fields,'' in \textit{Proc. IEEE International Conference on Robotics and Automation}, 2014, pp. 2513--2518.
+
+\bibitem{15} X. Wang et al., ``Adaptive vector field guidance without a priori knowledge of course dynamics and wind,'' \textit{IEEE/ASME Transactions on Mechatronics}, vol. 27, no. 6, pp. 4597--4607, 2022.
+
+\bibitem{16} B. Hu et al., ``Spontaneous-ordering platoon control for multirobot path navigation using guiding vector fields,'' \textit{IEEE Transactions on Robotics}, vol. 39, no. 4, pp. 2654--2668, 2023.
+
+\bibitem{17} D. R. Nelson et al., ``Vector field path following for miniature air vehicles,'' \textit{IEEE Transactions on Robotics}, vol. 23, no. 3, pp. 519--529, 2007.
+
+\bibitem{18} G. Knizhnik, P. Li, X. Yu, and M. A. Hsieh, ``Flow-based control of marine robots in gyre-like environments,'' in \textit{Proc. 2022 International Conference on Robotics and Automation (ICRA)}, 2022, pp. 3047--3053.
+
+\bibitem{19} A. K. Li, T. C. Silva, and M. A. Hsieh, ``EnKode: Active learning of unknown flows with Koopman operators,'' \textit{IEEE Robotics and Automation Letters}, vol. 9, no. 12, pp. 11282--11289, 2024.
+
+\bibitem{20} A. Kumar, T. C. Silva, V. Edwards, and M. A. Hsieh, ``Flow-based localization and mapping for multi-robot systems,'' \textit{IEEE Robotics and Automation Letters}, 2024.
+
+\bibitem{21} C. Waight and C. A. Kitts, ``Adaptive navigation of multirobot systems to critical points in 2D vector fields,'' Manuscript under review, 2026.
+
+\bibitem{22} G. Haller, ``Lagrangian coherent structures,'' \textit{Annual Review of Fluid Mechanics}, vol. 47, pp. 137--162, 2015.
+
+\bibitem{23} S. C. Shadden, F. Lekien, and J. E. Marsden, ``Definition and properties of Lagrangian coherent structures from finite-time Lyapunov exponents in two-dimensional aperiodic flows,'' \textit{Physica D: Nonlinear Phenomena}, vol. 212, no. 3--4, pp. 271--304, 2005.
+
+\bibitem{24} M. Michini, M. A. Hsieh, E. Forgoston, and I. B. Schwartz, ``Robotic tracking of coherent structures in flows,'' \textit{IEEE Transactions on Robotics}, vol. 30, no. 3, pp. 593--603, 2014.
+
+\bibitem{25} D. Kularatne and M. A. Hsieh, ``Tracking attracting manifolds in flows,'' \textit{Autonomous Robots}, vol. 41, no. 8, pp. 1575--1588, 2017.
+
+\bibitem{26} M. Michini, M. A. Hsieh, E. Forgoston, and I. B. Schwartz, ``Experimental validation of robotic manifold tracking in gyre-like flows,'' in \textit{Proc. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 2014, pp. 2306--2311.
+
+\bibitem{27} A. Okubo, ``Horizontal dispersion of floatable particles in the vicinity of velocity singularities such as convergences,'' \textit{Deep Sea Research and Oceanographic Abstracts}, vol. 17, no. 3, pp. 445--454, 1970.
+
+\bibitem{28} J. Weiss, ``The dynamics of enstrophy transfer in two-dimensional hydrodynamics,'' \textit{Physica D: Nonlinear Phenomena}, vol. 48, no. 2--3, pp. 273--294, 1991.
+
+\bibitem{29} T. D. Harms, S. T. M. Dawson, and B. J. McKeon, ``Lagrangian gradient regression for the detection of coherent structures from sparse trajectory data,'' \textit{Royal Society Open Science}, vol. 11, no. 9, p. 240586, 2024.
+
+\bibitem{30} R. T. McDonald, C. A. Kitts, and M. A. Neumann, ``Experimental implementation and verification of scalar field ridge and trench tracking,'' \textit{IEEE Access}, vol. 7, pp. 62951--62962, 2019.
+
+\bibitem{31} C. Waight and C. Kitts, ``A functional indoor testbed for multirobot adaptive navigation in vector field environments,'' in \textit{Proc. ASME Int. Design Engineering Technical Conf. and Computers and Information in Engineering Conf.}, vol. 89251, 2025.
+
+\bibitem{32} NOAA National Centers for Environmental Information, ``Near-real-time surface ocean velocities derived from HF-radar stations located along coastal waters of North Slope Alaska, Gulf of Alaska, Puerto Rico/Virgin Islands, eastern U.S./Gulf of America, Hawaii, Great Lakes, and western U.S.,'' NCEI Accession gov.noaa.nodc:IOOS-HFRadarRTVector. Accessed: Jun.\ 25, 2026.
+
+\end{thebibliography}
+
+\end{document}

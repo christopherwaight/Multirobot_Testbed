@@ -17,7 +17,8 @@ class Omnibot:
         position += timestep * velocity
     """
 
-    def __init__(self, x, y, timestep=0.1, momentum_alpha=0.7):
+    def __init__(self, x, y, timestep=0.1, momentum_alpha=0.7,
+                 max_velocity=0.3, stiction_threshold=0.025):
         """
         Initialize an Omnibot.
 
@@ -26,11 +27,19 @@ class Omnibot:
             y: Initial y position
             timestep: Time step for integration
             momentum_alpha: Momentum coefficient (0=no momentum, 1=full momentum)
+            max_velocity: Maximum robot speed (m/s), default matches Decabot
+                hardware (0.3 m/s).
+            stiction_threshold: Minimum speed to overcome static friction
+                (m/s), default matches Decabot hardware (0.025 m/s). Callers
+                simulating a different vehicle (e.g. a boat, where "stiction"
+                has little physical meaning) can lower this toward 0.
         """
         self.position = np.array([x, y], dtype=float)
         self.velocity = np.array([0.0, 0.0], dtype=float)
         self.timestep = timestep
         self.momentum_alpha = momentum_alpha
+        self.max_velocity = max_velocity
+        self.stiction_threshold = stiction_threshold
 
     def command_velocity(self, vx_cmd, vy_cmd):
         """
@@ -50,19 +59,15 @@ class Omnibot:
         # ========================================================================
 
         # 1. Maximum velocity constraint (motor/safety limits)
-        # Clamp velocity magnitude to 0.3 m/s maximum
         velocity_magnitude = np.linalg.norm(self.velocity)
-        MAX_VELOCITY = 0.3  # meters per second
 
-        if velocity_magnitude > MAX_VELOCITY:
+        if velocity_magnitude > self.max_velocity:
             # Scale velocity vector to max magnitude while preserving direction
-            self.velocity = (self.velocity / velocity_magnitude) * MAX_VELOCITY
+            self.velocity = (self.velocity / velocity_magnitude) * self.max_velocity
 
         # 2. Stiction (static friction) constraint
         # Below this threshold, friction overcomes motion and robot stops
-        STICTION_THRESHOLD = 0.025  # meters per second
-
-        if velocity_magnitude < STICTION_THRESHOLD:
+        if velocity_magnitude < self.stiction_threshold:
             # Velocity too small to overcome static friction - robot stops
             self.velocity = np.array([0.0, 0.0], dtype=float)
 

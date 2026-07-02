@@ -2,10 +2,10 @@
 main_separatrix_v6r.py
 
 6-robot pentagon cluster navigating the separatrix of a static double-gyre
-vector field using Primitive 7 (separatrix_logic_c_step, Logic C).
+vector field using Primitive 7 (separatrix_logic_c_step, Logic C). 
 
 Port of the notebook:
-  trunk/Python Simulations/separatrix_interactive_v6r.ipynb
+  trunk/Python_Simulations/separatrix_interactive_v6r.ipynb
 
 The cluster fits two independent 6-parameter quadratics (one for each of the
 u and v field components) to estimate the local Jacobian J, then navigates

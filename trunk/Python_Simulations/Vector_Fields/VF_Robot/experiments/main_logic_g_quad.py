@@ -5,7 +5,7 @@ main_logic_g_quad.py
 double-gyre vector field using logic_g_zero_flow_quad (heuristic Logic G).
 
 Port of the notebook:
-  trunk/Python Simulations/Separatrix_Control_testing/separatrix_interactive_v002.ipynb
+  trunk/Python_Simulations/Separatrix_Control_testing/separatrix_interactive_v002.ipynb
 
 The cluster uses 4 robots arranged in a square.  It estimates the Jacobian
 via 4-point affine LS and grad(det(J)) via C(4,3) sub-formations, then applies

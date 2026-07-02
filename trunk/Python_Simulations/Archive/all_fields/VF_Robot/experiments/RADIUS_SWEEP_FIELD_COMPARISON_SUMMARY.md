@@ -25,7 +25,7 @@ No blending is used.
 
 ### Full Experiment (432 runs, ~15 minutes)
 ```bash
-cd "/Users/christopherwaight/Desktop/Multirobot_Testbed/trunk/Python Simulations/Vector_Fields/VF_Robot"
+cd "/Users/christopherwaight/Desktop/Multirobot_Testbed/trunk/Python_Simulations/Vector_Fields/VF_Robot"
 ./venv/bin/python3 experiments/radius_sweep_field_comparison.py
 ```
 
