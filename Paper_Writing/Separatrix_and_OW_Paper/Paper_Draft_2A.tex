@@ -1429,32 +1429,34 @@ simply prescribes a lower-bound cutoff on commanded centroid velocity
 of approximately $0.21$ m/s.
 
 \subsection{Noise Model}
+\label{sec:noise_model}
 
-Measurement noise is additive Gaussian on the $(u, v)$ components at each
-robot position:
+Two independent noise channels perturb the samples available to the
+estimator. Measurement noise is additive Gaussian on the $(u, v)$
+components read by each robot:
 \begin{equation}
     u_i^m = u(\mathbf{p}_i) + \eta_i^u, \quad
     v_i^m = v(\mathbf{p}_i) + \eta_i^v,
     \quad \eta \sim \mathcal{N}(0, \sigma_{uv}^2),
     \label{eq:meas_noise}
 \end{equation}
-with noise samples independent across robots and time steps. Position noise
-is additive Gaussian on each robot's reported position:
+with samples independent across robots, components, and time steps; this
+is the sensor model of [14]. Position noise perturbs the location at
+which each robot samples the field,
 \begin{equation}
-    \mathbf{p}_i^m = \mathbf{p}_i + \boldsymbol{\xi}_i, \quad
-    \boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0}, \sigma_p^2 \mathbf{I}).
+    (u_i^m, v_i^m) = \mathbf{v}(\mathbf{p}_i + \boldsymbol{\xi}_i), \quad
+    \boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0}, \sigma_p^2 \mathbf{I}),
     \label{eq:pos_noise}
 \end{equation}
-
-Both noise hooks must be implemented before the sweeps described in
-Section~\ref{sec:test_plan} can be run. Measurement noise (\ref{eq:meas_noise})
-follows the existing precedent in \textit{src/fields/field\_types.py}
-(\textit{NNField}, \textit{RBFField}, \textit{EnsembleField} each accept a
-\textit{noise\_std} parameter); it requires adding a \textit{noise\_std}
-argument to the \textit{AnalyticalField} class or to the primitive's
-\textit{\_sample\_vector\_at\_robots} function. Position noise
-(\ref{eq:pos_noise}) has no current precedent in the simulator; it requires
-a new hook in the cluster state update.
+while the quadratic fit (\ref{eq:solve}) uses the nominal positions
+$\mathbf{p}_i$: the robot reads the field at a slightly wrong place. To
+first order this induces an effective measurement error
+$\mathbf{J}(\mathbf{p}_i)\,\boldsymbol{\xi}_i$, which couples the two
+channels through the local Jacobian magnitude and is tested directly by
+the two-dimensional noise sweep of Section~\ref{sec:test_plan}.
+% Implementation: _sample_vector_at_robots in pentagon_primitives.py reads
+% cluster.measurement_noise_std (eq:meas_noise) and
+% cluster.position_noise_std (eq:pos_noise).
 
 \subsection{Testing Plan}
 \label{sec:test_plan}

@@ -59,11 +59,44 @@ If a session is cut off, read this file top to bottom and resume at "Current sta
   (pentagon_primitives.py), next to the existing position_noise_std.
   The two attributes ARE the 2D sweep the files dictate.
 
+## Phase 1 results (2026-07-02, user has NOT yet reviewed; nothing in .tex)
+
+Scripts: experiments/estimator_accuracy_sweep.py (data, 4 CSVs in
+experiments/outputs/estimator_accuracy/) and plot_estimator_accuracy.py
+(review figure estimator_accuracy_vs_noise.png in same folder).
+Approved noise subsection WAS written into Paper_Draft_2A.tex and compiles.
+
+Key numbers (strain-region location, rho = 0.075, N = 200k draws/cell):
+- Geometry: pentagon_small.yaml is an exact pentagon plus center; robot 0
+  at centroid (3e-7 off), ring radius rho = 0.0750.
+- Lemma 1 VERIFIED: all six coefficient noise stds match closed forms
+  within 0.2 percent (u0 1.000, ux/uy 1.001, uxx 0.999, uxy 1.002, uyy 1.001
+  empirical/lemma ratios).
+- Position-noise coupling VERIFIED: per-robot reading-error std matches
+  first-order prediction sigma_p * ||row J|| within ~1 percent.
+- Reliability thresholds (median rel. error = signal): grad D at
+  sigma_uv ~ 0.008-0.01; D at ~ 0.06; closed-loop cliff expected near
+  sigma_uv ~ 0.01 since Logic C leans on grad D.
+- FINDING (needs paper treatment): H_D estimate has a STRUCTURAL truncation
+  floor ~ 0.9 relative error at ALL rho (formula eq:hess_det drops
+  third-derivative-times-field-value terms; exact only for quadratic
+  fields). BUT eigenvectors survive: 0.0-0.35 deg error on the separatrix
+  (symmetry keeps H_hat diagonal in the trench frame), 3.8 deg generic.
+  Eigenvalues biased (transverse curvature reads ~9.5 vs true 19.2; near
+  the saddle well both eigenvalues nearly vanish, so the lam1*lam2>=0
+  attract-fallback test may not fire there even noise-free). Sensitivity
+  subsection's "errors linear in coefficient errors" claim is wrong for
+  H_D; rho* U-shape does NOT apply to H_D (floor-dominated to rho=0.3).
+- Radius trade-off VERIFIED for D and grad D: U-shape minima at
+  rho ~ 0.11 (D) and ~ 0.23 (grad D) at sigma_uv = 0.01. Estimator-optimal
+  radius is ~3x the nominal formation; closed-loop tuning (ocean) chose
+  smaller. Estimator-optimal vs controller-optimal is a Discussion nugget.
+
 ## Build phases (in order)
 
 - Phase 0 (DONE): noise hooks + heading_offset + smoke test + benchmark.
-- Phase 1: estimator accuracy experiment (static formation, verify Lemma 1
-  gains 2/sqrt(10) sigma/rho and 8/sqrt(10) sigma/rho^2). Results opener.
+- Phase 1 (DONE, awaiting user review of numbers/figure above): estimator
+  accuracy experiment. Results opener.
 - Phase 2: clean-case runs, 6 starts, network traversal + one park-vs-traverse
   threshold demo. Extend main_separatrix_v6r (longer SIM_STEPS).
 - Phase 3: OW figure fix (loop-closure stopping rule, one clean diamond
