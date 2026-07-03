@@ -8,19 +8,18 @@ PAPER TRACEABILITY
           with it. Review copy + CSV in experiments/outputs/separatrix_clean/.
 
 EXPERIMENT
-  Same start, two runs on the steady double gyre:
-    TRAVERSE: plain Logic C (library primitive, untouched). The H_D
-      structural bias leaves the estimated eigenvalues indefinite near the
-      saddle wells, so the eigenvalue-based capture test never fires and
-      the team continues onto the wall trench (clean_runs.csv).
-    PARK: a script-level wrapper adds one estimator-aware capture test
-      BEFORE Logic C, built only from quantities the estimator delivers
-      reliably (Fig. est_accuracy): if D_hat < D_capture (deep in a well
-      of D), command saturated gradient descent on D, which converges to
-      the well minimum, the flow saddle. One threshold selects the
-      behavior: D_capture = -inf reproduces pure traversal.
-  The library controller is NOT modified; this is the prototype for the
-  selector change to be proposed to the user (plan.md Phase 2.4).
+  Same start, two runs on the steady double gyre, BOTH through the new
+  separatrix_logic_fable_step primitive (Logic C + estimator-aware PARK
+  mode; Logic C itself is untouched as the revert path, user decision
+  2026-07-02):
+    TRAVERSE: d_capture=None. Verified below to be trajectory-EXACT
+      against separatrix_logic_c_step (noise-free); the team continues
+      onto the wall trench past the saddle.
+    PARK: d_capture=-0.5. Capture keys on D_hat only (reliable per
+      Fig. est_accuracy); saturated gradient descent on D parks the team
+      at the well minimum, the flow saddle.
+  VALIDATION in main(): (1) exact equivalence of fable(None) vs Logic C
+  over 200 steps; (2) park behavior from all six clean-run starts.
 
 Run:
   cd trunk/Python_Simulations/Vector_Fields/VF_Robot
@@ -44,9 +43,7 @@ from src.fields.field_types import AnalyticalField
 from src.fields.environments.Double_Gyre import (
     double_gyre_static, SADDLE_BOTTOM, SADDLE_TOP, SEPARATRIX_X)
 from src.control.pentagon_primitives import (
-    separatrix_logic_c_step, _sample_vector_at_robots,
-    _get_relative_positions, _fit_vector_quadratic, _det_value,
-    _det_gradient)
+    separatrix_logic_c_step, separatrix_logic_fable_step)
 
 FORMATION_CONFIG = "config/formations/pentagon_small.yaml"
 V_MAX, GAIN = 0.04, 3.0
@@ -64,38 +61,30 @@ OUT_DIR = os.path.join(project_root, "experiments", "outputs",
 os.makedirs(OUT_DIR, exist_ok=True)
 
 
-def run(d_capture):
-    """d_capture = None -> plain Logic C (traverse)."""
+def run(d_capture, start=START, primitive_fn=None, steps=SIM_STEPS):
+    """Run Logic Fable from `start`; d_capture=None reproduces Logic C."""
     field = AnalyticalField(double_gyre_static)
     cl = PentagonCluster(FORMATION_CONFIG, field)
-    cl.reset(*START)
-    n_park = [0]
+    cl.reset(*start)
 
-    def prim(c):
-        if d_capture is not None:
-            # Estimator-aware capture test on reliable quantities only.
-            # (Duplicates the fit; noise-free demo, identical values.)
-            u_arr, v_arr = _sample_vector_at_robots(c)
-            rel = _get_relative_positions(c)
-            tu, tv = _fit_vector_quadratic(rel, u_arr, v_arr)
-            if _det_value(tu, tv) < d_capture:
-                g = _det_gradient(tu, tv)
-                n_park[0] += 1
-                vx = -V_MAX * np.tanh(g[0] / V_MAX)
-                vy = -V_MAX * np.tanh(g[1] / V_MAX)
-                return vx * GAIN, vy * GAIN
-        vx, vy = separatrix_logic_c_step(c, v_max=V_MAX,
-                                         eps_raw=EPS_RAW, eps_dim=EPS_DIM)
-        return vx * GAIN, vy * GAIN
+    if primitive_fn is None:
+        def prim(c):
+            vx, vy = separatrix_logic_fable_step(
+                c, v_max=V_MAX, eps_raw=EPS_RAW, eps_dim=EPS_DIM,
+                d_capture=d_capture)
+            return vx * GAIN, vy * GAIN
+    else:
+        prim = primitive_fn
 
-    for _ in range(SIM_STEPS):
+    for _ in range(steps):
         cl.move(prim)
         cx, cy = cl.get_centroid()
         # y margin 0.56, not 0.52: the well minimum lies ON the domain
         # boundary y = -0.5, and park-convergence transients cross it.
         if abs(cx) > 1.0 or abs(cy) > 0.56:
             break
-    return cl, n_park[0]
+    n_park = sum(1 for d in cl.diagnostics if d['mode'] == 'PARK')
+    return cl, n_park
 
 
 def main():
@@ -105,6 +94,34 @@ def main():
             cwd=project_root, text=True).strip()
     except Exception:
         commit = "unknown"
+
+    # ---- Validation 1: fable(None) is trajectory-exact vs Logic C -------
+    def prim_c(c):
+        vx, vy = separatrix_logic_c_step(c, v_max=V_MAX, eps_raw=EPS_RAW,
+                                         eps_dim=EPS_DIM)
+        return vx * GAIN, vy * GAIN
+    cl_c, _ = run(None, primitive_fn=prim_c, steps=200)
+    cl_f, _ = run(None, steps=200)
+    h_c, h_f = cl_c.get_center_history(), cl_f.get_center_history()
+    max_dev = float(np.abs(h_c - h_f).max()) if len(h_c) == len(h_f) \
+        else float("inf")
+    print(f"Equivalence fable(None) vs Logic C over {len(h_c)} steps: "
+          f"max |dev| = {max_dev:.2e}")
+    assert max_dev == 0.0, "Logic Fable with d_capture=None diverged from C"
+
+    # ---- Validation 2: park behavior from all six clean-run starts ------
+    six = [(-0.45, 0.30), (0.05, 0.40), (0.00, 0.00),
+           (0.10, -0.20), (0.25, 0.42), (-0.20, -0.30)]
+    print("Multi-start park check (d_capture = -0.5):")
+    for st in six:
+        cl_p, npk = run(D_CAPTURE, start=st)
+        h = cl_p.get_center_history()
+        d_end = min(np.linalg.norm(h[-1] - np.array(SADDLE_BOTTOM)),
+                    np.linalg.norm(h[-1] - np.array(SADDLE_TOP)))
+        tail = h[-100:].std(axis=0).max()
+        print(f"  start ({st[0]:+.2f},{st[1]:+.2f}): steps={len(h)} "
+              f"final_d_saddle={d_end:.4f} tail_std={tail:.5f} "
+              f"park_steps={npk}")
 
     results = {}
     for name, dc in (("traverse", None), ("park", D_CAPTURE)):

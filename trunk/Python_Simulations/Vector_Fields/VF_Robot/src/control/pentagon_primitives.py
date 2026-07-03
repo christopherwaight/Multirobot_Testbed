@@ -560,6 +560,136 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
     return float(delta[0]), float(delta[1])
 
 
+def separatrix_logic_fable_step(cluster, v_max=0.04, eps_raw=1e-3,
+                                eps_dim=0.025, d_capture=None):
+    """
+    Logic Fable (added 2026-07-02): Logic C plus an estimator-aware PARK
+    mode. Kept as a SEPARATE primitive so separatrix_logic_c_step remains
+    unchanged as the fallback/revert path (user decision 2026-07-02).
+
+    Motivation (Paper_Draft_2A Sections III-E and VII): the theory's
+    eigenvalue-based capture test (H_D positive definite near a well of
+    det(J)) never fires in practice, because the quadratic model's H_D
+    estimate is structurally biased near the wells: the estimated
+    eigenvalues come out indefinite and roughly 10x too small. The PARK
+    test instead uses only the quantities the estimator delivers reliably
+    (det(J)_hat and its gradient):
+
+        if det(J)_hat < d_capture:   # deep inside a well of det(J)
+            command componentwise tanh-saturated gradient DESCENT on
+            det(J), which converges to the well minimum, i.e. the flow
+            saddle at the end of the separatrix.
+
+    d_capture is the park-vs-traverse knob: None (default) disables the
+    test and the primitive is behaviorally identical to Logic C (verified
+    trajectory-exact, noise-free, in experiments/park_vs_traverse_demo.py);
+    a finite value (e.g. -0.5 for the A=0.1 double gyre, about half the
+    well depth pi^4 A^2) parks the team at the terminal saddle.
+
+    The estimation block and the selector below the PARK test are verbatim
+    Logic C, operating on the SAME single fit per step (no double
+    sampling, so noisy behavior is directly comparable to Logic C).
+
+    Args:
+        cluster:   PentagonCluster with a vector field attached
+        v_max:     per-direction saturation speed (m/s)
+        eps_raw:   raw det(J) threshold for the FLOW band
+        eps_dim:   dimensionless det(J)/||H_det||_F threshold for FLOW band
+        d_capture: capture threshold on det(J)_hat; None = never park
+
+    Returns:
+        (vx_c, vy_c): centroid velocity command
+    """
+    eps = 1e-9
+
+    # -- Estimation (identical to Logic C) ---------------------------------
+    u_arr, v_arr = _sample_vector_at_robots(cluster)
+    rel_pos = _get_relative_positions(cluster)
+    theta_u, theta_v = _fit_vector_quadratic(rel_pos, u_arr, v_arr)
+
+    det_val  = _det_value(theta_u, theta_v)
+    grad_det = _det_gradient(theta_u, theta_v)
+    H_det    = _det_hessian(theta_u, theta_v)
+
+    H_norm = np.linalg.norm(H_det, 'fro')
+
+    def _log(mode):
+        diag = getattr(cluster, 'diagnostics', None)
+        if diag is not None:
+            lam_d = np.linalg.eigvalsh(H_det)
+            diag.append({
+                'mode': mode, 'det': float(det_val),
+                'det_ratio': float(abs(det_val) / max(H_norm, 1e-12)),
+                'lam1': float(lam_d[0]), 'lam2': float(lam_d[1]),
+            })
+
+    # -- PARK: estimator-aware capture (the one addition over Logic C) -----
+    if d_capture is not None and det_val < d_capture:
+        _log('PARK')
+        vx = -v_max * np.tanh(grad_det[0] / v_max)
+        vy = -v_max * np.tanh(grad_det[1] / v_max)
+        return float(vx), float(vy)
+
+    # -- FLOW-band check (verbatim Logic C from here down) ------------------
+    on_raw = abs(det_val) < eps_raw
+    on_dim = (abs(det_val) / max(H_norm, 1e-12)) < eps_dim
+
+    if on_raw or on_dim:
+        f = np.array([theta_u[0], theta_v[0]])
+        lam, V = np.linalg.eigh(H_det)
+        if lam[0] * lam[1] >= -eps or np.min(np.abs(lam)) < eps:
+            _log('FLOW_DRIFT')
+            n = np.linalg.norm(f)
+            if n < 1e-12:
+                return 0.0, 0.0
+            scale = v_max * np.tanh(n / v_max) / n
+            return float(f[0] * scale), float(f[1] * scale)
+        i_neg = 0 if lam[0] < lam[1] else 1
+        i_pos = 1 - i_neg
+        v_neg = V[:, i_neg]
+        v_pos = V[:, i_pos]
+        c_along = float(f @ v_neg)
+        r_perp  = float(grad_det @ v_pos) / lam[i_pos]
+        c_perp  = -r_perp
+        s_along = v_max * np.tanh(c_along / v_max)
+        s_perp  = v_max * np.tanh(c_perp  / v_max)
+        delta = s_along * v_neg + s_perp * v_pos
+        _log('FLOW')
+        return float(delta[0]), float(delta[1])
+
+    lam, V = np.linalg.eigh(H_det)
+
+    if lam[0] * lam[1] >= -eps:
+        _log('ATTRACT_FALLBACK')
+        c0 = -(V[:, 0] @ grad_det) / (lam[0] if abs(lam[0]) > eps else eps)
+        c1 = -(V[:, 1] @ grad_det) / (lam[1] if abs(lam[1]) > eps else eps)
+        delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
+                 v_max * np.tanh(c1 / v_max) * V[:, 1])
+        return float(delta[0]), float(delta[1])
+
+    i_neg = 0 if lam[0] < lam[1] else 1
+    v_neg = V[:, i_neg]
+
+    if float(grad_det @ v_neg) > 0:
+        v_neg = -v_neg
+
+    f = np.array([theta_u[0], theta_v[0]])
+
+    if float(f @ v_neg) > 0:
+        mode_ab = 'SLIDE'
+        c0 = -(V[:, 0] @ grad_det) / abs(lam[0])
+        c1 = -(V[:, 1] @ grad_det) / abs(lam[1])
+    else:
+        mode_ab = 'ATTRACT'
+        c0 = -(V[:, 0] @ grad_det) / lam[0]
+        c1 = -(V[:, 1] @ grad_det) / lam[1]
+
+    _log(mode_ab)
+    delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
+             v_max * np.tanh(c1 / v_max) * V[:, 1])
+    return float(delta[0]), float(delta[1])
+
+
 # -----------------------------------------------------------------------
 # Primitives 8 and 9: Logic G Okubo-Weiss contour tracker (vector field)
 # Ported from separatrix_interactive_v002.ipynb
