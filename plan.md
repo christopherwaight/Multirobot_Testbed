@@ -141,7 +141,34 @@ Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
    CHANGE: show the user the mechanism and the proposed selector edit
    BEFORE touching pentagon_primitives beyond the diagnostics hook.
 
-### Phase 3: OW boundary tracker figure + corner documentation
+### Phase 3 STATUS (2026-07-02 second window): runs DONE, decision pending
+- experiments/ow_clean_runs.py + outputs/ow_clean/ committed. Four runs:
+  lock-on 13-16 steps, mean |D| 0.003-0.007 on-boundary (0.3-0.8 percent
+  of well depth 0.974), corner dwell 4-8 steps. KEY RESULT: the D=0 set is
+  a straight-LINE NETWORK crossing at the diamond corners; the
+  perp-gradient tangent follows its line STRAIGHT THROUGH each crossing
+  (Newton resumes on the continuing line, as the draft Remark says), so
+  diamond circumnavigation NEVER happens; runs exit the domain along
+  their line. Loop-closure rule never triggers. This is the honest
+  behavior of the published law, and it explains the user's original
+  "90-degree turn then diagonal" complaint: the old figure showed the
+  approach snap plus a straight zero line.
+- DECISION NEEDED FROM USER (check-in sent):
+  (a) Honest reframe: Problem 2 wording "circulate along" -> "travel
+      along" the boundary; figure presents line-network following (the
+      current PNG concept, restyle only). No controller change. Theorem
+      thm:ow already matches (a).
+  (b) Corner-turn branch selection to achieve circulation: at an
+      X-crossing the local branch directions are the asymptotes of the
+      indefinite quadratic (directions t with t^T H t = 0, computable
+      from H_hat); pick the asymptote that turns. This is the Phase 7
+      prototype pulled forward, a controller change (new primitive like
+      logic_g_fable, keep logic_g_newton as revert per user pattern).
+  Recommendation given: (a) for the main results + (b) as the Phase 7
+  prototype; if (b) validates, present both behaviors (straight-through
+  vs circulate) as ANOTHER one-knob pair, mirroring park-vs-traverse.
+
+### Phase 3 original spec (superseded by status above)
 - experiments/ow_clean_runs.py from main_logic_g_newton_pentagon.py (user
   pre-approved renaming logic G files to OW_contour_following_w_6_robots
   style later; add a name-change comment inside if renamed). Loop-closure
