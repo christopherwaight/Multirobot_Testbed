@@ -1438,7 +1438,7 @@ predictions empirically.
 \section{Simulation and Analysis}
 \label{sec:methods}
 
-\subsection{Cluster Space Controller and SAS Formation}
+\subsection{Cluster Space Controller and Pentagon Formation}
 
 Both controllers use the same underlying cluster space controller and
 pentagon-of-pairs formation. The forward kinematics maps the 12-state
@@ -1446,31 +1446,64 @@ cluster configuration to global robot positions; the inverse kinematics
 and analytic $12 \times 12$ inverse kinematic Jacobian (see
 Appendix~\ref{app:kinematics}) map a desired centroid velocity to
 individual robot velocity commands while maintaining nominal pair lengths
-and the SAS triangle shape.
+and the SAS shape of the midpoint triangle.
 
-Formation maintenance gains are set to...
-% TODO: state the gain values used for formation maintenance in
-% pentagon_cluster.py (proportional gain on each shape error term).
-% Verify against pentagon_cluster.py lines 165-167.
+Formation maintenance is proportional: each of the nine shape-error
+terms in $(p_1, \beta_1, q_1, L_2, \psi_2, L_3, \psi_3, L_4, \psi_4)$ is
+driven toward its nominal value at a rate proportional to its current
+error, with gain $1.0$ on the length terms and $0.1$ on the angle terms
+(\textit{position\_gain}, \textit{angle\_gain} in
+\textit{pentagon\_cluster.py}), fixed across all experiments.
 
 \subsection{Six-Robot Configuration}
 
-% TODO: fill in the specific initial side lengths (p_1, beta_1, q_1), pair
-% lengths (L_2, L_3, L_4), and initial heading used for all simulation trials.
-% These are the nominal formation parameters. State the centroid placement
-% rule (e.g., centroid starts at the first point in the initial-condition grid).
+All simulation trials use the same nominal formation
+(\textit{pentagon\_small.yaml}), the pentagon-of-pairs of
+Appendix~\ref{app:kinematics} at $0.5\times$ its base scale: midpoint
+triangle $p_1 = 0.0806$, $\beta_1 = 0.7726$~rad, $q_1 = 0.1154$; pair
+lengths $L_2 = 0.0750$, $L_3 = L_4 = 0.0882$; base pair orientations
+$\psi_2 = -\pi/2$, $\psi_3 = -1.885$, $\psi_4 = 1.885$~rad and base
+heading $\theta_c = -0.7726$~rad. A trial's initial heading is applied
+as a rigid rotation of this base configuration by a single offset
+angle, so the formation's shape is fixed and only its orientation
+varies across trials. This gives the ring radius $\rho = 0.075$ used
+throughout Section~\ref{sec:sensitivity} and Table~\ref{tab:params}.
+The centroid $(x_c, y_c)$ is placed at the trial's start point
+(Section~\ref{sec:test_plan}); the heading offset is drawn uniformly
+from $[0, 2\pi)$ per trial in the Monte Carlo sweeps and left at zero
+(the base orientation above) in the clean, noise-free demonstration
+runs of Section~\ref{sec:results}.
 
 \subsection{Simulation Program}
 
 Simulations are run using the Python framework in the
 \textit{trunk/Python\_Simulations/Vector\_Fields/VF\_Robot/} directory.
-The field is the static double gyre (\textit{double\_gyre\_static},
-amplitude $A = 0.1$) on the domain $[-1, 1] \times [-0.5, 0.5]$. The
-integrator is explicit Euler at 10 Hz ($\Delta t = 0.1$ s). Robot dynamics
-follow the first-order model~(\ref{eq:momentum}) with $\tau = 0.3$ s. Each
-trial runs for 200 steps (20 s). The separatrix controller experiment uses
-\textit{experiments/main\_separatrix\_v6r.py}; the Okubo-Weiss controller
-uses \textit{experiments/main\_logic\_g\_newton\_pentagon.py}.
+% Entry points: experiments/separatrix_clean_runs.py, ow_clean_runs.py,
+% park_vs_traverse_demo.py, mc_sweep_separatrix.py, mc_sweep_ow.py,
+% estimator_accuracy_sweep.py, main_ocean_hfr_2km_ftle_overlay.py,
+% ocean_hfr_2km_panel_progression.py, ocean_hfr_2km_ftle_snapshots.py,
+% ocean_hfr_2km_branch_sensitivity.py (script name comments only, per
+% repo style; each script's own header states which paper figure or
+% table it produces).
+For the double gyre, the field is the static case
+(\textit{double\_gyre\_static}, amplitude $A = 0.1$) on the domain
+$[-1, 1] \times [-0.5, 0.5]$. The integrator is explicit Euler at
+10~Hz ($\Delta t = 0.1$~s); robot dynamics follow the first-order
+model~(\ref{eq:momentum}) with $\tau = 0.3$~s. Clean, noise-free
+demonstration trials run for a budget of several hundred to 1500 steps
+and stop early at domain exit or a fixed number of steps past first
+saddle or boundary contact (Section~\ref{sec:results}); the noise-sweep trials of
+Section~\ref{sec:test_plan} run up to 500 steps and stop at task
+completion or domain exit. The estimator-accuracy sweep of
+Section~\ref{sec:results} holds the formation static and draws
+independent noise per trial rather than stepping the simulator. The
+ocean experiment of Section~\ref{sec:ocean_sim} uses the same
+integrator and dynamics under the field-time relabeling of
+Table~\ref{tab:ocean_params}, running 168 steps. Every experiment
+script under \textit{experiments/} states in a header comment which
+paper figure or table it produces and where its CSV or PNG output is
+written, so the numbers and figures in this paper trace back to a
+single reproducible script each.
 
 \subsection{Ocean HFR Simulation}
 \label{sec:ocean_sim}
@@ -2231,9 +2264,14 @@ convergence without basin estimates.
 
 Direct extensions of this work include:
 \begin{itemize}
-    \item \textbf{Time-varying double gyre.} Extending the controllers to
-          the $\varepsilon > 0$ case by adding a time-derivative correction
-          term to the navigation primitive.
+    \item \textbf{Time-varying double gyre.} The ocean HFR experiment of
+          Section~\ref{sec:results_ocean} shows the controllers already
+          operate on a genuinely time-varying field without modification;
+          a time-derivative correction term to the navigation primitive,
+          analyzed against the analytic $\varepsilon > 0$ double gyre where
+          the exact structure motion is known, would let the stability
+          results of Section~\ref{sec:stability} extend to that case with
+          a quantified bound rather than empirical evidence alone.
     \item \textbf{Online formation reshaping.} Adapting the pair lengths
           $(L_k)$ and the SAS parameters to improve the conditioning of
           $\boldsymbol{\Phi}$ when the cluster is near a degenerate
@@ -2259,13 +2297,22 @@ formation along two Eulerian structural boundaries of the double gyre: the
 separatrix and the Okubo-Weiss ($\det(\mathbf{J}) = 0$) boundary. A quadratic
 estimator using simultaneous measurements from the six robots recovers the
 Jacobian, its determinant, gradient, and Hessian at the cluster centroid with
-no prior field knowledge. Two parallel adaptive controllers were derived, each
-with a Lyapunov stability certificate. Monte Carlo simulation over a
-two-dimensional noise sweep quantified the noise robustness of both
-controllers.
-
-% TODO: replace the sentences above with specific results once Section IX
-% is filled in (success rates, tracking error bounds, noise thresholds).
+no prior field knowledge, with closed-form noise gains verified empirically
+to within $0.2\%$. Two adaptive controllers were derived, each with a
+Lyapunov stability certificate; the separatrix result additionally extends
+to a network-traversal theorem, since the trench a controller reaches
+continues through every saddle it crosses rather than terminating there,
+with single-saddle capture recovered as a tightened-threshold special case
+demonstrated in simulation. Monte Carlo simulation over a two-dimensional
+noise sweep placed the 50\% success level of both controllers at the same
+noise level, $\sigma_{uv} \approx 0.01$, exactly the level at which a
+single gradient estimate stops being informative: the estimator, not
+either control law, sets the noise ceiling. On real, time-varying current
+data from the Santa Barbara Channel the separatrix tracker followed the
+dominant coherent-structure ridge for 28 hours of field time to a
+consistent landfall, reproduced by 84 of 100 nearby starts, using only
+the same local estimates validated in simulation, with no forecast, map,
+or access to the field's future evolution.
 
 
 \appendices
