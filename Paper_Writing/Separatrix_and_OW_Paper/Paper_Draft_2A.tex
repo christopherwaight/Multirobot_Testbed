@@ -355,7 +355,7 @@ there $\mathbf{J}$ equals the rate-of-strain tensor and $\sqrt{-D}$ is
 exactly the instantaneous attraction rate toward the separatrix. The
 Eulerian trench and the Lagrangian structure coincide.
 
-\subsubsection{The trench profile has two wells and a crest}
+\subsubsection{The trench is one line of a periodic grid}
 Restricted to the separatrix, $D(0, y) = -\tfrac{\pi^4 A^2}{2}(1 + \cos
 2\pi y_f)$: it is deepest ($D = -\pi^4 A^2$) at the two saddle points,
 where the local minima of $D$ sit, and rises to a crest ($D = 0$) at the
@@ -367,6 +367,22 @@ upstream well. This motivates the flow-assisted mode in
 Section~\ref{sec:sep_controller}. The ambient flow on the separatrix is
 tangent to it, directed from the upper saddle toward the lower saddle,
 and vanishes only at the saddles.
+
+The trench does not end at a saddle. Since $\partial^2 D/\partial x^2 =
+2\pi^6 A^2 \cos 2\pi x_f$ and $\partial^2 D/\partial y^2 = 2\pi^6 A^2
+\cos 2\pi y_f$ are both periodic, every line $x_f \in \mathbb{Z}$ is a
+valley of $D$ in $x$ and every line $y_f \in \mathbb{Z}$ is a valley of
+$D$ in $y$; the world-frame separatrix $x = 0$ (that is, $x_f = 1$) is
+one member of the first family. These valley lines form an infinite
+grid, and the saddle points are exactly its crossings: at a saddle, the
+world-frame separatrix meets the horizontal trench line through that
+saddle at a right angle, both branches being valleys of $D$ in their
+own cross-track direction. A tracker that reaches the saddle and
+continues, rather than stopping, is therefore still on a trench, now
+running perpendicular to the one it arrived on. Section~\ref{sec:stab_sep}
+states the traversal result for this network; Section~\ref{sec:results}
+reports which behavior, capture or continuation, the estimator in
+Section~\ref{sec:estimation} actually produces.
 
 \begin{figure}[!t]
     \centering
@@ -420,12 +436,16 @@ synchronous samples $\{(\mathbf{p}_i, u_i, v_i)\}_{i=1}^{N}$ at each
 control cycle, the team must generate a centroid velocity command
 $\dot{\mathbf{p}}_c$ that solves:
 
-\emph{Problem 1 (separatrix tracking).} Drive the cluster centroid onto
-the trench of $D$ and traverse it, in the direction of the ambient flow,
-to the saddle point at its end.
+\emph{Problem 1 (separatrix network traversal).} Drive the cluster
+centroid onto the trench of $D$ and travel it, in the direction of the
+ambient flow, through the saddle points where trench segments cross.
+Terminal capture at a single saddle (Section~\ref{sec:sep_controller}) is
+the special case in which the selector's stationary-point test is
+tightened to stop the team there instead.
 
 \emph{Problem 2 (Okubo-Weiss boundary tracking).} Drive $D(\mathbf{p}_c)
-\to 0$ and travel along the boundary $\mathcal{C}$.
+\to 0$ and travel along the boundary $\mathcal{C}$, a network of the same
+kind (Section~\ref{sec:dg_example}).
 
 Both problems require, at minimum, pointwise estimates of $D$, its
 gradient $\mathbf{g} = \nabla D$, and its Hessian $\mathbf{H}_D$ at the
@@ -1220,29 +1240,47 @@ agrees with the flow and the magnitude is bounded below by
 (\ref{eq:progress_rate}) via Assumption~\ref{ass:flow}.
 \end{IEEEproof}
 
-\begin{theorem}[Separatrix traversal and terminal capture]
+\begin{theorem}[Separatrix network traversal]
 \label{thm:separatrix}
 Under Assumptions~\ref{ass:trench} and \ref{ass:flow}, with exact
 estimates, every trajectory of the separatrix tracker starting in the
 tube $T_w$
-(i) remains in $T_w$ and converges exponentially to the trench, (ii)
+(i) remains in $T_w$ and converges exponentially to the trench, and (ii)
 traverses the trench in the direction of the ambient flow, reaching the
 $r_0$ neighborhood of a flow saddle in finite time bounded by
-$L_\Gamma/m$ with $L_\Gamma$ the trench length, and (iii) converges
-exponentially to the saddle, where $D$ attains its local minimum and
-$\mathbf{H}_D \succ 0$.
+$L_\Gamma/m$ with $L_\Gamma$ the trench length. At the saddle, $D$
+attains a local minimum with $\mathbf{H}_D \succ 0$
+($\mathbf{H}_D = 2\pi^6 A^2\,\mathbf{I}$ at the double-gyre saddles), so
+the selector's stationary-point test $\lambda_1\lambda_2 \geq 0$
+(Section~\ref{sec:sep_controller}) is satisfied there and (iii)
+Theorem~\ref{thm:attract} gives local exponential convergence to the
+saddle, terminal capture, exactly as stated. The trench, however, is not
+a single arc: Section~\ref{sec:dg_example} shows the saddle is a
+crossing of two trench segments running perpendicular to one another. A
+selector that reaches the ball and does not satisfy the stationary-point
+test, because its estimate of $\mathbf{H}_D$ fails to certify positive
+definiteness there, remains in the FLOW or SLIDE modes of
+Assumption~\ref{ass:flow} and continues onto the crossing segment
+instead of capturing, repeating (i)-(ii) with $\Gamma$ now the new
+segment. Capture and continuation are the same theorem applied to
+different premises at the crossing; which one the physical controller
+exhibits is an estimation question, addressed next.
 \end{theorem}
 
 \begin{IEEEproof}
 (i) is Lemma~\ref{lem:transverse}. (ii): by Lemma~\ref{lem:progress},
 $s(t)$ is monotone in the flow direction with rate at least $m$ outside
 the $r_0$ balls, and mode switches cannot reverse it, so the ball is
-reached in time at most $L_\Gamma/m$. (iii): inside the ball,
-$\mathbf{H}_D \succ 0$ (the well is nondegenerate:
-$\mathbf{H}_D = 2\pi^6 A^2\,\mathbf{I}$ at the double-gyre saddles), the
-selector is in its attract fallback, and Theorem~\ref{thm:attract} gives
-local exponential convergence to the well, which coincides with the flow
-saddle $\mathbf{p}^*$.
+reached in time at most $L_\Gamma/m$. Capture (iii): inside the ball,
+$\mathbf{H}_D \succ 0$, the selector is in its attract fallback, and
+Theorem~\ref{thm:attract} gives local exponential convergence to the
+well, which coincides with the flow saddle $\mathbf{p}^*$. Continuation:
+if the fallback test fails to trigger despite $\mathbf{H}_D \succ 0$
+holding for the true field, the selector instead falls through to
+Lemma~\ref{lem:progress}'s flow or descent case on whichever of the two
+crossing segments the flow direction and sign convention of
+$\hat{\mathbf{g}}$ select, and (i)-(ii) apply unchanged with $\Gamma$
+relabeled.
 \end{IEEEproof}
 
 \begin{remark}[Role of each mode]
@@ -1250,9 +1288,27 @@ The proof assigns each mode a precise job: the transverse Newton snap
 (common to all modes) makes the trench attractive; the slide step produces the
 descent along the trench; the flow step carries the team across the crest, where
 descent is undefined; the attract step turns upstream starts around by climbing to
-the crest, and doubles as the terminal capture law at the wells. The
+the crest, and, when its stationary-point test fires at a well, doubles as the
+terminal capture law. The
 hybrid has no chattering issue in the transverse channel because all
 modes share the dynamics (\ref{eq:n_dynamics}).
+\end{remark}
+
+\begin{remark}[Capture depends on an estimated, not exact, Hessian]
+\label{rem:capture_gap}
+Theorem~\ref{thm:separatrix} is stated for exact estimates, under which
+$\mathbf{H}_D \succ 0$ at the saddle is certified and capture occurs.
+Remark~\ref{rem:eigvec} identifies exactly where this fails for the
+closed-form estimator: near the wells the biased eigenvalues nearly
+vanish and their signs become unreliable, so the stationary-point test
+does not fire on $\hat{\mathbf{H}}_D$ even without noise, and the
+selector takes the continuation branch of the proof rather than the
+capture branch. Section~\ref{sec:results} confirms this is what the
+simulated controller does at every saddle it reaches. Terminal capture
+is recovered by tightening the test the selector uses, demonstrated as
+a one-parameter alternative in Section~\ref{sec:discussion}; both
+behaviors are consequences of the same theorem, differing only in which
+premise the deployed estimator satisfies at the crossing.
 \end{remark}
 
 \subsection{Okubo-Weiss Boundary Tracker}
