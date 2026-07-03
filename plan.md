@@ -92,7 +92,31 @@ Key numbers (strain-region location, rho = 0.075, N = 200k draws/cell):
   radius is ~3x the nominal formation; closed-loop tuning (ocean) chose
   smaller. Estimator-optimal vs controller-optimal is a Discussion nugget.
 
-## RESUME HERE (handoff updated 2026-07-02 ~23:10 PDT, end of third window)
+## PROJECT STATUS 2026-07-03: wrap-up complete, paper work paused by user
+
+All five approved edits (A-E) are in Paper_Draft_2A.tex and it compiles
+with zero undefined references: measured cliff sentence, stiction 0.025,
+basin Limitations paragraph, parameter table tab:params, and the
+rewritten fixed-start Testing Plan. 1000-trial sweep results are the
+paper's numbers. User will run the 10,000-trial finals MANUALLY later:
+instructions in
+trunk/Python_Simulations/Vector_Fields/VF_Robot/experiments/FINAL_SWEEPS_HOWTO.md
+(archive 1000-run CSVs, two commands, regenerate analysis, update
+"1000 trials per cell" in sec:test_plan, sanity checks).
+
+REMAINING PAPER WORK when the user resumes (unchanged, needs diffs +
+approval per process): Results subsections B/C/D text and figures from
+the committed CSVs/PNG candidates (separatrix trajectories, park demo,
+OW trajectories, sweep tables); Problem 1 / Theorem 3 network-traversal
+reframe (decision 2); park-vs-traverse Discussion paragraph (Logic Fable
+data ready); Failure Modes (corner-hop material ready); related-work
+TODO stubs (out of scope per user); Phase 5 ocean figures + ocean
+methods rewrite; Phase 6 restructure items (Fig 3 3D render, delete
+Figs 5/6 after label check, Fig 4 to appendix, cluster-space appendix,
+sim-program summary from 3C); Phase 7 corner tie-break (parked in the
+PhD thesis, sec:ow_corner_branch).
+
+## Previous resume block (2026-07-02 ~23:10 PDT; superseded above)
 
 Immediate next actions, in order:
 1. Check experiments/outputs/mc_separatrix/trials_fixed.csv timestamp
