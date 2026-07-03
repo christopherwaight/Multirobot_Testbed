@@ -1,9 +1,10 @@
 # Technical Audit: Paper_Draft_4A.tex
 
-Date: 2026-07-03. Scope: Phases 1 (math + code) and 2 (experimental logic). Phase 3
-(literature nuance) deferred by user decision. All line numbers refer to
-Paper_Draft_4A.tex as of this audit. Verification scripts live in the session
-scratchpad (`master_verify.py`, `verify_eq11_sign.py`, `param_sensitivity_mc.py`,
+Date: 2026-07-03. Scope: Phase 1 (math + code), Phase 2 (experimental logic),
+Sec. VI-A double-check, and Phase 3 (literature nuance, Section 7). All line numbers
+refer to Paper_Draft_4A.tex as of this audit. Verification scripts live in the
+session scratchpad (`master_verify.py`, `verify_eq11_sign.py`,
+`param_sensitivity_mc.py`, `verify_error_analysis.py`, `verify_rbf_followup.py`,
 `baseline_harness.py`); they are reproducible against the repo venv.
 
 ---
@@ -388,12 +389,97 @@ amplification captured by kappa(J): far from the critical point the sampled patc
 approaches uniform flow and small field errors produce large estimate shifts.
 ```
 
-## 7. Deferred
+## 7. Literature nuance (Phase 3)
 
-Phase 3 (literature nuance against the Reference Papers folder, novelty language,
-appendix trimming recommendations) deferred by user. Note for resumption: PyMuPDF for
-PDF text extraction lives in the `Paper_Writing/venv`, not the VF_Robot venv; priority
-reading list and the claim-by-claim comparison plan are in the session plan file.
+Method: abstracts and full-text keyword sweeps of the priority prior art (Brinon-
+Arranz 2019 [3], Adamek 2014 [7], Michini 2014 [34], Kularatne 2017 [12], Kitts 2018
+[4], Knizhnik 2022 [42], Mas/Kitts entrapment (uncited), Cochran-Krstic source
+seeking (uncited), Waight IDETC 2025 [33]) extracted via PyMuPDF, checked against the
+draft's specific claims.
+
+### 7.1 The novelty claims hold
+
+- **Line 58, "None recovers the coordinate of a critical point together with its
+  identity":** verified against the cited camps. Michini [34] and Kularatne [12]
+  track manifolds with local sensing (three robots in [34]) but never localize the
+  saddle itself or classify types. Knizhnik [42] orbits gyres but "relies only on the
+  robot's location relative to the center of the gyre": the center is given, not
+  estimated from the flow. Brinon-Arranz [3] estimates gradient and Hessian of a
+  SCALAR signal. The claim as worded survives.
+- **Self-overlap with [33] (author's own testbed paper): none.** [33] contains zero
+  occurrences of "critical point", validated only the vector-sum and vector-to-scalar
+  primitives, and explicitly states that orbiting a center at fixed radius "remains
+  an ongoing research challenge that this testbed is uniquely positioned to address."
+  This paper is the direct answer to that sentence; citing it as such in the
+  Introduction would sharpen the continuity claim at no cost.
+- The specific combination claimed (formation-sampled vector measurements -> assembled
+  Jacobian -> critical point coordinate + eigenvalue identity + standoff orbit of the
+  estimated point) has no precedent in the surveyed folder. Each ingredient exists
+  separately: formation derivative estimation [3], [7]; scalar saddle station-keeping
+  [4]; orbiting known targets or gyres (Mas/Kitts entrapment, [42], Cochran-Krstic).
+
+### 7.2 Missing citations worth adding
+
+- **Mas and Kitts, entrapment/escorting/patrolling (cluster space, 3-robot hardware):**
+  the closest orbiting precedent from the authors' own lab, currently uncited. One
+  sentence in Sec. II-D or the Discussion: "Cluster-space patrolling around a known
+  or externally tracked target was demonstrated in [Mas]; here the orbit center is
+  estimated online from the field itself." Add a bibitem.
+- **Cochran and Krstic, nonholonomic source seeking (orbit-like attractor around a
+  scalar source):** optional, one clause where orbital control related work is
+  discussed; it is the single-vehicle scalar-field analogue of standoff behavior
+  without position information.
+
+### 7.3 Places the paper undersells itself
+
+- **Exactness.** Gradient/Hessian estimators in [3] and [7] carry Taylor-truncation
+  bias controlled by formation radius; [3] devotes analysis to bounding it. This
+  paper's estimator is EXACT on affine fields at any formation scale, with bias
+  O(rho_formation^2) times the field's second derivatives on smooth nonlinear fields.
+  Sec. II-B never says this; one sentence claims a concrete advantage over the
+  scalar-field state of the art.
+- **Error bounds.** [3] gives explicit noise-propagation bounds and uses them to
+  optimally size the formation. A reviewer who knows [3] will ask for the analogue.
+  The audit's first-order sensitivity law (Sec. 3, E11) is exactly that analogue and
+  is already validated; adding it (with [3] cited as the scalar-field counterpart)
+  pre-empts the request and quantifies the kappa(A)/kappa(J) discussion.
+- **Field-independence.** The audit-verified bit-identical noise-free orbits across
+  all six field types (E7) is a property no flow-riding method ([42], drifters) can
+  have, since those depend on the ambient field structure by construction. Worth
+  stating as a designed property, not an observation.
+- **Minimum-robots consistency with [3]:** gradient estimation of one scalar in 2D
+  also needs three non-collinear samplers; the paper's six-unknown counting argument
+  is the vector-field generalization. A clause noting the consistency strengthens
+  the minimality contribution.
+
+### 7.4 Overstatement risks
+
+- Contribution 1's "and types" remains the main exposure (Sec. 4.1): novel as a
+  capability, unexercised as an experiment. Fix by demonstration or by wording.
+- Line 66 contribution 4 reads as if hardware covered the method broadly; hardware
+  covers vortex and saddle (well justified at line 397). Tightening to "...in 169
+  hardware experiments on vortex and saddle fields" costs nothing and disarms a
+  standard reviewer complaint.
+- **Fig. 6 (testbed photo, line 364):** the image file is `testbed_with_four.png` and
+  the photo appears to show four Decabots on the map, while the caption says "three
+  Decabot rovers" and the paper is a 3-robot paper. Replace with a three-robot photo
+  or reword the caption; as it stands it invites a "which is it?" query. (This is the
+  only 4-robot remnant found; the body text is clean.)
+
+### 7.5 Over-proven material and T-Mech length fit
+
+- **Appendix B:** Eqs. 21-32 are standard cluster-space kinematics; the canonical
+  citation is Kitts and Mas 2009 [46]. Eqs. 25-26 (vertex angles alpha, gamma) are
+  never used anywhere in the paper and can be cut outright. Recommended shape: keep
+  the SAS definition, the centroid equation, and the 6x6 Jacobian structure (Eq. 33),
+  compress the rest to "derived in the standard way [46]" after applying fix B1.
+  Frees roughly half a page.
+- **Appendix A:** the six field equations could collapse into one table with columns
+  (field, v(x,y), J, eigenvalues). That both saves space and doubles as the
+  ground-truth table for a type-classification experiment (Sec. 4.1), tying the
+  appendix to contribution 1.
+- The body is otherwise appropriately lean for T-Mech: Sec. III defers kinematics
+  correctly, and Eqs. 12-13 are the right level of detail for the robot layer.
 
 ## 8. Housekeeping
 
