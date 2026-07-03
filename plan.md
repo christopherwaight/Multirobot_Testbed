@@ -3,7 +3,36 @@
 Working notes for finishing Paper_Draft_2A.tex (IEEE Transactions on Robotics target).
 If a session is cut off, read this file top to bottom and resume at "Current status".
 
-## Current status (2026-07-02, second session pass)
+## Current status (2026-07-03, third session pass)
+
+Paper work resumed (user: "finish this plan"), full remaining backlog approved,
+working in order, diff-then-approve per item as always. DONE this session
+(all committed, all compile clean with zero undefined refs):
+- Results B/C/D (separatrix, OW, comparison): real figures + prose + 4 data
+  tables from the committed 1000-trial CSVs, replacing all TODOs. Commit b7182e4.
+- Problem 1 / Theorem 3 reframe to separatrix NETWORK traversal (decision 2):
+  verified numerically that the saddle is a crossing of two perpendicular
+  trench lines of D (x_f in Z and y_f in Z each independently valleys). Theorem
+  3 now states capture-or-continuation as two branches of one result; new
+  Remark rem:capture_gap ties continuation to the existing Hessian-bias
+  Remark rem:eigvec rather than re-deriving. Commit 0ebc585.
+- Renamed separatrix_logic_fable_step -> separatrix_logic_park_step
+  everywhere (code, demo script, CLAUDE.md, this file), per user instruction.
+  Re-ran park_vs_traverse_demo.py after rename: bit-exact identical output.
+- Park-vs-traverse Discussion subsection added (park step eq, D_capture knob,
+  figure). Fills the general Implications TODO too. Commit 8ec8918.
+- Failure Modes section filled (estimator conditioning at conic degeneracies,
+  FLOW-band chatter/eps_dim, OW corner-hop onto the periodic network's
+  neighboring line). Added label rem:ow_corners to a previously-unlabeled
+  remark so it could be cross-referenced. Commit 425adad.
+
+STILL TODO, in order (see "REMAINING PAPER WORK" block below for full detail):
+Phase 5 (Ocean HFR figures + methods rewrite, IN PROGRESS now), Phase 6
+(restructure: Fig 3 3D render, delete Figs 5/6, appendix moves, cluster-space
+controller rewrite, Future Work/Conclusion cleanup), then update CLAUDE.md
+at the very end (not committed, per repo rule).
+
+## Prior status (2026-07-02, second session pass)
 
 - Phase: BUILD. Test plan agreed and locked (see Agreed decisions below).
 - Phase 0 infrastructure DONE: measurement-noise hook, heading_offset in reset,

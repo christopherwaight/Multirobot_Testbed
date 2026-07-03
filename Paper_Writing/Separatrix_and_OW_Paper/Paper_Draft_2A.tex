@@ -1515,42 +1515,70 @@ Radial-to-Total Vector (RTV) product produced by the Scripps Coastal
 Ocean Observing Laboratory (CORDC) HFRNet network and archived at the
 NOAA National Centers for Environmental Information under accession
 \texttt{gov.noaa.nodc:IOOS-HFRadarRTVector}, retrieved from the NOAA
-THREDDS-Ocean server in June 2026. The 6~km resolution files were
+THREDDS-Ocean server in June 2026. The $2$~km resolution files were
 used; each file contains one hour of surface-current velocity
-components ($u$, $v$) on a regular geographic grid. Frames are linearly interpolated
-in time inside the field evaluator
+components ($u$, $v$) on a regular geographic grid. Frames are
+linearly interpolated in time inside the field evaluator
 (\textit{ocean\_hfr\_socal\_timevarying} in
 \textit{src/fields/environments/Ocean\_HFR.py}). The cluster runs in
 non-dimensional world coordinates on $[-0.65, 0.65]^2$, and an affine
 map carries those coordinates to a geographic region of radius
 $0.3^{\circ}$ centered on $(34.2^{\circ}\mathrm{N},
--120.4^{\circ}\mathrm{W})$. One world unit therefore corresponds to
-approximately $51$ km of latitude at this center.
+-120.4^{\circ}\mathrm{W})$, the same region as the $6$~km product; one
+world unit corresponds to approximately $51$~km of latitude at this
+center. The pentagon formation is scaled to $0.7\times$ its nominal
+radius (\textit{pentagon\_small\_2km.yaml}): the $2$~km product's
+lower valid-data coverage ($48$--$58\%$ versus $67\%$ at $6$~km, see
+\textit{ocean\_data/DATA\_PROVENANCE.md}) is noisier at the nominal
+scale, and $0.5\times$ formations were observed to pick the wrong
+branch at the bifurcation near $(34.1^{\circ}\mathrm{N},
+-120.4^{\circ}\mathrm{W})$; averaging over a larger footprint recovers
+the branch the $6$~km product tracks.
 
 The simulator's discrete-time step is treated as one sample per ten
-minutes of real time, rather than the testbed's native $0.1$ s. Under
-this interpretation, the cluster's steady-state command magnitude
-($V_{\max} \cdot k = 0.04 \cdot 3.0 = 0.12$ world units per step) maps
-to a geographic centroid speed of approximately
-$0.12 \cdot 51 \mathrm{\,km} / 600 \mathrm{\,s} \approx 1$ m/s,
-consistent with the survey speed of a small autonomous surface vessel.
-The momentum filter (Eq.~\ref{eq:momentum}) with $\alpha = 0.7$ then
-corresponds to a maneuvering time constant of
-$\tau = -600 / \ln(0.7) \approx 28$ min, which is a physically
-reasonable inertia for an ASV maneuvering against ocean current
-loading. With this relabeling, $110$ sample steps span
-$110 \cdot 10$ min $= 18.3$ h of real field time and traverse
-approximately $18$ of the $29$ HFR frames. The cluster therefore
-operates as a slow Lagrangian-scale tracer being actively steered
-against an evolving background current.
+minutes of real time (\textit{TIME\_WARP} $= 6000$), rather than the
+testbed's native $0.1$~s. Table~\ref{tab:ocean_params} contrasts the
+resulting operating point with the laboratory Decabot values of
+Table~\ref{tab:params}. Two changes follow directly from the time
+dilation. First, the momentum coefficient is set to
+$\alpha_{\text{mom}} = 0$ (\textit{MOMENTUM\_ALPHA}): the Decabot value
+$\alpha_{\text{mom}} = 0.717$ represents a $0.3$~s actuator lag at the
+testbed's $10$~Hz control rate, but at one control cycle per ten
+real-world minutes any physically reasonable vessel time constant is
+negligible in comparison, so the cluster is given full command
+authority every step rather than carrying spurious momentum across a
+ten-minute gap. Second, the stiction floor is lowered from the
+Decabot value ($0.025$ world units per step) to $\textit{STICTION\_THRESHOLD}
+= 0.002$: the Decabot floor models motor static friction, which has no
+vessel-scale analogue, and at the chosen operating point the original
+value would incorrectly clip small commanded corrections. The
+navigation gain is retuned from $k = 3.0$ to $k = 1.8$, with
+$v_{\max} = 0.04$; empirically this lets the tracker follow the ridge
+branch that descends along the middle island's north coast and makes
+landfall there, a separate branch choice from the formation-scale one
+above, rather than continuing east past it. With $168$ sample steps the trial spans
+$168 \cdot 10$~min $= 28$~h of real field time, the full duration of
+the archived record.
 
-The motor-friction stiction floor used in the testbed model
-(\textit{STICTION\_THRESHOLD} $= 0.025$ world units per step in
-\textit{omnibot.py}) is retained but does not activate at the chosen
-operating point. We note this floor is a leftover from the laboratory
-model and is not physically meaningful for a vessel-scale platform; it
-simply prescribes a lower-bound cutoff on commanded centroid velocity
-of approximately $0.21$ m/s.
+\begin{table}[!t]
+\centering
+\caption{Ocean HFR operating point versus the laboratory Decabot values of Table~\ref{tab:params}}
+\label{tab:ocean_params}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrr}
+\hline
+\textbf{Quantity} & \textbf{Decabot} & \textbf{Ocean HFR} \\
+\hline
+$v_{\max}$ (world units/step) & 0.04 & 0.04 \\
+$k$ & 3.0 & 1.8 \\
+$\alpha_{\text{mom}}$ & 0.717 & 0 \\
+stiction floor (world units/step) & 0.025 & 0.002 \\
+seconds per step & 0.1 & 600 \\
+formation scale & $1\times$ & $0.7\times$ \\
+\hline
+\end{tabular}
+\end{table}
 
 \subsection{Noise Model}
 \label{sec:noise_model}
@@ -1907,6 +1935,109 @@ unreliable. This mirrors the asymmetry in the stability results of
 Section~\ref{sec:stability}: the boundary is a single regular curve with
 a global certificate; the separatrix is a trench whose capture depends
 on curvature the estimator recovers only approximately.
+
+\subsection{Ocean HFR Simulation}
+\label{sec:results_ocean}
+
+The separatrix tracker was run on the real, time-varying current field
+of Section~\ref{sec:ocean_sim} from a single start north of the Santa
+Barbara Channel entrance, $(34.40^{\circ}\mathrm{N},
+-120.39^{\circ}\mathrm{W})$, using the operating point of
+Table~\ref{tab:ocean_params}. Fig.~\ref{fig:ocean_progression} shows the
+path building up over the full 28-h trial against the instantaneous
+current field at five points in time: the cluster descends through the
+channel entrance, tracks the ridge through the bifurcation near
+$(34.1^{\circ}\mathrm{N}, -120.4^{\circ}\mathrm{W})$, and continues to
+landfall on the middle island's north coast. Fig.~\ref{fig:ocean_ftle}
+places the same trial against the 24-h forward-time FTLE field, computed
+offline over the same window in the style of [17]; the cluster's path
+follows the dominant FTLE ridge running from the channel entrance to the
+bifurcation closely, without the ridge being available to the controller
+at any point, only the local $\hat{D}$ and $\hat{\mathbf{g}}$ estimates
+that Section~\ref{sec:estimation} builds from the current samples at the
+formation.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.48\textwidth]{figures/ocean_panel_progression_2km.png}
+    % Generated by experiments/ocean_hfr_2km_panel_progression.py, under
+    % trunk/Python_Simulations/Vector_Fields/VF_Robot/. Full-resolution
+    % copy in ocean_data/det_jacobian_plots/ocean_panel_progression_2km.png.
+    \caption{Centroid path so far (black) over the instantaneous current
+    field (quiver), at $t = 0, 7, 14, 21, 28$~h into the 28-h trial. Green
+    star is the start; red circle is the current position at each panel's
+    time. The cluster descends through the channel entrance and turns
+    toward the middle island as the current field evolves.}
+    \label{fig:ocean_progression}
+\end{figure}
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.48\textwidth]{figures/ocean_ftle_trajectory_overlay_2km.png}
+    % Generated by experiments/main_ocean_hfr_2km_ftle_overlay.py, under
+    % trunk/Python_Simulations/Vector_Fields/VF_Robot/. Full-resolution
+    % copy in ocean_data/det_jacobian_plots/ftle_trajectory_overlay_2km.png.
+    \caption{Full 28-h centroid and robot paths overlaid on the 24-h
+    forward-time FTLE field computed from the same 2~km data. The path
+    tracks the dominant ridge from the channel entrance to the
+    bifurcation and continues to landfall near
+    $(34.04^{\circ}\mathrm{N}, -120.26^{\circ}\mathrm{W})$.}
+    \label{fig:ocean_ftle}
+\end{figure}
+
+Fig.~\ref{fig:ocean_ftle_snapshots} computes the same 24-h-style
+forward FTLE anew at four anchor times spread through the record
+(0, 5, 10, and 16~h, each integrated 12~h forward, the longest common
+window the 29-frame archive supports at more than two anchors), showing
+that the dominant ridge through the channel entrance persists across
+the record while its finer structure downstream continues to evolve.
+This is the sense in which the ocean experiment is genuinely
+time-varying, unlike the steady double gyre of the rest of the paper:
+the structure the controller tracks is not fixed in advance and the
+controller has no access to its future evolution, only the
+instantaneous samples at the current formation position.
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/ocean_ftle_snapshots_2km.png}
+    % Generated by experiments/ocean_hfr_2km_ftle_snapshots.py, under
+    % trunk/Python_Simulations/Vector_Fields/VF_Robot/.
+    \caption{Forward-time FTLE (12-h window) anchored at four times
+    across the 28-h record. The dominant ridge through the channel
+    entrance is stable across all four anchors; downstream structure
+    continues to evolve, confirming the field is genuinely time-varying
+    over the trial.}
+    \label{fig:ocean_ftle_snapshots}
+\end{figure*}
+
+Fig.~\ref{fig:ocean_branch} tests the trial's sensitivity to the start
+position with a $10 \times 10$ grid of starts jittered
+$\pm 0.05^{\circ}$ around the validated start, each run through the
+full 28-h trial. Of the 100 starts, 84 land on the same
+middle-island branch as the validated trial; the remaining 16, all at
+the edges of the jitter box furthest from the ridge, are carried onto a
+western branch that does not make landfall in the domain. The mean
+distance from a start to the 95th-percentile FTLE ridge contour was
+1.4~km, small relative to the $\sim 0.3^{\circ}$ ($\sim 33$~km) domain
+radius, so the branch boundary sits close to the jitter box: most of
+the box is on one side of it. This is a basin-of-attraction result in
+the sense of Section~\ref{sec:limitations}, not a robustness guarantee;
+it shows that the tracked branch is the typical outcome for starts near
+the validated one, not that every start converges to it.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.48\textwidth]{figures/ocean_branch_sensitivity_2km.png}
+    % Generated by experiments/ocean_hfr_2km_branch_sensitivity.py, under
+    % trunk/Python_Simulations/Vector_Fields/VF_Robot/. Per-trial data in
+    % ocean_data/det_jacobian_plots/ocean_branch_sensitivity_2km.csv.
+    \caption{Landfall branch for a $10 \times 10$ grid of starts jittered
+    around the validated start, over the 24-h forward FTLE background.
+    84 of 100 starts (blue) reach the same middle-island branch as
+    Fig.~\ref{fig:ocean_ftle}; 16 (red), all near the jitter box edges,
+    are carried onto a western branch instead.}
+    \label{fig:ocean_branch}
+\end{figure}
 
 
 % ---------------------------------------------------------------------------

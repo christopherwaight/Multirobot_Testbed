@@ -197,9 +197,14 @@ def ftle_linear_time(lat, lon, u_stack, v_stack, dt_hour=3600.0,
 def compute_ftle_field(data_dir, frame_glob, coast_shp,
                         lat_min, lat_max, lon_min, lon_max,
                         ftle_hours=24, substeps_hr=6, seed_upsample=12,
-                        verbose=True):
+                        verbose=True, file_offset=0):
     """
     Load frames, build land mask, gap-fill, crop, and compute FTLE.
+
+    file_offset: index of the first frame to load (0 = dataset start). Lets
+        callers compute a forward-time FTLE snapshot anchored at any point
+        in the record, not just the first ftle_hours+1 frames, e.g. a
+        sequence of snapshots marching through the 28-h dataset.
 
     Returns:
         lat_fine, lon_fine: 1D coordinate arrays of the refined seed grid.
@@ -212,10 +217,11 @@ def compute_ftle_field(data_dir, frame_glob, coast_shp,
     if not files:
         raise FileNotFoundError(f"No files matching '{frame_glob}' in {data_dir}")
 
+    files = files[file_offset:]
     n_load = min(ftle_hours + 1, len(files))  # need N+1 frames for N hours of integration
     if verbose:
         print(f"Loading {n_load} frames for {ftle_hours}-h forward FTLE "
-              f"(of {len(files)} available)...")
+              f"(offset {file_offset}, of {len(files)} available from there)...")
 
     raw_u, raw_v, t_list = [], [], []
     lat0 = lon0 = None
