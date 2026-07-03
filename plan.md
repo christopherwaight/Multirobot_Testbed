@@ -190,7 +190,40 @@ Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
   prototype BUT LAST (Phase 7), after everything else, in case context
   dies. Do not reintroduce the eigen-tangent as the tracking direction.
 
-### Phase 4: Monte Carlo sweep (both controllers)
+### Phase 4 STATUS (2026-07-02 second window): separatrix sweep RUNNING
+- experiments/_mc_common.py + mc_sweep_separatrix.py built and smoke
+  tested. Trials use uniform random starts over [-0.8,0.8]x[-0.4,0.4],
+  random heading, 500-step budget, and STOP at bottom-saddle contact or
+  domain exit (same rule as the clean runs; without it the intended
+  continuation past the saddle contaminates the straddle and tracking
+  metrics, discovered in the first smoke test). Metrics per trial:
+  success_traverse (reach saddle, headline), success_band,
+  success_straddle (Michini comparison), t_band, steps, track mean/p95
+  over the on-trench phase, shape_rms_max (collapse > 0.30), effort,
+  final position. Auto-extension doubles top sigma_uv until the corner
+  cell drops below 10 percent (smoke run extended 0.1 -> 0.2 -> 0.4 ->
+  0.8).
+- FINDING (report to user with full-run numbers): at ZERO noise only
+  ~65 percent of uniform starts traverse. Starts inside the gyre cores
+  (D > 0 diamonds) are captured by the attract fallback at the gyre
+  CENTER (a maximum of D, also in the critical set Theorem 1 converges
+  to). This is the controller's honest basin, invisible from the
+  hand-picked clean-case starts. Analysis plan: use final_x/final_y in
+  trials.csv to (a) map the basin at zero noise (bin by start), (b)
+  report noise degradation CONDITIONED on basin membership, separating
+  basin exclusion from noise failure. Paper implication: Theorem 1
+  discussion should note convergence to the critical SET includes the
+  core maxima; basin figure replaces/feeds fig:comparison discussion.
+- 1000-trial/cell run launched in background (~15 min expected), log at
+  experiments/outputs/mc_separatrix/run_log_1000.txt; outputs trials.csv
+  + summary.csv in experiments/outputs/mc_separatrix/.
+- STILL TODO Phase 4: mc_sweep_ow.py (same _mc_common pattern; metrics:
+  |D| tracking, boundary time-to-band, line-following retention; stop at
+  domain exit; no saddle-contact rule); heading-isotropy check from
+  trials.csv; cliff-vs-prediction comparison against the sigma_uv~0.01
+  open-loop threshold (Results prose already promises this).
+
+### Phase 4 original spec (superseded by status above)
 - experiments/mc_sweep_separatrix.py + mc_sweep_ow.py + shared
   experiments/_mc_common.py. multiprocessing Pool; per-trial seed =
   stable hash of (controller, sigma_uv, sigma_p, trial_idx); rng seeds
