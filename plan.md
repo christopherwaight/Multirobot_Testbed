@@ -118,6 +118,46 @@ Immediate next actions, in order:
    integration, all via diff-then-approve).
 6. Commit and push at every milestone. Do not commit CLAUDE.md.
 
+## Pending-approval paper drafts (prepared 2026-07-03; show diffs, wait)
+
+1. LIMITATIONS basin callout (user requested the callout, wording not yet
+   approved). Add as fourth paragraph of Section Limitations:
+   "The stability guarantees, and the reported success rates, are local.
+   Theorem 3 assumes initialization inside the tube T_w, and all Monte
+   Carlo trials start from a formation straddling the separatrix. The
+   attract mode converges to the critical set of D, which includes the
+   gyre-center maxima, so a team started deep inside a vortex core parks
+   at the core rather than on the separatrix: in supplementary
+   uniform-random-start trials over the domain, roughly half (47.9
+   percent, n = 1000) of starts reached the trench at zero noise. We do
+   not characterize the basin of attraction of the separatrix; prior
+   adaptive-navigation primitives [4], [5] likewise report local
+   convergence without basin estimates."
+2. TESTING PLAN subsection (sec:test_plan) replacement, reflecting the
+   fixed-start design: one straddling start (0.0, 0.35) for the
+   separatrix tracker and one boundary-adjacent start (-0.5, 0.25) for
+   the OW tracker; random initial heading U[0, 2pi); 2D noise grid
+   sigma_uv x sigma_p from {0..0.1} x {0..0.05} with the top sigma_uv
+   doubled until the worst-cell success rate falls below 10 percent;
+   10000 trials per cell (final runs); trials stop at bottom-saddle
+   contact or domain exit (separatrix) / domain exit (OW); metrics:
+   traverse success, band time, straddle retention (Michini [14]
+   comparison), on-trench tracking error mean and p95, formation shape
+   RMS with collapse guard at 0.30, control effort; success rates
+   reported per cell. Basin note points to Limitations.
+3. PARAMETER TABLE (TODO at ~line 964): symbol/value/units/description
+   rows: v_max 0.04 m/s primitive saturation; k 3.0 navigation gain;
+   robot v_max 0.3 m/s; alpha_mom 0.717 (tau 0.3 s, dt 0.1 s);
+   v_stiction 0.025 m/s (CODE TRUTH: Omnibot/PentagonCluster defaults);
+   A 0.1; eps_raw 1e-3; eps_dim 0.025; eps_grad 1e-6; rho 0.075 m;
+   d_capture optional (Logic Fable park knob).
+4. DISCREPANCY TO FIX (diff needed): draft line ~762 says "stiction
+   floor v_stiction = 0.05 m/s" but the 6-robot code uses 0.025 m/s
+   (omnibot.py line 21). The 0.05 value is the 3-robot paper's. Fix the
+   architecture text to 0.025 when the parameter table goes in.
+5. RESOLVED without edits: no "??" refs remain; two-pass compile has
+   zero undefined references (the ?? were single-pass artifacts).
+
 ## Original handoff (2026-07-02 first window; still valid below)
 
 State when this was written: Phases 0 and 1 complete, reviewed, approved,
