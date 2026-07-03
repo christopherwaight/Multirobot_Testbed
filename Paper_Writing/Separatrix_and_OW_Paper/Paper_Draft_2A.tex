@@ -800,7 +800,9 @@ Both controllers run inside the three-layer architecture of [6, 12]:
           time constant $\tau = 0.3$ s, control period $\Delta t = 0.1$ s
           (so $\alpha_{\text{mom}} \approx 0.717$), speed limit
           $v_{\text{max,robot}} = 0.3$ m/s, and stiction floor
-          $v_{\text{stiction}} = 0.05$ m/s.
+          $v_{\text{stiction}} = 0.025$ m/s.
+          % 0.05 m/s was the three-robot paper's value; the six-robot
+          % simulation uses the Omnibot default 0.025 (omnibot.py).
 \end{enumerate}
 
 Note on notation: $\alpha_{\text{mom}}$ in (\ref{eq:momentum}) is the
@@ -1002,9 +1004,33 @@ $\varepsilon_{\text{dim}} = 0.025$ and the gradient floor
 $\varepsilon_{\text{grad}} = 10^{-6}$ are fixed in all experiments
 unless noted.
 
-% TODO: parameter table (symbol, value, units, description) mirroring the
-% previous paper: v_max, k, v_stiction, v_max_robot, alpha_mom, tau, dt,
-% A, eps_raw, eps_dim, eps_grad, rho (formation radius).
+Table~\ref{tab:params} collects the values used in all experiments.
+
+\begin{table}[!t]
+\centering
+\caption{Simulation and controller parameters}
+\label{tab:params}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llll}
+\hline
+\textbf{Symbol} & \textbf{Value} & \textbf{Units} & \textbf{Description} \\
+\hline
+$v_{\max}$ & 0.04 & m/s & primitive saturation speed \\
+$k$ & 3.0 & -- & navigation gain \\
+$v_{\text{max,robot}}$ & 0.3 & m/s & robot speed limit \\
+$v_{\text{stiction}}$ & 0.025 & m/s & robot stiction floor \\
+$\tau$ & 0.3 & s & actuator time constant \\
+$\Delta t$ & 0.1 & s & control period \\
+$\alpha_{\text{mom}}$ & 0.717 & -- & momentum coefficient $e^{-\Delta t/\tau}$ \\
+$A$ & 0.1 & -- & double-gyre amplitude \\
+$\rho$ & 0.075 & m & formation ring radius \\
+$\varepsilon_{\text{raw}}$ & $10^{-3}$ & s$^{-2}$ & FLOW-band raw threshold \\
+$\varepsilon_{\text{dim}}$ & 0.025 & m$^{2}$ & FLOW-band dimensionless threshold \\
+$\varepsilon_{\text{grad}}$ & $10^{-6}$ & s$^{-2}$m$^{-1}$ & gradient floor (OW law) \\
+\hline
+\end{tabular}
+\end{table}
 
 
 % ---------------------------------------------------------------------------
@@ -1607,10 +1633,12 @@ separatrix and $3.8^\circ$ at the generic test point
 The gradient threshold locates where closed-loop degradation should
 begin: at $\sigma_{uv} \approx 0.01$ a single $\nabla\hat{D}$ estimate
 is as wrong as it is right, so any one control decision approaches
-chance. The closed loop is expected to fail at a somewhat higher level,
-since saturation bounds the damage of an individual bad command and the
-noise is redrawn at every cycle; the Monte Carlo sweep that follows
-tests this prediction directly.
+chance. The closed loop does not extend this limit: the Monte Carlo
+sweeps that follow place the 50\% success level of both controllers at
+$\sigma_{uv} \approx 0.01$, coinciding with the single-estimate
+threshold. Saturation and the per-cycle redraw of the noise bound the
+damage of individual bad commands, but they buy no additional margin
+for a traverse that requires a long sequence of correct decisions.
 
 \subsection{Separatrix Controller Simulation Results}
 
@@ -1753,6 +1781,18 @@ to any smooth planar vector field.
 
 All results are from simulation only. Hardware validation on the Decabot
 testbed is not reported in this paper; it is planned as a follow-on study.
+
+The stability guarantees, and the reported success rates, are local.
+Theorem~\ref{thm:separatrix} assumes initialization inside the tube
+$T_w$, and all Monte Carlo trials start from a formation straddling the
+separatrix. The attract mode converges to the critical set of $D$, which
+includes the gyre-center maxima, so a team started deep inside a vortex
+core parks at the core rather than on the separatrix: in supplementary
+uniform-random-start trials over the domain, roughly half (47.9\%,
+$n = 1000$) of starts reached the trench at zero noise. We do not
+characterize the basin of attraction of the separatrix; prior
+adaptive-navigation primitives [4], [5] likewise report local
+convergence without basin estimates.
 
 
 % ---------------------------------------------------------------------------
