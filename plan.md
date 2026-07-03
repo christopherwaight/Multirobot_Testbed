@@ -267,6 +267,29 @@ Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
   - CSV facts for the eventual Results text: t_band = 35/0/0/6/18/-1
     steps for S1-S6; mode occupancy roughly FLOW 0.27-0.45, SLIDE
     0.28-0.34 on successful runs.
+  - FIGURE ITERATION DONE (next session: candidate figures ready for user
+    sign-off, review copies in experiments/outputs/separatrix_clean/):
+    stopping rules added (domain exit |x|>1 or |y|>0.52; bottom-saddle
+    contact + 150 steps; contact keys on the BOTTOM saddle only since all
+    traverses end there), S6 swapped to (-0.20,-0.30), S1 label moved,
+    domain rectangle drawn. All six starts now band (t_band
+    35/0/0/6/18/13), reach the bottom saddle (0.000-0.019) and continue
+    along the wall trench in both directions.
+  - PARK-VS-TRAVERSE DEMO DONE (experiments/park_vs_traverse_demo.py,
+    park_vs_traverse.png + .csv): start S4 (0.10,-0.20). Traverse = plain
+    Logic C, exits domain at (+1.00,-0.51) after 228 steps. Park = wrapper
+    with estimator-aware capture (fires when D_hat < D_capture = -0.5,
+    commands saturated gradient descent on D using only D_hat and g_hat,
+    the quantities the estimator delivers reliably); parks 0.0124 m from
+    the bottom saddle, tail position std exactly 0 over last 100 steps.
+    One threshold is the knob: D_capture = -inf reproduces traversal.
+    Library primitive NOT modified; wrapper lives in the demo script.
+  - AWAITING USER APPROVAL (selector change proposal, see session log /
+    last check-in): add the D-based capture test to
+    separatrix_logic_c_step as a fourth mode (PARK), replacing the
+    eigenvalue-based capture that the H_D bias defeats. If approved,
+    controller section needs: Sutton-and-Barto selector update, the park
+    law equation, and the Discussion one-knob paragraph.
 - Phase 2: clean-case runs, 6 starts, network traversal + one park-vs-traverse
   threshold demo. Extend main_separatrix_v6r (longer SIM_STEPS).
 - Phase 3: OW figure fix (loop-closure stopping rule, one clean diamond

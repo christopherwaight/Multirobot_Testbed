@@ -55,8 +55,17 @@ STARTS = [
     ("S3",  0.00,  0.00),
     ("S4",  0.10, -0.20),
     ("S5",  0.25,  0.42),
-    ("S6", -0.30, -0.35),
+    ("S6", -0.20, -0.30),
 ]
+# Stopping rules (2026-07-02 figure iteration): runs stop at domain exit
+# (|x|>1 or |y|>0.52; beyond that the analytic tiling is not physical) or
+# POST_SADDLE_STEPS after first saddle contact, whichever comes first, so
+# the continuation along the wall trench is visible but bounded.
+# Contact is tested against the BOTTOM saddle only: the ambient flow runs
+# top saddle -> bottom saddle, so every trench traverse ends there; keying
+# on the top saddle truncated runs that entered the band near the top.
+POST_SADDLE_STEPS = 150
+SADDLE_CONTACT_D = 0.06
 # Validated categorical palette (dataviz skill) + 3 more distinct steps
 COLORS = ["#2a78d6", "#1baf7a", "#4a3aa7", "#e34948", "#eb6834", "#e87ba4"]
 
@@ -75,8 +84,18 @@ def run_one(sx, sy):
                                          eps_raw=EPS_RAW, eps_dim=EPS_DIM)
         return vx * GAIN, vy * GAIN
 
-    for _ in range(SIM_STEPS):
+    contact = -1
+    for k in range(SIM_STEPS):
         cl.move(prim)
+        cx, cy = cl.get_centroid()
+        if abs(cx) > 1.0 or abs(cy) > 0.52:
+            break
+        if contact < 0:
+            d = np.hypot(cx - SADDLE_BOTTOM[0], cy - SADDLE_BOTTOM[1])
+            if d < SADDLE_CONTACT_D:
+                contact = k
+        elif k - contact >= POST_SADDLE_STEPS:
+            break
     return cl
 
 
@@ -147,8 +166,9 @@ def main():
                 zorder=7)
         ax.plot(h[-1, 0], h[-1, 1], marker="s", color=col, ms=6, mec="k",
                 mew=0.8, zorder=7)
+        dx, dy = (8, -11) if name == "S1" else (6, 5)
         ax.annotate(name, (sx, sy), textcoords="offset points",
-                    xytext=(6, 5), fontsize=8, color=col)
+                    xytext=(dx, dy), fontsize=8, color=col)
         rows.append((name, sx, sy, r))
         m = r["modes"]
         tot = sum(m.values())
@@ -165,7 +185,10 @@ def main():
     pts = np.array(cl0.get_robot_positions()).reshape(6, 2)
     ax.scatter(pts[:, 0], pts[:, 1], s=8, color="k", zorder=8)
 
-    ax.set_xlim(-1, 1); ax.set_ylim(-0.5, 0.5)
+    from matplotlib.patches import Rectangle
+    ax.add_patch(Rectangle((-1, -0.5), 2, 1, fill=False, ec="0.25",
+                           lw=0.8, zorder=3))
+    ax.set_xlim(-1.05, 1.05); ax.set_ylim(-0.55, 0.53)
     ax.set_aspect("equal")
     ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
     fig.tight_layout()
