@@ -1364,6 +1364,7 @@ whenever $|D| > \|\mathbf{g}\|v_{\max}\operatorname{artanh}
 \end{IEEEproof}
 
 \begin{remark}[Degenerate points of the boundary]
+\label{rem:ow_corners}
 The gradient floor $\varepsilon_{\text{grad}}$ in the law
 (\ref{eq:ow_law}) exists because $\mathcal{C}$ is not globally regular:
 the four corners of each double-gyre diamond are critical points of $D$
@@ -2008,16 +2009,56 @@ point or open-ended traversal of the network.
 
 \subsection{Failure Modes}
 
-% TODO: 4-6 sentences. Cover:
-% (1) Estimator ill-conditioning when the formation collapses toward a
-%     degenerate configuration (det(Phi) small); propose formation-shape
-%     maintenance as mitigation.
-% (2) Mode-switching chatter in the separatrix controller when the
-%     centroid oscillates across the FLOW-band boundary; discuss the
-%     role of the dimensionless threshold eps_dim in damping this.
-% (3) Tangential drift in the OW controller can carry the cluster away
-%     from the domain boundaries; note this is a simulation artifact
-%     (infinite domain).
+Three behaviors fall outside the guarantees of
+Section~\ref{sec:stability} and are worth stating plainly rather than
+leaving implicit. First, the estimator is ill-conditioned whenever the
+six sampling points drift toward a common conic
+(Proposition~\ref{prop:conic}): $\det(\boldsymbol{\Phi})$ shrinks
+continuously as the formation deforms toward one, and the fitted
+coefficients degrade smoothly until, at the conic itself, the fit is
+undefined. A ring formation without a center robot is the standing
+example (Remark following Corollary~\ref{cor:pentagon}); the pentagon
+plus center used throughout is one robot away from this failure by
+construction, but a controller could in principle drive the formation
+toward a degenerate shape through rotation or scaling commands not
+considered here. Monitoring $\det(\boldsymbol{\Phi})$, or equivalently
+the interior angles of the formation, and adding a shape-maintenance
+term to the centroid command is the direct mitigation; the Monte Carlo
+trials of Section~\ref{sec:results} flag the weaker symptom, an
+inter-robot distance excursion beyond twice the nominal pair length, as
+a formation collapse, and it does not occur in any reported trial.
+
+Second, the separatrix controller can chatter across the FLOW-band
+boundary (\ref{eq:flow_band}) when the centroid sits near the threshold
+and noise pushes $\hat{D}$ or the dimensionless ratio
+$|\hat{D}|/\|\hat{\mathbf{H}}_D\|_F$ back and forth across
+$\varepsilon_{\text{dim}}$. Because every mode shares the transverse
+dynamics (\ref{eq:n_dynamics}), chatter does not destabilize the
+transverse channel; its cost is tangential, a lower effective
+along-trench speed as the command alternates between the flow step and
+the slide or attract step. $\varepsilon_{\text{dim}}$ trades this
+against the crest crossing of Section~\ref{sec:dg_example}: too small a
+threshold reintroduces the stall the flow-assisted mode was built to
+remove, too large a threshold widens the band and the chatter with it.
+The value used throughout, $\varepsilon_{\text{dim}} = 0.025$, was fixed
+once and not retuned per experiment.
+
+Third, the Okubo-Weiss boundary tracker's tangential drift can carry the
+team through a diamond corner and onto the neighboring line of the
+periodic network (Section~\ref{sec:dg_example}), rather than turning to
+circulate the diamond it started on, which is what
+Section~\ref{sec:results} reports rather than the circulation Problem 2
+originally anticipated. The mechanism is the same corner behavior
+covered by Remark~\ref{rem:ow_corners} following Theorem~\ref{thm:ow},
+extended past the corner itself: once the flow fallback carries the team
+onto the new line, the Newton action resumes there and the team departs
+along it, and because the analytic double-gyre field tiles the plane
+with no domain fence, this can carry a simulated team arbitrarily far
+from the diamond it started on. On real, non-periodic fields this
+would not recur past the first crossing encountered; in the simulation
+it is worth flagging explicitly rather than truncating trials at the
+domain edge without comment, which is what the Testing Plan does
+(Section~\ref{sec:test_plan}).
 
 
 % ---------------------------------------------------------------------------
