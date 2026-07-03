@@ -483,12 +483,27 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
     on_raw = abs(det_val) < eps_raw
     on_dim = (abs(det_val) / max(H_norm, 1e-12)) < eps_dim
 
+    # Per-step mode logging (2026-07-02): if the cluster carries a
+    # `diagnostics` list (PentagonCluster does; reset() clears it), record
+    # which selector branch fired and the quantities that decided it.
+    # Backward compatible: silent when the attribute is absent/None.
+    def _log(mode):
+        diag = getattr(cluster, 'diagnostics', None)
+        if diag is not None:
+            lam_d = np.linalg.eigvalsh(H_det)
+            diag.append({
+                'mode': mode, 'det': float(det_val),
+                'det_ratio': float(abs(det_val) / max(H_norm, 1e-12)),
+                'lam1': float(lam_d[0]), 'lam2': float(lam_d[1]),
+            })
+
     if on_raw or on_dim:
         # FLOW step: follow local field along trench, snap perp to trench.
         f = np.array([theta_u[0], theta_v[0]])
         lam, V = np.linalg.eigh(H_det)
         if lam[0] * lam[1] >= -eps or np.min(np.abs(lam)) < eps:
             # Degenerate H_det: plain saturated flow step.
+            _log('FLOW_DRIFT')
             n = np.linalg.norm(f)
             if n < 1e-12:
                 return 0.0, 0.0
@@ -504,6 +519,7 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
         s_along = v_max * np.tanh(c_along / v_max)
         s_perp  = v_max * np.tanh(c_perp  / v_max)
         delta = s_along * v_neg + s_perp * v_pos
+        _log('FLOW')
         return float(delta[0]), float(delta[1])
 
     # -- A/B selector ------------------------------------------------------
@@ -511,6 +527,7 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
 
     if lam[0] * lam[1] >= -eps:
         # Not a saddle of det(J): fall back to Logic A.
+        _log('ATTRACT_FALLBACK')
         c0 = -(V[:, 0] @ grad_det) / (lam[0] if abs(lam[0]) > eps else eps)
         c1 = -(V[:, 1] @ grad_det) / (lam[1] if abs(lam[1]) > eps else eps)
         delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
@@ -528,13 +545,16 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
 
     if float(f @ v_neg) > 0:
         # Flow points along trench descent -> Logic B (|lambda| denominator).
+        mode_ab = 'SLIDE'
         c0 = -(V[:, 0] @ grad_det) / abs(lam[0])
         c1 = -(V[:, 1] @ grad_det) / abs(lam[1])
     else:
         # Flow points against descent -> Logic A (signed lambda denominator).
+        mode_ab = 'ATTRACT'
         c0 = -(V[:, 0] @ grad_det) / lam[0]
         c1 = -(V[:, 1] @ grad_det) / lam[1]
 
+    _log(mode_ab)
     delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
              v_max * np.tanh(c1 / v_max) * V[:, 1])
     return float(delta[0]), float(delta[1])

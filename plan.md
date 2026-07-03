@@ -235,6 +235,38 @@ Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
 - Phase 0 (DONE): noise hooks + heading_offset + smoke test + benchmark.
 - Phase 1 (DONE, reviewed, approved, integrated): estimator accuracy.
   All paper edits from it are in the .tex. eigvec_check.csv committed.
+- Phase 2 (STARTED 2026-07-02, session ended at 98 percent context):
+  - DONE: mode-logging hook in separatrix_logic_c_step (5 modes: FLOW,
+    FLOW_DRIFT, SLIDE, ATTRACT, ATTRACT_FALLBACK; attribute-gated on
+    cluster.diagnostics). DONE: experiments/separatrix_clean_runs.py ran;
+    outputs in experiments/outputs/separatrix_clean/ (clean_runs.csv +
+    separatrix_trajectories.png review copy).
+  - MECHANISM QUESTION ANSWERED (user has NOT seen this yet, report it):
+    5 of 6 starts reached a saddle (min dist 0.000-0.007) and ALL FIVE
+    continued past it. Within 0.10 of a saddle the estimated eigenvalue
+    pairs are indefinite and ~10x too small (e.g. -1.99/+1.96 vs true
+    +18.3/+19.2), so the lam1*lam2>=0 capture test never fires as the
+    theory expects: continuation is CAUSED by the H_D structural bias,
+    confirming the corrected finding 6. Theorem-3-style capture does not
+    occur with the realistic estimator even noise-free. The park knob for
+    the park-vs-traverse demo must therefore be an estimator-aware
+    selector change (plan Phase 2.4 options ii/iii), which is a
+    controller change requiring user approval first.
+  - FIGURE ITERATION NEEDED next session before it is paper-ready:
+    trajectories are correct and legible (S1-S5 converge to x=0, ride the
+    trench, then continue along the bottom-wall trench in both
+    directions) but (a) runs should STOP at domain exit or ~50 steps
+    after first saddle contact; currently 600 steps lets paths tile-run
+    far outside [-1,1]x[-0.5,0.5] (finals like y=-1.8 are fictitious
+    tiling structure) and leaves loop scribbles at the bottom saddle;
+    (b) S6 (-0.30,-0.35) never banded; it rode the bottom-wall trench of
+    the tiling left out of the domain (final -2.95,-0.71); replace with a
+    start like (-0.20,-0.30) or keep and present as network behavior;
+    (c) S1 label collides with the pentagon-footprint dots; (d) add
+    direct labels for saddle markers and D=0 diamonds in the caption.
+  - CSV facts for the eventual Results text: t_band = 35/0/0/6/18/-1
+    steps for S1-S6; mode occupancy roughly FLOW 0.27-0.45, SLIDE
+    0.28-0.34 on successful runs.
 - Phase 2: clean-case runs, 6 starts, network traversal + one park-vs-traverse
   threshold demo. Extend main_separatrix_v6r (longer SIM_STEPS).
 - Phase 3: OW figure fix (loop-closure stopping rule, one clean diamond
