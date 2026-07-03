@@ -3,6 +3,10 @@ Control primitives for OmniCluster.
 
 All primitives have signature: primitive(cluster) -> (vx_c, vy_c)
 Returns desired centroid velocity.
+
+Paper mapping (Paper_Writing/Vector Field Paper/Paper_Draft_4A.tex):
+- critical_point_plane_fitting          -> Eqs. 4-9 (estimation) + Eq. 10 (attraction)
+- critical_point_orbiter_plane_fitting  -> Eqs. 4-9 (estimation) + Eq. 11 (orbit)
 """
 import numpy as np
 
@@ -10,6 +14,17 @@ import numpy as np
 def calculate_jacobian_from_readings(cluster):
     """
     Calculate Jacobian matrix from robot positions and field readings.
+
+    WARNING (audit 2026-07-03): the returned "derivatives" are the raw x/y
+    components of the plane normal cross products. A plane normal only gives
+    the true gradient after dividing by its z component; as written, every
+    returned value is the true partial derivative scaled by 2*(signed
+    triangle area) of the formation. That factor is NEGATIVE for the default
+    clockwise robot ordering produced by inverse_kinematics, so both the
+    magnitudes AND the signs of curl_z/divergence depend on robot ordering.
+    Only used by find_center/find_sink_center, which are marked
+    "Under Development. Do not use" in main_omni.py. The published pipeline
+    (critical_point_plane_fitting) does not use this function.
 
     Returns:
         (curl_z, divergence, du_dx, du_dy, dv_dx, dv_dy)
@@ -67,7 +82,10 @@ def vector_sum(cluster):
     sum_u = np.sum(readings[:, 0])
     sum_v = np.sum(readings[:, 1])
 
-    # Scale by step size
+    # NOTE: the two assignments below are an arithmetic no-op (multiply and
+    # divide by the same timestep) and their results are unused; the function
+    # returns the raw sums. Retained unchanged to preserve history; the
+    # effective law is simply v_c = sum of the three field readings.
     vx_c = cluster.timestep * sum_u / cluster.timestep  # Simplifies to sum_u
     vy_c = cluster.timestep * sum_v / cluster.timestep
 
@@ -92,39 +110,45 @@ def critical_point_plane_fitting(cluster):
     u2, v2 = readings[1]
     u3, v3 = readings[2]
 
-    # Matrix A for the system of equations
+    # Formation matrix A (paper Eq. 5): rows [x_i, y_i, 1]. det(A) equals
+    # twice the signed triangle area, so A is singular iff robots are collinear.
     A = np.array([
         [x1, y1, 1],
         [x2, y2, 1],
         [x3, y3, 1]
     ])
 
-    # RHS for u and v
+    # Measurement vectors u, v (paper Eq. 4 right-hand sides)
     b_u = np.array([u1, u2, u3])
     b_v = np.array([v1, v2, v3])
 
     try:
-        # Solve for plane coefficients
+        # Plane-fit coefficients (paper Eqs. 2-5): U = a x + b y + c,
+        # V = d x + e y + f. Exactly determined for 3 robots.
         abc = np.linalg.solve(A, b_u)
         def_ = np.linalg.solve(A, b_v)
 
         a, b, c = abc
         d, e, f = def_
 
-        # Form the Jacobian matrix
+        # Estimated field Jacobian (paper Eq. 8): J = [[a, b], [d, e]]
         J = np.array([
             [a, b],
             [d, e]
         ])
 
-        # Solve for critical point
+        # Critical point p* = -J^{-1} h with h = [c, f] (paper Eqs. 7-9).
+        # NOTE: only an exactly singular J raises LinAlgError below; a
+        # near-singular J (kappa(J) large, e.g. near-uniform flow) passes
+        # through and can produce a distant, noise-amplified estimate.
+        # See the conditioning discussion in the paper (Section VI-A).
         rhs = np.array([-c, -f])
         critical_point = np.linalg.solve(J, rhs)
 
         # Get current centroid
         centroid = cluster.get_centroid()
 
-        # Calculate vector to critical point
+        # Attraction law (paper Eq. 10): p_c_dot = k (p* - p_c)
         vector_to_critical = critical_point - centroid
         distance = np.linalg.norm(vector_to_critical)
 
@@ -133,15 +157,11 @@ def critical_point_plane_fitting(cluster):
 
         # Proportional control: velocity proportional to distance
         # This makes the robot slow down as it approaches the critical point
-        gain = 1.0  # Proportional gain (tune this to adjust approach speed)
-        max_velocity = 0.5  # Maximum commanded velocity (m/s)
+        gain = 1.0  # Proportional gain k in Eq. 10
+        max_velocity = 0.5  # Saturation (m/s); not part of paper Eq. 10
 
-        # Calculate proportional velocity
-        velocity_magnitude = gain * distance
-
-        # Clamp to maximum
-        if velocity_magnitude > max_velocity:
-            velocity_magnitude = max_velocity
+        # Calculate proportional velocity, saturated
+        velocity_magnitude = min(gain * distance, max_velocity)
 
         # Scale vector to desired velocity magnitude
         direction = vector_to_critical / distance
@@ -174,7 +194,8 @@ def critical_point_orbiter_plane_fitting(cluster, desired_radius=0.4):
     u2, v2 = readings[1]
     u3, v3 = readings[2]
 
-    # Matrix A
+    # Formation matrix A (paper Eq. 5), same estimation block as
+    # critical_point_plane_fitting above (paper Eqs. 4-9).
     A = np.array([
         [x1, y1, 1],
         [x2, y2, 1],
@@ -185,48 +206,52 @@ def critical_point_orbiter_plane_fitting(cluster, desired_radius=0.4):
     b_v = np.array([v1, v2, v3])
 
     try:
-        # Solve for plane coefficients
+        # Plane-fit coefficients (paper Eqs. 2-5)
         abc = np.linalg.solve(A, b_u)
         def_ = np.linalg.solve(A, b_v)
 
         a, b, c = abc
         d, e, f = def_
 
-        # Form Jacobian
+        # Estimated field Jacobian (paper Eq. 8)
         J = np.array([[a, b], [d, e]])
 
-        # Solve for critical point
+        # Critical point p* = -J^{-1} h (paper Eq. 9); same near-singular
+        # caveat as in critical_point_plane_fitting.
         rhs = np.array([-c, -f])
         critical_point = np.linalg.solve(J, rhs)
 
         # Get current centroid
         centroid = cluster.get_centroid()
 
-        # Vector to center
+        # Radial vector r = p* - p_c (paper, Section II-D): points from the
+        # centroid TOWARD the critical point (inward with respect to the orbit).
         to_center = critical_point - centroid
         current_radius = np.linalg.norm(to_center)
 
         if current_radius < 1e-6:
-            # Move in random direction if too close
+            # Move in random direction if too close.
+            # NOTE: uses the global numpy RNG; only reachable when the centroid
+            # sits on the estimated critical point, but it does break run-to-run
+            # reproducibility in that edge case.
             angle = np.random.uniform(0, 2*np.pi)
             return np.cos(angle), np.sin(angle)
 
-        # Normalize direction to center
+        # Unit radial vector r_hat (inward)
         to_center_norm = to_center / current_radius
 
-        # Perpendicular direction for orbit (90 degrees rotation)
+        # Tangent r_hat_perp: r_hat rotated by -90 degrees (paper, Sec. II-D)
         orbit_direction = np.array([to_center_norm[1], -to_center_norm[0]])
 
-        # Radius error (how far from desired orbital radius)
+        # Radius error e_r = r - r_d (paper, Sec. II-D)
         radius_error = current_radius - desired_radius
 
-        # Orbital speed control
-        # Base tangential speed for circular orbit
-        base_orbital_speed = 0.2  # m/s (tune this for orbital velocity)
-
-        # Radial speed for radius correction (proportional to error)
-        radial_gain = 0.5  # Tune this to control how aggressively it corrects radius
-        radial_speed = radial_gain * radius_error  # Positive = outward, negative = inward
+        # Orbit law (paper Eq. 11): p_c_dot = k_t r_hat_perp + k_r (r - r_d) r_hat
+        # with r_hat pointing INWARD (r = p* - p_c). The +k_r sign with the
+        # inward r_hat gives e_r_dot = -k_r e_r (radially convergent).
+        base_orbital_speed = 0.2  # k_t (m/s): tangential speed; sign sets orbit direction
+        radial_gain = 0.5         # k_r: radial convergence gain
+        radial_speed = radial_gain * radius_error  # >0 when too far -> move inward
 
         # Clamp radial correction to avoid extreme velocities
         max_radial_speed = 0.3  # m/s

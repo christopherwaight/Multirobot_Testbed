@@ -319,7 +319,7 @@ def create_field(env_func, mode, env_name=None, predictor_dir=None, rbf_weight=0
             return BlendedField(predictor_dir, rbf_weight=rbf_weight)
         else:
             raise ValueError(f"Unknown field mode: {mode}")
-    except (FileNotFoundError, Exception) as e:
+    except Exception as e:  # FileNotFoundError is a subclass of Exception
         print(f"  ML models not found in '{predictor_dir}', using analytical")
         print(f"  (Error: {e})")
         test_val = env_func(0.0, 0.0)

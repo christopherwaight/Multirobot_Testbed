@@ -3,6 +3,13 @@ Monte Carlo analysis comparing control primitives across different field types.
 
 Tests each primitive on 8 field types (6 analytical + 2 RBF) with 1000 random starting positions,
 calculating average final position and RMSE.
+
+PROVENANCE NOTE (audit 2026-07-03): the reconstructed-field rows of the PAPER's
+Table II come from the NN (MLP) variant of this script
+(monte_carlo_analysis_run_to_center_8_nn.py), NOT from this RBF version. The RBF
+saddle field gives much worse results (precision ~0.096, ~6% of starts escape the
+saddle; see monte_carlo_results/results_8fields_1000runs.csv) and does not
+reproduce the paper.
 """
 
 import numpy as np
@@ -10,7 +17,10 @@ import sys
 import os
 import matplotlib.pyplot as plt
 
-# Set random seed for repeatability
+# Set random seed for repeatability.
+# NOTE: this module-level seed is what makes runs reproducible; the
+# commented-out seed in __main__ below is redundant and its "now truly
+# random" comment is wrong. Remove THIS line for truly random runs.
 np.random.seed(42)
 
 # Add parent directory to path
@@ -33,6 +43,13 @@ from src.fields.environments.Saddle import saddle1
 
 
 # Configuration
+# Success criterion (paper Table II "100% success"): a trial SUCCEEDS if the
+# centroid never becomes NaN and never leaves |x|,|y| <= 10 m within SIM_TIME
+# steps. There is no epsilon-ball convergence test; closeness to the true
+# critical point is captured separately by the bias/precision statistics of
+# the final centroid positions.
+# Starting positions are uniform in the box [-0.5, 0.5]^2 (max distance to
+# the origin 0.71 m; the paper describes this as "within 1 m").
 NUM_TRIALS = 1000
 SIM_TIME = 100  # 10 seconds at 0.1s timestep
 TRUE_CENTER = (0.0, 0.0)  # True center of all fields

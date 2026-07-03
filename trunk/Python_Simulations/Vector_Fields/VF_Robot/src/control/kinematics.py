@@ -9,6 +9,23 @@ Shape parameters: (p, q, beta)
 Centroid parameters: (x_c, y_c, theta_c)
 - x_c, y_c: centroid position
 - theta_c: orientation angle
+
+Paper mapping: Appendix B of Paper_Draft_4A.tex (forward kinematics
+Eqs. 20-27, inverse kinematics Eqs. 28-32, inverse Jacobian Eq. 33).
+
+Convention caveats (audit 2026-07-03), shared by the paper's Appendix B:
+1. theta_c OFFSET: forward_kinematics defines theta_c = atan2(y2-y1, x2-x1)
+   (robot 1 -> robot 2), but inverse_kinematics places robot 1 at +x from
+   robot 2 in the local frame, so FK(IK(theta_c)) returns theta_c + pi
+   (exactly, for every configuration). Shape and centroid round-trip
+   exactly; only the orientation convention differs. Inert in the control
+   loop because theta_c is used self-consistently via FK everywhere and
+   orientation is not actively commanded (omega_c = 0).
+2. CHIRALITY: beta from arccos lies in [0, pi], so forward kinematics
+   cannot distinguish robot 3 left vs right of the robot1-robot2 line;
+   inverse_kinematics always rebuilds the counterclockwise (+beta) mirror.
+   All simulations initialize through inverse_kinematics, so a single
+   chirality is used throughout.
 """
 import numpy as np
 
@@ -153,7 +170,11 @@ def compute_inverse_jacobian(p, beta, q, theta_c, numerical_epsilon=1e-6):
         6x6 inverse Jacobian matrix
     """
     # We'll compute this numerically by perturbing each shape parameter
-    # and measuring the change in robot positions
+    # and measuring the change in robot positions.
+    # NOTE: the paper (Sec. III-B / Appendix B, Eq. 33) describes this matrix
+    # as differentiated analytically; this implementation uses forward finite
+    # differences of inverse_kinematics instead (step numerical_epsilon).
+    # For the smooth IK map the difference is O(epsilon) ~ 1e-6.
 
     # Get baseline positions
     x_c, y_c = 0.0, 0.0  # Use origin for simplicity

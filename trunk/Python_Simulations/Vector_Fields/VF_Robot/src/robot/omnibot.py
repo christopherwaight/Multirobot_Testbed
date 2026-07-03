@@ -12,9 +12,17 @@ class Omnibot:
         - position: (x, y)
         - velocity: (vx, vy)
 
-    Movement model:
+    Movement model (paper Eqs. 12-13, first-order actuator lag):
         velocity = alpha * velocity_old + (1 - alpha) * velocity_commanded
         position += timestep * velocity
+
+    Parameter note (audit 2026-07-03): the paper derives
+    alpha = exp(-dt/tau) = exp(-0.1/0.3) ~= 0.717 for the measured Decabot
+    time constant tau = 0.3 s. The default here is the fixed value 0.7,
+    which corresponds to tau = -dt/ln(0.7) ~= 0.280 s and does NOT track dt.
+    Closed-loop effect is small (Table II bias/precision reproduce with
+    either value), but the two are not identical. Do not change without
+    re-running the Monte Carlo baselines.
     """
 
     def __init__(self, x, y, timestep=0.1, momentum_alpha=0.7,
@@ -66,7 +74,11 @@ class Omnibot:
             self.velocity = (self.velocity / velocity_magnitude) * self.max_velocity
 
         # 2. Stiction (static friction) constraint
-        # Below this threshold, friction overcomes motion and robot stops
+        # Below this threshold, friction overcomes motion and robot stops.
+        # NOTE: this compares the PRE-clamp magnitude from step 1. Inert in
+        # practice because stiction_threshold << max_velocity (a magnitude
+        # cannot be both above max and below stiction), but the two
+        # constraints intentionally share the same measured magnitude.
         if velocity_magnitude < self.stiction_threshold:
             # Velocity too small to overcome static friction - robot stops
             self.velocity = np.array([0.0, 0.0], dtype=float)

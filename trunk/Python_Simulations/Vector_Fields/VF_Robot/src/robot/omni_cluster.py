@@ -147,11 +147,16 @@ class OmniCluster:
         # Call control primitive to get desired centroid velocity
         vx_c_desired, vy_c_desired = control_primitive(self)
 
-        # Compute formation errors
+        # Compute formation errors (formation controller of the adaptive
+        # navigation layer, paper Sec. III-C: proportional error feedback
+        # on the SAS shape variables p, beta, q)
         error_p = self.desired_p - current_formation['p']
         error_q = self.desired_q - current_formation['q']
 
-        # Wrap angle error to [-π, π] for shortest path
+        # Wrap angle error to [-π, π] for shortest path.
+        # The while-loop wrap is exact (adds/subtracts 2π only when out of
+        # range), unlike atan2(sin, cos) which perturbs in-range values by
+        # floating-point round-off.
         error_beta = self.desired_beta - current_formation['beta']
         while error_beta > np.pi:
             error_beta -= 2 * np.pi
@@ -271,7 +276,11 @@ class OmniCluster:
         for robot in self.robots:
             robot.velocity = np.array([0.0, 0.0])
 
-        # Clear history
+        # Clear history.
+        # NOTE: self.diagnostics is intentionally NOT cleared here, so
+        # diagnostics accumulate across reset() calls (e.g. across Monte
+        # Carlo trials) and their 'timestep' field keeps counting up.
+        # Callers that need per-run diagnostics must clear the list manually.
         self.center_history = []
         self.robot_history = []
         self.velocity_history = []
