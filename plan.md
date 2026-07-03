@@ -92,16 +92,149 @@ Key numbers (strain-region location, rho = 0.075, N = 200k draws/cell):
   radius is ~3x the nominal formation; closed-loop tuning (ocean) chose
   smaller. Estimator-optimal vs controller-optimal is a Discussion nugget.
 
-## Build phases (in order)
+## HANDOFF (written 2026-07-02 at ~90 percent context; resume here)
+
+State when this was written: Phases 0 and 1 complete, reviewed, approved,
+committed, pushed. ALL approved paper edits are already IN Paper_Draft_2A.tex
+and it compiles clean (ignore the pre-existing pcr font warning; missfont.log
+predates this work): Noise Model subsection (sec:noise_model), III-D pointer
+sentence, III-E radius-scope fix + propagation rewrite + Remark rem:eigvec,
+fig:est_accuracy caption, and the full "Estimator Accuracy versus Noise"
+Results prose (approved verbatim by user). Nothing else in the .tex has
+been touched. User process rules: every NEW paper passage must be shown as
+before/after and approved BEFORE writing to disk; user reviews all numbers;
+no emojis, no em-dashes, plain prose; commit+push at every milestone.
+
+Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
+/Library/TeX/texbin/pdflatex -interaction=nonstopmode Paper_Draft_2A.tex
+
+### Phase 2 (NEXT): clean-case separatrix runs + continuation mechanism
+1. Add mode logging to separatrix_logic_c_step (pentagon_primitives.py):
+   if the cluster has a `diagnostics` list, append per call a dict with
+   {mode: FLOW|ATTRACT|SLIDE, det, det_ratio (=|D|/||H||_F), lam1, lam2,
+   flow_dot_w1}. Attribute-gated, backward compatible (cluster.diagnostics
+   exists, nothing writes to it yet; reset() clears it).
+2. New experiments/separatrix_clean_runs.py (traceability header: makes
+   fig:sep_trajectories = figures/separatrix_trajectories.png). Six starts:
+   (-0.45,0.30), (0.05,0.40), (0.00,0.00) crest, (0.10,-0.20), (0.25,0.42),
+   (-0.30,-0.35). SIM_STEPS=600 (53 ms per 200 steps, trivial), V_MAX=0.04,
+   GAIN=3.0, eps defaults 1e-3/0.025, headless Agg. SINGLE-panel figure:
+   gray streamlines, D=0 diamonds, dashed separatrix, saddles marked, 6
+   centroid paths in the validated palette + one pentagon footprint at t=0
+   for scale. Robots omitted for clarity. CSV per run: start, time-to-band
+   (|x_c|<0.05 for 10 consecutive steps), final pos, min dist to each
+   saddle, mode occupancy fractions, whether it continued past a saddle
+   (came within 0.05 of a saddle then later |y_c| beyond it / moved along
+   the wall by >0.1). Outputs: experiments/outputs/separatrix_clean/.
+3. Mechanism question to answer from the mode logs (see corrected finding 6
+   above): near the well, does the selector fail to enter ATTRACT because
+   the biased eigenvalues are indefinite? Expected yes. Report to user.
+4. Park-vs-traverse demo (user wants ONE clean example, Discussion): same
+   start (0.05,0.40); run A = defaults (expected: traverse through crest,
+   continue past bottom saddle along wall trench); run B = candidate knob.
+   Try in order until one parks: (i) eps_dim=0.0 and eps_raw=0 disabling
+   the band near the well is NOT the knob (band already fails there);
+   (ii) an estimator-aware attract test: replace lam1*lam2>=0 with
+   ||H_hat||_F below threshold OR |D| large + grad small => attract;
+   (iii) simplest honest knob: detect |D| > 0.5*pi^4*A^2 with small ||g||
+   (deep well) and switch to attract. Whichever works, it is a CONTROLLER
+   CHANGE: show the user the mechanism and the proposed selector edit
+   BEFORE touching pentagon_primitives beyond the diagnostics hook.
+
+### Phase 3: OW boundary tracker figure + corner documentation
+- experiments/ow_clean_runs.py from main_logic_g_newton_pentagon.py (user
+  pre-approved renaming logic G files to OW_contour_following_w_6_robots
+  style later; add a name-change comment inside if renamed). Loop-closure
+  stopping rule: stop when centroid returns within 0.05 of its first
+  D=0 crossing point after step 50; report circumnavigation time and mean
+  |D| over the circuit. Starts (-0.5,0.25) and (0.5,0.25) give clean
+  diamond circuits for fig:ow_trajectories. Log corner events (||g||<
+  eps_grad fallback active) per step. For Failure Modes: document the
+  corner hop mechanism (D=0 is the periodic line family x_f +/- y_f in
+  1/2+Z; corners are X-crossings with grad D=0; flow fallback can hand the
+  team to the neighboring tile's line, which runs straight forever since
+  the analytic field tiles the plane and there is no domain fence).
+- Corner-only Hessian eigen tie-break: user gave explicit go-ahead to
+  prototype BUT LAST (Phase 7), after everything else, in case context
+  dies. Do not reintroduce the eigen-tangent as the tracking direction.
+
+### Phase 4: Monte Carlo sweep (both controllers)
+- experiments/mc_sweep_separatrix.py + mc_sweep_ow.py + shared
+  experiments/_mc_common.py. multiprocessing Pool; per-trial seed =
+  stable hash of (controller, sigma_uv, sigma_p, trial_idx); rng seeds
+  np.random.seed per worker trial (hooks use global np.random).
+- Grid: sigma_uv in {0, 0.001, 0.005, 0.01, 0.02, 0.05, 0.1} x sigma_p in
+  {0, 0.005, 0.01, 0.02, 0.05}; AUTO-EXTEND the top of each axis x2 until
+  the success rate in the corner cell drops below 10 percent (user wants
+  the cliff fully bracketed). Starts: 5x5 grid over [-0.8,0.8]x[-0.4,0.4]
+  (NOTE: the draft's [-0.8,0.8]^2 is a bug, y domain is [-0.5,0.5]) plus
+  random jitter; random heading via reset(heading_offset=U[0,2pi)).
+  Trials: 1000/cell development, 10000/cell final run (53 ms/trial,
+  ~3.5 h single-core at 10k x 24 cells; parallelize, 8 workers ~30 min).
+- Metrics per trial (CSV row): controller, sigma_uv, sigma_p, start_x/y,
+  heading, seed, success_band (time-to-band <= budget, no formation
+  collapse: shape RMS > 2x nominal pair length), success_straddle (robots
+  on both sides of x=0 maintained from first straddle to end; Michini
+  Table I comparison), t_band, mean+p95 tracking error steps 100-200
+  (|x_c| for Logic C, |D| for OW), shape RMS, control effort.
+- Compare measured cliff onset to the sigma_uv~0.01 open-loop gradient
+  threshold (prediction already written into Results prose; the measured/
+  predicted ratio quantifies closed-loop robustness, a headline number).
+- Also verify: success independent of initial heading (Lemma isotropy).
+
+### Phase 5: Ocean HFR (2km)
+- Baseline main_ocean_hfr_2km_ftle_overlay.py works as-is (validated
+  2026-07-02 config in-file: alpha=0, stiction 0.002, V_MAX 0.04,
+  GAIN 1.8, TIME_WARP 6000, 168 steps, pentagon_small_2km.yaml 0.7x,
+  start (34.4,-120.39)). New figures: (a) 1x4 grid of path-so-far over the
+  INSTANTANEOUS current field + OW boundary at ~7h intervals; (b) FTLE at
+  4-5 snapshot times (field evolution); (c) existing full-path FTLE
+  overlay. (d) branch-sensitivity: ~100 starts jittered around the ridge,
+  color-coded by final branch/landfall, plus distance-to-nearest-FTLE-
+  ridge metric per path (FTLE via _ftle_common.compute_ftle_field).
+- Methods rewrite (Section VI Ocean HFR subsection, lines ~1387-1429 in
+  the current draft): STALE, still describes 6km data and alpha=0.7 with
+  tau~28min as reasonable. Must be rewritten entirely per user decision 9:
+  2km resolution, time-dilation argument => alpha_mom=0, stiction floor
+  negligible, table contrasting Decabot vs ocean operating points. Show
+  diff for approval first.
+
+### Phase 6: paper integration (each block: diff -> approval -> write)
+- Merge testing plans in sec:test_plan (fix grid bug; add straddle metric
+  + Michini comparison sentence; trial counts 10k; auto-extension rule).
+- Problem 1 + Theorem 3 reframe to network traversal (decision 2): capture
+  becomes the special case; use Phase 2 mechanism results to write it
+  honestly (the biased-eigenvalue continuation vs threshold-based capture).
+- Park-vs-traverse Discussion paragraph (user calls this a key strength).
+- Failure Modes: corner hop (Phase 3), formation degeneracy (det Phi
+  monitoring), FLOW-band chatter role of eps_dim.
+- Results B/C/D from Phase 3-5 CSVs. Parameter table TODO at line ~964.
+- Fill Related Work TODO stubs? NO, user marked out-of-scope for now.
+- Later cleanup list from user (turn 1): fix "??" section refs; replace
+  Fig 3 with 3D render (script in vortex_field_analysis_plots area, save
+  PNG to outputs, link); DELETE Figs 5 and 6 (trench cross-section keep?
+  user said Figs 5/6 "don't make sense", verify which labels those are
+  before deleting); move current Fig 4 (six-robot ring) to Appendix;
+  rewrite Cluster Space Controller subsection (pentagon, not SAS-only;
+  forward/inverse kinematics + Jacobians in Appendix, style of
+  Paper_Draft_4A/3C appendices, no cluster-of-clusters concept); Sim
+  program subsection summarized from 3C without raw script filenames in
+  text (filenames in LaTeX comments only); verify noise model text matches
+  code (DONE); Failure Modes expand (Phase 3); re-evaluate 3 limitations;
+  clean Future Work; rewrite Conclusion; update CLAUDE.md at the very end.
+
+### Phase 7 (LAST): corner tie-break prototype
+- Inside eps_grad ball only: pick exit branch via Hessian eigenvector,
+  head-to-head vs flow-drift fallback at all 8 diamond corners + crest.
+  If it wins, propose Sutton-and-Barto selector update + control-law
+  equations to user (controller section edit needs approval). If it
+  loses, keep flow fallback and say so in Failure Modes.
+
+### Build phase status
 
 - Phase 0 (DONE): noise hooks + heading_offset + smoke test + benchmark.
-- Phase 1 (DONE, user reviewed and approved): estimator accuracy experiment.
-  Section III edits approved and written (III-D pointer, III-E radius-scope
-  fix, III-E propagation rewrite + Remark rem:eigvec). Figure caption
-  updated with field/location. eigvec_check.csv added to sweep outputs so
-  the Remark's numbers are reproducible. Results-subsection prose DRAFTED
-  and shown to user for approval (not yet in .tex); includes figure
-  walk-through and field-dependence caveat for rho*.
+- Phase 1 (DONE, reviewed, approved, integrated): estimator accuracy.
+  All paper edits from it are in the .tex. eigvec_check.csv committed.
 - Phase 2: clean-case runs, 6 starts, network traversal + one park-vs-traverse
   threshold demo. Extend main_separatrix_v6r (longer SIM_STEPS).
 - Phase 3: OW figure fix (loop-closure stopping rule, one clean diamond

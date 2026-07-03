@@ -1563,10 +1563,54 @@ in each $(\sigma_{uv}, \sigma_p)$ cell.
     \label{fig:est_accuracy}
 \end{figure}
 
-% TODO: report main estimator accuracy findings here.
-% Key questions to answer: (1) How does estimation error scale with sigma_uv?
-% (2) At what sigma_uv does estimation become unreliable (error comparable to
-% the signal magnitude)?
+Estimator accuracy was measured open loop: the formation was held static
+at the strain-region point $\mathbf{p}_c = (-0.35, -0.20)$ of the steady
+double gyre, $2 \times 10^5$ independent noise draws were applied per
+condition through the same fit used by the controllers, and the estimates
+were compared with the analytic values of Appendix~\ref{app:analytic}.
+The empirical standard deviation of every fitted coefficient matched the
+closed forms of Lemma~\ref{lem:gains} within 0.2\%, and the per-robot
+reading error induced by position noise matched the first-order
+prediction of Section~\ref{sec:noise_model} within 1\%, confirming that
+the two noise channels combine into a single effective measurement noise.
+
+Fig.~\ref{fig:est_accuracy} reports the accuracy of the three navigation
+quantities as relative error, the error magnitude divided by the
+magnitude of the true quantity; a value of one (dashed line) means the
+estimate is as wrong as it is large and carries no directional
+information. In Fig.~\ref{fig:est_accuracy}(a) the three curves rise
+linearly with $\sigma_{uv}$ and sit stacked a constant factor apart: each
+additional derivative order multiplies the noise gain by roughly
+$1/\rho$, about 13 at the nominal radius, the ladder of
+Lemma~\ref{lem:gains}. Reading off the crossings of the dashed line,
+$\hat{D}$ remains informative up to $\sigma_{uv} \approx 0.06$ m/s and
+$\nabla\hat{D}$ up to $\sigma_{uv} \approx 0.01$ m/s, while
+$\hat{\mathbf{H}}_D$ sits at the line even for the quietest sensors:
+below $\sigma_{uv} \approx 0.005$ its error is set by the structural
+model bias of Section~\ref{sec:sensitivity}, not by noise.
+Fig.~\ref{fig:est_accuracy}(b) fixes $\sigma_{uv} = 0.01$ and varies the
+formation radius. Enlarging the ring averages noise over a longer
+baseline, so the solid curves fall; the quadratic model simultaneously
+fits the curved field more poorly, so the noise-free truncation floors
+(dotted) rise. The compromise of (\ref{eq:rho_star}) appears as minima
+at $\rho \approx 0.11$ for $\hat{D}$ and $\rho \approx 0.23$ for
+$\nabla\hat{D}$. These optima are properties of the double gyre at this
+location and noise level, entering through the third-derivative scale
+$M_3$; the one-third-power scaling law is general, but a different
+field, or a different region of the same field, shifts them.
+$\hat{\mathbf{H}}_D$ exhibits no minimum: its floor is radius
+independent, as predicted, and no formation size improves it, though its
+eigen-directions remain accurate to $0.35^\circ$ on and near the
+separatrix and $3.8^\circ$ at the generic test point
+(Remark~\ref{rem:eigvec}).
+
+The gradient threshold locates where closed-loop degradation should
+begin: at $\sigma_{uv} \approx 0.01$ a single $\nabla\hat{D}$ estimate
+is as wrong as it is right, so any one control decision approaches
+chance. The closed loop is expected to fail at a somewhat higher level,
+since saturation bounds the damage of an individual bad command and the
+noise is redrawn at every cycle; the Monte Carlo sweep that follows
+tests this prediction directly.
 
 \subsection{Separatrix Controller Simulation Results}
 
