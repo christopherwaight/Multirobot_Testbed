@@ -297,11 +297,30 @@ Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
   half (47.9 percent, n = 1000)".
 - mc_sweep_ow.py DONE and smoke-verified (zero-noise 100 percent track,
   mean |D| 0.0008). Fixed start (-0.5, 0.25) = O3. 1000-run pending.
-- STILL TODO Phase 4: fixed-start separatrix 1000-run in flight
-  (run_log_1000_fixed.txt); OW 1000-run after it; analysis script
-  (tables from summary CSVs, heading-isotropy check from trials CSVs,
-  cliff-vs-prediction against the sigma_uv~0.01 open-loop threshold);
-  10000-trial final runs once tables look right.
+- 1000-TRIAL RESULTS IN (2026-07-03, committed 4de5e97; full tables in
+  experiments/outputs/mc_analysis_1000.txt; user reviewing):
+  - Separatrix: 100 percent traverse at zero noise; 50-percent cliff at
+    sigma_uv = 0.01 with sigma_p = 0, EXACTLY the open-loop gradient
+    threshold (ratio 1.0). The Results prose sentence "expected to fail
+    at a somewhat higher level" must be revised after review: measured
+    cliff COINCIDES with the single-estimate threshold.
+  - Effective-noise collapse confirmed: sigma_p = 0.01 alone gives 45.4
+    vs sigma_uv = 0.01 alone 43.3 percent; sigma_p acts like sigma_uv
+    scaled by ~||J|| ~ 0.8, as the noise-model prose predicts.
+  - OW: 100 percent through sigma_uv = 0.001, 93.8 at 0.005, collapse at
+    0.01 (20.9); tolerates sigma_p to 0.02 (98.6) at low sigma_uv, dead
+    at 0.05. Sharper cliff than separatrix.
+  - HEADLINE: both controllers share the same cliff location. The
+    ESTIMATOR, not the control law, sets the noise ceiling. Strong
+    Discussion point.
+  - Heading isotropy flat (sep 74.9-76.2, OW 77.6-79.4 percent across
+    quartiles), confirming Lemma 1 isotropy.
+  - High-noise floor ~11-15 percent traverse for separatrix is
+    random-walk luck; straddle metric decays to 0 cleanly, better cliff
+    definition for the paper table.
+- STILL TODO Phase 4: user reviews tables; then 10000-trial final runs
+  (fire only after user signs off on metrics/grid; ~40-60 min per
+  controller at 8 workers); then Results tables into .tex via diffs.
 
 ### Phase 4 original spec (superseded by status above)
 - experiments/mc_sweep_separatrix.py + mc_sweep_ow.py + shared
