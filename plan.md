@@ -95,8 +95,13 @@ Key numbers (strain-region location, rho = 0.075, N = 200k draws/cell):
 ## Build phases (in order)
 
 - Phase 0 (DONE): noise hooks + heading_offset + smoke test + benchmark.
-- Phase 1 (DONE, awaiting user review of numbers/figure above): estimator
-  accuracy experiment. Results opener.
+- Phase 1 (DONE, user reviewed and approved): estimator accuracy experiment.
+  Section III edits approved and written (III-D pointer, III-E radius-scope
+  fix, III-E propagation rewrite + Remark rem:eigvec). Figure caption
+  updated with field/location. eigvec_check.csv added to sweep outputs so
+  the Remark's numbers are reproducible. Results-subsection prose DRAFTED
+  and shown to user for approval (not yet in .tex); includes figure
+  walk-through and field-dependence caveat for rho*.
 - Phase 2: clean-case runs, 6 starts, network traversal + one park-vs-traverse
   threshold demo. Extend main_separatrix_v6r (longer SIM_STEPS).
 - Phase 3: OW figure fix (loop-closure stopping rule, one clean diamond
@@ -178,12 +183,22 @@ C) OW path + stats table, D) ocean HFR 4x1 grid + FTLE snapshots + start-sensiti
    tau~28min, stiction retained. Validated 2km script uses MOMENTUM_ALPHA=0.0,
    STICTION=0.002, CONTROL_GAIN=1.8, V_MAX=0.04, pentagon_small_2km.yaml (0.7x),
    TIME_WARP=6000, 168 steps = 28 h.
-6. Theory-experiment tension: Theorem 3(iii) claims terminal capture at the
-   saddle (attract fallback), but with eps_dim=0.025 the entire separatrix
-   including the well is inside the FLOW band (|D|/||H||_F <= ~5e-4), so the
-   team is ejected along the wall trench (saddle's unstable manifold) and
-   continues, which is exactly the "continues past bifurcation" behavior the
-   user wants to show. Paper must present these consistently (user to decide).
+6. CORRECTED 2026-07-02 (earlier version had a factor-100 arithmetic slip):
+   on the trench |D| peaks at pi^4 A^2 = 0.974 at the wells, and
+   |D|/||H_D||_F at the well is ~0.036 > eps_dim = 0.025, so the FLOW band
+   covers only roughly y in (-0.25, 0.25) around the crest and the band test
+   FAILS near the wells. With EXACT estimates the attract fallback therefore
+   does fire near the well and Theorem 3 capture is self-consistent at the
+   default thresholds. The observed continuation past the saddle is instead
+   most likely caused by the H_D structural bias near the wells (estimated
+   eigenvalues there are near zero and indefinite, e.g. -0.72/+0.43 vs true
+   +18.3/+19.2, so the lam1*lam2>=0 attract test fails and the selector takes
+   the saddle branch) and possibly momentum. Phase 2 must log the selector
+   branch per step to pin the mechanism empirically. The network-traversal
+   reframe (decision 2) stands; the park-vs-traverse knob demo may end up
+   being an estimator-aware fallback or threshold change, not eps_dim alone.
+   NOTE: pentagon_primitives does not yet write cluster.diagnostics; Phase 2
+   adds per-step mode logging there (attribute-gated, backward compatible).
 7. OW diagonal-runaway mechanism: D=0 is a periodic family of straight lines
    (diamonds touch at corners, X-crossings where grad D = 0); at wall corners
    the flow fallback hands the team onto the neighboring tile's line, which

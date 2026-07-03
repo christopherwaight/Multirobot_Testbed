@@ -314,6 +314,40 @@ def main():
                 f.write(f"{i},{s_p},{du.std():.6e},{dv.std():.6e},"
                         f"{pred_u:.6e},{pred_v:.6e}\n")
     print(f"Wrote {path}")
+
+    # ---------------- 5. Hessian eigenvector survival --------------------
+    # Data behind Remark (rem:eigvec): noise-free fits; angle between the
+    # eigenvectors of H_hat and H_true, and both eigenvalue pairs.
+    eig_points = [
+        ("sep_mid",        0.00, -0.25),
+        ("sep_off_0.05",   0.05, -0.25),
+        ("sep_near_crest", 0.00, -0.05),
+        ("sep_near_well",  0.00, -0.45),
+        ("generic_strain", -0.35, -0.20),
+    ]
+    path = os.path.join(OUT_DIR, "eigvec_check.csv")
+    with open(path, "w") as f:
+        f.write(metadata_lines("# noise-free fits at nominal scale\n"))
+        f.write("point,x,y,ang_w1_deg,ang_w2_deg,"
+                "lam1_hat,lam2_hat,lam1_true,lam2_true\n")
+        for name, px, py in eig_points:
+            cluster.reset(px, py)
+            rel_p = _get_relative_positions(cluster)
+            cen_p = cluster.get_centroid()
+            Phi_p = np.array([_quadratic_basis(rel_p[j, 0], rel_p[j, 1])
+                              for j in range(6)])
+            u_p, v_p = clean_readings(cen_p, rel_p)
+            tu = np.linalg.solve(Phi_p, u_p)
+            tv = np.linalg.solve(Phi_p, v_p)
+            H_hat = _det_hessian(tu, tv)
+            H_tru = truth_hess(cen_p[0], cen_p[1])
+            wh, Vh = np.linalg.eigh(H_hat)
+            wt, Vt = np.linalg.eigh(H_tru)
+            angs = [np.degrees(np.arccos(min(abs(Vh[:, k] @ Vt[:, k]), 1.0)))
+                    for k in range(2)]
+            f.write(f"{name},{px},{py},{angs[0]:.4f},{angs[1]:.4f},"
+                    f"{wh[0]:.4f},{wh[1]:.4f},{wt[0]:.4f},{wt[1]:.4f}\n")
+    print(f"Wrote {path}")
     print("\nDone.")
 
 

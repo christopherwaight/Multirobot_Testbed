@@ -650,7 +650,9 @@ are polynomial functions of the fitted coefficients:
 \end{equation}
 These follow by differentiating $D = u_x v_y - u_y v_x$ with the
 third-order terms absent, and require no field evaluations beyond the six
-measurements. The estimated flow at the centroid,
+measurements. The omission is harmless for the gradient but not for the
+Hessian; its systematic consequences are quantified in
+Section~\ref{sec:sensitivity}. The estimated flow at the centroid,
 $\mathbf{f} = (u_0, v_0)$, equals the center robot's reading by
 Lemma~\ref{lem:gains}. Together
 (\ref{eq:J_hat})--(\ref{eq:hess_det}) supply every quantity the
@@ -689,7 +691,8 @@ only linearly in $\rho$, matching the $O(\rho)$ bound proved for the
 symmetric estimator in [11]: smaller formations track curvature better.
 
 \subsubsection{The radius trade-off}
-Combining the two effects, the total Hessian error is bounded by
+Combining the two effects, the total error of each fitted second-order
+coefficient is bounded by
 $c_2 M_3 \rho + c_2' \sigma_{uv}/\rho^2$, which is minimized at
 \begin{equation}
     \rho^* = \left(\frac{2 c_2' \sigma_{uv}}{c_2 M_3}\right)^{1/3}
@@ -698,8 +701,10 @@ $c_2 M_3 \rho + c_2' \sigma_{uv}/\rho^2$, which is minimized at
 \end{equation}
 The formation radius is thus a sensing parameter, not merely a spacing
 choice: it should grow with the noise floor and shrink with the field's
-third-derivative scale. This rule is consistent with the formation-radius
-sweeps reported in Section~\ref{sec:results}.
+third-derivative scale. This rule is confirmed for $\hat{D}$ and
+$\nabla\hat{D}$ by the formation-radius sweeps reported in
+Section~\ref{sec:results}; the derived Hessian $\hat{\mathbf{H}}_D$ is
+instead limited by the model bias discussed next.
 
 \subsubsection{Propagation to $D$ and its derivatives}
 Errors in the fitted coefficients enter the navigation quantities through
@@ -715,17 +720,53 @@ determinant satisfies
     \label{eq:det_perturbation}
 \end{equation}
 where $\mathbf{E} = \hat{\mathbf{J}} - \mathbf{J}$ collects the four
-first-order coefficient errors. The gradient (\ref{eq:grad_det}) and
-Hessian (\ref{eq:hess_det}) are bilinear in (first-order, second-order)
-and (second-order, second-order) coefficient pairs respectively, so their
-errors obey bounds of the same form, linear in the coefficient errors
-with slopes set by the true derivative magnitudes. Two conclusions carry
-into the stability analysis: the estimate errors entering the controllers
-are bounded whenever the coefficient errors are bounded, with explicit
+first-order coefficient errors. The gradient formula (\ref{eq:grad_det})
+is complete: differentiating $D = u_x v_y - u_y v_x$ once produces only
+products of first- and second-order derivatives, so $\hat{\mathbf{g}}$
+inherits errors solely from the fitted coefficients, linearly, with
+slopes set by the true derivative magnitudes.
+
+The Hessian is different in kind. Differentiating twice produces terms
+such as $u_{xxx} v_y$ and $u_y v_{xxx}$, third derivatives of the field
+weighted by the field itself, and a quadratic model has no third
+derivatives: (\ref{eq:hess_det}) is the Hessian of the fitted quadratic
+surface, not of $D$. The omitted terms constitute a model bias that is
+independent of the formation radius and cannot be reduced by averaging;
+the situation is that of fitting a line to a curved signal and using the
+line's slope where the curvature is unmodeled, acceptable exactly where
+the model is locally adequate. For the double gyre at the nominal scale
+this bias is large in norm, on the order of $\|\mathbf{H}_D\|_F$ itself
+(Section~\ref{sec:results}). Two conclusions nevertheless carry into the
+stability analysis: the estimate errors entering the controllers are
+bounded whenever the coefficient errors are bounded, with explicit
 formation-dependent constants; and all such constants degrade
 continuously, not abruptly, as the formation deforms, with outright
 failure only on the conic configurations of
 Proposition~\ref{prop:conic}.
+
+\begin{remark}[What survives the Hessian bias]
+\label{rem:eigvec}
+The controllers of Section~\ref{sec:controllers} consume
+$\hat{\mathbf{H}}_D$ only through its eigenvectors and the signs and
+rough magnitudes of its eigenvalues, and these degrade far less than the
+Frobenius error suggests. The double gyre is symmetric under reflection
+across the separatrix, so $D$ is even in the transverse coordinate and
+every odd transverse derivative, including the mixed second derivative,
+vanishes on the trench: both the retained and the omitted terms are
+diagonal in the trench frame there. The estimated eigen-directions on
+the separatrix are exact to numerical precision, remain within a few
+tenths of a degree across the tube, and within a few degrees at generic
+points (Section~\ref{sec:results}), while the bias loads almost entirely
+onto the eigenvalues. The transverse Newton snap divides the transverse
+gradient by the transverse eigenvalue, so an eigenvalue bias rescales
+the step, which the saturation (\ref{eq:sat}) bounds and the closed loop
+absorbs; it does not rotate the commanded direction. This is why a
+formation too small to sense curvature accurately can still track the
+structure that curvature defines. The exception is the immediate
+neighborhood of the wells, where the biased eigenvalues nearly vanish
+and their signs become unreliable; the consequences for terminal capture
+are examined in Section~\ref{sec:results}.
+\end{remark}
 
 
 % ---------------------------------------------------------------------------
@@ -1510,8 +1551,9 @@ in each $(\sigma_{uv}, \sigma_p)$ cell.
     % experiments/outputs/estimator_accuracy/.
     \caption{Relative estimation error of $\hat{D}$, $\nabla\hat{D}$, and
     $\hat{\mathbf{H}}_D$ (median over $2 \times 10^5$ noise draws per point;
-    shaded interquartile range in (a)) at a strain-region point of the
-    double gyre. (a) Versus measurement noise $\sigma_{uv}$ at the nominal
+    shaded interquartile range in (a)) for the steady double gyre of
+    Section~\ref{sec:dg_example}, formation held static at the
+    strain-region point $\mathbf{p}_c = (-0.35, -0.20)$. (a) Versus measurement noise $\sigma_{uv}$ at the nominal
     formation radius $\rho = 0.075$; the dashed line marks error equal to
     signal magnitude. (b) Versus formation radius $\rho$ at $\sigma_{uv} =
     0.01$; dotted curves are the noise-free truncation floors. $\hat{D}$
