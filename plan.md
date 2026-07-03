@@ -92,7 +92,33 @@ Key numbers (strain-region location, rho = 0.075, N = 200k draws/cell):
   radius is ~3x the nominal formation; closed-loop tuning (ocean) chose
   smaller. Estimator-optimal vs controller-optimal is a Discussion nugget.
 
-## HANDOFF (written 2026-07-02 at ~90 percent context; resume here)
+## RESUME HERE (handoff updated 2026-07-02 ~23:10 PDT, end of third window)
+
+Immediate next actions, in order:
+1. Check experiments/outputs/mc_separatrix/trials_fixed.csv timestamp
+   (under VF_Robot). If still 22:57 (5-trial smoke), the 1000-trial
+   fixed-start run died with the session; relaunch (~20 min):
+     cd trunk/Python_Simulations/Vector_Fields/VF_Robot
+     venv/bin/python3 experiments/mc_sweep_separatrix.py --trials 1000 \
+       --workers 8 --starts fixed
+   If a fresh timestamp is there, the detached run survived; use it.
+2. Run the OW sweep (same pattern):
+     venv/bin/python3 experiments/mc_sweep_ow.py --trials 1000 --workers 8
+3. venv/bin/python3 experiments/analyze_mc_sweeps.py
+   -> success tables, 50-percent cliff per sigma_p column, cliff vs the
+   sigma_uv~0.01 open-loop prediction, heading-isotropy check.
+   SHOW THE TABLES TO THE USER (all numbers reviewed before .tex).
+4. PENDING USER APPROVAL (do not write to .tex without it): the
+   Limitations basin-callout passage. Text as proposed in session log,
+   with XX = "roughly half (47.9 percent, n = 1000)" from
+   trials_random_basin.csv. User asked for the callout but has not yet
+   approved the exact wording.
+5. After tables look right: 10000-trial final runs for the paper, then
+   Phase 5 (ocean HFR figures + methods rewrite) and Phase 6 (paper
+   integration, all via diff-then-approve).
+6. Commit and push at every milestone. Do not commit CLAUDE.md.
+
+## Original handoff (2026-07-02 first window; still valid below)
 
 State when this was written: Phases 0 and 1 complete, reviewed, approved,
 committed, pushed. ALL approved paper edits are already IN Paper_Draft_2A.tex
