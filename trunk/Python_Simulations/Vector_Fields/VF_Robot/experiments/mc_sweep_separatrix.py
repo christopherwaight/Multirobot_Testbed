@@ -60,9 +60,13 @@ def _worker(spec):
     return mc.run_trial(spec)
 
 
+START_MODE = {"mode": "fixed"}     # set from --starts in main()
+
+
 def cell_specs(sigma_uv, sigma_p, n_trials):
     base = int(1e6 * sigma_uv * 1000 + 1e3 * sigma_p * 1000) % (2**31)
-    return [{"sigma_uv": sigma_uv, "sigma_p": sigma_p,
+    start = mc.FIXED_START if START_MODE["mode"] == "fixed" else None
+    return [{"sigma_uv": sigma_uv, "sigma_p": sigma_p, "start": start,
              "seed": (base + 7919 * t) % (2**31)} for t in range(n_trials)]
 
 
@@ -86,7 +90,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--trials", type=int, default=100)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--starts", choices=["fixed", "random"],
+                    default="fixed",
+                    help="fixed = paper experiment (straddling start "
+                         f"{mc.FIXED_START}, noise dialed up); random = "
+                         "basin evidence only")
     args = ap.parse_args()
+    START_MODE["mode"] = args.starts
 
     try:
         commit = subprocess.check_output(
@@ -120,22 +130,25 @@ def main():
               f"# git_commit: {commit}\n# date: {stamp}\n"
               f"# trials_per_cell: {args.trials}  steps: {mc.SIM_STEPS}  "
               f"controller: separatrix_logic_c_step\n"
-              f"# start_box: {mc.START_BOX}  band_x: {mc.BAND_X}  "
-              f"collapse_rms: {mc.COLLAPSE_RMS}\n")
+              f"# start_mode: {args.starts}  fixed_start: {mc.FIXED_START}"
+              f"  start_box: {mc.START_BOX}\n"
+              f"# band_x: {mc.BAND_X}  collapse_rms: {mc.COLLAPSE_RMS}\n")
 
     cols = ["sigma_uv", "sigma_p", "seed", "start_x", "start_y", "heading",
             "t_band", "steps", "success_traverse", "success_band",
             "success_straddle", "first_straddle", "collapsed",
             "track_mean", "track_p95", "shape_rms_max", "effort",
             "final_x", "final_y"]
-    with open(os.path.join(OUT_DIR, "trials.csv"), "w") as f:
+    with open(os.path.join(OUT_DIR, f"trials_{args.starts}.csv"),
+              "w") as f:
         f.write(header)
         f.write(",".join(cols) + "\n")
         for r in rows:
             f.write(",".join(f"{r[c]:.6g}" if isinstance(r[c], float)
                              else str(r[c]) for c in cols) + "\n")
 
-    with open(os.path.join(OUT_DIR, "summary.csv"), "w") as f:
+    with open(os.path.join(OUT_DIR, f"summary_{args.starts}.csv"),
+              "w") as f:
         f.write(header)
         f.write("sigma_uv,sigma_p,success_traverse,success_band,"
                 "success_straddle,track_mean,track_p95\n")
@@ -143,7 +156,8 @@ def main():
             f.write(f"{u},{p},{st:.4f},{sb:.4f},{ss:.4f},"
                     f"{tm:.5f},{tp:.5f}\n")
 
-    print(f"Wrote {OUT_DIR}/trials.csv ({len(rows)} rows) and summary.csv")
+    print(f"Wrote {OUT_DIR}/trials_{args.starts}.csv ({len(rows)} rows) "
+          f"and summary_{args.starts}.csv")
 
 
 if __name__ == "__main__":

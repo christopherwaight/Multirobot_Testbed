@@ -27,6 +27,12 @@ FORMATION_CONFIG = "config/formations/pentagon_small.yaml"
 V_MAX, GAIN = 0.04, 3.0
 EPS_RAW, EPS_DIM = 1e-3, 0.025
 SIM_STEPS = 500
+# Paper experiment (user 2026-07-02): ONE consistent straddling start on
+# the separatrix, noise dialed up; success then measures pure noise
+# robustness of the traverse, Michini-style. Random starts (START_BOX)
+# remain available for basin evidence only; the paper does not claim to
+# characterize the basin of attraction.
+FIXED_START = (0.0, 0.35)
 START_BOX = (-0.8, 0.8, -0.4, 0.4)   # x_min, x_max, y_min, y_max
 BAND_X, BAND_HOLD = 0.05, 10
 # Trials STOP at bottom-saddle contact or domain exit (same rule as
@@ -61,8 +67,11 @@ def run_trial(spec):
         field = AnalyticalField(double_gyre_static)
         cluster = PentagonCluster(FORMATION_CONFIG, field)
 
-    x0 = rng.uniform(START_BOX[0], START_BOX[1])
-    y0 = rng.uniform(START_BOX[2], START_BOX[3])
+    if spec.get("start") is not None:
+        x0, y0 = spec["start"]
+    else:
+        x0 = rng.uniform(START_BOX[0], START_BOX[1])
+        y0 = rng.uniform(START_BOX[2], START_BOX[3])
     heading = rng.uniform(0.0, 2 * np.pi)
     cluster.reset(x0, y0, heading_offset=heading)
     cluster.measurement_noise_std = spec["sigma_uv"]
