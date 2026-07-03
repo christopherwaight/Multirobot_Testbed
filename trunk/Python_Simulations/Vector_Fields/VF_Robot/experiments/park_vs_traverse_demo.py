@@ -9,7 +9,7 @@ PAPER TRACEABILITY
 
 EXPERIMENT
   Same start, two runs on the steady double gyre, BOTH through the new
-  separatrix_logic_fable_step primitive (Logic C + estimator-aware PARK
+  separatrix_logic_park_step primitive (Logic C + estimator-aware PARK
   mode; Logic C itself is untouched as the revert path, user decision
   2026-07-02):
     TRAVERSE: d_capture=None. Verified below to be trajectory-EXACT
@@ -18,8 +18,8 @@ EXPERIMENT
     PARK: d_capture=-0.5. Capture keys on D_hat only (reliable per
       Fig. est_accuracy); saturated gradient descent on D parks the team
       at the well minimum, the flow saddle.
-  VALIDATION in main(): (1) exact equivalence of fable(None) vs Logic C
-  over 200 steps; (2) park behavior from all six clean-run starts.
+  VALIDATION in main(): (1) exact equivalence of Logic Park(None) vs
+  Logic C over 200 steps; (2) park behavior from all six clean-run starts.
 
 Run:
   cd trunk/Python_Simulations/Vector_Fields/VF_Robot
@@ -43,7 +43,7 @@ from src.fields.field_types import AnalyticalField
 from src.fields.environments.Double_Gyre import (
     double_gyre_static, SADDLE_BOTTOM, SADDLE_TOP, SEPARATRIX_X)
 from src.control.pentagon_primitives import (
-    separatrix_logic_c_step, separatrix_logic_fable_step)
+    separatrix_logic_c_step, separatrix_logic_park_step)
 
 FORMATION_CONFIG = "config/formations/pentagon_small.yaml"
 V_MAX, GAIN = 0.04, 3.0
@@ -62,14 +62,14 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 
 def run(d_capture, start=START, primitive_fn=None, steps=SIM_STEPS):
-    """Run Logic Fable from `start`; d_capture=None reproduces Logic C."""
+    """Run Logic Park from `start`; d_capture=None reproduces Logic C."""
     field = AnalyticalField(double_gyre_static)
     cl = PentagonCluster(FORMATION_CONFIG, field)
     cl.reset(*start)
 
     if primitive_fn is None:
         def prim(c):
-            vx, vy = separatrix_logic_fable_step(
+            vx, vy = separatrix_logic_park_step(
                 c, v_max=V_MAX, eps_raw=EPS_RAW, eps_dim=EPS_DIM,
                 d_capture=d_capture)
             return vx * GAIN, vy * GAIN
@@ -95,7 +95,7 @@ def main():
     except Exception:
         commit = "unknown"
 
-    # ---- Validation 1: fable(None) is trajectory-exact vs Logic C -------
+    # ---- Validation 1: Logic Park(None) is trajectory-exact vs Logic C --
     def prim_c(c):
         vx, vy = separatrix_logic_c_step(c, v_max=V_MAX, eps_raw=EPS_RAW,
                                          eps_dim=EPS_DIM)
@@ -105,9 +105,9 @@ def main():
     h_c, h_f = cl_c.get_center_history(), cl_f.get_center_history()
     max_dev = float(np.abs(h_c - h_f).max()) if len(h_c) == len(h_f) \
         else float("inf")
-    print(f"Equivalence fable(None) vs Logic C over {len(h_c)} steps: "
+    print(f"Equivalence Logic Park(None) vs Logic C over {len(h_c)} steps: "
           f"max |dev| = {max_dev:.2e}")
-    assert max_dev == 0.0, "Logic Fable with d_capture=None diverged from C"
+    assert max_dev == 0.0, "Logic Park with d_capture=None diverged from C"
 
     # ---- Validation 2: park behavior from all six clean-run starts ------
     six = [(-0.45, 0.30), (0.05, 0.40), (0.00, 0.00),

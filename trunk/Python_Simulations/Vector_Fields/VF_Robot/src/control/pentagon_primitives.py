@@ -560,10 +560,10 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
     return float(delta[0]), float(delta[1])
 
 
-def separatrix_logic_fable_step(cluster, v_max=0.04, eps_raw=1e-3,
+def separatrix_logic_park_step(cluster, v_max=0.04, eps_raw=1e-3,
                                 eps_dim=0.025, d_capture=None):
     """
-    Logic Fable (added 2026-07-02): Logic C plus an estimator-aware PARK
+    Logic Park (added 2026-07-02): Logic C plus an estimator-aware PARK
     mode. Kept as a SEPARATE primitive so separatrix_logic_c_step remains
     unchanged as the fallback/revert path (user decision 2026-07-02).
 

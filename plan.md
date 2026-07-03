@@ -108,7 +108,7 @@ REMAINING PAPER WORK when the user resumes (unchanged, needs diffs +
 approval per process): Results subsections B/C/D text and figures from
 the committed CSVs/PNG candidates (separatrix trajectories, park demo,
 OW trajectories, sweep tables); Problem 1 / Theorem 3 network-traversal
-reframe (decision 2); park-vs-traverse Discussion paragraph (Logic Fable
+reframe (decision 2); park-vs-traverse Discussion paragraph (Logic Park
 data ready); Failure Modes (corner-hop material ready); related-work
 TODO stubs (out of scope per user); Phase 5 ocean figures + ocean
 methods rewrite; Phase 6 restructure items (Fig 3 3D render, delete
@@ -174,7 +174,7 @@ Immediate next actions, in order:
    robot v_max 0.3 m/s; alpha_mom 0.717 (tau 0.3 s, dt 0.1 s);
    v_stiction 0.025 m/s (CODE TRUTH: Omnibot/PentagonCluster defaults);
    A 0.1; eps_raw 1e-3; eps_dim 0.025; eps_grad 1e-6; rho 0.075 m;
-   d_capture optional (Logic Fable park knob).
+   d_capture optional (Logic Park park knob).
 4. DISCREPANCY TO FIX (diff needed): draft line ~762 says "stiction
    floor v_stiction = 0.05 m/s" but the 6-robot code uses 0.025 m/s
    (omnibot.py line 21). The 0.05 value is the 3-robot paper's. Fix the
@@ -258,7 +258,7 @@ Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
       indefinite quadratic (directions t with t^T H t = 0, computable
       from H_hat); pick the asymptote that turns. This is the Phase 7
       prototype pulled forward, a controller change (new primitive like
-      logic_g_fable, keep logic_g_newton as revert per user pattern).
+      logic_g_park, keep logic_g_newton as revert per user pattern).
   Recommendation given: (a) for the main results + (b) as the Phase 7
   prototype; if (b) validates, present both behaviors (straight-through
   vs circulate) as ANOTHER one-knob pair, mirroring park-vs-traverse.
