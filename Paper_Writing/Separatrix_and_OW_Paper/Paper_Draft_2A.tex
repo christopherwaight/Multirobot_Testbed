@@ -1528,38 +1528,59 @@ the two-dimensional noise sweep of Section~\ref{sec:test_plan}.
 \subsection{Testing Plan}
 \label{sec:test_plan}
 
-Both controllers are evaluated over the following sweep:
+% Sweep implementation: experiments/mc_sweep_separatrix.py and
+% experiments/mc_sweep_ow.py (VF_Robot); analysis by
+% experiments/analyze_mc_sweeps.py; per-trial rows in
+% experiments/outputs/mc_*/trials_fixed.csv.
+Both controllers are evaluated in Monte Carlo over a two-dimensional
+noise grid, from one consistent initial condition per controller, so
+that the success rate measures noise robustness alone rather than basin
+geometry (Section~\ref{sec:limitations}). The separatrix tracker starts
+from a formation straddling the separatrix at $(0, 0.35)$; the boundary
+tracker starts adjacent to the left Okubo-Weiss boundary at
+$(-0.5, 0.25)$. Every trial draws an independent initial cluster heading
+uniformly from $[0, 2\pi)$; by Lemma~\ref{lem:gains} the estimator gains
+are heading-isotropic, and the trials test this prediction.
 \begin{itemize}
-    \item $\sigma_{uv} \in \{0,\; 0.001,\; 0.005,\; 0.01,\; 0.02,\; 0.05\}$
-          (m/s, measurement noise standard deviation).
-    \item $\sigma_p \in \{0,\; 0.005,\; 0.01,\; 0.02\}$ m
-          (position noise standard deviation).
-    \item Initial centroid: $5 \times 5$ uniform grid over
-          $[-0.8, 0.8] \times [-0.8, 0.8]$, plus 25 random centroids per
-          cell ($N = 200$ trials per noise cell in total).
-    \item Initial cluster heading: uniformly random in $[0, 2\pi)$.
+    \item $\sigma_{uv} \in \{0,\, 0.001,\, 0.005,\, 0.01,\, 0.02,\,
+          0.05,\, 0.1\}$ m/s; the top level is doubled and re-swept
+          until the worst-cell success rate falls below 10\%, so the
+          failure cliff is always bracketed.
+    \item $\sigma_p \in \{0,\, 0.005,\, 0.01,\, 0.02,\, 0.05\}$ m.
+    \item 1000 trials per cell, at 10 Hz for at most 500 steps; a trial
+          stops early when the separatrix tracker reaches the terminal
+          saddle, or when the centroid leaves the domain (the boundary
+          tracker rides its zero line out of the domain by design).
 \end{itemize}
 
-The following metrics are recorded for each trial:
+The following are recorded for each trial:
 \begin{enumerate}
-    \item \textbf{Time-to-band:} the first step at which the quantity of
-          interest (for the OW controller, $|\det(\mathbf{J}(\mathbf{p}_c))|$;
-          for the separatrix controller, the $x$-distance from the separatrix
-          $|x_c|$) drops below a threshold and remains below it for at least
-          10 consecutive steps.
-    \item \textbf{Tracking error:} mean and 95th percentile of the tracking
-          quantity over steps 100-200 (the tracking phase after transient
-          convergence).
-    \item \textbf{Formation shape error:} RMS deviation of the six robot
-          positions from their nominal positions at the given cluster centroid.
+    \item \textbf{Task success.} For the separatrix tracker, reaching
+          the terminal saddle (centroid within 0.06 of
+          $\mathbf{p}^*_1$); for the boundary tracker, locking onto the
+          $D = 0$ set ($|D| < 0.02$ sustained for 10 steps) with
+          95th-percentile $|D|$ thereafter below 0.10. A trial whose
+          formation collapses (below) fails regardless.
+    \item \textbf{Time-to-band:} the first step at which the tracking
+          quantity ($|x_c|$ for the separatrix, $|D(\mathbf{p}_c)|$ for
+          the boundary) drops below its threshold and remains below it
+          for 10 consecutive steps.
+    \item \textbf{Straddle retention:} whether robots remain on both
+          sides of the separatrix from the first straddling step until
+          the stop, the failure count of [14].
+    \item \textbf{Tracking error:} mean and 95th percentile of the
+          tracking quantity over the on-structure phase (band entry to
+          stop).
+    \item \textbf{Formation shape error:} RMS error of the fifteen
+          inter-robot distances against their nominal values; an
+          excursion beyond twice the nominal pair length is a formation
+          collapse.
     \item \textbf{Control effort:} $\int_0^T \|\mathbf{v}^{\text{des}}(t)\|
           \,dt$ over the trial.
 \end{enumerate}
 
-A trial is declared successful if metric (1) is achieved within 200 steps
-without formation collapse (shape error exceeds twice the nominal pair
-length). Success rates are reported as the fraction of successful trials
-in each $(\sigma_{uv}, \sigma_p)$ cell.
+Success rates are reported as the fraction of successful trials in each
+$(\sigma_{uv}, \sigma_p)$ cell.
 
 
 % ---------------------------------------------------------------------------
