@@ -217,11 +217,25 @@ Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
 - 1000-trial/cell run launched in background (~15 min expected), log at
   experiments/outputs/mc_separatrix/run_log_1000.txt; outputs trials.csv
   + summary.csv in experiments/outputs/mc_separatrix/.
-- STILL TODO Phase 4: mc_sweep_ow.py (same _mc_common pattern; metrics:
-  |D| tracking, boundary time-to-band, line-following retention; stop at
-  domain exit; no saddle-contact rule); heading-isotropy check from
-  trials.csv; cliff-vs-prediction comparison against the sigma_uv~0.01
-  open-loop threshold (Results prose already promises this).
+- REDESIGN (user, 2026-07-02 third window): the paper experiment uses ONE
+  consistent straddling start, not random starts. FIXED_START = (0.0,
+  0.35) on the separatrix, random heading, noise dialed up; zero-noise
+  baseline = 100 percent traverse, track_mean 0.002. --starts random kept
+  for basin evidence ONLY; the paper explicitly does NOT characterize the
+  basin ("people never do"), it calls that out in prose.
+- BASIN NUMBER (from trials_random_basin.csv, n=1000/cell, committed):
+  47.9 percent of uniform starts over [-0.8,0.8]x[-0.4,0.4] traverse at
+  zero noise. Limitations passage drafted with this number, shown to
+  user, NOT yet approved or written to .tex (user said continue, not
+  approve). Passage text is in the session log check-in; XX = "roughly
+  half (47.9 percent, n = 1000)".
+- mc_sweep_ow.py DONE and smoke-verified (zero-noise 100 percent track,
+  mean |D| 0.0008). Fixed start (-0.5, 0.25) = O3. 1000-run pending.
+- STILL TODO Phase 4: fixed-start separatrix 1000-run in flight
+  (run_log_1000_fixed.txt); OW 1000-run after it; analysis script
+  (tables from summary CSVs, heading-isotropy check from trials CSVs,
+  cliff-vs-prediction against the sigma_uv~0.01 open-loop threshold);
+  10000-trial final runs once tables look right.
 
 ### Phase 4 original spec (superseded by status above)
 - experiments/mc_sweep_separatrix.py + mc_sweep_ow.py + shared
