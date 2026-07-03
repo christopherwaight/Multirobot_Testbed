@@ -153,7 +153,12 @@ Compile check: cd "Paper_Writing/Separatrix_and_OW_Paper" &&
   behavior of the published law, and it explains the user's original
   "90-degree turn then diagonal" complaint: the old figure showed the
   approach snap plus a straight zero line.
-- DECISION NEEDED FROM USER (check-in sent):
+- DECISION RESOLVED (user, 2026-07-02): keep (a). Problem 2 wording
+  changed to "travel along" in Paper_Draft_2A.tex (compiles). Option (b)
+  is fully written up with context, math, risk, and validation plan in
+  "Paper_Writing/PhD Thesis/phd_thesis_template.tex", subsection
+  sec:ow_corner_branch under Conclusions/Future Work; Phase 7 should
+  start from that note. Original options for the record:
   (a) Honest reframe: Problem 2 wording "circulate along" -> "travel
       along" the boundary; figure presents line-network following (the
       current PNG concept, restyle only). No controller change. Theorem

@@ -337,6 +337,71 @@ Placeholder text ...
 
 Placeholder text ...
 
+\subsection{Okubo-Weiss corner branch selection (deferred 2026-07-02)}
+\label{sec:ow_corner_branch}
+
+% Research note parked here from the separatrix / Okubo-Weiss paper
+% (Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex). The paper
+% keeps the straight-through behavior ("travel along the boundary");
+% this note preserves the circulation idea and the evidence needed to
+% revisit it. Sources: experiments/ow_clean_runs.py and
+% experiments/outputs/ow_clean/ under
+% trunk/Python_Simulations/Vector_Fields/VF_Robot/, git commits 7dc01a8
+% and c19732f, and plan.md (repo root) Phase 3 and Phase 7 entries.
+
+\textbf{Context.} The Okubo-Weiss boundary tracker of the second paper
+drives $\hat{D} = \det(\hat{\mathbf{J}})$ to zero and drifts along the
+level-set tangent $\mathrm{perp}(\nabla\hat{D})$, sign-aligned with the
+ambient flow. On the steady double gyre the $D = 0$ set is not a pair of
+closed diamonds but a network of straight lines,
+$x_f \pm y_f \in \tfrac{1}{2} + \mathbb{Z}$, which cross at the diamond
+corners where $\nabla D = \mathbf{0}$. Noise-free experiments (four
+starts) showed lock-on within 13 to 16 control steps and mean $|D|$
+between 0.003 and 0.007 on the boundary, 0.3 to 0.8 percent of the well
+depth $\pi^4 A^2 = 0.974$, but the tangent follows its line straight
+through every corner crossing: the gradient-floor fallback carries the
+team across the degenerate point and the Newton action resumes on the
+continuing line. Circulation around a single vortex core therefore never
+occurs with the published law. The paper presents this straight-through
+behavior honestly; the wording of Problem 2 was changed from ``circulate
+along'' to ``travel along'' the boundary.
+
+\textbf{The deferred idea.} At an X-crossing the field is locally
+$D(\mathbf{p}^* + \mathbf{t}) \approx \tfrac{1}{2}\mathbf{t}^\top
+\mathbf{H}_D \mathbf{t}$ with $\mathbf{H}_D$ indefinite, so the zero set
+consists of the two asymptote directions $\mathbf{t}$ satisfying
+$\mathbf{t}^\top \mathbf{H}_D \mathbf{t} = 0$. In the eigenbasis of
+$\mathbf{H}_D$ with $\lambda_1 < 0 < \lambda_2$ these lie at angles
+$\pm\arctan\sqrt{-\lambda_1/\lambda_2}$ from the $\lambda_2$
+eigenvector. A corner rule can therefore be computed onboard from
+$\hat{\mathbf{H}}_D$ alone: inside the gradient-floor ball, evaluate
+both estimated asymptotes, discard the one parallel to the incoming
+tangent, and exit along the turning branch, sign-chosen by the flow.
+Selecting the turning branch at every corner closes the circuit around
+one diamond; always selecting the continuing branch reproduces the
+published straight-through behavior, so the rule is a second
+one-parameter behavior switch, mirroring the park-versus-traverse knob
+of the separatrix tracker.
+
+\textbf{Known risk.} The $\hat{\mathbf{H}}_D$ estimate carries a
+formation-radius-independent structural bias (third-derivative terms
+absent from the quadratic model; see the estimator accuracy results of
+the second paper). Eigen-directions survive that bias to within a few
+tenths of a degree on the separatrix, but the accuracy of the estimated
+asymptote directions at the corners specifically is untested, and near
+the corners the eigenvalues themselves are strongly biased. This is the
+first thing to measure.
+
+\textbf{Validation plan when revisited.} Implement as a new primitive
+(working name \textit{logic\_g\_fable\_step}) alongside the untouched
+\textit{logic\_g\_newton\_contour\_pentagon}, following the pattern of
+\textit{separatrix\_logic\_fable\_step} (bit-exact equivalence to the
+parent law when the knob is off, then the new branch enabled).
+Head-to-head at all eight diamond corners plus the domain-center
+crossing: success is loop closure around one diamond; metrics are
+circumnavigation time and mean $|D|$ per circuit, against the
+straight-through baseline of \textit{ow\_clean\_runs.py}.
+
 % ===================================================================
 % REFERENCES
 % ===================================================================
