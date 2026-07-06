@@ -17,15 +17,15 @@ Multirobot_Testbed/
 ├── trunk/
 │   ├── Python_Simulations/
 │   │   ├── Vector_Fields/VF_Robot/     # Main simulation codebase
-│   │   └── Scalar Fields/              # Newton's method saddle finding
+│   │   └── Archive/                    # Deprecated experiments (incl. old Scalar Fields)
 │   ├── robots_3/                       # 3-robot hardware experiment data
 │   ├── robots_4/                       # 4-robot hardware experiment data
 │   └── Deep_Learning/                  # MATLAB sensor calibration
 ├── Paper_Writing/
-│   ├── Vector Field Paper/             # Main paper (canonical: Paper_Draft_3c.tex)
-│   ├── Scalar Field Paper/             # Saddle point paper (draft)
+│   ├── Vector Field Paper/             # Main paper (canonical: Paper_Draft_4A.tex)
+│   ├── Separatrix_and_OW_Paper/        # Separatrix / Okubo-Weiss paper (Paper_Draft_2A.tex)
 │   └── Master's Thesis/
-└── docs/                               # Architecture, control theory, hardware notes
+└── docs/                               # Notation reference, architecture/control/hardware notes
 ```
 
 ---
@@ -50,7 +50,7 @@ python3 experiments/main_omni.py
 | `src/control/primitives.py` | 3-robot control laws |
 | `src/control/quad_primitives.py` | 4-robot control laws |
 | `src/control/kinematics.py` | 3-robot kinematics |
-| `src/fields/environments/` | 13 field definitions (sink, source, vortex, saddle, spirals, etc.) |
+| `src/fields/environments/` | 12 field-definition modules (sink, source, vortex, saddle, spirals, double gyre, separatrix, ocean HFR, etc.) |
 | `src/simulation/runner.py` | Simulation loop |
 | `cluster_builder/clusterbuilder.py` | Formation geometry tool: SAS parameterization, symbolic Jacobian, YAML visualization |
 
@@ -65,12 +65,15 @@ ENVIRONMENT = "sinking_vortex1"    # sink1-3, source1-3, vortex1, saddle, etc.
 CONTROL_PRIMITIVE_3 = "critical_point_orbiter_plane_fitting"
 ```
 
-### Scalar Field Simulation
+### Separatrix / Okubo-Weiss Simulation
 
-```bash
-cd "trunk/Python_Simulations/Scalar Fields"
-python3 path_quality_analysis.py
-```
+The six-robot separatrix and Okubo-Weiss tracking experiments live under
+`trunk/Python_Simulations/Separatrix_Control_testing/`. See
+`Paper_Writing/Separatrix_and_OW_Paper/` and the repo-root `plan.md` for the current
+campaign.
+
+> Note: the earlier scalar-field / Newton saddle-finding line of work is deprecated.
+> Its simulation code is archived at `trunk/Python_Simulations/Archive/Scalar Fields/`.
 
 ---
 
@@ -101,23 +104,25 @@ allrunplotter
 
 ## Research Results
 
-### Vector Field Paper (Paper_Draft_3c.tex, canonical)
+### Vector Field Paper (Paper_Draft_4A.tex, canonical)
 
 **Hardware validation (169 experiments):**
 - 157 convergence trials: 100% success rate
 - 12 orbital trials: radius maintained within tolerance
-- 6 field types: sink, source, vortex, saddle, sinking vortex, spewing vortex
+- 6 field types (this count is under audit; see AUDIT_REPORT_4A.md): sink, source, vortex, saddle, sinking vortex, spewing vortex
 - Average error: 0.012 m (vortex), 0.005 m (saddle)
 
 **Simulation validation:**
 - 8 fields, 1000 Monte Carlo trials per field, 100% convergence
 
-### Scalar Field Paper (draft)
+### Separatrix / Okubo-Weiss Paper (Paper_Draft_2A.tex, active draft)
 
-- Newton's method with formation rotation control
-- With rotation (k_r = 0.3): 100% success across all orientations
-- Without rotation: 60% success (fails at 45 deg and 67.5 deg)
-- Optimal gain discovery: gains below 0.1 are worse than no rotation
+- Six-robot formation (regular pentagon plus center robot) estimates the field
+  Jacobian and traverses the separatrix / Okubo-Weiss trench network using only local
+  measurements.
+- Body complete (18 pages); target venue IEEE Transactions on Robotics (T-RO).
+- Verified symbolically, in Monte Carlo, and in closed-loop simulation, and validated
+  on a real ocean HFR field. See the repo-root `plan.md` for the working tracker.
 
 ---
 
@@ -150,9 +155,10 @@ where r = p* - p_c is the radial vector to the estimated critical point, r_d is 
 - Christopher Waight, Christopher A. Kitts
 - Status: Near submission
 
-**Scalar field saddle finding:**
-- Newton's method with 4-robot formations and rotation control
-- Status: Draft in progress
+**Separatrix / Okubo-Weiss navigation:**
+- Distributed separatrix and Okubo-Weiss trench tracking with a six-robot formation
+- Christopher Waight, Christopher A. Kitts
+- Status: Draft complete (Paper_Draft_2A.tex), T-RO target
 
 ---
 
@@ -169,11 +175,10 @@ where r = p* - p_c is the radial vector to the estimated critical point, r_d is 
 
 ## Documentation
 
-- `CLAUDE.md` -- notation, file map, and workflow reference for AI assistants
-- `docs/architecture.md` -- simulation architecture
-- `docs/control.md` -- control theory and field types
-- `docs/hardware.md` -- hardware and MATLAB workflow
-- `docs/troubleshooting.md` -- common errors
+- `CLAUDE.md` -- style rules, notation hard rules, file map, and workflow for AI assistants
+- `docs/notation.md` -- full symbol reference (field, estimation, control, dynamics, SAS)
+- `docs/architecture.md`, `docs/control.md`, `docs/hardware.md`, `docs/troubleshooting.md`
+  -- placeholder stubs, not yet written
 
 ---
 
