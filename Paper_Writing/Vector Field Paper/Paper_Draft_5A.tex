@@ -187,7 +187,7 @@ At each control cycle (10 Hz), each robot reports its position and vector field 
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.45\textwidth]{control_architecture_2.png}
+    \includegraphics[width=0.42\textwidth]{control_architecture_2.png}
     \caption{Hierarchical control architecture: robot, cluster space, and adaptive navigation layers}
     \label{fig:control_architecture}
 \end{figure}
@@ -252,7 +252,7 @@ To test convergence to critical points, the following simulation experiments wer
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.444\textwidth]{figure_5.png}
+    \includegraphics[width=0.42\textwidth]{figure_5.png}
     \caption{Successful navigation to critical points from random starting positions across six canonical vector field types}
     \label{fig:Allfieldstocenter}
 \end{figure}
@@ -268,40 +268,17 @@ To test convergence to critical points, the following simulation experiments wer
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{lccc}
 \hline
-\textbf{Environment} & \textbf{Avg. Rest Point} & \textbf{Systematic} & \textbf{Precision} \\
+\textbf{Field} & \textbf{Avg. Rest Point} & \textbf{Systematic} & \textbf{Precision} \\
  & \textbf{(x, y) m} & \textbf{Bias (m)} & \textbf{$\sigma$ (m)} \\
 \hline
-\multicolumn{4}{l}{\textit{Stable Node - Sink}} \\
-\hline
- & (0.0006, -0.0001) & 0.0006 & 0.0156 \\
-\hline
-\multicolumn{4}{l}{\textit{Unstable Node - Source}} \\
-\hline
- & (-0.0005, -0.0001) & 0.0006 & 0.0140 \\
-\hline
-\multicolumn{4}{l}{\textit{Center - Vortex}} \\
-\hline
- & (-0.0002, -0.0000) & 0.0002 & 0.0163 \\
-\hline
-\multicolumn{4}{l}{\textit{Stable Spiral - Sinking Vortex}} \\
-\hline
- & (-0.0002, -0.0004) & 0.0004 & 0.0145 \\
-\hline
-\multicolumn{4}{l}{\textit{Unstable Spiral - Spewing Vortex}} \\
-\hline
- & (0.0001, 0.0006) & 0.0006 & 0.0157 \\
-\hline
-\multicolumn{4}{l}{\textit{Saddle Point - Saddle Field}} \\
-\hline
- & (0.0004, -0.0001) & 0.0004 & 0.0157 \\
-\hline
-\multicolumn{4}{l}{\textit{Vortex (reconstructed field)}} \\
-\hline
- & (0.0206, -0.0187) & 0.0278 & 0.0162 \\
-\hline
-\multicolumn{4}{l}{\textit{Saddle (reconstructed field)}} \\
-\hline
- & (-0.0048, -0.0007) & 0.0048 & 0.0157 \\
+Sink & (0.0006, -0.0001) & 0.0006 & 0.0156 \\
+Source & (-0.0005, -0.0001) & 0.0006 & 0.0140 \\
+Vortex & (-0.0002, -0.0000) & 0.0002 & 0.0163 \\
+Sinking Vortex & (-0.0002, -0.0004) & 0.0004 & 0.0145 \\
+Spewing Vortex & (0.0001, 0.0006) & 0.0006 & 0.0157 \\
+Saddle & (0.0004, -0.0001) & 0.0004 & 0.0157 \\
+Vortex (reconstructed) & (0.0206, -0.0187) & 0.0278 & 0.0162 \\
+Saddle (reconstructed) & (-0.0048, -0.0007) & 0.0048 & 0.0157 \\
 \hline
 \end{tabular}
 \end{table}
@@ -343,7 +320,7 @@ Orbital control was evaluated on the same eight fields at different commanded ra
 
 \subsection{Hardware Testbed and Field Representation}
 
-The testbed used for validation is SCU's Robotics Systems Laboratory Decabot testbed \cite{52}, which has been used to validate multirobot adaptive navigation algorithms for both cluster control and swarm particle optimization techniques \cite{8,53}. Figure~\ref{fig:fullbed} shows the complete experimental testbed integrating the robots, printed field map, motion capture system, and CPU processing the control loop.
+The testbed used for validation is SCU's Robotics Systems Laboratory Decabot testbed \cite{52}, which has been used to validate multirobot adaptive navigation algorithms for both cluster control and swarm particle optimization techniques \cite{8,53}. Figure~\ref{fig:fullbed} shows the complete testbed.
 
 \begin{figure}[!t]
     \centering
@@ -361,16 +338,16 @@ The experimental platform used three omnidirectional Decabot rovers operating wi
     \label{fig:HuePredictions}
 \end{figure}
 
- The multilayer control architecture from Section~III is implemented in MATLAB/Simulink running on a central computer that communicates with robots via Wi-Fi at 10 Hz. At each control cycle, the system receives robot positions from OptiTrack and RGB sensor readings from each Decabot. After computation, velocity commands are sent to the robots over the same Wi-Fi signal. The robots' onboard computer (Intel Edison) then commands the drive motors accordingly.
+The multilayer control architecture from Section~III runs in MATLAB/Simulink on a central computer that communicates with the robots over Wi-Fi at 10 Hz: at each control cycle it receives OptiTrack positions and RGB sensor readings, computes the control laws, and returns velocity commands, which each robot's onboard computer (Intel Edison) converts into drive motor commands.
 
-Vector fields are physically realized as printed floor maps using HSV color encoding, where hue (0-2$\pi$) represents flow direction and saturation (0--1) encodes magnitude. After computing vectors at all grid points, magnitudes were scaled to the 0.3--1.0 range for printing to avoid undersaturated areas on the map and to ensure reliable sensor readings. This printed range is remapped to 0-1 in software, with saturation 1.0 corresponding to the maximum robot velocity of 0.3~m/s. This encoding, along with the sensor shroud and self illumination provides field representation that is minimally affected by overhead lighting variations.
+Vector fields are physically realized as printed floor maps using HSV color encoding, where hue (0-2$\pi$) represents flow direction and saturation (0--1) encodes magnitude. Printed magnitudes are scaled to the 0.3--1.0 saturation range to avoid undersaturated areas and ensure reliable sensor readings, then remapped to 0--1 in software, with saturation 1.0 corresponding to the maximum robot velocity of 0.3~m/s. Together with the sensor shroud and self illumination, this encoding is minimally affected by overhead lighting variations.
 
 This method of representing vector fields in printed floor maps has imperfections in both printing and sensing. Figure \ref{fig:measurement_error} shows the analytical fields of both the saddle and vortex field, as well as reconstructions of the field from sensed robot measurements, with the reconstruction error plotted in the bottom row. These reconstructed fields were used to build the MLP models fit for interpolation between sampled coordinates (referenced in Section~IV as the realistic noise model for simulation).
 
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.45\textwidth]{measurement_error_comparison.png}
+    \includegraphics[width=0.42\textwidth]{measurement_error_comparison.png}
     \caption{Analytical fields, sensor-based reconstructions, and reconstruction error for vortex and saddle fields}
     \label{fig:measurement_error}
 \end{figure}
@@ -399,7 +376,7 @@ Figure~\ref{fig:vortextomiddle} shows convergence trajectories from all eight st
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.37\textwidth]{allrunsadjusted.png}
+    \includegraphics[width=0.34\textwidth]{allrunsadjusted.png}
     \caption{Convergence trajectories from eight starting positions showing repeatable paths to vortex center with three robots}
     \label{fig:vortextomiddle}
 \end{figure}
@@ -407,7 +384,7 @@ Figure~\ref{fig:vortextomiddle} shows convergence trajectories from all eight st
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.43\textwidth]{fig9.png}
+    \includegraphics[width=0.40\textwidth]{fig9.png}
     \caption{Distance to center over time, with mean trajectory and standard deviation bounds.}
     \label{fig:Tomiddlewithtime}
 \end{figure}
@@ -420,16 +397,11 @@ Figure~\ref{fig:vortextomiddle} shows convergence trajectories from all eight st
     \setlength{\tabcolsep}{4pt}
     \begin{tabular}{lccc}
     \hline
-    \textbf{Environment} & \textbf{Avg. Rest Point} & \textbf{Systematic} & \textbf{Precision} \\
+    \textbf{Field} & \textbf{Avg. Rest Point} & \textbf{Systematic} & \textbf{Precision} \\
      & \textbf{(x, y) m} & \textbf{Bias (m)} & \textbf{$\sigma$ (m)} \\
     \hline
-    \multicolumn{4}{l}{\textit{Saddle (printed floor map)}} \\
-    \hline
-     & (0.004, -0.001) & 0.005 & 0.014 \\
-    \hline
-    \multicolumn{4}{l}{\textit{Vortex (printed floor map)}} \\
-    \hline
-     & (-0.004, 0.012) & 0.012 & 0.009 \\
+    Saddle (printed map) & (0.004, -0.001) & 0.005 & 0.014 \\
+    Vortex (printed map) & (-0.004, 0.012) & 0.012 & 0.009 \\
     \hline
     \end{tabular}
     \end{table}
@@ -524,7 +496,7 @@ Finally, this work assumes a sampling rate sufficiently high that the system app
 
 The estimated Jacobian's eigenvalues determine the topological type of the nearby critical point (Table~\ref{tab:field_summary}), but this classification is not exercised in the present experiments, which validate location estimation only. Demonstrating type identification, for example by logging the eigenvalues of the estimated Jacobian across the six canonical fields and reporting classification accuracy, is a priority for future work.
 
-The estimation framework uses only instantaneous measurements and carries no state between control cycles. This memoryless property means the estimator does not assume field stationarity, suggesting applicability to environments where the field itself varies with time, that is, where $\mathbf{v}(\mathbf{p}, t)$ changes shape or strength during operation. This is distinct from a critical point that translates while the field's structure around it stays fixed, a moving-target tracking problem the current formulation does not address. Validating the estimator against a genuinely time-varying field is a priority for future work.
+The estimation framework uses only instantaneous measurements and carries no state between control cycles. This memoryless property means the estimator does not assume field stationarity, suggesting applicability to environments where the field itself varies with time, that is, where $\mathbf{v}(\mathbf{p}, t)$ changes shape or strength during operation. This is distinct from a critical point that translates while the field's structure around it stays fixed, a moving-target tracking problem the current formulation does not address. Validating the estimator on a genuinely time-varying field remains future work.
 
 In this work, the sensed vector field is treated purely as a measurement: it informs the critical point estimate but does not act on the robots, whose dynamics (Eqs.~\ref{eq:continuous}--\ref{eq:momentum}) respond only to commanded velocity. In a physical flow such as an ocean current, the field also advects the platform, adding a disturbance term to the robot dynamics that the present controller does not compensate for. Extending the control architecture to account for the field's direct effect on robot motion, rather than treating it solely as a sensed quantity, is a priority for future work.
 
