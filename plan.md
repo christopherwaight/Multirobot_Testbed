@@ -3,6 +3,115 @@
 Working notes for finishing Paper_Draft_2A.tex (IEEE Transactions on Robotics target).
 If a session is cut off, read this file top to bottom and resume at "Current status".
 
+## HANDOFF 2026-07-09: True OECS (TRAP) tracker thread -- IN PROGRESS, resume here
+
+NOTE: the paper has been SPLIT since the sections below were written. The live
+separatrix draft is now Paper_Writing/Separatrix_and_OW_Paper/
+Paper_Draft_Separatrix_1A.tex (2A/3A deleted; OW got its own Paper_Draft_OW.tex).
+
+Task (user): add a "True OECS" controller (Controller 2) built from the
+rate-of-strain tensor S = (J + J^T)/2 (Serra-Haller OECS/TRAPs, objective =
+frame-invariant), validate on the double gyre, run a rotating-frame objectivity
+demo, then write controller + results + rigorous test plan (incl. Santa Barbara
+2km) into Paper_Draft_Separatrix_1A.tex. FULL APPROVED PLAN at:
+~/.claude/plans/i-want-you-to-lazy-garden.md  (read it; it has the complete
+design, math findings, experiment specs, and paper-section outline).
+
+User process decisions this session: paper sections WRITTEN DIRECTLY into
+Paper_Draft_Separatrix_1A.tex (no diff-approve for this thread; still report
+all numbers in the summary); tracker has BOTH tangential behaviors behind one
+knob (s_capture, mirrors park-vs-traverse); rotating-frame demo is highest
+priority; MC sweep + SBC run only if cheap, otherwise plan-in-paper only.
+
+### Verified math facts (do NOT re-derive; unit-tested)
+
+- S entries are linear in the fitted coefficients. s1 = mu - r,
+  r = sqrt(a^2+b^2), a=(ux-vy)/2, b=(uy+vx)/2, mu=(ux+vy)/2;
+  grad s1 = grad mu - (a grad a + b grad b)/r, all closed-form from theta.
+- STRUCTURAL RESULT (paper remark): under ANY quadratic velocity fit, the
+  model's s1 is concave (negative norm of an affine map), so the fitted H_s1
+  is negative semidefinite for EVERY field and ~0 on the double gyre (shear
+  strain b == 0 there). "Newton on grad s1 with H_s1" is impossible in
+  principle; trench transverse curvature lives in THIRD velocity derivatives.
+  The controller therefore uses NO H_s1: frame from S's eigenvectors (e1
+  compression, e2 stretch; FIRST-order coefficients, noise gain 2/sqrt(10)
+  sigma/rho, one rung better than Logic C's H_D tangent), transverse channel =
+  saturated gradient descent of s1 along e1 (restoring slope verified: fitted
+  4.0 vs true curvature 6.9 at (0.03, 0.25)).
+- Double gyre OECS geometry: s1 = -pi^2 A |cos(pi x_f) cos(pi y_f)|; s1-trench
+  network = same grid as D's, but attracting/repelling identity ALTERNATES:
+  upper separatrix (top saddle to crest) attracting, lower half repelling (its
+  attracting partner is the bottom wall); S degenerate (s1=0) on lines
+  x=+/-0.5 and y=0. TRAP cores = the six wall saddles (x in {-1,0,1},
+  y=+/-0.5), s1 there = -pi^2 A ~ -0.987.
+- Rotating frame: v'(x',t) = Q v(Q^T x') + Omega*[[0,-1],[1,0]]x'. Verified:
+  s1 invariant (4e-5), e2 pulls back exactly, fitted D shifts 28% at
+  Omega=0.3 (D' = D + Omega*omega + Omega^2).
+
+### DONE this session (code complete, tests pass, NOT yet pushed)
+
+1. src/control/pentagon_primitives.py: `_strain_quantities()` +
+   Primitive 10 `oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
+   s_capture=None, eps_degen=1e-3)`. Selector: ACQUIRE (pre-band or r
+   degenerate: saturated grad-descent on s1) / TRIM (after banding, s1 >
+   -s_trim: hold) / PARK (core-seek, s1 < s_capture: grad-descent settles at
+   core) / TRACK (transverse s1-descent along e1 + tangential along e2;
+   core-seek descends s1 along e2, ride uses sign-continuity with
+   cluster._oecs_prev_tangent, seeded once from flow). State attrs on cluster:
+   _oecs_prev_tangent, _oecs_banded (fresh cluster per run = fresh state).
+2. tests/test_oecs_estimator.py: 6 tests, all pass (s1 closed form, b==0,
+   eigenframe identity swap upper/lower, restoring slope, H_s1 NSD,
+   objectivity of s1/e2 + non-objectivity of D).
+3. experiments/main_separatrix_oecs.py: 6 starts x {core-seek, ride}, 400
+   steps, GAIN=3, S_CAPTURE=-0.9. Outputs in experiments/outputs/oecs/
+   (oecs_trajectories.png + oecs_clean_runs.csv).
+
+### RESULTS of the clean-run gate (2026-07-09): CONTROLLER WORKS
+
+- CORE-SEEK: 6/6 starts parked at the predicted TRAP core, dist 0.011-0.014,
+  tail_pos_std = 0.000 (perfect hold). Upper starts (S1,S2,S5) + near-center
+  S6 -> TOP saddle (0,0.5); crest start S3 + lower S4 -> BOTTOM saddle
+  (0,-0.5). Degenerate/weak starts escape correctly (t_band 0-3 steps).
+- RIDE: behaves exactly as the objective theory predicts: rides the
+  attracting segment and TRIMs (holds, tail_std=0) at the degeneracy where
+  attraction stops dominating. S2 (0.05,0.40) rode the upper separatrix down
+  and holds at the crest (0.000,-0.004); S4 rode the bottom wall and holds at
+  the wall-corner degeneracy (0.504,-0.512). The CSV's dist_to_core column is
+  NOT a failure metric for ride mode (ride is not supposed to reach a core).
+  KEY CONTRAST vs Logic C: no crest traversal, by design; frame as correct
+  objective behavior in the paper.
+
+### NEXT STEPS in order (details in the approved plan file)
+
+1. (HIGHEST) Rotating-frame demo: new src/fields/environments/
+   Rotating_Frame.py wrapper (signature (x,y,t)->field so AnalyticalField
+   passes its clock t; runner already calls field.step(dt)); then
+   experiments/oecs_objectivity_demo.py: {Logic C, OECS core-seek} x
+   {inertial, rotating}, pull trajectories back through Q^T(t), one
+   inertial-frame overlay figure + final-position discrepancy numbers.
+   Constraint: Omega*r_track < GAIN*V_MAX = 0.12; start Omega ~ 0.2-0.3.
+   Suggested start (0.05, 0.40) (validated core-seek to top saddle).
+2. experiments/oecs_estimator_check.py: traceable script for the paper-remark
+   numbers (b residual, H_s1 NSD eigenvalues, restoring slope 4.0 vs 6.9,
+   s1 4e-5 invariance vs D 28% shift at Omega=0.3, t=2.0, point (0.03,0.25)).
+3. mc_sweep_oecs.py (if cheap): clone mc_sweep_separatrix.py/_mc_common.py;
+   fixed start (0, 0.35), core-seek s_capture=-0.9, success = park within
+   0.06 of TOP saddle (0,0.5); same noise grid, 1000/cell, background run.
+   Expected cliff sigma_uv ~ 0.01 (grad s1 same sigma/rho^2 rung as grad D).
+4. SBC 2km OECS run (if time): clone main_ocean_hfr_2km_ftle_overlay.py
+   config (alpha_mom=0, stiction 0.002, gain 1.8, V_MAX 0.04, TIME_WARP
+   6000, 0.7x formation, start (34.40,-120.39)), swap in oecs_trap_step.
+   Offline Serra-style TRAP extraction = plan-only in the paper test plan.
+5. Paper write-up DIRECTLY into Paper_Draft_Separatrix_1A.tex per the
+   approved plan section 5 (contributions, S/OECS formulation subsection,
+   estimation remark on H_s1 NSD + first-order eigenframe, controller
+   subsection w/ selector block in house style, short stability/objectivity
+   subsection, test-plan extension, results, discussion, new bibitem 36:
+   Serra et al. 2020 TRAPs search-and-rescue, Nature Communications).
+   House style: no emojis, no em-dashes, inline numeric cites, hand
+   \bibitem, pdflatex twice zero undefined refs.
+6. Update this tracker; commit + push each milestone; do not commit CLAUDE.md.
+
 ## Current status (2026-07-03, third session pass)
 
 Paper work resumed (user: "finish this plan"), full remaining backlog approved,

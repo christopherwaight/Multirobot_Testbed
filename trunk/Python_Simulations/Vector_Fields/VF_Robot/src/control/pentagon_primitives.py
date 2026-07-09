@@ -30,6 +30,12 @@ Primitive summary:
   9. logic_g_newton_contour_pentagon -- vector: Newton-step Logic G; drives
                                  det(J) -> 0 via Newton step along gradient +
                                  perp-gradient tangential drift. Fixed orientation.
+ 10. oecs_trap_step            -- vector: objective (frame-invariant) tracker of
+                                 attracting OECS/TRAP curves built from the
+                                 rate-of-strain tensor S = (J + J^T)/2. Rides
+                                 trenches of the smaller strain eigenvalue s1
+                                 using S's own eigenframe; one knob (s_capture)
+                                 switches ride-along vs core-seek-and-park.
 """
 import numpy as np
 
@@ -872,4 +878,209 @@ def logic_g_newton_contour_pentagon(cluster, v_max=0.04, eps_grad=1e-6,
     step_tan = s_tan * t_hat
 
     delta = step_per + step_tan
+    return float(delta[0]), float(delta[1])
+
+
+# -----------------------------------------------------------------------
+# Primitive 10: OECS / TRAP tracker (objective rate-of-strain)
+# -----------------------------------------------------------------------
+# Tracks attracting objective Eulerian coherent structures (OECSs), the
+# instantaneous limits of LCSs (Serra and Haller 2016), operationalized as
+# TRAPs (Serra et al. 2020).  Everything is built from the rate-of-strain
+# tensor S = (J + J^T)/2, which is objective: under any time-dependent
+# rotation Q(t) of the observer frame, S transforms as Q S Q^T, so its
+# eigenvalues are invariant and its eigenvectors co-rotate with the frame.
+# det(J), vorticity, and the Okubo-Weiss field are NOT objective (they are
+# only Galilean invariant), so the Logic C separatrix tracker above can be
+# fooled by a rotating frame; this primitive cannot.
+#
+# Structure tracked: trenches (valley lines) of s1, the smaller eigenvalue
+# of S.  s1 < 0 is the local instantaneous compression rate; the attracting
+# OECS/TRAP is the curve through a local minimum of s1 whose tangent is the
+# stretching eigenvector e2 and whose normal is the compression eigenvector
+# e1.  The TRAP core is the s1 minimum itself.
+#
+# STRUCTURAL LIMIT OF THE QUADRATIC FIT (2026-07-09, verified numerically):
+# under the quadratic velocity model the entries of S are affine in
+# position, so the model's s1 = mu - ||(a, b)|| is the negative norm of an
+# affine map: a CONCAVE function whose Hessian is negative semidefinite for
+# every field, and identically ~0 on the double gyre (where the shear
+# strain b == 0).  The true trench's positive transverse curvature lives in
+# THIRD velocity derivatives the fit cannot see.  A Newton step on
+# (grad s1, H_s1), the naive analogue of the Logic C machinery, is
+# therefore impossible in principle, not merely inaccurate.  This tracker
+# uses no H_s1: the frame comes from S's eigenvectors (first-order fitted
+# coefficients, noise gain (2/sqrt(10)) sigma/rho, one full rung BETTER
+# than the H_D eigenvector tangent Logic C uses), and transverse
+# regulation is saturated gradient descent of s1 along e1 (gradient-rate,
+# not Newton-rate; the restoring slope was verified against the analytic
+# transverse curvature on the double gyre).
+# -----------------------------------------------------------------------
+
+
+def _strain_quantities(theta_u, theta_v):
+    """
+    Rate-of-strain quantities at the centroid from the two quadratic fits.
+
+    S = [[u_x, b], [b, v_y]] with b = (u_y + v_x)/2.  Writing
+    mu = (u_x + v_y)/2 (mean strain, zero for incompressible flow) and
+    a = (u_x - v_y)/2 (deviatoric normal strain), the eigenvalues are
+    s1 = mu - r and s2 = mu + r with r = sqrt(a^2 + b^2).  Under the
+    quadratic model a, b, mu are affine in position, so grad s1 is exact
+    for the fitted field:  grad s1 = grad mu - (a grad a + b grad b)/r.
+
+    Returns:
+        s1:      smaller eigenvalue of S (compression rate, < 0 where
+                 attraction dominates)
+        grad_s1: (2,) spatial gradient of s1 at the centroid
+        e1:      (2,) unit compression eigenvector (normal to the
+                 attracting curve); sign arbitrary
+        e2:      (2,) unit stretching eigenvector (tangent to the
+                 attracting curve); sign arbitrary
+        r:       deviatoric strain magnitude; r ~ 0 means S is nearly
+                 isotropic and the eigenframe is unreliable
+    """
+    _, ux, uy, uxx, uxy, uyy = theta_u
+    _, vx, vy, vxx, vxy, vyy = theta_v
+
+    mu = 0.5 * (ux + vy)
+    a  = 0.5 * (ux - vy)
+    b  = 0.5 * (uy + vx)
+    r  = float(np.hypot(a, b))
+    s1 = mu - r
+
+    grad_mu = 0.5 * np.array([uxx + vxy, uxy + vyy])
+    grad_a  = 0.5 * np.array([uxx - vxy, uxy - vyy])
+    grad_b  = 0.5 * np.array([uxy + vxx, uyy + vxy])
+    grad_s1 = grad_mu - (a * grad_a + b * grad_b) / max(r, 1e-12)
+
+    S = np.array([[ux, b], [b, vy]])
+    _, V = np.linalg.eigh(S)      # ascending: column 0 <-> s1, column 1 <-> s2
+    e1 = V[:, 0]
+    e2 = V[:, 1]
+    return float(s1), grad_s1, e1, e2, r
+
+
+def oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
+                   s_capture=None, eps_degen=1e-3):
+    """
+    Objective attracting-OECS/TRAP tracker (Primitive 10).
+
+    Selector, executed once per control cycle after the estimation step:
+
+      1. ACQUIRE  -- before first structure contact, or when S is nearly
+                     isotropic (r < eps_degen): componentwise saturated
+                     gradient descent on s1, toward stronger attraction.
+      2. TRIM     -- after first contact, if s1 > -s_trim the local
+                     attraction no longer dominates (structure end or
+                     tensor degeneracy): hold position.  This is the
+                     Serra-Haller termination rule playing the role that
+                     the capture test plays in Logic C.
+      3. PARK     -- (core-seek only, s_capture set) if s1 < s_capture the
+                     team is inside the TRAP core well: componentwise
+                     saturated gradient descent on s1 settles at the s1
+                     minimum, the objective saddle.
+      4. TRACK    -- otherwise: transverse channel descends s1 along the
+                     compression eigenvector e1 (snaps onto the trench);
+                     tangential channel drives along the stretching
+                     eigenvector e2.  Tangent sign: core-seek descends s1
+                     along the curve (toward the core); ride keeps
+                     continuity with the previous step's tangent (seeded
+                     from the flow direction once, then never consults the
+                     flow again -- eigenvector direction fields have no
+                     global sign, so continuity is the only objective
+                     orientation rule).
+
+    Every command is built from s1, grad s1, e1, e2 only, all of which
+    transform equivariantly under time-dependent frame rotations, so the
+    commanded trajectory tracks the same material structure in any frame.
+
+    One knob mirrors Logic Park: s_capture = None (default) rides the
+    structure and trims at its end; a finite value (e.g. -0.9 for the
+    A = 0.1 double gyre, whose TRAP cores sit at s1 = -pi^2 A ~ -0.987)
+    parks the team at the TRAP core.
+
+    Per-run state is kept on the cluster (cleared implicitly by building a
+    fresh PentagonCluster per run, the pattern all experiments use):
+      cluster._oecs_prev_tangent  -- (2,) last commanded tangent direction
+      cluster._oecs_banded        -- True once s1 first dropped below -s_trim
+
+    Args:
+        cluster:    PentagonCluster with a vector field attached
+        v_max:      per-direction saturation speed (m/s)
+        g_perp:     gradient gain on both s1-descent channels
+        s_trim:     attraction-dominance threshold (s1 > -s_trim => TRIM)
+        s_capture:  TRAP-core park threshold on s1; None = ride mode
+        eps_degen:  deviatoric strain magnitude below which the eigenframe
+                    is treated as degenerate
+
+    Returns:
+        (vx_c, vy_c): centroid velocity command
+    """
+    # -- Estimation (same single fit per step as Logic C) -------------------
+    u_arr, v_arr = _sample_vector_at_robots(cluster)
+    rel_pos = _get_relative_positions(cluster)
+    theta_u, theta_v = _fit_vector_quadratic(rel_pos, u_arr, v_arr)
+
+    s1, grad_s1, e1, e2, r = _strain_quantities(theta_u, theta_v)
+    flow = np.array([theta_u[0], theta_v[0]])
+
+    banded = getattr(cluster, '_oecs_banded', False)
+    if s1 < -s_trim and not banded:
+        banded = True
+        cluster._oecs_banded = True
+
+    def _log(mode):
+        diag = getattr(cluster, 'diagnostics', None)
+        if diag is not None:
+            diag.append({
+                'mode': mode, 's1': float(s1), 'r': float(r),
+                'g_perp_comp': float(grad_s1 @ e1),
+                'g_tan_comp': float(grad_s1 @ e2),
+            })
+
+    def _descend_s1():
+        vx = -v_max * np.tanh(g_perp * grad_s1[0] / v_max)
+        vy = -v_max * np.tanh(g_perp * grad_s1[1] / v_max)
+        return float(vx), float(vy)
+
+    # -- 1. ACQUIRE: no structure yet, or eigenframe degenerate -------------
+    if r < eps_degen or not banded:
+        _log('ACQUIRE')
+        return _descend_s1()
+
+    # -- 2. TRIM: attraction stopped dominating on-structure ----------------
+    if s1 > -s_trim:
+        _log('TRIM')
+        return 0.0, 0.0
+
+    # -- 3. PARK: inside the TRAP core well (core-seek only) ----------------
+    if s_capture is not None and s1 < s_capture:
+        _log('PARK')
+        return _descend_s1()
+
+    # -- 4. TRACK: transverse snap along e1 + tangential drive along e2 -----
+    # Transverse: descend s1 along the compression direction.  Quadratic in
+    # e1, so the eigenvector's sign ambiguity cancels.
+    c_perp = -g_perp * float(grad_s1 @ e1)
+    step_perp = v_max * np.tanh(c_perp / v_max) * e1
+
+    if s_capture is not None:
+        # Core-seek: descend s1 along the curve, slowing into the core.
+        mode = 'SEEK'
+        c_tan = -g_perp * float(grad_s1 @ e2)
+        step_tan = v_max * np.tanh(c_tan / v_max) * e2
+        tangent = e2 if c_tan >= 0 else -e2
+    else:
+        # Ride: constant cruise along e2, sign by continuity.
+        mode = 'RIDE'
+        prev = getattr(cluster, '_oecs_prev_tangent', None)
+        ref = prev if prev is not None else flow
+        t_hat = e2 if float(e2 @ ref) >= 0 else -e2
+        step_tan = v_max * np.tanh(1.0) * t_hat
+        tangent = t_hat
+
+    cluster._oecs_prev_tangent = tangent
+    _log(mode)
+    delta = step_perp + step_tan
     return float(delta[0]), float(delta[1])
