@@ -48,11 +48,13 @@ Multirobot Systems, Adaptive Navigation, Vector Fields, Critical Points, Coopera
 
 \IEEEPARstart{M}{ultirobot} systems enhance the redundancy, throughput, coverage, and reconfigurability of robotic systems in applications ranging from warehouse fulfillment to search and rescue \cite{1}. Equipped with instruments, they form mobile sensor networks that exploit their spatial distribution to estimate and characterize environmental features across a region \cite{2,3,4}. Adaptive navigation (AN) techniques use these estimates to direct the network to or along features of interest. Unlike survey-oriented navigation, which exhaustively traverses a field and identifies features afterward, AN quickly locates local features and follows them in dynamic environments \cite{5,6,7}.
 
-AN in scalar fields is well explored. Each robot collects a single scalar measurement as the input to a navigation policy that reaches and follows features such as extrema, saddle points, ridges, trenches, contour lines, and fronts \cite{5,6,7,8,9}. Strategies include gradient following \cite{10}, Hessian estimation \cite{4}, extended information consensus filters \cite{11,12,13}, constrained nonsmooth distributed optimization \cite{14}, and bio-inspired search \cite{15,16}, and several such systems have been field-deployed on ground, surface, and aerial vehicles for environmental monitoring, pollution tracking, and search and rescue \cite{10,17,18,19,20}.
+AN in scalar fields is well explored. Each robot collects a single scalar measurement as the input to a navigation policy that reaches and follows features such as extrema, saddle points, ridges, trenches, contour lines, and fronts \cite{5,6,7,8,9}. Strategies include gradient following \cite{10}, Hessian estimation \cite{4}, extended information consensus filters \cite{11,13}, constrained nonsmooth distributed optimization \cite{14}, and bio-inspired search \cite{15}, and several such systems have been field-deployed on ground, surface, and aerial vehicles for environmental monitoring, pollution tracking, and search and rescue \cite{10,18,19,20}.
 
-By contrast, only a few works address navigation of physically sensed vector fields \cite{21,22,23}. Much of the broader vector field literature constructs artificial fields for path-following and obstacle avoidance, a separate problem from sensing a real flow \cite{24,25,26,27,28}; field campaigns such as MBARI's CANON program track features carried by an actual ocean current rather than a field constructed for guidance \cite{29}. The work that does sense physical fields either presumes prior knowledge of the environment, unavailable in the unmapped settings that motivate this work \cite{30,31}, or navigates online: minimally actuated drifters ride and station-keep along ambient streamlines, and PIM-triple-inspired teams straddle a saddle and track a single stable or unstable manifold from local velocity measurements \cite{23,32,33,34}. These methods supply a heading along the flow or track the manifold of a single assumed saddle; none recovers the coordinate of a critical point together with its identity across the full taxonomy of feature types \cite{23,32,33}. Estimating critical point locations in vector fields remains an open problem for multirobot systems.
+By contrast, only a few works address navigation of physically sensed vector fields \cite{21,22,23}. Much of the broader vector field literature constructs artificial fields for path-following and obstacle avoidance, a separate problem from sensing a real flow \cite{24,25,26,28}, and field campaigns that track features carried by an actual ocean current underscore the distinction \cite{29}.
 
-The transport and accumulation behavior of real flows is organized by the critical points of the field, the coordinates where the flow vanishes \cite{32,35,36}. A surface convergence zone acts as a sink that gathers buoyant debris and drifting bodies, making it a high probability search region after a loss at sea \cite{37,38,39}. A ruptured wellhead or harbor discharge acts as a source that must be reached against an outward flow before responders can contain it \cite{40,41,42}. A mesoscale ocean eddy acts as a center that traps a body of water and the plankton bloom within it and carries them across a basin for weeks, so that monitoring the bloom over its lifetime requires a sensor to orbit the drifting core at a fixed standoff rather than hold a ground-fixed point against the rotation \cite{43,44,45}. In each case the operational requirement is the coordinate of the feature itself, to drive an agent onto it or hold a fixed radius around it, not merely a heading toward it.
+Many of these environments are governed by a spatially varying velocity or force, and their transport and accumulation behavior is organized by the critical points of the field, the coordinates where the flow vanishes \cite{32,36}. A surface convergence zone acts as a sink that gathers buoyant debris and drifting bodies, making it a high probability search region after a loss at sea \cite{37,38}. A ruptured wellhead or harbor discharge acts as a source that must be reached against an outward flow before responders can contain it \cite{40,41}. A mesoscale ocean eddy acts as a center that traps a body of water and the plankton bloom within it and carries them across a basin for weeks, so that monitoring the bloom over its lifetime requires a sensor to orbit the drifting core at a fixed standoff rather than hold a ground-fixed point against the rotation \cite{43,44,45}. In each case the operational requirement is the coordinate of the feature itself, to drive an agent onto it or hold a fixed radius around it, not merely a heading toward it.
+
+The work that does sense physical fields falls into two camps. A substantial portion presumes prior knowledge of the environment, which is unavailable in the unmapped settings that motivate this work \cite{30,31}. The few online methods split into two behaviors: minimally actuated drifters that ride and station-keep along ambient streamlines, and PIM-triple-inspired teams that straddle a saddle and track a single stable or unstable manifold from local velocity measurements \cite{23,32,33}. These supply a heading along the flow or track the manifold of a single assumed saddle; none recovers the coordinate of a critical point together with its identity across the full taxonomy of feature types \cite{23,32,33}. Estimating the locations of critical points in vector fields remains an open problem for multirobot systems.
 
 Recovering those coordinates is harder than following a heading, for reasons of both information and implementation. First, the location and classification of a critical point are absent from any single velocity sample; they are carried by the spatial derivatives of the field \cite{46}. A single platform must move, sample again, and difference its readings, which conflates the spatial gradient with the field's change in time and can return features that are not physically present. A distributed team removes this temporal aliasing by sampling at one instant, but recovering the derivatives is still not recovering the feature \cite{22,23,47}. Magnitude-based methods \cite{48} reduce the flow to a scalar and yield a descent direction, but the magnitude vanishes at every critical point regardless of type, and estimating the two velocity components as independent scalar fields still does not locate the point. The coordinate and the identity are properties of the assembled Jacobian: the location is where the coupled field vanishes, recovered by inverting the matrix, and the type is fixed by its eigenvalues \cite{36}.
 
@@ -354,7 +356,7 @@ The experimental platform used three omnidirectional Decabot rovers operating wi
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.518\textwidth]{color_sensor_hsv_predictions.png}
+    \includegraphics[width=\columnwidth]{color_sensor_hsv_predictions.png}
     \caption{Neural network predictions for HSV field encoding on unit-normalized axes. Hue RMSE = 0.027 (0.17 rad, 9.7$^\circ$), saturation RMSE = 0.044 (4.4\%).}
     \label{fig:HuePredictions}
 \end{figure}
@@ -442,7 +444,7 @@ Orbital control was evaluated on both fields at commanded radii from 0.01~m to 0
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.50\textwidth]{orbit040_analytical_vs_real.png}
+    \includegraphics[width=\columnwidth]{orbit040_analytical_vs_real.png}
     \caption{Orbital trajectory comparison: analytical prediction vs. hardware performance in saddle field}
     \label{fig:perfect and real saddle orbit}
 \end{figure}
@@ -501,7 +503,7 @@ As can be seen in Figure~\ref{fig:primitive_comparison}, both alternative primit
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.5\textwidth]{orbit_demonstration.png}
+    \includegraphics[width=\columnwidth]{orbit_demonstration.png}
     \caption{Orbital trajectories: vector-sum primitive versus the proposed critical point controller}
     \label{fig:primitive_comparison}
 \end{figure}
@@ -644,17 +646,11 @@ where $\mathbf{J}_c^{-1}$ is a $6 \times 6$ matrix containing partial derivative
 
 \bibitem{11} F. Pagano et al., "Distributed Multi-Robot Active-Sensing of a Diffusive Source," \textit{IEEE Robotics and Automation Letters}, 2025.
 
-\bibitem{12} Z. Jin, H. Li, Z. Qin, and Z. Wang, "Gradient-free cooperative source-seeking of quadrotor under disturbances and communication constraints," \textit{IEEE Transactions on Industrial Electronics}, vol. 72, no. 2, pp. 1969--1979, 2024.
-
 \bibitem{13} S. Li, R. Kong, and Y. Guo, "Cooperative distributed source seeking by multiple robots: Algorithms and experiments," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 19, no. 6, pp. 1810--1820, 2014.
 
 \bibitem{14} Z. Deng and J. Luo, "Fully distributed algorithms for constrained nonsmooth optimization problems of general linear multiagent systems and their application," \textit{IEEE Transactions on Automatic Control}, vol. 69, no. 2, pp. 1377--1384, 2023.
 
 \bibitem{15} W. Li, J. A. Farrell, S. Pang, and R. M. Arrieta, "Moth-inspired chemical plume tracing on an autonomous underwater vehicle," \textit{IEEE Transactions on Robotics}, vol. 22, no. 2, pp. 292--307, 2006.
-
-\bibitem{16} Y. Deng, B. Zhu, and H. Duan, "Bioinspired bearing–based target enclosing control for unmanned aerial vehicle swarm," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 30, no. 4, pp. 2699--2709, 2024.
-
-\bibitem{17} S. McCammon et al., "Ocean front detection and tracking using a team of heterogeneous marine vehicles," \textit{Journal of Field Robotics}, vol. 38, no. 6, pp. 854--881, 2021.
 
 \bibitem{18} S. R. Ramp et al., "Preparing to predict: the second autonomous ocean sampling network (AOSN-II) experiment in the Monterey Bay," \textit{Deep Sea Research Part II: Topical Studies in Oceanography}, vol. 56, no. 3-5, pp. 68--86, 2009.
 
@@ -674,8 +670,6 @@ where $\mathbf{J}_c^{-1}$ is a $6 \times 6$ matrix containing partial derivative
 
 \bibitem{26} D. Panagou, "Motion planning and collision avoidance using navigation vector fields," in \textit{Proc. IEEE International Conference on Robotics and Automation}, 2014, pp. 2513--2518.
 
-\bibitem{27} T. Liddy, T.-F. Lu, P. Lozo, and D. Harvey, "Obstacle avoidance using complex vector fields," in \textit{Proc. Australasian Conference on Robotics and Automation}, 2008.
-
 \bibitem{28} X. Wang et al., "Adaptive vector field guidance without a priori knowledge of course dynamics and wind," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 27, no. 6, pp. 4597--4607, 2022.
 
 \bibitem{29} Y. Zhang, M. A. Godin, J. G. Bellingham, and J. P. Ryan, "Using an autonomous underwater vehicle to track a coastal upwelling front," \textit{IEEE Journal of Oceanic Engineering}, vol. 37, no. 3, pp. 338--347, 2012.
@@ -688,23 +682,15 @@ where $\mathbf{J}_c^{-1}$ is a $6 \times 6$ matrix containing partial derivative
 
 \bibitem{33} G. Knizhnik, P. Li, X. Yu, and M. A. Hsieh, "Flow-based control of marine robots in gyre-like environments," in \textit{Proc. IEEE International Conference on Robotics and Automation (ICRA)}, pp. 3047--3053, 2022.
 
-\bibitem{34} M. Michini, M. A. Hsieh, E. Forgoston, and I. B. Schwartz, "Experimental validation of robotic manifold tracking in gyre-like flows," in \textit{Proc. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, pp. 2306--2311, 2014.
-
-\bibitem{35} M. Michini, H. Rastgoftar, M. A. Hsieh, and S. Jayasuriya, "Distributed formation control for collaborative tracking of manifolds in flows," in \textit{Proc. American Control Conference}, pp. 3874--3880, 2014.
-
 \bibitem{36} X. Tricoche, Gerik Scheuermann, and H. Hagen, "Continuous topology simplification of planar vector fields," in \textit{Proc. IEEE Visualization}, pp. 159--166, 2001.
 
 \bibitem{37} W. G. Pichel et al., "Marine debris collects within the North Pacific subtropical convergence zone," \textit{Marine Pollution Bulletin}, vol. 54, no. 8, pp. 1207--1211, 2007.
 
 \bibitem{38} M. Mateus, R. Canelas, L. Pinto, and N. Vaz, "When tragedy strikes: potential contributions from ocean observation to search and rescue operations after drowning accidents," \textit{Frontiers in Marine Science}, vol. 7, p. 55, 2020.
 
-\bibitem{39} E. Van Sebille et al., "The physical oceanography of the transport of floating marine debris," \textit{Environmental Research Letters}, vol. 15, no. 2, p. 023003, 2020.
-
 \bibitem{40} P. Keramea, K. Spanoudaki, G. Zodiatis, G. Gikas, and G. Sylaios, "Oil spill modeling: A critical review on current trends, perspectives, and challenges," \textit{Journal of Marine Science and Engineering}, vol. 9, no. 2, p. 181, 2021.
 
 \bibitem{41} J. Wang, Y. Lin, R. Liu, and J. Fu, "Odor source localization of multi-robots with swarm intelligence algorithms: A review," \textit{Frontiers in Neurorobotics}, vol. 16, p. 949888, 2022.
-
-\bibitem{42} H. Ji, M. Xu, W. Huang, and K. Yang, "The influence of oil leaking rate and ocean current velocity on the migration and diffusion of underwater oil spill," \textit{Scientific Reports}, vol. 10, no. 1, p. 9226, 2020.
 
 \bibitem{43} C. Dong et al., "Oceanic mesoscale eddies," \textit{Ocean-Land-Atmosphere Research}, vol. 4, p. 0081, 2025.
 
