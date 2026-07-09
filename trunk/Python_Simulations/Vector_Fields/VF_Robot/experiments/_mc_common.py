@@ -90,11 +90,15 @@ def run_trial(spec):
         effort += np.hypot(vx, vy) * c.timestep
         return vx, vy
 
+    # Terminal target defaults to the bottom saddle (Logic C traverse);
+    # the OECS core-seek sweep passes the TOP saddle, its segment's TRAP
+    # core (mc_sweep_oecs.py).
+    target = spec.get("target", SADDLE)
     reached_saddle = False
     for _ in range(SIM_STEPS):
         cluster.move(wrapped)
         cx, cy = cluster.get_centroid()
-        if np.hypot(cx - SADDLE[0], cy - SADDLE[1]) < SADDLE_CONTACT_D:
+        if np.hypot(cx - target[0], cy - target[1]) < SADDLE_CONTACT_D:
             reached_saddle = True
             break
         if abs(cx) > 1.0 or abs(cy) > 0.52:
