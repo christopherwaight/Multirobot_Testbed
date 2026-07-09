@@ -73,7 +73,7 @@ In its most general form, a vector field assigns a vector $\mathbf{v}(\mathbf{p}
 
 Unlike scalar fields where $m=1$, vector fields can exhibit features such as critical points $\mathbf{p}^*$ where the field magnitude vanishes:
 
-\begin{equation}
+\begin{equation}\label{eq:1}
 \mathbf{v}(\mathbf{p}^*) = \mathbf{0}
 \end{equation}
 
@@ -117,52 +117,52 @@ Eigenvalue analysis can also identify degenerate scenarios such as cases where t
 We refer to the group of robots as a cluster: a formation treated as a single virtual rigid body whose centroid, orientation, and internal geometry can be independently specified and controlled \cite{50,51}.
 
 Given a cluster of three robots sampling a planar vector field with robot positions $\mathbf{p}_i = (x_i, y_i)$ and corresponding vector field measurements $(u_i, v_i)$ for $i \in \{1, 2, 3\}$, we can approximate the vector field components across the cluster's spatial extent using linear planar models:
-\begin{equation}
+\begin{equation}\label{eq:2}
 U(x,y) = ax + by + c
 \end{equation}
-\begin{equation}
+\begin{equation}\label{eq:3}
 V(x,y) = dx + ey + f
 \end{equation}
 
 The coefficients are determined by solving the linear systems:
-\begin{equation}
+\begin{equation}\label{eq:4}
 \mathbf{A}\boldsymbol{\theta}_u = \mathbf{u}, \quad \mathbf{A}\boldsymbol{\theta}_v = \mathbf{v}
 \end{equation}
 where:
-\begin{equation}
+\begin{equation}\label{eq:5}
 \mathbf{A} = \begin{bmatrix} x_1 & y_1 & 1 \\ x_2 & y_2 & 1 \\ x_3 & y_3 & 1 \end{bmatrix}, \quad \boldsymbol{\theta}_u = \begin{bmatrix} a \\ b \\ c \end{bmatrix}, \quad \boldsymbol{\theta}_v = \begin{bmatrix} d \\ e \\ f \end{bmatrix}
 \end{equation}
 and $\mathbf{u} = [u_1, u_2, u_3]^T$, $\mathbf{v} = [v_1, v_2, v_3]^T$ are the collected field measurements.
 
 The critical point $\mathbf{p}^* = (x^*, y^*)$ satisfies $U(x^*, y^*) = 0$ and $V(x^*, y^*) = 0$, which yields:
-\begin{equation}
+\begin{equation}\label{eq:6}
 ax^* + by^* + c = 0, \quad dx^* + ey^* + f = 0
 \end{equation}
 
 Rewriting in matrix form:
-\begin{equation}
+\begin{equation}\label{eq:7}
 \mathbf{J}\mathbf{p}^* = -\mathbf{h}
 \end{equation}
 where the Jacobian matrix and offset vector are:
-\begin{equation}
+\begin{equation}\label{eq:8}
 \mathbf{J} = \begin{bmatrix} a & b \\ d & e \end{bmatrix}, \quad \mathbf{h} = \begin{bmatrix} c \\ f \end{bmatrix}
 \end{equation}
 
 Thus, provided $\det(\mathbf{J}) \neq 0$:
-\begin{equation}
+\begin{equation}\label{eq:9}
 \mathbf{p}^* = -\mathbf{J}^{-1}\mathbf{h}
 \end{equation}
 
 The eigenvalues of the Jacobian can be used to identify the type of nearby critical point (Table~\ref{tab:field_summary}).
 
-This recovery is exact whenever the true field is affine over the cluster's spatial extent, regardless of formation size, since Eqs.~(2)--(3) then match the field exactly rather than merely approximating it. On a smooth nonlinear field the linear fit instead carries a first-order (linearization) error that grows with the curvature of the field and shrinks as the formation contracts toward the critical point.
+This recovery is exact whenever the true field is affine over the cluster's spatial extent, regardless of formation size, since Eqs.~(\ref{eq:2})--(\ref{eq:3}) then match the field exactly rather than merely approximating it. On a smooth nonlinear field the linear fit instead carries a first-order (linearization) error that grows with the curvature of the field and shrinks as the formation contracts toward the critical point.
 
 
 \subsection{Minimum Robot Requirements}
 
-Eqs.~(2)--(3) each contain three coefficients. From Eq.~(4), each robot contributes one equation to each system: robot $i$ provides $u_i = ax_i + by_i + c$ for the U-component and $v_i = dx_i + ey_i + f$ for the V-component. To uniquely determine three unknowns requires at least three equations. Therefore: three robots are the minimum required for critical point estimation.
+Eqs.~(\ref{eq:2})--(\ref{eq:3}) each contain three coefficients. From Eq.~(\ref{eq:4}), each robot contributes one equation to each system: robot $i$ provides $u_i = ax_i + by_i + c$ for the U-component and $v_i = dx_i + ey_i + f$ for the V-component. To uniquely determine three unknowns requires at least three equations. Therefore: three robots are the minimum required for critical point estimation.
 
-With fewer than three robots, the system becomes underdetermined: the matrix $\mathbf{A}$ in Eq.~(4) has fewer rows than columns. This admits infinitely many solutions for the coefficients, preventing unique identification of the critical point location. With more than three robots ($n > 3$), the system becomes overdetermined and is solved via least-squares minimization.
+With fewer than three robots, the system becomes underdetermined: the matrix $\mathbf{A}$ in Eq.~(\ref{eq:4}) has fewer rows than columns. This admits infinitely many solutions for the coefficients, preventing unique identification of the critical point location. With more than three robots ($n > 3$), the system becomes overdetermined and is solved via least-squares minimization.
 
 Three non-collinear robots are also sufficient: $\det(\mathbf{A})$ equals twice the signed area of the formation triangle, so $\mathbf{A}$ is invertible exactly when the robots are not collinear.
 
@@ -174,7 +174,7 @@ We develop two control primitives that drive the cluster centroid $\mathbf{p}_c 
 
 \subsubsection{Critical Point Attraction}
 To navigate the cluster center $\mathbf{p}_c$ to the critical point, we apply a proportional control law:
-\begin{equation}
+\begin{equation}\label{eq:10}
 \dot{\mathbf{p}}_c = k(\mathbf{p}^* - \mathbf{p}_c)
 \end{equation}
 where $k > 0$ is the proportional gain. This linear error dynamic guarantees global exponential convergence to the estimated critical point with time constant $\tau = 1/k$ provided the estimate is stationary.
@@ -182,14 +182,14 @@ where $k > 0$ is the proportional gain. This linear error dynamic guarantees glo
 \subsubsection{Orbital Navigation}
 To maintain a circular orbit of radius $r_d$ around $\mathbf{p}^*$, we define the radial vector $\mathbf{r} = \mathbf{p}^* - \mathbf{p}_c$ with magnitude $r = \|\mathbf{r}\|$. The unit radial vector is $\hat{\mathbf{r}} = \mathbf{r}/r$, and the tangent vector $\hat{\mathbf{r}}_\perp$ is obtained via a $-90^\circ$ rotation. The orbital velocity command is:
 
-\begin{equation}
+\begin{equation}\label{eq:11}
 \dot{\mathbf{p}}_c = k_t \hat{\mathbf{r}}_\perp + k_r(r - r_d)\hat{\mathbf{r}}
 \end{equation}
 
 Here, $k_t$ determines the orbital speed (where $\text{sgn}(k_t)$ dictates direction) and $k_r > 0$ drives radial convergence.
 This control law decouples radial and angular dynamics. The radial error $e_r = r - r_d$ follows $\dot{e}_r = -k_r e_r$, ensuring exponential convergence to $r_d$. As $r \to r_d$, the angular velocity stabilizes to $\omega = k_t/r_d$, producing steady circular motion.
 
-Together, these primitives enable a two-phase mission: approach the critical point using Eq.~(10), then transition to orbital station-keeping using Eq.~(11).
+Together, these primitives enable a two-phase mission: approach the critical point using Eq.~(\ref{eq:10}), then transition to orbital station-keeping using Eq.~(\ref{eq:11}).
 
 \section{Multilayer Control Architecture}
 
@@ -325,7 +325,7 @@ To test convergence to critical points, the following simulation experiments wer
 
 \subsection{Orbital Control}
 
-Orbital control was evaluated on the same eight fields at different commanded radii. For each radius, the cluster was positioned at the desired radius to initialize the run, then the orbital controller (Eq.~11) was used for 600 timesteps. The mean radial error and standard deviation were computed after discarding the first 100 timesteps (10~s) as a settling transient.
+Orbital control was evaluated on the same eight fields at different commanded radii. For each radius, the cluster was positioned at the desired radius to initialize the run, then the orbital controller (Eq.~\ref{eq:11}) was used for 600 timesteps. The mean radial error and standard deviation were computed after discarding the first 100 timesteps (10~s) as a settling transient.
 
 \begin{table}[!t]
     \centering
@@ -399,13 +399,13 @@ This method of representing vector fields in printed floor maps has imperfection
 Hardware validation focused on two representative field types that encompass the key challenges of vector field navigation: rotational dynamics (vortex) and hyperbolic instability (saddle). The vortex field tests pure rotational dynamics and provides continuity with previous studies in our research group~\cite{22,48}. The saddle is the only canonical field type that contains separatrices, which act as Lagrangian coherent structures in steady flows. Testing on 
 the saddle field validates that the framework operates reliably in the presence of these structures.
 
-For each field, 8 starting locations were selected around the perimeter of the workspace and the attraction controller (Eq.~10) was run 10 times from each location using the three-robot equilateral triangle formation with a 0.33~m side length, yielding 80 trials per field. Due to file management errors, 2 saddle trials and 1 vortex trial were lost, resulting in 157 usable convergence trials.
+For each field, 8 starting locations were selected around the perimeter of the workspace and the attraction controller (Eq.~\ref{eq:10}) was run 10 times from each location using the three-robot equilateral triangle formation with a 0.33~m side length, yielding 80 trials per field. Due to file management errors, 2 saddle trials and 1 vortex trial were lost, resulting in 157 usable convergence trials.
 
-Additionally, each field was used to test the critical point orbiting controller (Eq.~11). A total of 6 starting radii were chosen with distances to match the simulation distances. Each orbiting controller experiment was run for 3000 cycles at 10 Hz, allowing for several orbits around the critical points to be made.
+Additionally, each field was used to test the critical point orbiting controller (Eq.~\ref{eq:11}). A total of 6 starting radii were chosen with distances to match the simulation distances. Each orbiting controller experiment was run for 3000 cycles at 10 Hz, allowing for several orbits around the critical points to be made.
 
  \subsection{Attraction Controller Results}
 
-For each field, the attraction controller (Eq.~10) was run from eight starting positions around the workspace perimeter, with 10 repetitions per starting position. Excluding lost trials due to file management errors, 79 vortex trials and 78 saddle trials were analysed. The final centroid position of each trial was used to determine systematic bias and precision, congruent with the metrics for simulations in Section~IV.
+For each field, the attraction controller (Eq.~\ref{eq:10}) was run from eight starting positions around the workspace perimeter, with 10 repetitions per starting position. Excluding lost trials due to file management errors, 79 vortex trials and 78 saddle trials were analysed. The final centroid position of each trial was used to determine systematic bias and precision, congruent with the metrics for simulations in Section~IV.
 
 The cluster converged to the critical point in 100\% of the 157 hardware trials. Table~\ref{tab:estimation_results} summarises the results. In the vortex field, systematic bias was 0.012~m with precision of 0.009~m. In the saddle field, systematic bias was 0.005~m with precision of 0.014~m.
 
@@ -454,7 +454,7 @@ Figure~\ref{fig:vortextomiddle} shows convergence trajectories from all eight st
 
 \subsection{Orbital Control Results}
 
-Orbital control was evaluated on both fields at commanded radii from 0.01~m to 0.50~m. For each radius, the orbital controller (Eq.~11) was run for 3000 cycles at 10~Hz, and the mean radial error and standard deviation of the path travelled relative to the desired path were recorded over the full run (more than 3 complete orbits. See Table~\ref{tab:orbital_radius_comparison}). Unlike the simulation statistics of Table~\ref{tab:simulation_orbital_results}, which discard a 10~s settling transient, the hardware statistics cover the full record including the initial transient.
+Orbital control was evaluated on both fields at commanded radii from 0.01~m to 0.50~m. For each radius, the orbital controller (Eq.~\ref{eq:11}) was run for 3000 cycles at 10~Hz, and the mean radial error and standard deviation of the path travelled relative to the desired path were recorded over the full run (more than 3 complete orbits. See Table~\ref{tab:orbital_radius_comparison}). Unlike the simulation statistics of Table~\ref{tab:simulation_orbital_results}, which discard a 10~s settling transient, the hardware statistics cover the full record including the initial transient.
 
  In the vortex field, mean radial errors decreased from 0.246~m at a commanded radius of 0.01~m to $-$0.035~m at 0.50~m, with standard deviations ranging from 0.012 to 0.053~m. In the saddle field, mean radial errors ranged from 0.114~m to 0.060~m over the same commanded radii, with standard deviations increasing from 0.011 to 0.095~m. Figure~\ref{fig:perfect and real saddle orbit} shows the path expected on a noise free field and compares it to the path travelled in hardware for a particular radius.
 
@@ -503,7 +503,7 @@ By comparing the noise free fields with the reconstructed fields in simulation, 
 
 To avoid errors arising from robots becoming collinear (condition number of A matrix is $\infty$), an equilateral triangle was chosen as the cluster shape. This shape minimizes the condition number of the A matrix in Section II among formations of the same size centered on the sampled region, making this formation optimal for sampling.
 
-Further errors could arise from poor conditioning of the estimated Jacobian $\kappa(\mathbf{J})$ in Eq.~(8), directly affecting the estimation of the critical point location (Eq.~(9)). The negative bias in orbital performance at the largest commanded radii traces to degradation of the reconstructed field near the edge of the mapped region: there the estimated critical point distance is systematically inflated, so the radial controller pulls the cluster inside the commanded radius. This is the range-dependent error amplification captured by $\kappa(\mathbf{J})$. The condition number $\kappa(\mathbf{J})$ captures how the local field structure amplifies coefficient errors into critical point location errors. Unlike $\kappa(\mathbf{A})$, this factor is an intrinsic property of the field and is not under the designer's control. The condition number grows when the Jacobian eigenvalues have very different magnitudes, as occurs near highly asymmetric nodes or saddle points with disparate stable and unstable manifold strengths. In the limiting case, $\kappa(\mathbf{J}) \to \infty$ as $\det(\mathbf{J}) \to 0$, corresponding to non-hyperbolic critical points or regions of near-uniform flow where no isolated critical point exists, we approach these conditions as we move further away from the critical point, as our sampling points make the field look locally like a uniform field. These singular cases are detectable through eigenvalue analysis of the estimated Jacobian and fallback strategies could be developed, such as resizing the cluster.
+Further errors could arise from poor conditioning of the estimated Jacobian $\kappa(\mathbf{J})$ in Eq.~(\ref{eq:8}), directly affecting the estimation of the critical point location (Eq.~(\ref{eq:9})). The negative bias in orbital performance at the largest commanded radii traces to degradation of the reconstructed field near the edge of the mapped region: there the estimated critical point distance is systematically inflated, so the radial controller pulls the cluster inside the commanded radius. This is the range-dependent error amplification captured by $\kappa(\mathbf{J})$. The condition number $\kappa(\mathbf{J})$ captures how the local field structure amplifies coefficient errors into critical point location errors. Unlike $\kappa(\mathbf{A})$, this factor is an intrinsic property of the field and is not under the designer's control. The condition number grows when the Jacobian eigenvalues have very different magnitudes, as occurs near highly asymmetric nodes or saddle points with disparate stable and unstable manifold strengths. In the limiting case, $\kappa(\mathbf{J}) \to \infty$ as $\det(\mathbf{J}) \to 0$, corresponding to non-hyperbolic critical points or regions of near-uniform flow where no isolated critical point exists, we approach these conditions as we move further away from the critical point, as our sampling points make the field look locally like a uniform field. These singular cases are detectable through eigenvalue analysis of the estimated Jacobian and fallback strategies could be developed, such as resizing the cluster.
 
 Across all four error sources, estimation errors shift the equilibrium location of both controllers but preserve the stability predicted by the linear error dynamics. The attraction controller converges to the estimated critical point, and the orbital controller maintains circular motion around it. As a result, sensor noise and conditioning errors affect the accuracy of the final position but not the stability of the control laws themselves.
 
@@ -564,32 +564,32 @@ This paper presents a distributed framework for multirobot navigation in vector 
 Six vector field environments centered at the origin were used to evaluate the multi-robot navigation algorithms. Let $r = \sqrt{x^2 + y^2}$ and $\theta = \arctan2(y, x)$.
 
 \textbf{Vortex:} Pure rotational flow.
-\begin{equation}
+\begin{equation}\label{eq:14}
 \mathbf{v}_{\text{vortex}}(x, y) = \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix}
 \end{equation}
 
 \textbf{Sinking Vortex:} Spiraling inward flow.
-\begin{equation}
+\begin{equation}\label{eq:15}
 \mathbf{v}_{\text{sink-vortex}}(x, y) = 0.4 \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix} + 0.15 \begin{bmatrix} -x \\ -y \end{bmatrix}
 \end{equation}
 
 \textbf{Sink:} Radial inward flow.
-\begin{equation}
+\begin{equation}\label{eq:16}
 \mathbf{v}_{\text{sink}}(x, y) = \begin{bmatrix} -x \\ -y \end{bmatrix}
 \end{equation}
 
 \textbf{Source:} Radial outward flow.
-\begin{equation}
+\begin{equation}\label{eq:17}
 \mathbf{v}_{\text{source}}(x, y) = \begin{bmatrix} x \\ y \end{bmatrix}
 \end{equation}
 
 \textbf{Spewing Vortex:} Spiraling outward flow.
-\begin{equation}
+\begin{equation}\label{eq:18}
 \mathbf{v}_{\text{spew-vortex}}(x, y) = -0.4 \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix} - 0.15 \begin{bmatrix} -x \\ -y \end{bmatrix}
 \end{equation}
 
 \textbf{Saddle:} Hyperbolic saddle point rotated $45^\circ$. Coordinates are first rotated by $\pi/4$, the saddle field is applied, then rotated back by $-\pi/4$:
-\begin{equation}
+\begin{equation}\label{eq:19}
 \mathbf{v}_{\text{saddle}}(x, y) = \begin{bmatrix} -y \\ -x \end{bmatrix}
 \end{equation}
 
@@ -600,25 +600,25 @@ Six vector field environments centered at the origin were used to evaluate the m
 The forward kinematics transforms robot positions $(x_1, y_1)$, $(x_2, y_2)$, $(x_3, y_3)$ to SAS (Side-Angle-Side) parameters and centroid coordinates.
 
 The centroid position is computed as:
-\begin{equation}
+\begin{equation}\label{eq:20}
 x_c = \frac{x_1 + x_2 + x_3}{3}, \quad y_c = \frac{y_1 + y_2 + y_3}{3}
 \end{equation}
 
 The side lengths are:
-\begin{equation}
+\begin{equation}\label{eq:21}
 p = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}
 \end{equation}
-\begin{equation}
+\begin{equation}\label{eq:22}
 q = \sqrt{(x_3 - x_2)^2 + (y_3 - y_2)^2}
 \end{equation}
 
 The interior angle at robot 2 is:
-\begin{equation}
+\begin{equation}\label{eq:23}
 \beta = \arccos\left(\frac{(x_1 - x_2)(x_3 - x_2) + (y_1 - y_2)(y_3 - y_2)}{pq}\right)
 \end{equation}
 
 The orientation angle is:
-\begin{equation}
+\begin{equation}\label{eq:24}
 \theta_c = \text{atan2}(y_1 - y_2, x_1 - x_2)
 \end{equation}
 
@@ -627,34 +627,34 @@ The orientation angle is:
 Given the SAS parameters $(p, \beta, q)$ and centroid parameters $(x_c, y_c, \theta_c)$, the robot positions are recovered by constructing the triangle in a local frame and then applying rotation and translation.
 
 In the local frame with robot 2 at the origin:
-\begin{equation}
+\begin{equation}\label{eq:25}
 \begin{aligned}
 x_1^{\text{local}} &= p \\
 y_1^{\text{local}} &= 0
 \end{aligned}
 \end{equation}
-\begin{equation}
+\begin{equation}\label{eq:26}
 \begin{aligned}
 x_2^{\text{local}} &= 0 \\
 y_2^{\text{local}} &= 0
 \end{aligned}
 \end{equation}
-\begin{equation}
+\begin{equation}\label{eq:27}
 \begin{aligned}
 x_3^{\text{local}} &= q\cos(\beta) \\
 y_3^{\text{local}} &= q\sin(\beta)
 \end{aligned}
 \end{equation}
 
-This construction assumes robot 3 lies counterclockwise from the robot 1 - robot 2 edge; since $\beta$ from Eq.~(24) lies in $(0, \pi)$, the mirror configuration (robot 3 clockwise of the edge) maps to the same SAS parameters.
+This construction assumes robot 3 lies counterclockwise from the robot 1 - robot 2 edge; since $\beta$ from Eq.~(\ref{eq:23}) lies in $(0, \pi)$, the mirror configuration (robot 3 clockwise of the edge) maps to the same SAS parameters.
 
 The local centroid is:
-\begin{equation}
+\begin{equation}\label{eq:28}
 x_c^{\text{local}} = \frac{x_1^{\text{local}} + x_2^{\text{local}} + x_3^{\text{local}}}{3}, \quad y_c^{\text{local}} = \frac{y_1^{\text{local}} + y_2^{\text{local}} + y_3^{\text{local}}}{3}
 \end{equation}
 
 After centering the triangle at the local origin and applying rotation $\theta_c$ and translation to $(x_c, y_c)$, the global positions become:
-\begin{equation}
+\begin{equation}\label{eq:29}
 \begin{bmatrix} x_i \\ y_i \end{bmatrix} = \begin{bmatrix} \cos\theta_c & -\sin\theta_c \\ \sin\theta_c & \cos\theta_c \end{bmatrix} \begin{bmatrix} x_i^{\text{local}} - x_c^{\text{local}} \\ y_i^{\text{local}} - y_c^{\text{local}} \end{bmatrix} + \begin{bmatrix} x_c \\ y_c \end{bmatrix}
 \end{equation}
 for $i \in \{1, 2, 3\}$.
@@ -662,7 +662,7 @@ for $i \in \{1, 2, 3\}$.
 \subsection{Inverse Jacobian}
 
 The inverse Jacobian maps shape parameter velocities to robot velocities:
-\begin{equation}
+\begin{equation}\label{eq:30}
 \begin{bmatrix}
 \delta x_1 \\ \delta y_1 \\ \delta x_2 \\ \delta y_2 \\ \delta x_3 \\ \delta y_3
 \end{bmatrix} =
@@ -672,7 +672,7 @@ The inverse Jacobian maps shape parameter velocities to robot velocities:
 \end{bmatrix}
 \end{equation}
 
-where $\mathbf{J}_c^{-1}$ is a $6 \times 6$ matrix containing partial derivatives $\frac{\partial x_i}{\partial \xi_j}$ and $\frac{\partial y_i}{\partial \xi_j}$ for robot positions and shape parameters $\xi_j \in \{x_c, y_c, \theta_c, p, \beta, q\}$. This matrix is computed analytically by taking partial derivatives of the inverse kinematics equations (Eq.~29) with respect to each shape parameter. The explicit forms of the equations are omitted from this paper for brevity.
+where $\mathbf{J}_c^{-1}$ is a $6 \times 6$ matrix containing partial derivatives $\frac{\partial x_i}{\partial \xi_j}$ and $\frac{\partial y_i}{\partial \xi_j}$ for robot positions and shape parameters $\xi_j \in \{x_c, y_c, \theta_c, p, \beta, q\}$. This matrix is computed analytically by taking partial derivatives of the inverse kinematics equations (Eq.~\ref{eq:29}) with respect to each shape parameter. The explicit forms of the equations are omitted from this paper for brevity.
 
 
 \balance
