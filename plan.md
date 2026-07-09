@@ -81,36 +81,64 @@ priority; MC sweep + SBC run only if cheap, otherwise plan-in-paper only.
   KEY CONTRAST vs Logic C: no crest traversal, by design; frame as correct
   objective behavior in the paper.
 
-### NEXT STEPS in order (details in the approved plan file)
+### ALL STEPS COMPLETE (2026-07-09, second session; commits 17a2c72, 63d98c3, +final)
 
-1. (HIGHEST) Rotating-frame demo: new src/fields/environments/
-   Rotating_Frame.py wrapper (signature (x,y,t)->field so AnalyticalField
-   passes its clock t; runner already calls field.step(dt)); then
-   experiments/oecs_objectivity_demo.py: {Logic C, OECS core-seek} x
-   {inertial, rotating}, pull trajectories back through Q^T(t), one
-   inertial-frame overlay figure + final-position discrepancy numbers.
-   Constraint: Omega*r_track < GAIN*V_MAX = 0.12; start Omega ~ 0.2-0.3.
-   Suggested start (0.05, 0.40) (validated core-seek to top saddle).
-2. experiments/oecs_estimator_check.py: traceable script for the paper-remark
-   numbers (b residual, H_s1 NSD eigenvalues, restoring slope 4.0 vs 6.9,
-   s1 4e-5 invariance vs D 28% shift at Omega=0.3, t=2.0, point (0.03,0.25)).
-3. mc_sweep_oecs.py (if cheap): clone mc_sweep_separatrix.py/_mc_common.py;
-   fixed start (0, 0.35), core-seek s_capture=-0.9, success = park within
-   0.06 of TOP saddle (0,0.5); same noise grid, 1000/cell, background run.
-   Expected cliff sigma_uv ~ 0.01 (grad s1 same sigma/rho^2 rung as grad D).
-4. SBC 2km OECS run (if time): clone main_ocean_hfr_2km_ftle_overlay.py
-   config (alpha_mom=0, stiction 0.002, gain 1.8, V_MAX 0.04, TIME_WARP
-   6000, 0.7x formation, start (34.40,-120.39)), swap in oecs_trap_step.
-   Offline Serra-style TRAP extraction = plan-only in the paper test plan.
-5. Paper write-up DIRECTLY into Paper_Draft_Separatrix_1A.tex per the
-   approved plan section 5 (contributions, S/OECS formulation subsection,
-   estimation remark on H_s1 NSD + first-order eigenframe, controller
-   subsection w/ selector block in house style, short stability/objectivity
-   subsection, test-plan extension, results, discussion, new bibitem 36:
-   Serra et al. 2020 TRAPs search-and-rescue, Nature Communications).
-   House style: no emojis, no em-dashes, inline numeric cites, hand
-   \bibitem, pdflatex twice zero undefined refs.
-6. Update this tracker; commit + push each milestone; do not commit CLAUDE.md.
+1. DONE Rotating-frame demo: src/fields/environments/Rotating_Frame.py +
+   experiments/oecs_objectivity_demo.py. Omega=0.2, start (0.05,0.40),
+   runs stop at domain exit (inertial coords). RESULT: OECS inertial vs
+   pulled-back rotating final gap 0.020 (mean 0.017), both park ~0.01
+   from the top saddle; Logic C final gap 1.219, its rotating run sits
+   10x farther off the true trench network (mean dist 0.052 vs 0.005).
+   Figure figures/oecs_objectivity.png (in paper as fig:oecs_objectivity).
+2. DONE experiments/oecs_estimator_check.py: b ~ 1e-4; H_s1 eig
+   [-0.011, 0] NSD; restoring slope 4.0 vs curvature 6.9; s1 invariant
+   3.5e-5 / e2 pull-back 0.008 deg vs D shift 28% (Omega=0.3, t=2);
+   noise ladder (20k draws, at (-0.35,-0.2)): e2 angle 4.5 deg at
+   sigma_uv=0.01 vs H_D eigvec 41 deg and grad_s1 44 deg.
+3. DONE mc_sweep_oecs.py, 1000/cell, auto-extended to sigma_uv=0.8
+   (short-path random floor 34-38% keeps corner above 10%). RESULTS
+   (outputs/mc_oecs/summary_fixed.csv, git 17a2c72): 100/100/97.7/94.3/
+   84.6/70.6/51.9/40.1% core arrival at sigma_uv = 0/0.001/0.005/0.01/
+   0.02/0.05/0.1/0.2 (sigma_p=0); 50% level ~0.1 (10x Logic C);
+   straddle cliff 0.01-0.02 (3-4x Logic C's); sigma_p=0.05 alone: 79.6%
+   vs Logic C 18.8%; zero-noise track_mean 0.008 vs Logic C 0.002
+   (gradient-rate cost). 10k finals: same manual procedure as
+   FINAL_SWEEPS_HOWTO.md, add mc_sweep_oecs.py to the command list.
+4. DONE SBC 2km run: experiments/main_ocean_hfr_2km_oecs.py (core-seek,
+   s_trim=0.3, s_capture=-3.0 from probed s1 scale: domain median -0.73,
+   p5 -3.0 at t=0). RESULT: converges to a local s1 minimum near the
+   channel entrance and station-keeps 28 h; final position 0.8 km
+   (under one 2km grid cell) from the nearest offline TRAP core (3x3
+   grid minima below p15, s1<-1.9). DIAGNOSIS NOTE: first run used p5
+   cores and reported 12.6 km; the tracked core's depth (-3.06 pointwise
+   at final frame) hovers at the p5 boundary (-3.38), so p5 excluded it;
+   p15 includes it. PARK never fired because the FITTED s1 over the
+   ~2.7 km footprint smooths to -1.4 vs -3.1 pointwise (footprint
+   smoothing; noted in the paper). Figure figures/ocean_oecs_overlay_2km.png.
+5. DONE paper write-up (Paper_Draft_Separatrix_1A.tex, direct write per
+   user): abstract, contributions item, Sec II-B pointer, new
+   sec:strain_field + double-gyre strain subsubsection + eq
+   s1_analytic_main + eq D_not_objective, new sec:s1_estimation with
+   Remark rem:s1hess (H_s1 NSD) and eq:grad_s1, new sec:oecs_controller
+   with selector block, tab:params rows (g_perp, s_trim, s_capture,
+   eps_degen), new sec:stab_oecs (Prop. prop:equivariance +
+   eq:oecs_n_dynamics), test-plan subsubsections (OECS sweep,
+   objectivity experiment, ocean TRAP protocol), Results
+   sec:results_oecs (clean runs, estimator diagnosis, objectivity,
+   tab:oecs_success, ocean subsubsection + fig:ocean_oecs), Discussion
+   sec:objectivity_tradeoff + third Failure Mode (eigenframe
+   degeneracy), conclusion sentences, bibitem 36 (Serra et al. 2020
+   Nature Comms). Compiles clean 2-pass: 23 pages, ZERO undefined
+   refs/citations, verify-figures 15/15. (pcr font warning remains
+   pre-existing/ignorable.)
+
+USER REVIEW ITEMS (numbers are in the paper, user reviews per house rule):
+tab:oecs_success values, objectivity gap numbers (0.020/1.219,
+0.001/0.005/0.005/0.052 trench distances), estimator ladder (4.5 vs 41
+deg), ocean 0.8 km / p15 threshold choice, and the OECS parameter
+values in tab:params. Remaining OECS future work lives in the paper's
+test-plan protocol: full Serra-style tensor-line TRAP curves for the
+ocean comparison, ride-mode ocean run, 10k-trial finals.
 
 ## Current status (2026-07-03, third session pass)
 
