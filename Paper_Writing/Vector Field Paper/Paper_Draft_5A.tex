@@ -541,57 +541,32 @@ This paper presents a distributed framework for multirobot navigation in vector 
 \section{Vector Field Environments}
 \label{sec:appendix_vector_fields}
 
-Six vector field environments centered at the origin were used to evaluate the multi-robot navigation algorithms. Let $r = \sqrt{x^2 + y^2}$ and $\theta = \arctan2(y, x)$.
-
-\textbf{Vortex:} Pure rotational flow.
+Six vector field environments centered at the origin were used to evaluate the multi-robot navigation algorithms. Let $r = \sqrt{x^2 + y^2}$ and $\theta = \arctan2(y, x)$. The base fields are the vortex (pure rotational flow), the sink (radial inward flow) whose negation $\mathbf{v}_{\text{source}} = -\mathbf{v}_{\text{sink}}$ is the source (radial outward flow), and the saddle, a hyperbolic saddle point rotated $45^\circ$ (coordinates are rotated by $\pi/4$, the saddle field is applied, then rotated back by $-\pi/4$):
 \begin{equation}\label{eq:14}
-\mathbf{v}_{\text{vortex}}(x, y) = \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix}
+\mathbf{v}_{\text{vortex}} = \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix}, \;\;
+\mathbf{v}_{\text{sink}} = \begin{bmatrix} -x \\ -y \end{bmatrix}, \;\;
+\mathbf{v}_{\text{saddle}} = \begin{bmatrix} -y \\ -x \end{bmatrix}
 \end{equation}
-
-\textbf{Sinking Vortex:} Spiraling inward flow.
+The sinking vortex (spiraling inward) and spewing vortex (spiraling outward) are linear combinations of the base fields:
 \begin{equation}\label{eq:15}
-\mathbf{v}_{\text{sink-vortex}}(x, y) = 0.4 \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix} + 0.15 \begin{bmatrix} -x \\ -y \end{bmatrix}
-\end{equation}
-
-\textbf{Sink:} Radial inward flow.
-\begin{equation}\label{eq:16}
-\mathbf{v}_{\text{sink}}(x, y) = \begin{bmatrix} -x \\ -y \end{bmatrix}
-\end{equation}
-
-\textbf{Source:} Radial outward flow.
-\begin{equation}\label{eq:17}
-\mathbf{v}_{\text{source}}(x, y) = \begin{bmatrix} x \\ y \end{bmatrix}
-\end{equation}
-
-\textbf{Spewing Vortex:} Spiraling outward flow.
-\begin{equation}\label{eq:18}
-\mathbf{v}_{\text{spew-vortex}}(x, y) = -0.4 \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix} - 0.15 \begin{bmatrix} -x \\ -y \end{bmatrix}
-\end{equation}
-
-\textbf{Saddle:} Hyperbolic saddle point rotated $45^\circ$. Coordinates are first rotated by $\pi/4$, the saddle field is applied, then rotated back by $-\pi/4$:
-\begin{equation}\label{eq:19}
-\mathbf{v}_{\text{saddle}}(x, y) = \begin{bmatrix} -y \\ -x \end{bmatrix}
+\begin{aligned}
+\mathbf{v}_{\text{sink-vortex}} &= 0.4\,\mathbf{v}_{\text{vortex}} + 0.15\,\mathbf{v}_{\text{sink}} \\
+\mathbf{v}_{\text{spew-vortex}} &= -0.4\,\mathbf{v}_{\text{vortex}} - 0.15\,\mathbf{v}_{\text{sink}}
+\end{aligned}
 \end{equation}
 
 \section{Three-Robot Cluster Controller Equations}
 
 \subsection{Forward Kinematics}
 
-The forward kinematics transforms robot positions $(x_1, y_1)$, $(x_2, y_2)$, $(x_3, y_3)$ to SAS (Side-Angle-Side) parameters and centroid coordinates.
-
-The centroid position is computed as:
+The forward kinematics transforms robot positions $(x_1, y_1)$, $(x_2, y_2)$, $(x_3, y_3)$ to the SAS parameters and centroid coordinates. The centroid position is:
 \begin{equation}\label{eq:20}
 x_c = \frac{x_1 + x_2 + x_3}{3}, \quad y_c = \frac{y_1 + y_2 + y_3}{3}
 \end{equation}
-
-The side lengths are:
+The side lengths, with $\mathbf{p}_i = (x_i, y_i)$ the position of robot $i$, are:
 \begin{equation}\label{eq:21}
-p = \sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}
+p = \lVert \mathbf{p}_2 - \mathbf{p}_1 \rVert, \quad q = \lVert \mathbf{p}_3 - \mathbf{p}_2 \rVert
 \end{equation}
-\begin{equation}\label{eq:22}
-q = \sqrt{(x_3 - x_2)^2 + (y_3 - y_2)^2}
-\end{equation}
-
 The interior angle at robot 2 is:
 \begin{equation}\label{eq:23}
 \beta = \arccos\left(\frac{(x_1 - x_2)(x_3 - x_2) + (y_1 - y_2)(y_3 - y_2)}{pq}\right)
@@ -606,23 +581,11 @@ The orientation angle is:
 
 Given the SAS parameters $(p, \beta, q)$ and centroid parameters $(x_c, y_c, \theta_c)$, the robot positions are recovered by constructing the triangle in a local frame and then applying rotation and translation.
 
-In the local frame with robot 2 at the origin:
+In the local frame with robot 2 at the origin, the triangle is constructed as:
 \begin{equation}\label{eq:25}
 \begin{aligned}
-x_1^{\text{local}} &= p \\
-y_1^{\text{local}} &= 0
-\end{aligned}
-\end{equation}
-\begin{equation}\label{eq:26}
-\begin{aligned}
-x_2^{\text{local}} &= 0 \\
-y_2^{\text{local}} &= 0
-\end{aligned}
-\end{equation}
-\begin{equation}\label{eq:27}
-\begin{aligned}
-x_3^{\text{local}} &= q\cos(\beta) \\
-y_3^{\text{local}} &= q\sin(\beta)
+(x_1, y_1)^{\text{local}} &= (p,\, 0), \qquad (x_2, y_2)^{\text{local}} = (0,\, 0), \\
+(x_3, y_3)^{\text{local}} &= (q\cos\beta,\, q\sin\beta)
 \end{aligned}
 \end{equation}
 
