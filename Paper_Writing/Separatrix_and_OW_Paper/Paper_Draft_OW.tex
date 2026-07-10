@@ -1,4 +1,6 @@
 % %%
+
+% This is the last paper that mentions OW det(J) = 0. That feature is ommited in future revisions. July 09, 2026
 \documentclass[lettersize,journal]{IEEEtran}
 %\documentclass[lettersize,journal,draft]{IEEEtran}
 
@@ -10,7 +12,6 @@
 \usepackage{url}
 \usepackage{verbatim}
 \usepackage{graphicx}
-\usepackage{cite}
 \usepackage{balance}
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}{Proposition}
@@ -25,7 +26,7 @@
 \urlstyle{same}
 \begin{document}
 
-\title{Adaptive Navigation along the Separatrix of the Double Gyre}
+\title{Adaptive Navigation along the Separatrix and Okubo-Weiss Boundary of the Double Gyre}
 
 \author{Christopher Waight and Christopher A. Kitts,~\IEEEmembership{Senior Member,~IEEE}
 \thanks{Manuscript received Month Day, Year; revised Month Day, Year.}
@@ -35,7 +36,7 @@ Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: cwaight@
 Mechanical Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: ckitts@scu.edu)}
 }
 \markboth{Journal of \LaTeX\ Class Files,~Vol.~XX, No.~X, Month~Year}%
-{Waight and Kitts: Adaptive Navigation along the Separatrix of the Double Gyre}
+{Waight and Kitts: Adaptive Navigation along the Separatrix and Okubo-Weiss Boundary of the Double Gyre}
 
 \maketitle
 
@@ -54,22 +55,26 @@ attracting and repelling structures of a flow, including ocean flows,
 without prepositioning the robots and without requiring global
 information about the dynamics; it relies instead on local sensing,
 prediction, and correction. For the two-dimensional incompressible flows
-we consider, the determinant of the flow Jacobian, equivalently the
-Okubo-Weiss field, is a signed scalar surrogate whose valley lines
-(trenches) mark the strongest hyperbolicity, where the hyperbolic OECS
-resides. We develop an adaptive controller built on a modified Newton
-step: rather than steepest descent or ascent, the step reweights the
-search directions so the team snaps onto the trench more rapidly and
-slides along the structure, through a saddle point of this scalar
-field, and down the opposing branch. The strategy is implemented with a
-team of six robots and validated on a time-dependent model of a
-wind-driven double-gyre flow and on actual ocean-flow data. We present
-simulation results and discuss theoretical guarantees of the
+we consider, the sign of the determinant of the flow Jacobian,
+equivalently the Okubo-Weiss field, partitions the flow into
+vorticity-dominated and strain-dominated regions: its zero level set
+forms the boundary between them, and its trench marks the strongest
+hyperbolicity, where the hyperbolic OECS resides. We develop two
+complementary tracking modes. In the first, the team follows the
+Okubo-Weiss boundary, the zero level set that divides the two regimes.
+In the second, the team navigates the Jacobian-determinant field itself.
+Rather than steepest descent or ascent, a modified Newton step, which
+reweights the search directions so the team snaps onto the trench more
+rapidly, drives the team along the structure, through a saddle point of
+this scalar field, and down the opposing branch. The strategy is
+implemented with a team of six robots and validated on a time-dependent
+model of a wind-driven double-gyre flow and on actual ocean-flow data.
+We present simulation results and discuss theoretical guarantees of the
 collaborative tracking strategy.
 \end{abstract}
 
 \begin{IEEEkeywords}
-Multirobot Systems, Adaptive Navigation, Vector Fields, Separatrix,
+Multirobot Systems, Adaptive Navigation, Vector Fields, Okubo-Weiss, Separatrix,
 Double Gyre, Critical Points, Cooperative Estimation, Cluster Control
 \end{IEEEkeywords}
 
@@ -81,37 +86,39 @@ Double Gyre, Critical Points, Cooperative Estimation, Cluster Control
 \IEEEPARstart{M}{ultirobot} systems exploit spatial distribution across a team to sample
 and act on an environment more effectively than a single platform can, a
 capability with broad application to formation assembly, coverage, and
-distributed sensing \cite{1}. Deployed in geophysical flows such as ocean
+distributed sensing [1]. Deployed in geophysical flows such as ocean
 currents and atmospheric jets, these teams often need to locate and track
 dynamically meaningful boundaries rather than isolated critical points.
 Coordinated multi-vehicle sampling of dynamic ocean features is itself an
 active area of marine robotics, from drifter-referenced AUV surveys of
-advecting patches \cite{2} to heterogeneous ASV/AUV teams tracking salinity
-fronts \cite{3} and glider fleets adaptively sampling upwelling events during
-the AOSN-II experiment in Monterey Bay \cite{4}. A boundary that appears
-prominently in steady two-dimensional flows is the separatrix, which
+advecting patches [2] to heterogeneous ASV/AUV teams tracking salinity
+fronts [3] and glider fleets adaptively sampling upwelling events during
+the AOSN-II experiment in Monterey Bay [4]. Two boundaries appear
+prominently in steady two-dimensional flows: the separatrix, which
 contains both the stable and unstable manifold connecting to saddle
-points and partitions the domain into two distinct basins. Tracking it
-is relevant to dispersion modeling, pollutant containment, and the
-deployment of sensor networks in coastal and atmospheric environments
-\cite{6,7,8}, and, like the related Okubo-Weiss field used to detect and
-classify oceanic mesoscale eddies \cite{5}, it can in principle be inferred
-from instantaneous field measurements alone.
+points, which partitions the domain into two distinct basins; and the
+Okubo-Weiss boundary, the locus of points where the local flow transitions
+from rotation-dominated to strain-dominated behavior, closely related to
+the physical parameter used to detect and classify oceanic mesoscale
+eddies [5]. Both structures are relevant to dispersion modeling,
+pollutant containment, and the deployment of sensor networks in coastal
+and atmospheric environments [6, 7, 8], and both can, in principle,
+be inferred from instantaneous field measurements alone.
 
 A line of work has equipped robot teams to track a coherent structure directly
 in the flow rather than reconstruct it offline. Michini et al. straddle a
 presumed stable or unstable manifold with a three-robot, PIM-triple-inspired
 formation, using only local velocity measurements to keep one robot near the
-manifold and the other two on opposite sides of it \cite{9}; the same strategy was
+manifold and the other two on opposite sides of it [9]; the same strategy was
 extended to an $N$-robot team for finer spatial sampling of the same manifold
-\cite{10} and validated on physical micro-ASVs in a flow tank \cite{11}. Knizhnik et al.
+[10] and validated on physical micro-ASVs in a flow tank [11]. Knizhnik et al.
 couple a related manifold-tracking law to vehicle-level flow control in
-gyre-like marine environments \cite{12}. Kularatne and Hsieh take a different
+gyre-like marine environments [12]. Kularatne and Hsieh take a different
 approach, computing the local finite-time Lyapunov exponent field on board
 from the team's own accumulated velocity measurements, which recovers the
-structure's type explicitly rather than assuming it \cite{13}. Every member of this
-family, however, fixes the structure's identity before tracking begins: \cite{9},
-\cite{10}, and \cite{11} require a saddle-straddling line segment seeded around an
+structure's type explicitly rather than assuming it [13]. Every member of this
+family, however, fixes the structure's identity before tracking begins: [9],
+[10], and [11] require a saddle-straddling line segment seeded around an
 already-assumed manifold, and their controller commits in advance to
 tracking either the stable or the unstable branch, since the team's estimate
 of the manifold's location is read off as the point of maximum measured speed
@@ -124,18 +131,19 @@ stops there. Kularatne and Hsieh's onboard FTLE estimate avoids fixing the
 structure's type in advance, but only by accumulating a velocity time history
 over a finite integration horizon before an estimate is well formed, an
 approach discussed further in Section~\ref{sec:separatrix}. This paper's
-estimator and controller require neither a seeded manifold nor an
+estimator and controllers require neither a seeded manifold nor an
 integration horizon: from an arbitrary six-robot configuration, they infer a
 structure's location, its type, and, at a crossing, which branch to continue
 onto, from the current instantaneous measurement alone.
 
 Our own prior work estimated a single isolated critical point and classified
 it from the eigenvalues of a linear Jacobian fit, using a three-robot
-formation and a proportional or orbital control law \cite{14}. That is a
+formation and a proportional or orbital control law [14]. That is a
 point-estimation problem. The work presented here is a field-structure
 problem: it fits a quadratic model of the vector field, derives the
 curvature of $\det(\mathbf{J})$ from that fit, and uses the curvature to
-track a one-dimensional manifold rather than converge to a point.
+track one-dimensional manifolds and boundaries rather than converge to a
+point.
 
 This paper presents the following contributions:
 \begin{enumerate}
@@ -146,31 +154,32 @@ This paper presents the following contributions:
           centroid, with no prior knowledge of the field. We prove six robots
           are the exact minimum for the coupled two-component case, one more
           than the five-plus-center formation sufficient for a single scalar
-          field \cite{15}, and derive $\det(\mathbf{J})$, its gradient, and its
+          field [15], and derive $\det(\mathbf{J})$, its gradient, and its
           Hessian analytically by differentiating through the jointly fitted
           vector coefficients, rather than by fitting a scalar surrogate
           directly.
-    \item A hybrid three-mode separatrix tracker (Logic C) built on a
-          modified Newton step: the ordinary step
-          $-\mathbf{H}_D^{-1}\nabla D$ is decomposed in the eigenbasis of
-          $\mathbf{H}_D$, each eigen-direction is independently saturated,
-          and each signed eigenvalue is replaced by its magnitude so the
-          team slides along a trench even where the local curvature is
-          negative. The result is a controller that snaps onto the trench,
-          slides along the stable manifold of the double-gyre saddle, and
-          carries a flow-assisted mode across the crest where the
-          along-trench gradient vanishes.
+    \item Two adaptive controllers built on a modified Newton step: the
+          ordinary step $-\mathbf{H}_D^{-1}\nabla D$ is decomposed in the
+          eigenbasis of $\mathbf{H}_D$, each eigen-direction is independently
+          saturated, and, in the separatrix tracker, each signed eigenvalue is
+          replaced by its magnitude so the team slides along a trench even
+          where the local curvature is negative. (a) A hybrid three-mode
+          separatrix tracker (Logic C) that uses this step to slide along the
+          stable manifold of the double-gyre saddle; (b) an Okubo-Weiss
+          boundary tracker that applies a Newton-step contour-following law to
+          drive $\det(\mathbf{J}) \to 0$ while drifting tangentially along the
+          boundary.
     \item A stability and network-traversal proof for the separatrix tracker:
           the trench a controller reaches continues through every saddle it
           crosses, with single-saddle capture recovered only as a
           tightened-threshold special case. Unlike prior manifold trackers,
           which fix the tracked branch's identity before the run begins
-          \cite{9,10}, this controller commits to no manifold identity in
+          [9, 10], this controller commits to no manifold identity in
           advance, so the branch to continue onto at a crossing is read from
           the same instantaneous fit that located the crossing, rather than
           assumed ahead of time.
-    \item Monte Carlo simulation validation of the controller under a fully
-          specified noise model, with a success-rate map over a two-dimensional
+    \item Monte Carlo simulation validation of both controllers under a fully
+          specified noise model, with success-rate maps over a two-dimensional
           sweep of measurement and position noise standard deviations, and
           demonstration of effectiveness on real oceanic current data.
           Hardware validation is discussed as future work
@@ -182,8 +191,8 @@ section reviews related work. Section~\ref{sec:detj_field} formulates the
 problem, describing the double-gyre model, the $\det(\mathbf{J})$ field, and
 the separatrix as an Eulerian trench.
 Section~\ref{sec:estimation} develops the six-robot quadratic estimator
-and its sensitivity. Section~\ref{sec:controllers} presents the adaptive
-separatrix controller.
+and its sensitivity. Section~\ref{sec:controllers} presents both adaptive
+controllers.
 Section~\ref{sec:stability} provides stability proofs.
 Section~\ref{sec:methods} describes the simulation program, noise model, and
 testing plan. Section~\ref{sec:results} presents results.
@@ -199,16 +208,16 @@ future work. Section~\ref{sec:conclusion} concludes.
 Haller and Yuan formalized the modern notion of a Lagrangian coherent
 structure (LCS) as the extension of a stable or unstable manifold to flows
 with arbitrary time dependence, a distinguished material surface that
-organizes tracer transport over a finite time horizon \cite{6}. Haller's later
+organizes tracer transport over a finite time horizon [6]. Haller's later
 review frames the resulting body of theory as the search for the Lagrangian
 skeleton of a flow, and states the property such a skeleton must have to be
 physically meaningful: objectivity, invariance under the time-dependent
-Euclidean frame changes that a material response cannot depend on \cite{16}.
+Euclidean frame changes that a material response cannot depend on [16].
 Shadden, Lekien, and Marsden gave the standard computable definition, an LCS
 as a ridge of the finite-time Lyapunov exponent (FTLE) field, and verified it
 on the same double-gyre model used throughout this paper, where for
 $\varepsilon > 0$ the ridge tracks the underlying heteroclinic connection
-\cite{8}. Both the definition and its objectivity come at a fixed cost: an FTLE
+[8]. Both the definition and its objectivity come at a fixed cost: an FTLE
 ridge is a property of particle trajectories integrated over a finite
 horizon, so extracting one requires the velocity field's future evolution
 over that horizon, in advance, everywhere the tracers travel. Haller's
@@ -216,24 +225,24 @@ review is explicit that this is why the classical instantaneous criteria,
 including Okubo-Weiss, the Q-criterion, and the Hua-Klein criterion, are
 excluded from the Lagrangian framework entirely: they can frame a coherent
 feature of the instantaneous velocity field, but they are not objective
-\cite{16}. Serra and Haller later placed a version of this instantaneous idea on
+[16]. Serra and Haller later placed a version of this instantaneous idea on
 objective footing with objective Eulerian coherent structures (OECSs),
 constructed from the spin and rate-of-strain tensors rather than the raw
 velocity gradient, and showed OECSs are the limit LCSs approach as the
 integration horizon shrinks to zero, a limit Nolan, Serra, and Ross later
-made precise for the FTLE field itself \cite{17,18}. The velocity gradient
+made precise for the FTLE field itself [17, 18]. The velocity gradient
 that this instantaneous cost is paid to avoid is itself hard to obtain from
 trajectory data alone: Harms, Dawson, and McKeon show that standard
 gradient-based LCS diagnostics degrade badly on the sparse tracer
 trajectories typical of ocean drifters, and propose a regression-based
 alternative that linearizes in time rather than in space to recover usable
-gradients from sparse data \cite{19}. The rate-of-strain and spin decomposition
+gradients from sparse data [19]. The rate-of-strain and spin decomposition
 underlying all of these instantaneous diagnostics is itself the subject of
 ongoing refinement; Haller's dynamic polar decomposition, for instance,
 identifies a mean material rotation rate that agrees with the classical
 vorticity-based rate used throughout this paper while correcting a
 memory effect present in the standard polar decomposition of the
-deformation gradient \cite{20}. A robot team sampling the flow once per
+deformation gradient [20]. A robot team sampling the flow once per
 control cycle, with no forecast, sits on the instantaneous side of the
 resulting tradeoff, objectivity and material accuracy against zero
 integration latency, by construction; this paper adopts that side
@@ -246,12 +255,12 @@ Okubo and, independently, Weiss proposed the pointwise criterion
 $Q = \tfrac{1}{4}(s_n^2 + s_s^2 - \omega^2)$ to partition a two-dimensional
 flow into rotation-dominated and strain-dominated regions using only the
 local velocity gradient, with their sign convention marking vortex cores by
-$Q < 0$ \cite{21,22}. Hunt, Wray, and Moin generalized the same second-invariant
+$Q < 0$ [21, 22]. Hunt, Wray, and Moin generalized the same second-invariant
 idea to three dimensions as the Q-criterion for identifying eddies, streams,
-and convergence zones in turbulent flow fields \cite{23}. Hua and Klein revisited
+and convergence zones in turbulent flow fields [23]. Hua and Klein revisited
 the two-dimensional criterion for oceanographic use, sharpening the
 conditions under which it correctly separates elliptic and hyperbolic
-regions of a nearly two-dimensional turbulent flow \cite{24}. This paper works
+regions of a nearly two-dimensional turbulent flow [24]. This paper works
 with $D = \det(\mathbf{J})$ rather than $Q$; for the incompressible flows
 considered here the two carry identical information with opposite sign,
 $Q = -D$ (Section~\ref{sec:detj_field}), so $D > 0$ marks vortex cores and
@@ -264,7 +273,7 @@ vector field to a scalar this way lose more than time dependence, however:
 Cooper et al.'s initial multirobot study of vector field navigation reduced
 each measurement to its magnitude, which yields a descent direction but
 cannot distinguish a sink from a saddle from a vortex, since the magnitude
-vanishes at every critical point regardless of type \cite{25}. Rather than
+vanishes at every critical point regardless of type [25]. Rather than
 sensing a scalar reduction of the field directly, whether a speed magnitude
 or an Okubo-Weiss-type invariant, we estimate the full local quadratic
 vector field and obtain $D$, $\nabla D$, and $\mathbf{H}_D$ as derived
@@ -279,20 +288,20 @@ with a robot formation rather than computing it offline. Michini, Hsieh,
 Forgoston, and Schwartz proposed a PIM-triple-inspired saddle straddle:
 three robots bracket a presumed stable or unstable manifold, using only
 local velocity measurements to keep one robot on the manifold and the other
-two on either side of it, with no FTLE field or global map required \cite{9}.
+two on either side of it, with no FTLE field or global map required [9].
 Michini, Rastgoftar, Hsieh, and Jayasuriya extended the same principle from
 three robots to a general $N$-robot team for finer spatiotemporal sampling
-of the boundary \cite{10}, and Michini, Hsieh, Forgoston, and Schwartz separately
+of the boundary [10], and Michini, Hsieh, Forgoston, and Schwartz separately
 validated the three-robot strategy experimentally on a team of micro
-autonomous surface vehicles in a flow tank \cite{11}. Knizhnik, Li, Yu, and Hsieh
+autonomous surface vehicles in a flow tank [11]. Knizhnik, Li, Yu, and Hsieh
 applied a related flow-based control strategy to marine robots operating in
 gyre-like environments, coupling manifold tracking to vehicle-level flow
-control \cite{12}. In each of these, the team's controller commits to a manifold
+control [12]. In each of these, the team's controller commits to a manifold
 identity before tracking begins: robot C's estimate of the manifold's
 location is read off the straddle segment as the point of maximum measured
 speed if the unstable manifold is being tracked, or of minimum speed if the
 stable manifold is being tracked, a choice fixed at the start and never
-revisited \cite{9}. The accompanying stability proof holds only under the
+revisited [9]. The accompanying stability proof holds only under the
 standing assumption that the straddle segment crosses the manifold exactly
 once; neither the proof nor the controller addresses the saddle point
 itself, where the linearized Jacobian has one positive eigenvalue and the
@@ -304,7 +313,7 @@ that identity becomes locally ambiguous. Kularatne and Hsieh took the
 complementary approach of computing the local FTLE field on board from a
 robot team's own accumulated velocity measurements, which recovers the
 LCS type explicitly rather than assuming it, and proved tracking and
-formation-keeping guarantees later validated on real ocean flow data \cite{13};
+formation-keeping guarantees later validated on real ocean flow data [13];
 this buys type discrimination with a nonzero integration horizon, in
 contrast to the instantaneous estimate used here. None of these strategies
 estimates the curvature of the field itself, which is what fixes not just
@@ -321,17 +330,17 @@ branch to continue onto at a crossing is measured rather than assumed.
 Ögren, Fiorelli, and Leonard established the template for cooperative
 gradient estimation, using a small team of mobile sensors in a fixed
 formation to climb the gradient of a scalar field it samples collectively
-\cite{26}. Briñón-Arranz, Renzaglia, and Schenato extended this to the Hessian,
+[26]. Briñón-Arranz, Renzaglia, and Schenato extended this to the Hessian,
 showing that a symmetric ring of five robots plus one at the center
 recovers both the gradient and the Hessian of a scalar signal in closed
 form, and that the resulting curvature information accelerates
 Newton-Raphson source seeking over gradient ascent alone once the formation
-radius is properly scaled to the noise floor \cite{15}. McDonald, Kitts, and
+radius is properly scaled to the noise floor [15]. McDonald, Kitts, and
 Neumann developed the complementary line of adaptive navigation primitives,
 using three- and four-robot clusters to reach and follow scalar-field
 features such as ridges, trenches, and saddle points from local differences
-alone, without an explicit Hessian estimate \cite{27,28}, later verified
-experimentally on physical hardware \cite{29}. Hessian estimation of a
+alone, without an explicit Hessian estimate [27, 28], later verified
+experimentally on physical hardware [29]. Hessian estimation of a
 single scalar field is therefore established, but every prior formation
 samples one signal channel. The problem addressed in this paper, recovering
 the Jacobian and its curvature for a coupled two-component vector field,
@@ -351,11 +360,11 @@ Kitts and Mas introduced cluster space control, which parameterizes a
 multirobot team by aggregate quantities such as centroid position and
 orientation rather than by individual robot poses, and inverts that
 parameterization analytically to distribute a single formation-level
-command to every robot \cite{30}. Adamek, Kitts, and Mas applied the same
+command to every robot [30]. Adamek, Kitts, and Mas applied the same
 architecture to gradient-based navigation for autonomous surface vessels,
 closing the loop from field measurement to formation command on physical
-hardware \cite{31}. The side-angle-side (SAS) triangle parameterization used for
-three- and four-robot vector field navigation in \cite{14} is one instance of
+hardware [31]. The side-angle-side (SAS) triangle parameterization used for
+three- and four-robot vector field navigation in [14] is one instance of
 this cluster space family, chosen because its geometric parameters map
 directly onto the entries needed to assemble a linear field model. The
 six-robot formation of this paper is built from three such SAS pairs
@@ -367,22 +376,22 @@ actuation is invisible to the estimation problem of
 Section~\ref{sec:estimation}. The physical testbed this cluster space
 lineage was developed on has itself evolved through several
 generations, from an early low-cost twelve-robot indoor platform using
-reflectivity-based scalar field mats \cite{32} to the current Decabot fleet
+reflectivity-based scalar field mats [32] to the current Decabot fleet
 with HSV floor-color vector field encoding and OptiTrack motion capture
-\cite{33}; the simulations and stability results of this paper adopt the same
+[33]; the simulations and stability results of this paper adopt the same
 robot dynamics model identified on that hardware
 (Section~\ref{sec:arch}). Coordinated finite-time control results for
 multi-robot Euler-Lagrange systems, such as the distributed
-finite-time tracking and containment control of Sun et al. \cite{34}, point
+finite-time tracking and containment control of Sun et al. [34], point
 to an alternative convergence-rate analysis that the Lyapunov arguments
 of Section~\ref{sec:stability} do not pursue, since this paper's
-controller prioritizes the geometric traversal guarantee over a
-finite-time convergence rate. Where \cite{14} used a proportional or orbital law
-with no curvature, \cite{15}'s Newton-Raphson source seeking uses the raw
+controllers prioritize the geometric traversal guarantee over a
+finite-time convergence rate. Where [14] used a proportional or orbital law
+with no curvature, [15]'s Newton-Raphson source seeking uses the raw
 Hessian inverse to converge to a scalar extremum, and the saddle-free
 Newton method of Dauphin et al. flips signed eigenvalues to escape saddles
 in high-dimensional optimization but was never applied to a robot team
-tracking a spatial field \cite{35}, the modified Newton step introduced here is
+tracking a spatial field [35], the modified Newton step introduced here is
 the first to combine per-eigendirection saturation with the saddle-free
 sign flip in a distributed field-navigation setting.
 
@@ -406,7 +415,7 @@ domain. Its Jacobian at $\mathbf{p}$ is
 \end{equation}
 and we write $D(\mathbf{p}) = \det(\mathbf{J}(\mathbf{p}))$ throughout.
 
-In prior work \cite{14}, a three-robot cluster fit a linear model to each
+In prior work [14], a three-robot cluster fit a linear model to each
 component of $\mathbf{v}$, assembled the estimated Jacobian
 $\mathbf{J}$ and offset $\mathbf{h}$, and recovered the critical point
 $\mathbf{p}^* = -\mathbf{J}^{-1}\mathbf{h}$ where $\mathbf{v}(\mathbf{p}^*) =
@@ -445,7 +454,7 @@ and backward time, respectively. Together they form the separatrix, which
 partitions the domain into regions whose trajectories do not mix. In
 time-dependent flows the analogous objects are Lagrangian coherent
 structures (LCSs), commonly identified as ridges of the finite-time
-Lyapunov exponent (FTLE) field \cite{6,7,8}. Tracking an LCS directly is not
+Lyapunov exponent (FTLE) field [6, 7, 8]. Tracking an LCS directly is not
 compatible with the sensing model of this paper: computing FTLE requires
 integrating dense grids of particle trajectories over a finite horizon,
 which presumes global knowledge of the field over both space and time. A
@@ -455,11 +464,11 @@ current instant, cannot evaluate it.
 The alternative is an Eulerian surrogate: a quantity computed pointwise
 from the instantaneous velocity field and its spatial derivatives. Serra
 and Haller formalized this idea as objective Eulerian coherent structures
-(OECSs), the instantaneous limits of LCSs \cite{17}, and Nolan et al. showed
+(OECSs), the instantaneous limits of LCSs [17], and Nolan et al. showed
 that FTLE fields converge to Eulerian rate-of-strain quantities as the
-integration horizon shrinks \cite{18}. This paper adopts the classical
+integration horizon shrinks [18]. This paper adopts the classical
 Okubo-Weiss field as its surrogate. It is not identical to the FTLE ridge
-set, and unlike the structures of \cite{17} it is not objective under
+set, and unlike the structures of [17] it is not objective under
 time-varying rotations of the observer frame, but it is Galilean
 invariant, it requires only the local Jacobian and its derivatives, and
 for the flows considered here it coincides with or closely tracks the
@@ -474,7 +483,7 @@ strain rate, shear strain rate, and vorticity are
 $s_n = \partial u/\partial x - \partial v/\partial y$,
 $s_s = \partial v/\partial x + \partial u/\partial y$, and
 $\omega = \partial v/\partial x - \partial u/\partial y$. The Okubo-Weiss
-parameter \cite{21,22} is $Q = \tfrac{1}{4}(s_n^2 + s_s^2 - \omega^2)$, and
+parameter [21, 22] is $Q = \tfrac{1}{4}(s_n^2 + s_s^2 - \omega^2)$, and
 direct expansion gives the algebraic identity
 \begin{equation}
     Q = \tfrac{1}{4}\bigl(\nabla \cdot \mathbf{v}\bigr)^2 - D.
@@ -505,15 +514,15 @@ vortex cores, $D < 0$ marks strain regions, and the zero level set
 is the Okubo-Weiss boundary between the two regimes. By
 (\ref{eq:eig_detj}), the more negative $D$ is, the stronger the local
 hyperbolicity, so valley lines (trenches) of $D$ inside strain regions
-mark the loci of strongest instantaneous attraction and repulsion. The
-boundary $\mathcal{C}$ delimits the strain region within which the
-trench, the Eulerian structure this paper tracks, is found.
+mark the loci of strongest instantaneous attraction and repulsion. These
+are the two Eulerian structures tracked in this paper: the boundary
+$\mathcal{C}$ and the trench of $D$.
 
 \subsection{Running Example: the Double Gyre}
 \label{sec:dg_example}
 
 The double-gyre flow used throughout is the steady ($\varepsilon = 0$)
-member of the Shadden family \cite{8}, shifted from the canonical domain
+member of the Shadden family [8], shifted from the canonical domain
 $[0,2] \times [0,1]$ to $[-1,1] \times [-0.5, 0.5]$ by
 $x_f = x + 1$, $y_f = y + 0.5$, where $(x_f, y_f)$ are field-frame and
 $(x, y)$ world-frame coordinates. The field is
@@ -640,14 +649,18 @@ synchronous samples $\{(\mathbf{p}_i, u_i, v_i)\}_{i=1}^{N}$ at each
 control cycle, the team must generate a centroid velocity command
 $\dot{\mathbf{p}}_c$ that solves:
 
-\emph{Problem (separatrix network traversal).} Drive the cluster
+\emph{Problem 1 (separatrix network traversal).} Drive the cluster
 centroid onto the trench of $D$ and travel it, in the direction of the
 ambient flow, through the saddle points where trench segments cross.
 Terminal capture at a single saddle (Section~\ref{sec:sep_controller}) is
 the special case in which the selector's stationary-point test is
 tightened to stop the team there instead.
 
-This requires, at minimum, pointwise estimates of $D$, its
+\emph{Problem 2 (Okubo-Weiss boundary tracking).} Drive $D(\mathbf{p}_c)
+\to 0$ and travel along the boundary $\mathcal{C}$, a network of the same
+kind (Section~\ref{sec:dg_example}).
+
+Both problems require, at minimum, pointwise estimates of $D$, its
 gradient $\mathbf{g} = \nabla D$, and its Hessian $\mathbf{H}_D$ at the
 centroid. The next section shows how a six-robot formation produces them.
 
@@ -670,7 +683,7 @@ whose one-half factors make the fitted coefficients equal to the Taylor
 derivatives in (\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}). Stacking
 the basis vectors of the six robots row-wise gives the $6 \times 6$
 formation matrix $\boldsymbol{\Phi}$, the second-order generalization of
-the $3 \times 3$ matrix $\mathbf{A}$ of \cite{14}. The coefficient vectors
+the $3 \times 3$ matrix $\mathbf{A}$ of [14]. The coefficient vectors
 $\boldsymbol{\theta}_u = [u_0, u_x, u_y, u_{xx}, u_{xy}, u_{yy}]^\top$ and
 $\boldsymbol{\theta}_v = [v_0, v_x, v_y, v_{xx}, v_{xy}, v_{yy}]^\top$
 solve the pair of linear systems
@@ -756,7 +769,7 @@ by accident; moving one robot to the center removes it entirely.
 The pentagon-plus-center shape is the same minimal configuration that
 Bri\~{n}\'{o}n-Arranz et al.\ derived for Hessian estimation of a scalar
 field: $N \geq 5$ robots uniformly spaced on a circle plus one at the
-center \cite{15}. Their estimator combines the ring measurements with fixed
+center [15]. Their estimator combines the ring measurements with fixed
 symmetric weights, which is computationally trivial and, for exactly six
 robots on the ideal formation, algebraically equivalent to solving
 (\ref{eq:solve}). The two approaches separate when the formation deforms,
@@ -824,7 +837,7 @@ Hessian gain, so the symmetric shape is used without further tuning.
     \caption{Six-robot formation: five robots on a ring of radius $\rho$
     at $72^\circ$ spacing and one robot at the center, the minimal
     symmetric formation for second-order estimation
-    (Corollary~\ref{cor:pentagon}, \cite{15}). For formation control the six
+    (Corollary~\ref{cor:pentagon}, [15]). For formation control the six
     robots are grouped into three pairs whose midpoints define an SAS
     triangle (Appendix~\ref{app:kinematics}); the grouping is invisible to
     the estimator, which uses only the six measured positions.}
@@ -872,7 +885,7 @@ Section~\ref{sec:sensitivity}. The estimated flow at the centroid,
 $\mathbf{f} = (u_0, v_0)$, equals the center robot's reading by
 Lemma~\ref{lem:gains}. Together
 (\ref{eq:J_hat})--(\ref{eq:hess_det}) supply every quantity the
-controller of Section~\ref{sec:controllers} consumes: $\hat{D}$,
+controllers of Section~\ref{sec:controllers} consume: $\hat{D}$,
 $\hat{\mathbf{g}}$, $\hat{\mathbf{H}}_D$, and $\mathbf{f}$.
 
 \subsection{Sensitivity: Noise, Truncation, and Formation Radius}
@@ -904,7 +917,7 @@ and likewise for the remaining coefficients, where $c_1, c_2$ are
 absolute constants of the formation shape (row sums of
 $|\bar{\boldsymbol{\Phi}}^{-1}|$ divided by six). The Hessian bias decays
 only linearly in $\rho$, matching the $O(\rho)$ bound proved for the
-symmetric estimator in \cite{15}: smaller formations track curvature better.
+symmetric estimator in [15]: smaller formations track curvature better.
 
 \subsubsection{The radius trade-off}
 Combining the two effects, the total error of each fitted second-order
@@ -953,7 +966,7 @@ line's slope where the curvature is unmodeled, acceptable exactly where
 the model is locally adequate. For the double gyre at the nominal scale
 this bias is large in norm, on the order of $\|\mathbf{H}_D\|_F$ itself
 (Section~\ref{sec:results}). Two conclusions nevertheless carry into the
-stability analysis: the estimate errors entering the controller are
+stability analysis: the estimate errors entering the controllers are
 bounded whenever the coefficient errors are bounded, with explicit
 formation-dependent constants; and all such constants degrade
 continuously, not abruptly, as the formation deforms, with outright
@@ -962,7 +975,7 @@ Proposition~\ref{prop:conic}.
 
 \begin{remark}[What survives the Hessian bias]
 \label{rem:eigvec}
-The controller of Section~\ref{sec:controllers} consumes
+The controllers of Section~\ref{sec:controllers} consume
 $\hat{\mathbf{H}}_D$ only through its eigenvectors and the signs and
 rough magnitudes of its eigenvalues, and these degrade far less than the
 Frobenius error suggests. The double gyre is symmetric under reflection
@@ -992,20 +1005,21 @@ are examined in Section~\ref{sec:results}.
 \subsection{Control Architecture}
 \label{sec:arch}
 
-The controller runs inside the three-layer architecture of \cite{14,30}:
+Both controllers run inside the three-layer architecture of [14, 30]:
 
 \begin{enumerate}
     \item \textbf{Navigation primitive.} From the six positions and
           measurements, compute the estimates
           (\ref{eq:J_hat})--(\ref{eq:hess_det}) and output a centroid
-          velocity command $\dot{\mathbf{p}}_c^{\,\text{des}}$.
+          velocity command $\dot{\mathbf{p}}_c^{\,\text{des}}$. The two
+          primitives of this section differ only in this block.
     \item \textbf{Cluster space controller.} Using the twelve-state
           cluster parameterization and its analytic inverse kinematic
           Jacobian (Appendix~\ref{app:kinematics}), distribute the
           centroid command to six robot velocity commands while
           regulating the formation shape to its nominal geometry.
     \item \textbf{Robot dynamics.} Each robot obeys the first-order
-          momentum model identified on the Decabot hardware \cite{14},
+          momentum model identified on the Decabot hardware [14],
           \begin{equation}
               \mathbf{v}[k+1] = \alpha_{\text{mom}}\,\mathbf{v}[k]
               + (1 - \alpha_{\text{mom}})\,\mathbf{v}^{\text{des}}[k],
@@ -1064,7 +1078,7 @@ whatever stationary point the local model exhibits, with no preference
 among minima, maxima, and saddle points of $D$. On a trench the
 along-trench curvature can be negative (the crest side), and there the
 Newton component deliberately climbs. The modification, adopted from
-saddle-free Newton methods in optimization \cite{35}, replaces the signed
+saddle-free Newton methods in optimization [35], replaces the signed
 eigenvalue by its magnitude, giving the \emph{slide step},
 \begin{equation}
     \dot{\mathbf{p}}_c^{\,\text{des}} = \sum_{k=1}^{2}
@@ -1080,7 +1094,7 @@ crests. Both laws are well defined despite the sign ambiguity of
 eigenvectors: every term is quadratic in $\mathbf{w}_k$, so replacing
 $\mathbf{w}_k$ by $-\mathbf{w}_k$ leaves the command unchanged.
 
-\subsection{Separatrix Tracker}
+\subsection{Controller 1: Separatrix Tracker}
 \label{sec:sep_controller}
 
 The separatrix tracker composes the two step bodies with a third,
@@ -1162,17 +1176,62 @@ transverse Newton snap. The modes differ only in their motion along the
 structure. This shared component is what makes the switched system
 tractable in Section~\ref{sec:stability}.
 
+\subsection{Controller 2: Okubo-Weiss Boundary Tracker}
+\label{sec:ow_controller}
+
+The boundary tracker solves Problem 2: drive the scalar $\hat{D}$ to
+zero and travel along the level set $\mathcal{C}$. Its transverse
+action is a Newton step for the scalar root-finding problem
+$D(\mathbf{p}) = 0$: the displacement
+$-(\hat{D}/\|\hat{\mathbf{g}}\|^2)\,\hat{\mathbf{g}}$ is the smallest
+step that zeroes the linearized $D$, and its length
+$|\hat{D}|/\|\hat{\mathbf{g}}\|$ is the estimated distance to the
+boundary. Its tangential action drifts along the tangent of the level
+set, which is perpendicular to the gradient by definition. With the
+unit vectors
+\begin{equation}
+    \hat{\mathbf{u}} = -\mathrm{sign}(\hat{D})\,
+    \frac{\hat{\mathbf{g}}}{\|\hat{\mathbf{g}}\|},
+    \qquad
+    \hat{\mathbf{t}} = \pm\,\mathbf{R}_{90^\circ}
+    \frac{\hat{\mathbf{g}}}{\|\hat{\mathbf{g}}\|},
+    \label{eq:ow_directions}
+\end{equation}
+where $\mathbf{R}_{90^\circ}$ is the quarter-turn rotation and the sign
+of $\hat{\mathbf{t}}$ is chosen so that $\mathbf{f}^\top
+\hat{\mathbf{t}} \geq 0$ (the team circulates with the flow), the
+control law is
+\begin{equation}
+    \dot{\mathbf{p}}_c^{\,\text{des}} =
+    \mathrm{sat}\!\left(\frac{|\hat{D}|}{\|\hat{\mathbf{g}}\|}\right)
+    \hat{\mathbf{u}}
+    + \mathrm{sat}\!\left(\mathbf{f}^\top \hat{\mathbf{t}}\right)
+    \hat{\mathbf{t}}.
+    \label{eq:ow_law}
+\end{equation}
+This has the same radial-plus-tangential structure as the orbital
+controller of [14], with the estimated boundary distance playing the
+role of the radial error. When $\|\hat{\mathbf{g}}\| <
+\varepsilon_{\text{grad}}$ the directions (\ref{eq:ow_directions}) are
+undefined and the law falls back to drifting with the flow,
+$\dot{\mathbf{p}}_c^{\,\text{des}} = \mathrm{sat}(\|\mathbf{f}\|)\,
+\mathbf{f}/\|\mathbf{f}\|$; Section~\ref{sec:stab_ow} shows this
+fallback is needed only at isolated points of $\mathcal{C}$. The
+implementation is \textit{logic\_g\_newton\_contour\_pentagon} in
+\textit{pentagon\_primitives.py}.
+
 \subsection{Gains and Velocity Limits}
 
-The controller saturates every component through $v_{\max}\tanh(c /
+Both controllers saturate every component through $v_{\max}\tanh(c /
 v_{\max})$, so the commanded centroid speed never exceeds
 $\sqrt{2}\,v_{\max}$. The primitive-level saturation speed is $v_{\max}
 = 0.04$ m/s, amplified by a fixed navigation gain $k = 3$ before the
 cluster layer so that steady commands clear the robots' stiction floor;
-the robot-level limits of (\ref{eq:momentum}) are unchanged from \cite{14}.
+the robot-level limits of (\ref{eq:momentum}) are unchanged from [14].
 The band thresholds $\varepsilon_{\text{raw}} = 10^{-3}$ and
-$\varepsilon_{\text{dim}} = 0.025$ are fixed in all experiments unless
-noted.
+$\varepsilon_{\text{dim}} = 0.025$ and the gradient floor
+$\varepsilon_{\text{grad}} = 10^{-6}$ are fixed in all experiments
+unless noted.
 
 Table~\ref{tab:params} collects the values used in all experiments.
 
@@ -1197,6 +1256,7 @@ $A$ & 0.1 & -- & double-gyre amplitude \\
 $\rho$ & 0.075 & m & formation ring radius \\
 $\varepsilon_{\text{raw}}$ & $10^{-3}$ & s$^{-2}$ & FLOW-band raw threshold \\
 $\varepsilon_{\text{dim}}$ & 0.025 & m$^{2}$ & FLOW-band dimensionless threshold \\
+$\varepsilon_{\text{grad}}$ & $10^{-6}$ & s$^{-2}$m$^{-1}$ & gradient floor (OW law) \\
 \hline
 \end{tabular}
 \end{table}
@@ -1214,12 +1274,12 @@ centroid is modeled as a kinematic integrator
     \dot{\mathbf{p}}_c = k\,\boldsymbol{\delta}(\mathbf{p}_c),
     \label{eq:kinematic_model}
 \end{equation}
-where $\boldsymbol{\delta}$ is the output of the separatrix tracker,
-and $k > 0$ is the navigation gain. This abstracts the cluster and
-robot layers, whose
+where $\boldsymbol{\delta}$ is the output of the separatrix tracker or
+of the boundary-tracking law (\ref{eq:ow_law}), and $k > 0$ is the
+navigation gain. This abstracts the cluster and robot layers, whose
 tracking dynamics (\ref{eq:momentum}) are faster than the navigation
 timescale ($\tau = 0.3$ s against transit times of tens of seconds);
-the same separation was validated in hardware in \cite{14}. Time is rescaled
+the same separation was validated in hardware in [14]. Time is rescaled
 so that $k = 1$. Unless stated otherwise the estimates are taken exact
 ($\hat{D} = D$, $\hat{\mathbf{g}} = \mathbf{g}$, $\hat{\mathbf{H}}_D =
 \mathbf{H}_D$, $\mathbf{f} = \mathbf{v}(\mathbf{p}_c)$);
@@ -1460,18 +1520,82 @@ behaviors are consequences of the same theorem, differing only in which
 premise the deployed estimator satisfies at the crossing.
 \end{remark}
 
+\subsection{Okubo-Weiss Boundary Tracker}
+\label{sec:stab_ow}
+
+\begin{theorem}[Boundary tracking]
+\label{thm:ow}
+Let $K$ be a compact set on which $0 < g_{\min} \leq \|\mathbf{g}\| \leq
+g_{\max}$. Consider (\ref{eq:kinematic_model}) with the law
+(\ref{eq:ow_law}), and let $\chi = (\mathbf{g}/\|\mathbf{g}\|)^\top
+\hat{\mathbf{t}}$ measure the misalignment between the commanded drift
+direction and the true level-set tangent, with $\bar{\chi} = \sup_K
+|\chi| < 1$. Then $V_1 = \tfrac{1}{2}D^2$ satisfies
+\begin{equation}
+    \dot{V}_1 \leq -\|\mathbf{g}\|\,|D|\,v_{\max}\left[
+    \tanh\!\left(\frac{|D|}{\|\mathbf{g}\|\,v_{\max}}\right)
+    - \bar{\chi}\right].
+    \label{eq:V1_dot}
+\end{equation}
+Consequently:
+(a) with exact estimates, $\hat{\mathbf{t}} \perp \mathbf{g}$ by
+construction, so $\chi \equiv 0$ and $V_1$ decreases strictly for
+$D \neq 0$; $|D|$ falls at rate at least $\tanh(1)\,g_{\min} v_{\max}$
+while $|D| \geq \|\mathbf{g}\| v_{\max}$, and thereafter $\dot{V}_1
+\leq -2\tanh(1)V_1$, so $D \to 0$ exponentially and trajectories
+converge to the boundary $\mathcal{C}$;
+(b) if estimate errors misalign the commanded drift ($\bar{\chi} > 0$),
+trajectories reach and remain in the residual band
+\begin{equation}
+    |D| \;\leq\; g_{\max}\, v_{\max}\,
+    \operatorname{artanh}(\bar{\chi}).
+    \label{eq:ow_residual}
+\end{equation}
+\end{theorem}
+
+\begin{IEEEproof}
+Write (\ref{eq:ow_law}) as $\boldsymbol{\delta} = s_\perp
+\hat{\mathbf{u}} + s_{\text{tan}} \hat{\mathbf{t}}$ with $s_\perp =
+\mathrm{sat}(|D|/\|\mathbf{g}\|) \geq 0$ and $|s_{\text{tan}}| \leq
+v_{\max}$. Then $\dot{V}_1 = D\,\mathbf{g}^\top \boldsymbol{\delta}$.
+The perpendicular term: $\mathbf{g}^\top \hat{\mathbf{u}} =
+-\mathrm{sign}(D)\|\mathbf{g}\|$, so $D\,\mathbf{g}^\top
+\hat{\mathbf{u}}\, s_\perp = -|D|\,\|\mathbf{g}\|\, s_\perp$. The
+tangential term is bounded by $|D|\,\|\mathbf{g}\|\,\bar{\chi}\,
+v_{\max}$. Summing gives (\ref{eq:V1_dot}). For (a), $\tanh z \geq
+\tanh(1)\min(z, 1)$ turns (\ref{eq:V1_dot}) into $\dot{V}_1 \leq
+-\tanh(1)\min\{D^2,\, |D|\,\|\mathbf{g}\|v_{\max}\}$, giving the two
+regimes stated. For (b), the bracket in (\ref{eq:V1_dot}) is positive
+whenever $\tanh(|D|/(\|\mathbf{g}\|v_{\max})) > \bar{\chi}$, that is
+whenever $|D| > \|\mathbf{g}\|v_{\max}\operatorname{artanh}
+(\bar{\chi})$, so $V_1$ decreases outside the band
+(\ref{eq:ow_residual}) and the band is attractive and invariant.
+\end{IEEEproof}
+
+\begin{remark}[Degenerate points of the boundary]
+\label{rem:ow_corners}
+The gradient floor $\varepsilon_{\text{grad}}$ in the law
+(\ref{eq:ow_law}) exists because $\mathcal{C}$ is not globally regular:
+the four corners of each double-gyre diamond are critical points of $D$
+lying on $\mathcal{C}$, where $\mathbf{g} = \mathbf{0}$ and
+Theorem~\ref{thm:ow}'s premise fails. These are isolated points; the
+fallback drifts the team with the flow across the corner region, after
+which the Newton action resumes. The same fallback covers
+initialization at a gyre core's exact center.
+\end{remark}
+
 \subsection{Robustness to Estimation Error}
 \label{sec:stab_iss}
 
 Finally the exact-estimate assumption is dropped. By
 Section~\ref{sec:sensitivity}, noise of level $\sigma_{uv}$ and
 truncation over a footprint of radius $\rho$ perturb every quantity the
-controller uses; the perturbations are bounded, with constants
+controllers use; the perturbations are bounded, with constants
 determined by the formation. Their effect enters each control channel
 inside a $\tanh$, which is 1-Lipschitz, so a perturbation of a
 commanded component is no larger than the perturbation of its argument.
 
-\begin{proposition}[Ultimate bound under bounded estimate error]
+\begin{proposition}[Ultimate bounds under bounded estimate error]
 \label{prop:iss}
 Suppose the estimate errors induce a bounded disturbance $d(t)$, $|d|
 \leq \bar{d} < v_{\max}$, in the transverse channel, so that
@@ -1482,25 +1606,40 @@ d$. Then the trench remains practically stable with ultimate bound
     v_{\max}\operatorname{artanh}\!\left(\frac{\bar{d}}{v_{\max}}\right),
     \label{eq:iss_bound}
 \end{equation}
-which is $\approx \bar{d}$ for $\bar{d} \ll v_{\max}$.
+which is $\approx \bar{d}$ for $\bar{d} \ll v_{\max}$. Likewise, an
+error $|\hat{D} - D| \leq \bar{e}_D$ adds $\bar{e}_D/(\|\mathbf{g}\|
+v_{\max})$ inside the bracket of (\ref{eq:V1_dot}), inflating the
+Okubo-Weiss residual band (\ref{eq:ow_residual}) to
+\begin{equation}
+    |D| \;\leq\; g_{\max}\,v_{\max}
+    \operatorname{artanh}\!\left(\bar{\chi} +
+    \frac{\bar{e}_D}{g_{\min} v_{\max}}\right),
+    \label{eq:ow_residual_noisy}
+\end{equation}
+provided the argument is less than one.
 \end{proposition}
 
 \begin{IEEEproof}
-$\tfrac{d}{dt}\tfrac{1}{2}n^2 = n(-v_{\max}
+For (\ref{eq:iss_bound}): $\tfrac{d}{dt}\tfrac{1}{2}n^2 = n(-v_{\max}
 \tanh(n/v_{\max}) + d) < 0$ whenever $v_{\max}\tanh(|n|/v_{\max}) >
 \bar{d}$, that is outside the stated interval, which is therefore
-attractive and invariant.
+attractive and invariant. For (\ref{eq:ow_residual_noisy}): the
+perpendicular channel of (\ref{eq:ow_law}) computed from $\hat{D},
+\hat{\mathbf{g}}$ differs from the exact one by terms bounded by
+$\bar{e}_D/(\|\mathbf{g}\|v_{\max})$ inside the saturation (Lipschitz
+bound), and the argument of Theorem~\ref{thm:ow}(b) repeats with the
+bracket shifted by that amount.
 \end{IEEEproof}
 
-The disturbance level $\bar{d}$ inherits the structure
+The disturbance levels $\bar{d}$ and $\bar{e}_D$ inherit the structure
 of Section~\ref{sec:sensitivity}: a noise part scaling as
 $\sigma_{uv}/\rho$ to $\sigma_{uv}/\rho^2$ through Lemma~\ref{lem:gains}
 and (\ref{eq:det_perturbation}), and a truncation part scaling as
 $M_3\rho$ to $M_3\rho^2$ through (\ref{eq:truncation}). The ultimate
-bound (\ref{eq:iss_bound}) therefore
-degrades linearly in the measurement noise level, with the formation
+bounds (\ref{eq:iss_bound}) and (\ref{eq:ow_residual_noisy}) therefore
+degrade linearly in the measurement noise level, with the formation
 radius trading the two contributions as in (\ref{eq:rho_star}). The
-Monte Carlo sweep of Section~\ref{sec:test_plan} quantifies these
+Monte Carlo sweeps of Section~\ref{sec:test_plan} quantify these
 predictions empirically.
 
 
@@ -1510,8 +1649,8 @@ predictions empirically.
 
 \subsection{Cluster Space Controller and Pentagon Formation}
 
-The controller uses a cluster space controller and pentagon-of-pairs
-formation. The forward kinematics maps the 12-state
+Both controllers use the same underlying cluster space controller and
+pentagon-of-pairs formation. The forward kinematics maps the 12-state
 cluster configuration to global robot positions; the inverse kinematics
 and analytic $12 \times 12$ inverse kinematic Jacobian (see
 Appendix~\ref{app:kinematics}) map a desired centroid velocity to
@@ -1696,7 +1835,7 @@ components read by each robot:
     \label{eq:meas_noise}
 \end{equation}
 with samples independent across robots, components, and time steps; this
-is the sensor model of \cite{9}. Position noise perturbs the location at
+is the sensor model of [9]. Position noise perturbs the location at
 which each robot samples the field,
 \begin{equation}
     (u_i^m, v_i^m) = \mathbf{v}(\mathbf{p}_i + \boldsymbol{\xi}_i), \quad
@@ -1716,17 +1855,19 @@ the two-dimensional noise sweep of Section~\ref{sec:test_plan}.
 \subsection{Testing Plan}
 \label{sec:test_plan}
 
-% Sweep implementation: experiments/mc_sweep_separatrix.py (VF_Robot);
-% analysis by experiments/analyze_mc_sweeps.py; per-trial rows in
+% Sweep implementation: experiments/mc_sweep_separatrix.py and
+% experiments/mc_sweep_ow.py (VF_Robot); analysis by
+% experiments/analyze_mc_sweeps.py; per-trial rows in
 % experiments/outputs/mc_*/trials_fixed.csv.
-The separatrix tracker is evaluated in Monte Carlo over a two-dimensional
-noise grid, from one consistent initial condition, so that the success
-rate measures noise robustness alone rather than basin geometry
-(Section~\ref{sec:limitations}). The tracker starts from a formation
-straddling the separatrix at $(0, 0.35)$. Every trial draws an
-independent initial cluster heading uniformly from $[0, 2\pi)$; by
-Lemma~\ref{lem:gains} the estimator gains are heading-isotropic, and the
-trials test this prediction.
+Both controllers are evaluated in Monte Carlo over a two-dimensional
+noise grid, from one consistent initial condition per controller, so
+that the success rate measures noise robustness alone rather than basin
+geometry (Section~\ref{sec:limitations}). The separatrix tracker starts
+from a formation straddling the separatrix at $(0, 0.35)$; the boundary
+tracker starts adjacent to the left Okubo-Weiss boundary at
+$(-0.5, 0.25)$. Every trial draws an independent initial cluster heading
+uniformly from $[0, 2\pi)$; by Lemma~\ref{lem:gains} the estimator gains
+are heading-isotropic, and the trials test this prediction.
 \begin{itemize}
     \item $\sigma_{uv} \in \{0,\, 0.001,\, 0.005,\, 0.01,\, 0.02,\,
           0.05,\, 0.1\}$ m/s; the top level is doubled and re-swept
@@ -1734,23 +1875,29 @@ trials test this prediction.
           failure cliff is always bracketed.
     \item $\sigma_p \in \{0,\, 0.005,\, 0.01,\, 0.02,\, 0.05\}$ m.
     \item 1000 trials per cell, at 10 Hz for at most 500 steps; a trial
-          stops early when the tracker reaches the terminal saddle, or
-          when the centroid leaves the domain.
+          stops early when the separatrix tracker reaches the terminal
+          saddle, or when the centroid leaves the domain (the boundary
+          tracker rides its zero line out of the domain by design).
 \end{itemize}
 
 The following are recorded for each trial:
 \begin{enumerate}
-    \item \textbf{Task success.} Reaching the terminal saddle (centroid
-          within 0.06 of $\mathbf{p}^*_1$). A trial whose formation
-          collapses (below) fails regardless.
-    \item \textbf{Time-to-band:} the first step at which $|x_c|$ drops
-          below its threshold and remains below it for 10 consecutive
-          steps.
+    \item \textbf{Task success.} For the separatrix tracker, reaching
+          the terminal saddle (centroid within 0.06 of
+          $\mathbf{p}^*_1$); for the boundary tracker, locking onto the
+          $D = 0$ set ($|D| < 0.02$ sustained for 10 steps) with
+          95th-percentile $|D|$ thereafter below 0.10. A trial whose
+          formation collapses (below) fails regardless.
+    \item \textbf{Time-to-band:} the first step at which the tracking
+          quantity ($|x_c|$ for the separatrix, $|D(\mathbf{p}_c)|$ for
+          the boundary) drops below its threshold and remains below it
+          for 10 consecutive steps.
     \item \textbf{Straddle retention:} whether robots remain on both
           sides of the separatrix from the first straddling step until
-          the stop, the failure count of \cite{9}.
-    \item \textbf{Tracking error:} mean and 95th percentile of $|x_c|$
-          over the on-structure phase (band entry to stop).
+          the stop, the failure count of [9].
+    \item \textbf{Tracking error:} mean and 95th percentile of the
+          tracking quantity over the on-structure phase (band entry to
+          stop).
     \item \textbf{Formation shape error:} RMS error of the fifteen
           inter-robot distances against their nominal values; an
           excursion beyond twice the nominal pair length is a formation
@@ -1793,7 +1940,7 @@ $(\sigma_{uv}, \sigma_p)$ cell.
 Estimator accuracy was measured open loop: the formation was held static
 at the strain-region point $\mathbf{p}_c = (-0.35, -0.20)$ of the steady
 double gyre, $2 \times 10^5$ independent noise draws were applied per
-condition through the same fit used by the controller, and the estimates
+condition through the same fit used by the controllers, and the estimates
 were compared with the analytic values of Appendix~\ref{app:analytic}.
 The empirical standard deviation of every fitted coefficient matched the
 closed forms of Lemma~\ref{lem:gains} within 0.2\%, and the per-robot
@@ -1835,13 +1982,13 @@ The gradient threshold locates where closed-loop degradation should
 begin: at $\sigma_{uv} \approx 0.01$ a single $\nabla\hat{D}$ estimate
 is as wrong as it is right, so any one control decision approaches
 chance. The closed loop does not extend this limit: the Monte Carlo
-sweep that follows places the tracker's 50\% success level at
+sweeps that follow place the 50\% success level of both controllers at
 $\sigma_{uv} \approx 0.01$, coinciding with the single-estimate
 threshold. Saturation and the per-cycle redraw of the noise bound the
 damage of individual bad commands, but they buy no additional margin
 for a traverse that requires a long sequence of correct decisions.
 
-\subsection{Simulation Results}
+\subsection{Separatrix Controller Simulation Results}
 
 \begin{figure}[!t]
     \centering
@@ -1928,7 +2075,7 @@ Lemma~\ref{lem:gains}).
 \begin{table}[!t]
 \centering
 \caption{Separatrix tracker: straddle retention by noise cell (fraction
-of 1000 trials, Michini-comparable metric \cite{9})}
+of 1000 trials, Michini-comparable metric [9])}
 \label{tab:sep_straddle}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -1945,6 +2092,92 @@ $\sigma_{uv}$ \textbackslash\ $\sigma_p$ & 0.000 & 0.005 & 0.010 & 0.020 & 0.050
 \end{tabular}
 \end{table}
 
+\subsection{Okubo-Weiss Boundary Tracker Simulation Results}
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.45\textwidth]{figures/ow_trajectories.png}
+    % Generated by experiments/ow_clean_runs.py, under
+    % trunk/Python_Simulations/Vector_Fields/VF_Robot/. Review copy in
+    % experiments/outputs/ow_clean/.
+    \caption{Okubo-Weiss boundary tracker centroid trajectories from four
+    initial conditions, noise-free case, overlaid on $D(\mathbf{p})$
+    (red $D>0$ cores, blue $D<0$ exterior) and the diamond boundaries.
+    Gyre centers are $+$, diamond corners are $\times$. After lock-on,
+    each trajectory follows its diamond edge straight through the
+    corners onto the neighboring edge, consistent with the line-network
+    structure of $\mathcal{C}$ (Section~\ref{sec:dg_example}).}
+    \label{fig:ow_trajectories}
+\end{figure}
+
+All four starts of Fig.~\ref{fig:ow_trajectories} lock onto the
+boundary in 13--16 steps and hold it: mean $|D|$ on-boundary is
+0.0032--0.0075 (0.3--0.8\% of the well depth $\pi^4 A^2 = 0.974$), with
+95th-percentile $|D|$ of 0.028--0.039. Runs O3 and O4 each cross one
+diamond corner and dwell there for 4--8 steps before continuing on the
+new edge; the boundary tracker never turns to circulate a single
+diamond, it travels along the connected line network, matching Problem
+2's statement in Section~\ref{sec:problem_statement}.
+
+\begin{table}[!t]
+\centering
+\caption{Okubo-Weiss tracker: success rate (track) by noise cell, 1000
+trials/cell, fixed start $(-0.5, 0.25)$}
+\label{tab:ow_success}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{r|rrrrr}
+\hline
+$\sigma_{uv}$ \textbackslash\ $\sigma_p$ & 0.000 & 0.005 & 0.010 & 0.020 & 0.050 \\
+\hline
+0.000 & 100.0 & 100.0 & 100.0 &  98.6 &   9.7 \\
+0.001 & 100.0 & 100.0 & 100.0 &  98.4 &   9.5 \\
+0.005 &  93.8 &  93.7 &  91.6 &  72.8 &   8.1 \\
+0.010 &  20.9 &  17.7 &  16.7 &  13.4 &   9.1 \\
+0.020 &   8.8 &   8.0 &   9.6 &   7.2 &   7.9 \\
+0.050 &   6.6 &   5.5 &   4.4 &   6.7 &   6.0 \\
+\hline
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:ow_success} shows a sharper cliff than the separatrix
+tracker: full tolerance through $\sigma_{uv} = 0.001$ regardless of
+$\sigma_p$, 93.8\% at $\sigma_{uv} = 0.005$, then a collapse to 20.9\%
+at $\sigma_{uv} = 0.01$, the same coordinate as the separatrix
+controller's cliff and the same open-loop gradient threshold. Position
+noise is tolerated to $\sigma_p = 0.02$ at low $\sigma_{uv}$ (98.6\% at
+$\sigma_{uv} = 0$) but the $\sigma_p = 0.05$ column is uniformly under
+10\% regardless of $\sigma_{uv}$, since $\sigma_p = 0.05$ alone already
+exceeds the reading-error budget the boundary law needs to keep
+$|\hat{D}|$ below its lock-on threshold. On-boundary tracking error
+($|D(\mathbf{p}_c)|$, mean and 95th percentile) is essentially unchanged
+through $\sigma_{uv} = 0.001$ (mean 0.0008--0.0029) and rises steadily
+to the well depth scale by $\sigma_{uv} = 0.05$ (mean 0.21, 95th
+percentile 0.50). As with the separatrix tracker, success was
+independent of initial heading (quartile success 77.6--79.4\% at low
+noise).
+
+\subsection{Comparison of the Two Controllers}
+
+Both controllers place their 50\% success level at the same
+$\sigma_{uv} \approx 0.01$, the point at which a single
+$\nabla\hat{D}$ estimate is as wrong as it is right, reported above in
+the estimator-accuracy results. Neither the flow-assisted
+separatrix law nor the boundary law's tangential drift extends this
+budget: the estimator, not the control law, sets the noise ceiling for
+both structures. The boundary tracker's cliff is sharper (100\% to
+20.9\% between $\sigma_{uv} = 0.005$ and $0.01$, versus the separatrix
+tracker's more gradual 60.2\% to 43.3\% over the same interval) because
+tracking $\mathcal{C}$ is a codimension-one regular-level-set problem
+that fails outright once $\nabla\hat{D}$ stops resolving the crossing
+direction, while the separatrix tracker degrades more gradually because
+its FLOW mode can still make progress along the trench using the
+ambient flow estimate $\mathbf{f}$ even when $\hat{\mathbf{H}}_D$ is
+unreliable. This mirrors the asymmetry in the stability results of
+Section~\ref{sec:stability}: the boundary is a single regular curve with
+a global certificate; the separatrix is a trench whose capture depends
+on curvature the estimator recovers only approximately.
+
 \subsection{Ocean HFR Simulation}
 \label{sec:results_ocean}
 
@@ -1959,7 +2192,7 @@ channel entrance, tracks the ridge through the bifurcation near
 $(34.1^{\circ}\mathrm{N}, -120.4^{\circ}\mathrm{W})$, and continues to
 landfall on the middle island's north coast. Fig.~\ref{fig:ocean_ftle}
 places the same trial against the 24-h forward-time FTLE field, computed
-offline over the same window in the style of \cite{17}; the cluster's path
+offline over the same window in the style of [17]; the cluster's path
 follows the dominant FTLE ridge running from the channel entrance to the
 bifurcation closely, without the ridge being available to the controller
 at any point, only the local $\hat{D}$ and $\hat{\mathbf{g}}$ estimates
@@ -2055,32 +2288,37 @@ the validated one, not that every start converges to it.
 
 \subsection{Implications for Distributed Eulerian-Structure Following}
 
-The stability result of Section~\ref{sec:stability} is harder to obtain
-than a codimension-one regular-level-set tracking result would be,
-for a structural reason. A regular level set of a scalar field is
-determined by first-order information alone: a gradient that does not
-vanish fully fixes the transversal direction, and a controller built
-from it admits a global certificate from a single quadratic Lyapunov
-function. The separatrix trench lives where that first-order
-information vanishes in the normal direction, so any controller and any
-proof must synthesize the missing direction from curvature; the
-eigenstructure dependence, mode switching, and tube assumptions of
-Section~\ref{sec:stab_sep} are the price of that synthesis.
+The two stability results of Section~\ref{sec:stability} differ in
+strength for a structural reason. The Okubo-Weiss boundary is a
+codimension-one regular level set: first-order information, a gradient
+that does not vanish, fully determines the transversal direction and
+yields a global certificate from a single quadratic Lyapunov function.
+The separatrix trench lives where that first-order information vanishes
+in the normal direction, so any controller and any proof must
+synthesize the missing direction from curvature; the eigenstructure
+dependence, mode switching, and tube assumptions of
+Section~\ref{sec:stab_sep} are the price of that synthesis. The
+separatrix result is the more difficult robotics contribution precisely
+because the problem is harder; the boundary result is the stronger
+theorem precisely because the problem is easier.
 
 The results of Section~\ref{sec:results} show that a six-robot formation
 sampling only its own local velocities recovers enough second-order
-structure, not the field itself, to find and follow this Eulerian
-feature, with no map, no forecast, and no communication beyond the
-single synchronous sample each control cycle already requires. The
-$\det(\mathbf{J})$ landscape is what makes this possible: the separatrix
-reduces to following a scalar surrogate field, the trench, computable
-from the same twelve fitted coefficients that recover the Jacobian,
-rather than to any procedure specific to streamlines or Lagrangian
-integration. The trench is a curve defined by where curvature
-information vanishes to first order and must instead be supplied by
-the Hessian, which is precisely why this problem needs the Hessian
-estimator of Section~\ref{sec:estimation} rather than the gradient
-estimate a first-order feature would require.
+structure, not the field itself, to find and follow both kinds of
+Eulerian feature, with no map, no forecast, and no communication beyond
+the single synchronous sample each control cycle already requires. The
+$\det(\mathbf{J})$ landscape is what makes this possible: both problems
+reduce to following a scalar surrogate field that is computable from
+the same twelve fitted coefficients, a trench for the separatrix and a
+zero-crossing for the boundary, rather than to any procedure specific
+to streamlines or Lagrangian integration. The two controllers are
+consequently complementary rather than competing: one tracks a curve
+defined by where curvature information vanishes to first order and must
+be supplied by the Hessian, the other a curve defined by where the
+Hessian itself is unnecessary because the gradient alone is regular
+everywhere on it. A team that could estimate both could, in principle,
+select which structure to follow from the local field alone, without an
+operator choosing in advance.
 
 \subsection{Park versus Traverse: One Threshold, Two Behaviors}
 \label{sec:park_vs_traverse}
@@ -2144,7 +2382,7 @@ point or open-ended traversal of the network.
 
 \subsection{Failure Modes}
 
-Two behaviors fall outside the guarantees of
+Three behaviors fall outside the guarantees of
 Section~\ref{sec:stability} and are worth stating plainly rather than
 leaving implicit. First, the estimator is ill-conditioned whenever the
 six sampling points drift toward a common conic
@@ -2178,6 +2416,23 @@ remove, too large a threshold widens the band and the chatter with it.
 The value used throughout, $\varepsilon_{\text{dim}} = 0.025$, was fixed
 once and not retuned per experiment.
 
+Third, the Okubo-Weiss boundary tracker's tangential drift can carry the
+team through a diamond corner and onto the neighboring line of the
+periodic network (Section~\ref{sec:dg_example}), rather than turning to
+circulate the diamond it started on, which is what
+Section~\ref{sec:results} reports rather than the circulation Problem 2
+originally anticipated. The mechanism is the same corner behavior
+covered by Remark~\ref{rem:ow_corners} following Theorem~\ref{thm:ow},
+extended past the corner itself: once the flow fallback carries the team
+onto the new line, the Newton action resumes there and the team departs
+along it, and because the analytic double-gyre field tiles the plane
+with no domain fence, this can carry a simulated team arbitrarily far
+from the diamond it started on. On real, non-periodic fields this
+would not recur past the first crossing encountered; in the simulation
+it is worth flagging explicitly rather than truncating trials at the
+domain edge without comment, which is what the Testing Plan does
+(Section~\ref{sec:test_plan}).
+
 
 % ---------------------------------------------------------------------------
 \section{Limitations}
@@ -2185,14 +2440,16 @@ once and not retuned per experiment.
 
 This paper restricts attention to the static double gyre ($\varepsilon = 0$).
 In the time-varying case ($\varepsilon > 0$) the separatrix becomes a
-material curve that evolves with the flow; tracking it would require
-adapting the control law to account for the flow unsteadiness. This
-extension is left to future work.
+material curve that evolves with the flow, and the det$(\mathbf{J}) = 0$
+boundary shifts in time; tracking either structure would require adapting
+the control law to account for the flow unsteadiness. This extension is
+left to future work.
 
 Results are presented for a single field family (the double gyre). Whether
-the separatrix tracker generalizes to other fields with saddle-like
-regions is not addressed here, though the estimation framework
-(Section~\ref{sec:estimation}) applies to any smooth planar vector field.
+the separatrix tracker and OW boundary tracker generalize to other fields
+with saddle-like or rotation-dominated regions is not addressed here,
+though the estimation framework (Section~\ref{sec:estimation}) applies
+to any smooth planar vector field.
 
 All results are from simulation only. Hardware validation on the Decabot
 testbed is not reported in this paper; it is planned as a follow-on study.
@@ -2206,7 +2463,7 @@ core parks at the core rather than on the separatrix: in supplementary
 uniform-random-start trials over the domain, roughly half (47.9\%,
 $n = 1000$) of starts reached the trench at zero noise. We do not
 characterize the basin of attraction of the separatrix; prior
-adaptive-navigation primitives \cite{27}, \cite{28} likewise report local
+adaptive-navigation primitives [27], [28] likewise report local
 convergence without basin estimates.
 
 
@@ -2217,8 +2474,8 @@ convergence without basin estimates.
 Direct extensions of this work include:
 \begin{itemize}
     \item \textbf{Time-varying double gyre.} The ocean HFR experiment of
-          Section~\ref{sec:results_ocean} shows the controller already
-          operates on a genuinely time-varying field without modification;
+          Section~\ref{sec:results_ocean} shows the controllers already
+          operate on a genuinely time-varying field without modification;
           a time-derivative correction term to the navigation primitive,
           analyzed against the analytic $\varepsilon > 0$ double gyre where
           the exact structure motion is known, would let the stability
@@ -2228,10 +2485,11 @@ Direct extensions of this work include:
           $(L_k)$ and the SAS parameters to improve the conditioning of
           $\boldsymbol{\Phi}$ when the cluster is near a degenerate
           configuration.
-    \item \textbf{Hardware deployment.} Validating the controller on the
+    \item \textbf{Hardware deployment.} Validating both controllers on the
           Decabot testbed using the OptiTrack motion-capture system. The
-          separatrix can be represented by a vector field emitted by an
-          on-board computer and sampled by the robots' onboard sensors.
+          separatrix and Okubo-Weiss boundaries can be represented by a
+          vector field emitted by an on-board computer and sampled by
+          the robots' onboard sensors.
     \item \textbf{Extension to 3D.} Generalizing the quadratic estimator
           to three-dimensional fields, which would require at least 10 robots
           per component for full cubic determination, or a reduced-order
@@ -2244,26 +2502,26 @@ Direct extensions of this work include:
 \label{sec:conclusion}
 
 This paper presented a distributed framework for navigating a six-robot
-formation along the separatrix of the double gyre. A quadratic
+formation along two Eulerian structural boundaries of the double gyre: the
+separatrix and the Okubo-Weiss ($\det(\mathbf{J}) = 0$) boundary. A quadratic
 estimator using simultaneous measurements from the six robots recovers the
-Jacobian, its determinant $D = \det(\mathbf{J})$, gradient, and Hessian at
-the cluster centroid with no prior field knowledge, with closed-form noise
-gains verified empirically to within $0.2\%$. An adaptive controller built
-on a modified Newton step was derived, with a Lyapunov stability
-certificate that additionally extends to a network-traversal theorem,
-since the trench of $D$ a controller reaches continues through every
-saddle it crosses rather than terminating there, with single-saddle
-capture recovered as a tightened-threshold special case demonstrated in
-simulation. Monte Carlo simulation over a two-dimensional noise sweep
-placed the tracker's 50\% success level at $\sigma_{uv} \approx 0.01$,
-exactly the level at which a single gradient estimate stops being
-informative: the estimator, not the control law, sets the noise ceiling.
-On real, time-varying current data from the Santa Barbara Channel the
-separatrix tracker followed the dominant coherent-structure ridge for
-28 hours of field time to a consistent landfall, reproduced by 84 of
-100 nearby starts, using only the same local estimates validated in
-simulation, with no forecast, map, or access to the field's future
-evolution.
+Jacobian, its determinant, gradient, and Hessian at the cluster centroid with
+no prior field knowledge, with closed-form noise gains verified empirically
+to within $0.2\%$. Two adaptive controllers were derived, each with a
+Lyapunov stability certificate; the separatrix result additionally extends
+to a network-traversal theorem, since the trench a controller reaches
+continues through every saddle it crosses rather than terminating there,
+with single-saddle capture recovered as a tightened-threshold special case
+demonstrated in simulation. Monte Carlo simulation over a two-dimensional
+noise sweep placed the 50\% success level of both controllers at the same
+noise level, $\sigma_{uv} \approx 0.01$, exactly the level at which a
+single gradient estimate stops being informative: the estimator, not
+either control law, sets the noise ceiling. On real, time-varying current
+data from the Santa Barbara Channel the separatrix tracker followed the
+dominant coherent-structure ridge for 28 hours of field time to a
+consistent landfall, reproduced by 84 of 100 nearby starts, using only
+the same local estimates validated in simulation, with no forecast, map,
+or access to the field's future evolution.
 
 
 \appendices
@@ -2356,7 +2614,7 @@ by:
 \begin{enumerate}
     \item Constructing the midpoint triangle from $(p_1, \beta_1, q_1)$ in
           a local frame (following the same procedure as the three-robot
-          cluster in Appendix B of \cite{14}).
+          cluster in Appendix B of [14]).
     \item Rotating and translating to the global frame using $\theta_c$,
           $x_c$, $y_c$.
     \item Placing each pair of robots by offsetting from the midpoint along
@@ -2443,7 +2701,7 @@ flows," \textit{Autonomous Robots}, vol. 41, no. 8, pp. 1575--1588, 2017.
 
 \bibitem{14} C. Waight and C. A. Kitts, "Adaptive navigation of multirobot
 systems to critical points in 2D vector fields," \textit{IEEE/ASME Transactions
-on Mechatronics}, to appear.
+on Mechatronics}, % TODO: add volume, issue, page range, year once published.
 
 \bibitem{15} L. Briñón-Arranz, A. Renzaglia, and L. Schenato, "Multirobot
 symmetric formations for gradient and Hessian estimation with application to

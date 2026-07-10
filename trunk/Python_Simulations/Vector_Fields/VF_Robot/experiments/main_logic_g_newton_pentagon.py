@@ -54,11 +54,11 @@ GYRE_RIGHT = ( 0.5, 0.0)
 
 # Same 5 starting points as the other two Logic G experiments for comparison.
 START_POINTS = [
-    (-0.5,  0.25, "Left gyre, above center -- expect diamond tracking"),
-    (-0.7,  0.0,  "Left gyre, outside diamond -- expect inward pull"),
-    (-0.3,  0.0,  "Left gyre, inside diamond -- expect outward push"),
-    ( 0.5,  0.25, "Right gyre, above center -- expect diamond tracking"),
-    ( 0.3,  0.0,  "Right gyre, inside diamond -- expect outward push"),
+    (-0.5,  0.25, "Left gyre, above center"),
+    (-0.7,  0.0,  "Left gyre, outside diamond "),
+    (-0.3,  0.0,  "Left gyre, inside diamond "),
+    ( 0.5,  0.25, "Right gyre, above center "),
+    ( 0.3,  0.0,  "Right gyre, inside diamondß"),
 ]
 
 # ============================================================================
@@ -77,6 +77,12 @@ def run_single(ax, start_x, start_y, title):
 
     execute_omni_simulation(cluster, primitive, title,
                             sim_time=SIM_STEPS, ax=ax, skip_legend=True)
+
+    # Wider x-range so both gyres show with more margin. Aspect stays equal
+    # (unit scale matches y), so the panel grows into a wider rectangle
+    # rather than the field itself stretching.
+    ax.set_xlim(-0.9, 0.9)
+    ax.set_xticks([-0.5, 0, 0.5])
 
     # Mark gyre centers
     ax.plot(GYRE_LEFT[0], GYRE_LEFT[1], marker='+', color='magenta',
@@ -113,20 +119,20 @@ def run_single(ax, start_x, start_y, title):
 
 def main():
     n = len(START_POINTS)
-    fig, axes = plt.subplots(1, n, figsize=(5 * n, 6))
+    fig, axes = plt.subplots(1, n, figsize=(6.5 * n, 6))
     if n == 1:
         axes = [axes]
 
     for ax, (sx, sy, title) in zip(axes, START_POINTS):
         print(f"\nRunning: {title}")
         run_single(ax, sx, sy, title)
+        ax.set_title(title, fontsize=11, fontweight='bold')
 
     plt.suptitle(
-        "Pentagon Cluster -- Newton-Step Logic G, Okubo-Weiss Contour\n"
-        "Static Double Gyre (shifted), det(J)=0 diamond around gyre centers",
-        fontsize=13, fontweight='bold'
+        "det(J)=0 Contour",
+        fontsize=16, fontweight='bold'
     )
-    plt.tight_layout()
+    plt.tight_layout(w_pad=2.0, rect=[0, 0, 1, 0.94])
     plt.show()
 
     print("\nDone.")

@@ -1,0 +1,29 @@
+# Formation configuration: 3-robot equilateral triangle for the ocean HFR
+# (2km, time-varying) critical-point-attraction experiment
+# (experiments/main_ocean_hfr_2km_critical_point.py).
+#
+# Scale history (2026-07-07):
+#   p=q=0.15: matches the 6-robot pentagon formation's footprint
+#     (pentagon_small_2km.yaml). Reaches the main persistent stagnation
+#     region near (34.31N,-120.22W) (time-averaged low-speed pocket, see
+#     experiment docstring) from a basin of moderate size: a radial sweep
+#     around that target found hits out to L2~0.25 deg start-finish
+#     distance (best: start (34.56N,-120.22W), due north at r=0.25).
+#   p=q=0.50 (tried, reverted): widens reach toward a DIFFERENT target
+#     ((34.26N,-120.06W), used in an earlier version of this experiment)
+#     but for the (34.31N,-120.22W) target used now, 0.50 was tested via
+#     the same radial-sweep method (sizes 0.5/0.7/1.0, 7 radii x 12 angles
+#     each, ~230 trials) and produced ZERO hits in the target zone -- the
+#     basin around this target does not simply widen with formation size;
+#     at 0.50+ the plane-fit estimate is pulled to an unrelated attractor
+#     near (34.31N,-120.00W) or leaves the domain. Bigger is not
+#     universally better here: it depends on which target/basin is in
+#     play. p=q=0.15 kept as the working value for this target.
+
+formation:
+  p: 0.15   # side length (world units); see header for the size-sweep history
+  q: 0.15
+  beta_degrees: 60.0
+
+  position_gain: 0.5
+  angle_gain: 0.01

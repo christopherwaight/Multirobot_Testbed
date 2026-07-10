@@ -22,7 +22,8 @@ class OmniCluster:
     6. Commands individual robots
     """
 
-    def __init__(self, formation_config_path, field, timestep=0.1, momentum_alpha=0.7):
+    def __init__(self, formation_config_path, field, timestep=0.1, momentum_alpha=0.7,
+                 stiction_threshold=0.025):
         """
         Initialize OmniCluster.
 
@@ -31,10 +32,12 @@ class OmniCluster:
             field: VectorField object for environment sensing
             timestep: Time step for robot integration
             momentum_alpha: Momentum coefficient for robots
+            stiction_threshold: Minimum speed to overcome static friction (see Omnibot)
         """
         self.field = field
         self.timestep = timestep
         self.momentum_alpha = momentum_alpha
+        self.stiction_threshold = stiction_threshold
 
         # Load formation configuration
         self._load_formation_config(formation_config_path)
@@ -95,9 +98,12 @@ class OmniCluster:
 
         # Create 3 robots
         self.robots = [
-            Omnibot(x1, y1, self.timestep, self.momentum_alpha),
-            Omnibot(x2, y2, self.timestep, self.momentum_alpha),
-            Omnibot(x3, y3, self.timestep, self.momentum_alpha)
+            Omnibot(x1, y1, self.timestep, self.momentum_alpha,
+                    stiction_threshold=self.stiction_threshold),
+            Omnibot(x2, y2, self.timestep, self.momentum_alpha,
+                    stiction_threshold=self.stiction_threshold),
+            Omnibot(x3, y3, self.timestep, self.momentum_alpha,
+                    stiction_threshold=self.stiction_threshold)
         ]
 
         print(f"Initialized 3 robots at centroid ({x_c_init:.3f}, {y_c_init:.3f})")

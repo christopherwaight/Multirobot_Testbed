@@ -47,7 +47,7 @@ from src.simulation.runner import execute_omni_simulation
 FORMATION_CONFIG = "config/formations/pentagon_small.yaml"
 
 V_MAX    = 0.04   # Logic C saturation speed (m/s)
-SIM_STEPS = 100   # Steps per run
+SIM_STEPS = 150   # Steps per run
 
 # Same stiction-filter gain as the saddle experiments.  The momentum filter
 # (alpha=0.7 in Omnibot) means v_actual = 0.3 * v_cmd.  V_MAX * CONTROL_GAIN

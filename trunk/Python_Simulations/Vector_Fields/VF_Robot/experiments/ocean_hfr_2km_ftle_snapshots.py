@@ -1,6 +1,11 @@
 """
 ocean_hfr_2km_ftle_snapshots.py
 
+
+  cd "/Users/christopherwaight/Desktop/Multirobot_Testbed/trunk/Python_Simulations/Vector_Fields/VF_Robot"
+  MPLBACKEND=Agg ./venv/bin/python3 experiments/ocean_hfr_2km_ftle_snapshots.py
+
+
 PAPER TRACEABILITY
   Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
   Makes:  fig:ocean_ftle_snapshots, FTLE computed at four anchor times
