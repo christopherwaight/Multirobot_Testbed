@@ -22,7 +22,7 @@ Multirobot_Testbed/
 │   ├── robots_4/                       # 4-robot hardware experiment data
 │   └── Deep_Learning/                  # MATLAB sensor calibration
 ├── Paper_Writing/
-│   ├── Vector Field Paper/             # Main paper (canonical: Paper_Draft_4A.tex)
+│   ├── Vector Field Paper/             # Main paper (canonical: Paper_Draft_5A.tex)
 │   ├── Separatrix_and_OW_Paper/        # Separatrix / Okubo-Weiss paper (Paper_Draft_2A.tex)
 │   └── Master's Thesis/
 └── docs/                               # Notation reference, architecture/control/hardware notes
@@ -104,12 +104,12 @@ allrunplotter
 
 ## Research Results
 
-### Vector Field Paper (Paper_Draft_4A.tex, canonical)
+### Vector Field Paper (Paper_Draft_5A.tex, canonical)
 
 **Hardware validation (169 experiments):**
 - 157 convergence trials: 100% success rate
 - 12 orbital trials: radius maintained within tolerance
-- 6 field types (this count is under audit; see AUDIT_REPORT_4A.md): sink, source, vortex, saddle, sinking vortex, spewing vortex
+- 6 field types: sink, source, vortex, saddle, sinking vortex, spewing vortex
 - Average error: 0.012 m (vortex), 0.005 m (saddle)
 
 **Simulation validation:**
@@ -185,4 +185,4 @@ where r = p* - p_c is the radial vector to the estimated critical point, r_d is 
 ## Contact
 
 Christopher Waight, Christopher A. Kitts (Advisor)
-Santa Clara University, Robotics Systems Laboratory
+Santa Clara University, Robotic Systems Laboratory
