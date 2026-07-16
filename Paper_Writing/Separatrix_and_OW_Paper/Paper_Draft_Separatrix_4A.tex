@@ -817,7 +817,7 @@ cluster space control studies \cite{14,30}. An adaptive navigation
 layer ingests the six synchronous positions and velocity measurements,
 computes the estimates of Section~\ref{sec:estimation}, and applies
 the active tracker's control law to produce a desired centroid velocity
-$\dot{\mathbf{p}}_c^{\,\text{des}}$; the field measurements enter
+$\dot{\mathbf{p}}_c$; the field measurements enter
 only at this layer. A cluster space controller then treats the
 formation as a single articulating virtual mechanism: a twelve-state
 parameterization (centroid, heading, and the SAS triangle of the three
@@ -850,7 +850,7 @@ through
 \end{equation}
 repairs the first defect, giving the \emph{attract step}
 \begin{equation}
-    \dot{\mathbf{p}}_c^{\,\text{des}} = \sum_{k=1}^{2}
+    \dot{\mathbf{p}}_c = \sum_{k=1}^{2}
     \mathrm{sat}\!\left(-\frac{\mathbf{w}_k^\top
     \hat{\mathbf{g}}}{\lambda_k}\right)\mathbf{w}_k,
     \label{eq:attract_step}
@@ -862,7 +862,7 @@ cruise speed and the terminal boundary layer. Replacing each eigenvalue
 by its magnitude, the saddle-free Newton modification of \cite{35},
 repairs the second, giving the \emph{slide step}
 \begin{equation}
-    \dot{\mathbf{p}}_c^{\,\text{des}} = \sum_{k=1}^{2}
+    \dot{\mathbf{p}}_c = \sum_{k=1}^{2}
     \mathrm{sat}\!\left(-\frac{\mathbf{w}_k^\top
     \hat{\mathbf{g}}}{|\lambda_k|}\right)\mathbf{w}_k,
     \label{eq:slide_step}
@@ -897,54 +897,40 @@ the FLOW band the command follows the measured flow along the trench
 tangent $\mathbf{w}_1$ and retains the Newton snap across it: the
 \emph{flow step} is
 \begin{equation}
-    \dot{\mathbf{p}}_c^{\,\text{des}} =
+    \dot{\mathbf{p}}_c =
     \mathrm{sat}\!\left(\mathbf{f}^\top \mathbf{w}_1\right)\mathbf{w}_1
     + \mathrm{sat}\!\left(-\frac{\hat{\mathbf{g}}^\top
     \mathbf{w}_2}{\lambda_2}\right)\mathbf{w}_2.
     \label{eq:flow_step}
 \end{equation}
-Off the band, the local flow direction selects between the attract and
-slide laws: if the flow agrees with the along-trench descent direction
-the team slides (\ref{eq:slide_step}); if it opposes descent the team
-attracts toward the local stationary point, the crest, whose FLOW band
-hands the team over to the flow. In all three modes the tangential
-motion is never directed against the ambient flow. The complete
-selector, executed once per control cycle, is:
-
-\vspace{3pt}
-\hrule
-\vspace{3pt}
-{\footnotesize
-\noindent\textbf{$D$ tracker: one control cycle}
-
-\vspace{3pt}
-\noindent\textbf{Parameters:} $v_{\max}$, $\varepsilon_{\text{raw}}$,
-$\varepsilon_{\text{dim}}$\\
-\textbf{Given:} $\hat{D}$, $\hat{\mathbf{g}}$, $\hat{\mathbf{H}}_D$,
-$\mathbf{f}$ from (\ref{eq:J_hat})--(\ref{eq:hess_det}), and eigenpairs
-$(\lambda_1, \mathbf{w}_1)$, $(\lambda_2, \mathbf{w}_2)$ of
-$\hat{\mathbf{H}}_D$, $\lambda_1 \leq \lambda_2$
-
-\vspace{3pt}
-\noindent If the band test (\ref{eq:flow_band}) passes (on the
-separatrix):\\
-\hspace*{1.5em} apply the flow step (\ref{eq:flow_step}).\\
-Else, if $\lambda_1 \lambda_2 \geq 0$ ($\hat{D}$ has no saddle; near a
-well of $D$):\\
-\hspace*{1.5em} apply the attract step (\ref{eq:attract_step}).\\
-Else, orient $\mathbf{w}_1$ so that $\hat{\mathbf{g}}^\top \mathbf{w}_1
-\leq 0$ (descent along the trench):\\
-\hspace*{1.5em} if $\mathbf{f}^\top \mathbf{w}_1 > 0$ (flow agrees with
-descent), apply the slide step (\ref{eq:slide_step});\\
-\hspace*{1.5em} otherwise (flow opposes descent), apply the attract
-step (\ref{eq:attract_step}).
-\par}
-\vspace{3pt}
-\hrule
-\vspace{3pt}
+Off the band, with $\mathbf{w}_1$ oriented so that
+$\hat{\mathbf{g}}^\top \mathbf{w}_1 \leq 0$ (descent along the
+trench), the complete control law, with cases evaluated in order once
+per cycle, is
+\begin{equation}
+    \dot{\mathbf{p}}_c =
+    \begin{cases}
+        \text{flow (\ref{eq:flow_step})}, &
+            \text{(\ref{eq:flow_band}) holds (FLOW)}, \\[1pt]
+        \text{attract (\ref{eq:attract_step})}, &
+            \lambda_1\lambda_2 \geq 0 \ \text{or}\
+            \mathbf{f}^\top\mathbf{w}_1 \leq 0 \ \text{(ATTRACT)}, \\[1pt]
+        \text{slide (\ref{eq:slide_step})}, &
+            \text{otherwise (SLIDE)}.
+    \end{cases}
+    \label{eq:d_selector}
+\end{equation}
+The ATTRACT case carries the terminal behaviors inline:
+$\lambda_1\lambda_2 \geq 0$ is the stationary-point (capture) test,
+satisfied near a well of $D$, where the attract step becomes the
+terminal capture law of Theorem~\ref{thm:attract}; and
+$\mathbf{f}^\top\mathbf{w}_1 \leq 0$ catches upstream starts, for
+which the attract step climbs to the crest, whose FLOW band hands the
+team to the flow. In all three modes the tangential motion is never
+directed against the ambient flow.
 
 % Implementation: separatrix_logic_c_step in pentagon_primitives.py.
-One guard is not shown: inside the band, if $\hat{\mathbf{H}}_D$ has no
+One guard is not shown in (\ref{eq:d_selector}): inside the band, if $\hat{\mathbf{H}}_D$ has no
 saddle structure, the command falls back to the saturated flow alone;
 with exact estimates this cannot occur on the trench away from the band
 boundary, and Section~\ref{sec:results} counts it as the flow-drift
@@ -976,67 +962,55 @@ unavailable curvature normalization; on a trench of $s_1$ the argument
 is a restoring signal whose slope is the true transverse curvature, so
 (\ref{eq:oecs_perp}) contracts at gradient rate rather than Newton
 rate, the first cost of objectivity. The tangential channel drives
-along the stretching eigenvector $\mathbf{e}_2$, and a single threshold
+along the stretching eigenvector: core-seek descends $\hat{s}_1$ along
+the curve toward the TRAP core,
+$\dot{\mathbf{p}}_c^{\,\parallel} =
+\mathrm{sat}(-g_\perp\,\nabla\hat{s}_1^\top\mathbf{e}_2)\,
+\mathbf{e}_2$, while ride cruises at constant speed,
+$\dot{\mathbf{p}}_c^{\,\parallel} = v_{\max}\tanh(1)\,\mathbf{t}$
+with $\mathbf{t} = \pm\mathbf{e}_2$ oriented by continuity with the
+previous step's tangent $\mathbf{t}_{\text{prev}}$; the threshold
 $s_{\text{capture}}$ selects between the two behaviors of the
-park-versus-traverse pattern (Section~\ref{sec:park_vs_traverse}):
-core-seek descends $\hat{s}_1$ along the curve and parks at the TRAP
-core, while ride cruises along $\mathbf{e}_2$ at constant speed,
-oriented by continuity with the previous step's tangent.
+park-versus-traverse pattern (Section~\ref{sec:park_vs_traverse}).
 Both channels are quadratic in the eigenvector they use, except the
 ride direction, where the sign ambiguity of a direction field cannot be
 canceled algebraically: the tangent is seeded from the measured flow
 once, at the first tracking step, and thereafter oriented by
 $\mathrm{sign}(\mathbf{e}_2^\top \mathbf{t}_{\text{prev}})$ alone,
 never consulting the frame-dependent flow again
-(Section~\ref{sec:strain_field}). The complete selector, executed once
-per control cycle after the estimation step, is:
-
-\vspace{3pt}
-\hrule
-\vspace{3pt}
-{\footnotesize
-\noindent\textbf{$s_1$ tracker: one control cycle}
-
-\vspace{3pt}
-\noindent\textbf{Parameters:} $v_{\max}$, $g_\perp$,
-$s_{\text{trim}}$, $s_{\text{capture}}$ (finite for core-seek, unset
-for ride), $\varepsilon_{\text{degen}}$\\
-\textbf{Given:} $\hat{s}_1$, $\nabla\hat{s}_1$, $r$, eigenframe
-$(\mathbf{e}_1, \mathbf{e}_2)$ from Section~\ref{sec:s1_estimation},
-flow $\mathbf{f}$; persistent flags: banded (has $\hat{s}_1 <
--s_{\text{trim}}$ ever held), previous tangent
-$\mathbf{t}_{\text{prev}}$
-
-\vspace{3pt}
-\noindent If $r < \varepsilon_{\text{degen}}$ (isotropic point, frame
-unreliable) or not banded:\\
-\hspace*{1.5em} ACQUIRE: apply
-$-\mathrm{sat}(g_\perp \partial\hat{s}_1/\partial x),
- -\mathrm{sat}(g_\perp \partial\hat{s}_1/\partial y)$
-componentwise.\\
-Else, if $\hat{s}_1 > -s_{\text{trim}}$ (attraction no longer
-dominates):\\
-\hspace*{1.5em} TRIM: hold position (the structure has ended).\\
-Else, if $s_{\text{capture}}$ is set and $\hat{s}_1 <
-s_{\text{capture}}$ (inside the core well):\\
-\hspace*{1.5em} PARK: apply the ACQUIRE step, which settles at the
-$s_1$ minimum.\\
-Else (TRACK): apply the transverse step (\ref{eq:oecs_perp}), plus\\
-\hspace*{1.5em} core-seek: $\mathrm{sat}(-g_\perp\,
-\nabla\hat{s}_1^\top \mathbf{e}_2)\,\mathbf{e}_2$ (descend $s_1$ toward
-the core);\\
-\hspace*{1.5em} ride: $v_{\max}\tanh(1)\,\mathbf{t}$ with $\mathbf{t} =
-\pm\mathbf{e}_2$ oriented by $\mathbf{t}_{\text{prev}}$.
-\par}
-\vspace{3pt}
-\hrule
-\vspace{3pt}
+(Section~\ref{sec:strain_field}). The complete control law, with cases
+evaluated in order once per cycle, is
+\begin{equation}
+    \dot{\mathbf{p}}_c =
+    \begin{cases}
+        -\mathrm{sat}(g_\perp\nabla\hat{s}_1), &
+            r < \varepsilon_{\text{degen}}\ \text{or pre-band
+            (ACQUIRE)}, \\[1pt]
+        \mathbf{0}, & \hat{s}_1 > -s_{\text{trim}} \ \text{(TRIM)},
+            \\[1pt]
+        -\mathrm{sat}(g_\perp\nabla\hat{s}_1), &
+            \hat{s}_1 < s_{\text{capture}}\ \text{(PARK)}, \\[1pt]
+        \dot{\mathbf{p}}_c^{\,\perp} +
+            \dot{\mathbf{p}}_c^{\,\parallel}, &
+            \text{otherwise (TRACK)},
+    \end{cases}
+    \label{eq:oecs_selector}
+\end{equation}
+where the saturation in the ACQUIRE and PARK cases acts componentwise
+on the gradient, the flag banded latches once $\hat{s}_1 <
+-s_{\text{trim}}$ first holds, and PARK is active only in core-seek
+mode, where $s_{\text{capture}}$ is set. The cases carry the terminal
+behaviors inline: ACQUIRE descends $\hat{s}_1$ toward stronger
+attraction before first structure contact or wherever the eigenframe is
+unreliable; TRIM holds position where attraction no longer dominates,
+the structure's Serra-Haller endpoint; PARK settles at the $s_1$
+minimum inside the core well.
 
 % Implementation: oecs_trap_step in pentagon_primitives.py.
-The TRIM test is the Serra-Haller termination rule playing the role
-that the eigenvalue capture test plays in the $D$ tracker, and
-$s_{\text{capture}}$ is the exact analogue of $D_{\text{capture}}$: one
-threshold, two behaviors. Every quantity the selector consumes
+The TRIM test plays the role that the capture test plays in the $D$
+tracker, and $s_{\text{capture}}$ is the exact analogue of
+$D_{\text{capture}}$: one threshold, two behaviors. Every quantity the
+selector consumes
 transforms equivariantly under a time-dependent rotation of the
 observer, so in the tracking branches the commanded velocity co-rotates
 as well and the closed-loop trajectory is the same material path in any
@@ -1056,8 +1030,9 @@ centroid is modeled as a kinematic integrator
     \dot{\mathbf{p}}_c = k\,\boldsymbol{\delta}(\mathbf{p}_c),
     \label{eq:kinematic_model}
 \end{equation}
-where $\boldsymbol{\delta}$ is the tracker output and $k > 0$ the
-navigation gain (time is rescaled so $k = 1$). This abstracts the
+where $\boldsymbol{\delta}$ is the right-hand side of the active
+control law, (\ref{eq:d_selector}) or (\ref{eq:oecs_selector}), and
+$k > 0$ is the navigation gain (time is rescaled so $k = 1$). This abstracts the
 cluster and robot layers, whose tracking dynamics are an order of
 magnitude faster ($\tau \approx 0.3$~s against transit times of tens of
 seconds), a separation validated in hardware in \cite{14}. Estimates
@@ -1837,13 +1812,11 @@ biased $\hat{\mathbf{H}}_D$ makes it unreliable exactly where it would
 need to fire. An estimator-aware alternative restores capture using
 only the two quantities free of the Hessian's structural bias,
 $\hat{D}$ and $\hat{\mathbf{g}}$: the \emph{park step}, a fourth
-mode checked before the FLOW test,
+case checked before the FLOW test in (\ref{eq:d_selector}),
 \begin{equation}
-    \text{if } \hat{D} < D_{\text{capture}}:\quad
-    \dot{\mathbf{p}}_c^{\,\text{des}} =
-    -\begin{bmatrix}
-        \mathrm{sat}(\hat{g}_x) \\ \mathrm{sat}(\hat{g}_y)
-    \end{bmatrix},
+    \dot{\mathbf{p}}_c =
+    -\mathrm{sat}(\hat{\mathbf{g}})
+    \quad \text{if } \hat{D} < D_{\text{capture}},
     \label{eq:park_step}
 \end{equation}
 componentwise saturated gradient descent on $\hat{D}$, which carries
