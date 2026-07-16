@@ -992,8 +992,12 @@ def oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
                      orientation rule).
 
     Every command is built from s1, grad s1, e1, e2 only, all of which
-    transform equivariantly under time-dependent frame rotations, so the
-    commanded trajectory tracks the same material structure in any frame.
+    transform equivariantly under time-dependent frame rotations. The
+    TRACK and TRIM commands are therefore exactly frame-covariant. ACQUIRE
+    and PARK saturate the gradient componentwise in observer axes, so they
+    are covariant only where the saturation is inactive; they still descend
+    the invariant s1 in every frame, so the closed loop tracks the same
+    material structure in any frame up to that acquisition transient.
 
     One knob mirrors Logic Park: s_capture = None (default) rides the
     structure and trims at its end; a finite value (e.g. -0.9 for the

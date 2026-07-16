@@ -43,7 +43,10 @@ BAND_X, BAND_HOLD = 0.05, 10
 SADDLE = (0.0, -0.5)
 SADDLE_CONTACT_D = 0.06
 # Formation collapse: RMS error of the 15 inter-robot distances vs their
-# nominal values exceeding 2x the nominal pair length L_2 = 0.15.
+# nominal values exceeding 0.30, i.e. 4x the ring radius / nominal pair
+# length L_2 = 0.075 of the ACTIVE pentagon_small.yaml block. (An earlier
+# comment said "2x L_2 = 0.15"; that anchors to the full-scale formation,
+# which no experiment uses. The threshold value itself is unchanged.)
 COLLAPSE_RMS = 0.30
 
 _NOMINAL_PDIST = None
