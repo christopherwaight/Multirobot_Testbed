@@ -3,6 +3,152 @@
 Working notes for finishing Paper_Draft_2A.tex (IEEE Transactions on Robotics target).
 If a session is cut off, read this file top to bottom and resume at "Current status".
 
+## HANDOFF 2026-07-17: T-RO submission-hardening pass -- COMPLETE, live draft is 5A
+
+Executed the T-RO hardening plan (Chris's separate submission-hardening plan.md,
+kept as an agent-facing plan file, not this tracker) against
+`Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex`. 4A left
+untouched as the provenance reference copy; the two files have now DIVERGED in
+content (5A carries this session's edits, 4A does not) -- 4A is no longer a
+byte-identical twin of 5A, only a historical snapshot. Final state: 16 pages,
+clean two-pass pdflatex compile, zero broken refs, all 8 figures resolve
+(`docs/verify-figures.sh` passes 8/8).
+
+### Ground-truth corrections vs. the hardening plan's assumptions
+- F-1 (QQ-dot sign) was ALREADY CORRECT in both 4A and 5A before this session;
+  no edit made, verify-only.
+- Basin rate in the draft was 47.1% (n=10,000), not 47.9% as the hardening plan
+  assumed. All new prose uses 47.1%.
+- Quartile sentence was already 75.9-77.1% in the draft; F-5 recomputed from the
+  archived 10k CSV and confirmed this exact range (sigma_uv <= 0.01, sigma_p = 0
+  pooling, n=40,000) -- kept, rewritten to state the pooling explicitly.
+- Six clean-run starts (S1-S6) are NOT in the paper text; they live in
+  `experiments/separatrix_clean_runs.py` L52-59.
+
+### QW/F items applied to 5A
+- QW-1 anonymization: author block, "Manuscript received" footnote, both
+  IEEEbiography blocks with photos removed. Intro lineage sentence rewritten to
+  third person. Bib [14] author names replaced with "Anonymous" (T-RO
+  double-anonymous convention for unpublished self-citations), status
+  "submitted for publication" (was "to appear" -- false, T-Mech paper is
+  submitted not accepted).
+- QW-2 (et al. expansion in [2],[3],[4],[5],[25],[32]): SKIPPED this session
+  per Chris's explicit instruction ("skip the six et al ones"). These six
+  bibitems still read "X et al." -- acceptance-checklist item 3 (zero et al.
+  entries) is a KNOWN, DELIBERATE gap, not an oversight. Revisit before
+  submission if the venue enforces full author lists strictly.
+- QW-3 fencing clause: inserted in V-D2 after the straddle-retention
+  definition.
+- QW-4 scope paragraph: inserted in VII-A, now points at
+  `Fig.~\ref{fig:basin_map}` (swapped from the Section VII-E pointer once
+  SIM-2 landed).
+- QW-5: six starts' distances to the D-trench network computed and written
+  into VI-A (0 to 2.7*rho, rho=0.075; two starts are within 1*rho, four are
+  not -- note this contradicts the hardening plan's assumption that "none
+  brackets the structure").
+- F-3, F-4, F-6: applied verbatim as specified.
+- SIM-4 remark (Branch A, five-robot incompressible-constrained system is
+  generically rank 9): inserted after the III-A minimality paragraph.
+
+### Simulations run (all in `trunk/Python_Simulations/Vector_Fields/VF_Robot/experiments/`)
+- **SIM-4** `identifiability_check.py`: generic rank 9 confirmed (exact
+  rational arithmetic at 10 placements + 10,000 numeric placements, median
+  cond 69). Only collinear placements degenerate (rank 6); cocircular,
+  four-plus-center, and parabola placements all stay rank 9. Branch A.
+- **SIM-2** `basin_map.py` + `plot_basin_map.py`: 200x100 zero-noise grid,
+  two termination variants (strict/relaxed). ZERO core-parks found -- the
+  hardening plan's OW-diamond-area-fraction prediction was WRONG, the basin
+  is NOT the strain-dominated (D<0) region (TRAVERSE/(D<0) agreement only
+  ~49.5%, i.e. chance). The actual structure: a central diamond of direct
+  traverses (26.9%), an upper watershed that rides the top wall to p2* and
+  continues to p1* (20.5%), north-branch losses at the p2* junction (5.6%),
+  and boundary-trench rides that exit the domain (47.1% -- numerically
+  coincides with the published random-start rate, but the coincidence is
+  accidental, not the mechanism). VII-E rewritten around this; new
+  Fig. basin_map.png (fig:basin_map).
+- **SIM-1** `mc_sweep_acquisition.py`: two off-structure starts (S1, S6),
+  full noise grid x sigma_p in {0,0.01}, 1000 trials/cell, strict+relaxed
+  variants. Network ACQUISITION is noise-immune (>=97.5% through
+  sigma_uv=0.05 both starts). ARRIVAL at the specific terminal saddle is
+  branch-geometry-limited, not noise-limited: S1 plateaus near 40% (rides
+  the south branch at p2* into p1*), S6 arrives ~24% at zero noise via the
+  direct path only (its branch's ambient flow leads away from p1*). The
+  hardening plan's PASS/FAIL gate (50% level within one grid step of the
+  straddling column) does not apply cleanly -- this is a structural
+  finding, not a noise-cliff finding. Plan's proposed mechanism check
+  (correlate failures with min ||grad D|| along the path) was TESTED AND
+  REJECTED: failures have HIGHER median min-gradD than successes (confounded
+  by the fact that reaching the trench itself produces a low path minimum).
+  Do not reuse that mechanism metric without redesigning it.
+- **SIM-3** `baseline_fixed_weights.py`: fixed-weight recovery of [15] vs.
+  measured-position LS, pentagon-plus-center, deformation delta in
+  {0,0.02,0.05,0.1,0.2}*rho x sigma_uv in {0,0.01}. The hardening plan's
+  literal PASS gate (bias/std ratio thresholds) FAILED -- both estimators
+  are unbiased under deformation, so bias-based metrics are near zero for
+  both. The REAL effect, found instead: fixed weights suffer deformation-
+  induced VARIANCE inflation (deviatoric H_D scatter 64-433x the
+  measured-position fit at delta=0.02-0.2*rho) and eigenframe destruction
+  (~44 deg error vs. 0.6-6.4 deg). Wrote this as the paper's claim (250x
+  scatter, 44 deg vs 2.8 deg at delta=0.1*rho) instead of the plan's
+  bias-ratio framing.
+- **SIM-5** `unsteady_gyre_check.py`: Shadden gyre eps=0.1, omega=2pi/10, D
+  tracker from (0,0.35), 600 steps. PASS: mean transverse offset 0.006,
+  max 0.015 (gate <=0.02), trench swings +/-0.116 at peak speed 62% of the
+  command cap, no time-derivative term in the controller.
+
+### Figures
+- V-1 `basin_map.png` (new, SIM-2): four-class watershed map, CVD-validated
+  palette (`node scripts/validate_palette.js` all-pairs PASS).
+- V-2: `estimator_accuracy_vs_noise.png` regenerated with a dash-dotted
+  vertical line at the closed-loop 50%-success sigma_uv (0.0079,
+  log-interpolated from the archived 10k sweep) added to panel (a).
+- V-3: `separatrix_trajectories.png` regenerated with a mode-occupancy strip
+  (FLOW/SLIDE/ATTRACT family, per-run bar vs. control step) added below the
+  existing trajectory panel.
+- Fig. 1 (`detJ_trench_cross_section.png`) and Fig. 7
+  (`park_vs_traverse.png`) were NOT dropped -- Chris overrode the hardening
+  plan's trim-menu suggestion to cut them; both stay, unchanged.
+
+### Trims executed (advisor-pass menu, Section 5 of the hardening plan.md --
+### that menu says "DO NOT EXECUTE... for the trimming session later"; Chris
+### explicitly authorized running 5 of 6 items this session, overriding that
+### guardrail; the 6th (Section V into VI structural merge) was deliberately
+### held back as the riskiest and least necessary at 17 pages pre-trim)
+1. Appendix A folded into II-E (two sentences + the vorticity clause
+   restored where II-D still needs it). Appendix A section deleted.
+2. I-A related work cut: Haller/FTLE/OECS walkthrough condensed to a
+   pointer at Section II plus citations; [19]/[20] initially orphaned by
+   the cut, then a one-clause restoration added them back rather than
+   force a full-bibliography renumbering (Chris's choice among three
+   options offered).
+3. II-E running-example prose compressed around the three-facts structure;
+   no facts or figures cut.
+4. VI-A and VI-B3 table-reading prose compressed to cliff location +
+   open-loop coincidence + floor; Table II still carries every cell value.
+5. VII-A first paragraph cut to keep only the trench-vs-level-set point
+   (the [14]-lineage re-argument of the Introduction removed). VII-B
+   (Fig. 7 prose) was NOT trimmed -- on inspection it wasn't actually
+   redundant with Fig. 3 (Fig. 3 only shows the default/traverse selector,
+   not the park variant Fig. 7 introduces), so cutting it would have lost
+   content, not redundancy. Left as-is.
+6. NOT EXECUTED: Section V into VI structural merge. Held back per Chris's
+   explicit choice; a separate session/advisor pass if still wanted --
+   page budget does not require it (16 pages final, cap 18).
+
+### Outstanding before actual submission
+- Six et al. bibitems ([2],[3],[4],[5],[25],[32]) still need full author-list
+  expansion if the venue enforces it -- verified author lists for all six
+  were drafted and verbatim-ready earlier this session but never applied
+  (Chris said skip). They are NOT saved anywhere else; redo the PDF lookups
+  if resuming this.
+- SIM-1's branch-geometry finding (S1 ~40% plateau, S6 ~24% direct-only) is
+  new content the hardening plan didn't anticipate; if Chris wants a cleaner
+  acquisition story, consider adding a third off-structure start whose
+  branch feeds p1* directly, so the paper has at least one start with a high
+  arrival rate to contrast against S6's low one.
+- No hardware content added; the two pre-existing future-work sentences
+  (VII-E, VIII) are unchanged, verified against the last-committed 4A.
+
 ## HANDOFF 2026-07-09: True OECS (TRAP) tracker thread -- IN PROGRESS, resume here
 
 NOTE: the paper has been SPLIT since the sections below were written. The live

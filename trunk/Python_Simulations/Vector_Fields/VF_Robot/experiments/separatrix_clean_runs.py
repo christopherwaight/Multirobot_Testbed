@@ -137,7 +137,10 @@ def main():
     except Exception:
         commit = "unknown"
 
-    fig, ax = plt.subplots(figsize=(7.0, 3.9))
+    fig = plt.figure(figsize=(7.0, 5.3))
+    gs = fig.add_gridspec(2, 1, height_ratios=[3.0, 1.35], hspace=0.30)
+    ax = fig.add_subplot(gs[0])
+    ax_m = fig.add_subplot(gs[1])
     # streamlines + D=0 contour
     gx = np.linspace(-1, 1, 240)
     gy = np.linspace(-0.5, 0.5, 120)
@@ -191,6 +194,33 @@ def main():
     ax.set_xlim(-1.05, 1.05); ax.set_ylim(-0.55, 0.53)
     ax.set_aspect("equal")
     ax.set_xlabel("x (m)"); ax.set_ylabel("y (m)")
+
+    # Mode-occupancy strip (V-3): one thin bar per run, colored by the
+    # active selector-mode family versus control step. Families follow
+    # the selector of Eq. (27): FLOW includes FLOW_DRIFT, ATTRACT
+    # includes ATTRACT_FALLBACK; exact per-mode fractions stay in the
+    # CSV. Palette: validated categorical steps (dataviz skill).
+    FAMILY = {"FLOW": 0, "FLOW_DRIFT": 0, "SLIDE": 1,
+              "ATTRACT": 2, "ATTRACT_FALLBACK": 2}
+    FAM_COLORS = ["#2a78d6", "#1baf7a", "#eb6834"]
+    FAM_LABELS = ["FLOW", "SLIDE", "ATTRACT"]
+    from matplotlib.patches import Patch
+    for i, (name, sx, sy, r) in enumerate(rows):
+        fams = [FAMILY[d["mode"]] for d in r["diag"]]
+        k0 = 0
+        for k in range(1, len(fams) + 1):
+            if k == len(fams) or fams[k] != fams[k0]:
+                ax_m.broken_barh([(k0, k - k0)], (i - 0.38, 0.76),
+                                 facecolors=FAM_COLORS[fams[k0]])
+                k0 = k
+    ax_m.set_yticks(range(len(rows)))
+    ax_m.set_yticklabels([row[0] for row in rows], fontsize=8)
+    ax_m.set_ylim(len(rows) - 0.5, -0.5)
+    ax_m.set_xlabel("control step", fontsize=9)
+    ax_m.tick_params(labelsize=8)
+    ax_m.legend(handles=[Patch(facecolor=c, label=l)
+                         for c, l in zip(FAM_COLORS, FAM_LABELS)],
+                loc="lower right", frameon=False, fontsize=7.5, ncol=3)
     fig.tight_layout()
     out_png = os.path.join(OUT_DIR, "separatrix_trajectories.png")
     fig.savefig(out_png, dpi=300, bbox_inches="tight")

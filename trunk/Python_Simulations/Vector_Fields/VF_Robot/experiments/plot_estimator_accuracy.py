@@ -68,6 +68,29 @@ def main():
                       color=COLORS[q], fontsize=8, va="center")
     ax_a.axhline(1.0, color="#52514e", lw=0.9, ls="--")
     ax_a.text(0.0011, 0.62, "error = signal", color="#52514e", fontsize=7)
+
+    # V-2 annotation: the noise level where CLOSED-LOOP traverse success
+    # crosses 50% (Table II), log-interpolated between the bracketing
+    # cells of the archived 10k sweep. Ties the open-loop estimator
+    # curves to the closed-loop cliff in one glance.
+    arch = os.path.join(HERE, "outputs", "mc_final_1000_ARCHIVE",
+                        "separatrix", "summary_fixed_10000.csv")
+    s = pd.read_csv(arch, comment="#")
+    s0 = s[s.sigma_p == 0].sort_values("sigma_uv")
+    above = s0[s0.success_traverse >= 0.5].iloc[-1]
+    below = s0[(s0.success_traverse < 0.5)
+               & (s0.sigma_uv > above.sigma_uv)].iloc[0]
+    frac = ((above.success_traverse - 0.5)
+            / (above.success_traverse - below.success_traverse))
+    sig50 = np.exp(np.log(above.sigma_uv)
+                   + frac * (np.log(below.sigma_uv)
+                             - np.log(above.sigma_uv)))
+    print(f"closed-loop 50% success at sigma_uv = {sig50:.4f} "
+          f"(between {above.sigma_uv:g} and {below.sigma_uv:g})")
+    ax_a.axvline(sig50, color="#52514e", lw=1.0, ls="-.")
+    ax_a.text(sig50 * 0.90, 1.7e-2, "closed-loop\n50% success",
+              color="#52514e", fontsize=7, ha="right")
+
     ax_a.set_xlabel(r"measurement noise $\sigma_{uv}$ (m/s)")
     ax_a.set_ylabel("relative error (median, IQR)")
     ax_a.set_title(r"(a) vs. noise, $\rho = 0.075$", loc="left")

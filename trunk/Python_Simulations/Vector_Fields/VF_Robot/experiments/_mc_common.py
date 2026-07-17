@@ -75,7 +75,9 @@ def run_trial(spec):
     else:
         x0 = rng.uniform(START_BOX[0], START_BOX[1])
         y0 = rng.uniform(START_BOX[2], START_BOX[3])
-    heading = rng.uniform(0.0, 2 * np.pi)
+    heading = spec.get("heading")
+    if heading is None:
+        heading = rng.uniform(0.0, 2 * np.pi)
     cluster.reset(x0, y0, heading_offset=heading)
     cluster.measurement_noise_std = spec["sigma_uv"]
     cluster.position_noise_std = spec["sigma_p"]
@@ -97,14 +99,17 @@ def run_trial(spec):
     # the OECS core-seek sweep passes the TOP saddle, its segment's TRAP
     # core (mc_sweep_oecs.py).
     target = spec.get("target", SADDLE)
+    max_steps = spec.get("max_steps", SIM_STEPS)
+    x_exit = spec.get("x_exit", 1.0)
+    y_exit = spec.get("y_exit", 0.52)
     reached_saddle = False
-    for _ in range(SIM_STEPS):
+    for _ in range(max_steps):
         cluster.move(wrapped)
         cx, cy = cluster.get_centroid()
         if np.hypot(cx - target[0], cy - target[1]) < SADDLE_CONTACT_D:
             reached_saddle = True
             break
-        if abs(cx) > 1.0 or abs(cy) > 0.52:
+        if abs(cx) > x_exit or abs(cy) > y_exit:
             break
 
     hist = cluster.get_center_history()
