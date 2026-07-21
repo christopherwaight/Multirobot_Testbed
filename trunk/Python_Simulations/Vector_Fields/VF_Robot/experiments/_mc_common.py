@@ -97,8 +97,12 @@ def run_trial(spec):
 
     # Terminal target defaults to the bottom saddle (Logic C traverse);
     # the OECS core-seek sweep passes the TOP saddle, its segment's TRAP
-    # core (mc_sweep_oecs.py).
+    # core (mc_sweep_oecs.py). A list of (x, y) tuples is also accepted
+    # (mc_sweep_oecs_traverse.py): the traverser's CAPTURE branch holds
+    # whichever saddle its flow-seeded tangent orientation leads to, not
+    # a pre-committed one, so success is contact with ANY listed target.
     target = spec.get("target", SADDLE)
+    targets = [target] if isinstance(target[0], (int, float)) else list(target)
     max_steps = spec.get("max_steps", SIM_STEPS)
     x_exit = spec.get("x_exit", 1.0)
     y_exit = spec.get("y_exit", 0.52)
@@ -106,7 +110,7 @@ def run_trial(spec):
     for _ in range(max_steps):
         cluster.move(wrapped)
         cx, cy = cluster.get_centroid()
-        if np.hypot(cx - target[0], cy - target[1]) < SADDLE_CONTACT_D:
+        if min(np.hypot(cx - tx, cy - ty) for tx, ty in targets) < SADDLE_CONTACT_D:
             reached_saddle = True
             break
         if abs(cx) > x_exit or abs(cy) > y_exit:

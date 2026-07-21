@@ -58,6 +58,53 @@ def make_rotating_frame(base_field_fn, omega_rot):
     return rotating_field
 
 
+def make_rotated_field(base_field_fn, theta):
+    """
+    Wrap a base field function in a FIXED spatial rotation by angle theta.
+
+    Unlike make_rotating_frame above, this is a static Euclidean change of
+    variables, not a time-dependent observer: Q = R(theta) is constant, so
+    Qdot = 0 and there is no swirl term.  v_theta(p) = Q v(Q^T p).  This
+    tilts the strain eigenframe (e1, e2) off whatever axes they sit on in
+    the base field, while every analytic quantity of the base field (s1,
+    the separatrix, singular points, ...) carries over exactly under the
+    same rotation.  It exists to test control-law code that was only ever
+    exercised on fields whose eigenframe happens to sit on the coordinate
+    axes (e.g. the double gyre, where the shear strain vanishes
+    identically) -- a bug that cancels when e1/e2 are axis-aligned can
+    still be present and will show up once the frame is tilted.
+
+    Args:
+        base_field_fn: field with signature (x, y[, t, ...]) -> (u, v).
+                       Called here as base_field_fn(x, y, t), so steady
+                       fields simply ignore t.
+        theta:         fixed rotation angle (rad), positive
+                       counterclockwise.
+
+    Returns:
+        Field function (x, y, t=0.0) -> (u, v), the base field rotated by
+        theta.  Ground truth for any base-field closed form (position of
+        the separatrix, s1, singular points, ...) is obtained by applying
+        the same R(theta) to that closed form; no time-dependent pull-back
+        is needed since theta is constant.
+    """
+    c, s = np.cos(theta), np.sin(theta)
+
+    def rotated_field(x, y, t=0.0):
+        # Inertial (base-field) coordinates of the queried point: Q^T p.
+        xi = c * x + s * y
+        yi = -s * x + c * y
+        u0, v0 = base_field_fn(xi, yi, t)
+        # v_theta = Q v0 (no swirl term: Qdot = 0 for a fixed rotation).
+        u = c * u0 - s * v0
+        v = s * u0 + c * v0
+        return float(u), float(v)
+
+    rotated_field.theta = theta
+    rotated_field.base_field_fn = base_field_fn
+    return rotated_field
+
+
 def pull_back_trajectory(traj, times, omega_rot):
     """
     Map a rotating-frame trajectory back to inertial coordinates.

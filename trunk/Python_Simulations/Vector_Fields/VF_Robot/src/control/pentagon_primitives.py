@@ -36,6 +36,15 @@ Primitive summary:
                                  trenches of the smaller strain eigenvalue s1
                                  using S's own eigenframe; one knob (s_capture)
                                  switches ride-along vs core-seek-and-park.
+ 11. oecs_separatrix_step      -- vector: objective (frame-invariant) traverser of
+                                 the FULL separatrix network, the S-based analogue
+                                 of separatrix_logic_c_step (Primitive 7). Rides the
+                                 transverse trench of s1 with the snap taken
+                                 orthogonal to the direction of travel (not a fixed
+                                 eigenvector), so one law holds both the attracting
+                                 and repelling halves; a flow-assisted CROSS mode
+                                 carries the team through isotropic points (S = 0)
+                                 where the eigenframe itself is undefined.
 """
 import numpy as np
 
@@ -1086,5 +1095,394 @@ def oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
 
     cluster._oecs_prev_tangent = tangent
     _log(mode)
+    delta = step_perp + step_tan
+    return float(delta[0]), float(delta[1])
+
+
+# -----------------------------------------------------------------------
+# Primitive 11: objective separatrix traverser (rate-of-strain, full network)
+# -----------------------------------------------------------------------
+# The S-based analogue of separatrix_logic_c_step (Primitive 7): rides the
+# FULL separatrix network -- both halves, through the saddle -- using only
+# the objective quantities s1, grad s1, and the strain eigenframe (e1, e2).
+# Primitive 10 above targets a single attracting OECS segment and parks at
+# its TRAP core; this primitive targets the trench of s1 itself and keeps
+# going, the way Logic C keeps going past a saddle onto the next trench
+# segment.
+#
+# THE KEY GEOMETRIC FACT (verified numerically on the double gyre, A = 0.1,
+# 2026-07-21; do not re-derive, unit-tested): the scalar s1 has a genuine
+# TRANSVERSE TRENCH (minimum) along the ENTIRE separatrix, both the
+# attracting upper half and the repelling lower half (d^2 s1/dx^2 = +8.68 at
+# y = +/-0.35, +6.89 at +/-0.25, +3.01 at +/-0.10, measured across x = 0 for
+# every y).  What alternates between the two halves is NOT the sign of the
+# trench; it is which eigenvector is TANGENT to it.  Walking the separatrix
+# from the top saddle to the bottom saddle, e2 (stretching, attracting OECS
+# tangent) is aligned with the line on the upper half and e1 (compression)
+# is aligned with it on the lower half; they trade places exactly at the
+# origin, the isotropic point where S = 0 and s1 = s2 = 0, so neither
+# eigenvector is defined there.  (This reconciles with the material
+# attracting/repelling classification in the paper's double-gyre discussion,
+# which is a statement about which eigenvector is tangent, not about the
+# sign of the s1 trench.)
+#
+# Consequently the transverse channel here does NOT snap along a fixed
+# eigenvector the way Primitive 10 does (that only holds the half where the
+# hardcoded eigenvector happens to be the transverse one).  It descends s1
+# along whatever direction is orthogonal to the CURRENT RIDE TANGENT, which
+# is correct on both halves because the trench never becomes a ridge.
+#
+# A SECOND geometric fact, found empirically running this controller against
+# separatrix_logic_c_step: the s1-trench network, like the D-trench network
+# it coincides with here, is a GRID, not a single curve -- the wall lines
+# y = +/-0.5 are themselves s1-trenches (transverse to e1 there), crossing
+# the separatrix at the saddles.  A tangent rule based on continuity alone
+# (whichever eigenvector best matches the PREVIOUS tangent) has no reason to
+# prefer continuing through a saddle over turning onto the crossing wall
+# branch once noise or the approach angle nudges it that way, and once
+# aboard the wall branch, continuity has no restoring force back toward the
+# saddle: the ride sails off along the wall forever.
+#
+# The first fix tried was to choose the tangent each step by best alignment
+# with the ambient flow (mirroring Logic C's f @ v_neg test, eq. d_selector),
+# with continuity fixing only the sign.  This worked cleanly in the inertial
+# frame, but was found to fail under a ROTATING observer: the frame's own
+# solid-body swirl term does not vanish at a trench-network crossing the way
+# the true flow does (it is a constant local vector there, proportional to
+# POSITION, not to distance from the crossing), and at Omega = 0.2 it was
+# large enough to flip which eigenvector the flow preferred a FULL
+# TRENCH-LENGTH away from any saddle, not just near one -- verified
+# numerically (true flow favors one eigenvector 2:1, the swirl-corrupted
+# flow favors the other, from the very first tracking step).  No flow-based
+# rule can be made robust to this, because the corruption scales with the
+# same distance from the origin that the rule needs to operate over.
+#
+# THE ACTUAL FIX uses no flow at all.  Away from a stationary point of s1,
+# grad s1 points almost entirely ALONG the trench (its transverse component
+# vanishes there by construction, leaving only the along-track slope), so of
+# the two eigenvectors, the TANGENT is whichever has the LARGER
+# |grad s1 . e_i|, and the TRANSVERSE direction (already used by the channel
+# below) is whichever has the SMALLER one -- the same two numbers pick both
+# channels.  This was verified against the fitted estimator: it correctly
+# resolves the vertical tangent through the origin eigenvector swap and
+# correctly prefers the separatrix branch over the crossing wall branch at
+# both saddles, using only s1, grad s1, and the eigenframe.  It is immune to
+# the swirl problem above by construction, since it never reads the flow.
+#
+# The CROSS mode is kept only for the case r is degenerate on the very first
+# tracking step with no previous tangent yet established (no continuity
+# reference exists); there it falls back to the ambient flow, the one input
+# in the whole controller not built from s1 alone, exactly as Logic C's
+# FLOW-band fallback (FLOW_DRIFT) falls back to a plain saturated flow step
+# when its own Hessian degenerates.  This branch is essentially unreachable
+# on the double gyre once tracking has begun.
+#
+# OBJECTIVITY ACCOUNTING: ACQUIRE, PARK, CAPTURE, and BOTH channels of TRACK
+# (transverse and tangent selection) are built only from s1, grad s1, and the
+# co-rotating eigenvectors e1, e2, which transform equivariantly under a
+# time-dependent rotation of the observer frame; continuity fixes only a
+# sign.  The controller is therefore frame-objective throughout except for
+# the essentially-unreachable CROSS fallback, a STRONGER claim than the
+# flow-selected-tangent design it replaced, which was Galilean-objective but
+# not fully frame-objective (see experiments/traverse_objectivity_demo.py for
+# the closed-loop verification, both designs' results, and the Omega=0.2
+# failure of the flow-based version).
+# -----------------------------------------------------------------------
+
+
+def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
+                         r_band=0.05, g_capture=0.15, s_capture=None):
+    """
+    Objective separatrix traverser (Primitive 11).
+
+    Selector, executed once per control cycle after the estimation step:
+
+      1. ACQUIRE  -- before first structure contact: componentwise
+                     saturated gradient descent on s1, toward stronger
+                     attraction.  Homes onto the s1-trench from anywhere in
+                     the basin; no straddling start required.
+      2. PARK     -- (optional, s_capture set) if s1 < s_capture the team is
+                     inside a core well: componentwise saturated gradient
+                     descent on s1 settles at the local s1 minimum.  With
+                     s_capture = None (default) this branch never fires and
+                     the team relies on CAPTURE (below) instead.
+      3. CAPTURE  -- UNCONDITIONAL hold at a 2D stationary point of s1: fires
+                     whenever the full gradient magnitude |grad s1| drops
+                     below g_capture while r stays large (so this is not
+                     confused with an isotropic point, where r is small and
+                     CROSS applies instead).  A flow saddle is not merely
+                     where two 1D trenches cross; it is a genuine 2D local
+                     MINIMUM of s1 (the TRAP core of Primitive 10, verified
+                     s1 = -pi^2 A there), so grad s1 vanishes in every
+                     direction, not just transversally, while on a generic
+                     1D trench point |grad s1| stays large (zero only
+                     transverse to the trench, full strength along it).
+                     Checking the gradient directly, rather than trying to
+                     keep choosing a tangent, matters because the ambient
+                     flow ALSO collapses at the same point (a stagnation
+                     point), so any tangent-selection rule that consulted
+                     the flow would be starved of a reliable direction
+                     exactly where it needs one.  Descends s1 the same way
+                     PARK does; unlike PARK it needs no user-supplied s1
+                     threshold, so it holds ANY network minimum by default,
+                     the way TRIM in Primitive 10 holds an attracting
+                     segment's end without a supplied threshold.
+      4. CROSS    -- after first contact, whenever the eigenframe is
+                     degenerate (r < r_band) AND no previous tangent has
+                     yet been established: neither the eigenframe nor
+                     continuity gives a usable direction (only the very
+                     first tracking step after ACQUIRE can reach this).
+                     Rides the ambient flow, the one input in the whole
+                     controller not built from s1 alone; kept as the
+                     honest fallback for a generic field, essentially
+                     unreachable on the double gyre.
+      5. TRACK    -- otherwise: ride the trench of s1.  The tangent is
+                     whichever of e1, e2 has the LARGER |grad s1 . e_i|
+                     (continuity with the previous tangent fixes only the
+                     residual sign ambiguity); the transverse channel
+                     descends s1 along the component of grad s1 orthogonal
+                     to that tangent, using the SMALLER |grad s1 . e_i|,
+                     so the same two numbers pick both channels and the
+                     same law holds the trench on both the attracting and
+                     the repelling half.  Away from a stationary point of
+                     s1, grad s1 points mostly ALONG the trench (the
+                     transverse derivative vanishes there by construction),
+                     so the tangent is the eigenvector grad s1 is LESS
+                     orthogonal to, not more -- this is what carries the
+                     ride through a trench-NETWORK CROSSING (e.g. a saddle,
+                     where the separatrix meets a wall trench and a rule
+                     that only ever compared to the previous step could
+                     lock onto the wrong branch) and through the
+                     isotropic-point eigenvector swap alike, using no flow
+                     at all: CAPTURE above is what stops this branch from
+                     ever having to resolve the choice right at a genuine
+                     stationary point, where grad s1 itself vanishes and
+                     the discriminator loses power.
+
+    Objectivity note: ACQUIRE, PARK, CAPTURE, and BOTH channels of TRACK
+    (transverse and tangent selection) are built only from s1, grad s1, and
+    the co-rotating eigenvectors e1, e2, all of which transform
+    equivariantly under a time-dependent rotation of the observer frame
+    (Proposition equivariance for Primitive 10 applies verbatim to these
+    terms); continuity with the previous tangent, itself propagated from
+    these same equivariant quantities, fixes only a sign. The only place
+    the ambient flow enters at all is CROSS, reached solely on the very
+    first tracking step if the eigenframe is degenerate there with no
+    established tangent yet -- essentially unreachable once tracking has
+    begun. This is a STRONGER objectivity claim than an earlier design that
+    selected TRACK's tangent by best alignment with the flow at every step
+    (matching Logic C's own flow-projection test, eq. d_selector): that
+    design was found, empirically, to fail under a rotating observer whose
+    swirl term does not vanish at a trench-network crossing the way the
+    true flow does, so it can bias which branch gets selected even a full
+    trench-length from the crossing (verified at Omega = 0.2). The
+    gradient-based rule here uses no flow for branch selection, so it
+    carries no such corruption in any frame; see
+    experiments/traverse_objectivity_demo.py for the closed-loop
+    verification.
+
+    Per-run state is kept on the cluster (cleared implicitly by building a
+    fresh PentagonCluster per run, the pattern all experiments use):
+      cluster._oecs_prev_tangent  -- (2,) last commanded tangent direction
+      cluster._oecs_banded        -- True once s1 first dropped below -s_trim
+
+    Args:
+        cluster:    PentagonCluster with a vector field attached
+        v_max:      per-direction saturation speed (m/s)
+        g_perp:     gradient gain on the transverse, CAPTURE, and ACQUIRE
+                    channels
+        s_trim:     attraction-dominance threshold marking first contact
+                    (s1 < -s_trim latches `banded`)
+        r_band:     strain-magnitude threshold below which the eigenframe is
+                    treated as unreliable and CROSS takes over
+        g_capture:  full-gradient-magnitude threshold below which CAPTURE
+                    holds position at a 2D stationary point of s1 (a network
+                    minimum / saddle); unconditional, unlike s_capture
+        s_capture:  optional core-park threshold on s1 (PARK); None = rely
+                    on CAPTURE at network minima and ride to the domain edge
+                    otherwise
+
+    Returns:
+        (vx_c, vy_c): centroid velocity command
+    """
+    # -- Estimation (same single fit per step as Logic C and Primitive 10) --
+    u_arr, v_arr = _sample_vector_at_robots(cluster)
+    rel_pos = _get_relative_positions(cluster)
+    theta_u, theta_v = _fit_vector_quadratic(rel_pos, u_arr, v_arr)
+
+    s1, grad_s1, e1, e2, r = _strain_quantities(theta_u, theta_v)
+    flow = np.array([theta_u[0], theta_v[0]])
+
+    banded = getattr(cluster, '_oecs_banded', False)
+    if s1 < -s_trim and not banded:
+        banded = True
+        cluster._oecs_banded = True
+
+    def _log(mode):
+        diag = getattr(cluster, 'diagnostics', None)
+        if diag is not None:
+            diag.append({
+                'mode': mode, 's1': float(s1), 'r': float(r),
+            })
+
+    def _descend_s1():
+        vx = -v_max * np.tanh(g_perp * grad_s1[0] / v_max)
+        vy = -v_max * np.tanh(g_perp * grad_s1[1] / v_max)
+        return float(vx), float(vy)
+
+    # -- 1. ACQUIRE: no structure yet -----------------------------------
+    if not banded:
+        _log('ACQUIRE')
+        return _descend_s1()
+
+    # -- 2. PARK: optional core well, checked before CROSS/TRACK --------
+    if s_capture is not None and s1 < s_capture:
+        _log('PARK')
+        return _descend_s1()
+
+    # -- 3. CAPTURE: hold at a 2D stationary point of s1 --
+    # A flow saddle is not merely a crossing of two 1D trenches; it is a
+    # genuine 2D local MINIMUM of s1 (verified: true H_s1 eigenvalues both
+    # +9.74 at the double-gyre saddle, matching the TRAP-core value
+    # s1 = -pi^2 A of eq. s1_analytic_main), so grad s1 vanishes in EVERY
+    # direction there, not just transversally. On a generic 1D trench point
+    # grad s1 is large (it is exactly zero only transverse to the trench,
+    # full-strength along it); only near a 2D minimum does the FULL gradient
+    # collapse. This is the distinguishing test, and it matters because the
+    # flow itself also collapses at the same point (a stagnation point of
+    # the flow), which otherwise starves TRACK's flow-selected tangent of a
+    # reliable direction exactly where it needs one -- empirically, without
+    # this branch, some approaches to a saddle pick the flow-ambiguous wrong
+    # eigenvector and slide off onto the crossing wall trench instead of
+    # stopping. Checking the gradient directly sidesteps the ambiguity, but
+    # the gradient test ALONE is not sufficient: a shallow, incidental flat
+    # spot of s1 well away from any real structure (e.g. near a gyre center)
+    # can also pass |grad s1| < g_capture for a step under position noise,
+    # even though s1 there sits near 0, nowhere close to the true well depth
+    # -- verified directly (s1 in [-0.06, +0.04] at such a spot vs. -0.76 to
+    # -1.16 at the true saddle, at the SAME |grad s1| magnitudes). So
+    # CAPTURE also requires s1 < -4*s_trim: a deep-well test using the same
+    # scale parameter that already marks first structure contact, verified
+    # to hold with comfortable margin everywhere the gradient test can
+    # plausibly fire near a true saddle (s1 already below -0.9 once
+    # |grad s1| is within an order of magnitude of g_capture) while
+    # rejecting the shallow false positive. This is not gated on a
+    # field-specific analytic value (unlike PARK/s_capture, which needs the
+    # user to know the field's well depth in advance), so it still holds ANY
+    # network minimum by default, generic across fields, exactly as the
+    # TRIM test of Primitive 10 holds an attracting segment's end without a
+    # user-supplied threshold.
+    #
+    # LATCH (mirrors `banded` above), RELEASED ON THE SAME CERTIFICATE PARK
+    # ALREADY USES: under measurement/position noise, grad_s1's norm can
+    # flicker back above g_capture for a step even after genuinely arriving
+    # at the well, and every such excursion re-enters TRACK's tangent
+    # discriminator in the same near-degenerate eigenframe region the
+    # CAPTURE test exists to avoid -- verified to occasionally reselect the
+    # wrong eigenvector there and slide onto the crossing wall under
+    # position noise as small as sigma_p = 0.005. An UNCONDITIONAL latch
+    # (tried first) fixes that but creates a worse failure: held forever
+    # with no way to re-diagnose, so a later noise-driven excursion that
+    # drifts the position entirely off the well kept applying pure grad-s1
+    # descent through open field far from any structure -- not a stable
+    # hold, an unmodulated walk down whatever the local gradient points at,
+    # verified to run the team out past +/-2 domain widths within 1000
+    # steps this way (s1 itself drifting toward and past 0 en route, the
+    # tell that the fitted field is no longer describing a real well).
+    # FIX, not a new estimator or threshold: Section stability's own PARK
+    # argument already shows s1 is a Lyapunov function for this exact
+    # descent under exact estimates (s1_dot <= 0, equality only at a
+    # critical point) -- so gradient descent cannot run away WHILE s1
+    # actually still reads like a trench, and only does so once the
+    # estimate no longer does. The latch is released the instant s1 rises
+    # back above -s_trim, the SAME threshold `banded` already uses to
+    # define "no longer on structure": while below it, the well is real and
+    # the latch may bridge a flicker of the transverse gradient test;
+    # above it, the well is lost and the state machine falls through to
+    # re-diagnose from TRACK, exactly as if CAPTURE had never latched.
+    captured = getattr(cluster, '_oecs_captured', False)
+    if captured and s1 > -s_trim:
+        captured = False
+        cluster._oecs_captured = False
+    g_norm = float(np.linalg.norm(grad_s1))
+    if captured or (r > r_band and g_norm < g_capture and s1 < -4.0 * s_trim):
+        cluster._oecs_captured = True
+        _log('CAPTURE')
+        return _descend_s1()
+
+    t_prev = getattr(cluster, '_oecs_prev_tangent', None)
+    prev_hat = (t_prev / np.linalg.norm(t_prev)
+               if t_prev is not None and np.linalg.norm(t_prev) > 1e-12
+               else None)
+
+    # -- 3. CROSS: eigenframe degenerate AND no continuity to fall back on
+    # This is the genuine degeneracy case: r small (eigenframe undefined or
+    # noisy) with no previous tangent yet established (only the very first
+    # tracking step after ACQUIRE can reach this). Ride the ambient flow,
+    # oriented arbitrarily since no reference exists; this is the one branch
+    # that is not built purely from s1, grad s1, and the eigenframe, kept as
+    # the honest fallback for a generic field. On the double gyre this
+    # branch is essentially unreachable in practice (ACQUIRE's gradient
+    # descent lands on-trench well before r drops this low with no prior
+    # tangent).
+    if r < r_band and prev_hat is None:
+        _log('CROSS')
+        fn = float(np.linalg.norm(flow))
+        t_hat = flow / fn if fn > 1e-9 else np.array([1.0, 0.0])
+        step_tan = v_max * np.tanh(1.0) * t_hat
+        step_perp_x, step_perp_y = _descend_s1()
+        step_perp = np.array([step_perp_x, step_perp_y])
+        cluster._oecs_prev_tangent = t_hat
+        delta = step_perp + step_tan
+        return float(delta[0]), float(delta[1])
+
+    # -- 4. TRACK: ride the s1 trench, tangent chosen WITHOUT the flow ---
+    # The tangent of a trench is, by definition, the direction along which
+    # the along-track derivative of s1 is small: away from a stationary
+    # point, grad s1 points mostly ALONG the trench (the transverse
+    # derivative vanishes there by construction, leaving only the
+    # along-track slope), so of the two eigenvectors, the tangent is
+    # whichever has the LARGER |grad s1 . e_i| and the transverse direction
+    # is whichever has the SMALLER one -- the flip of the transverse
+    # channel below, using the same two numbers. This replaces an earlier
+    # design that chose the tangent by best alignment with the ambient
+    # flow (mirroring Logic C's f @ v_neg test): that worked in the
+    # inertial frame, but under a ROTATING observer the frame's own
+    # solid-body swirl does not vanish at a trench-network crossing the
+    # way the true flow does (it is a constant local vector there,
+    # proportional to POSITION, not to proximity to the crossing), and at
+    # Omega = 0.2 it was large enough, even a full trench-length away from
+    # any saddle, to flip which eigenvector the flow preferred -- verified
+    # numerically (true flow favors e2 by a 2:1 margin at one test point,
+    # the swirl-corrupted flow favors e1). The gradient-based rule uses NO
+    # flow at all, so it carries no such corruption in any frame, and it
+    # was verified against the fitted estimator to correctly track the
+    # separatrix tangent through the origin eigenvector swap and to
+    # correctly resolve the wall-vs-separatrix crossing at both saddles.
+    # Continuity with the previous tangent supplies only the sign, exactly
+    # as it always did; the direction itself no longer depends on it.
+    d1 = abs(float(grad_s1 @ e1))
+    d2 = abs(float(grad_s1 @ e2))
+    t_raw = e1 if d1 > d2 else e2
+    sign_ref = prev_hat if prev_hat is not None else flow
+    t_hat = t_raw if float(t_raw @ sign_ref) >= 0 else -t_raw
+
+    # Transverse: descend s1 along the component of grad s1 orthogonal to
+    # the tangent, not along a fixed eigenvector.  s1 is a genuine
+    # transverse minimum along the whole network, so this single law snaps
+    # onto the trench whether the tangent above resolved to e1 or e2.
+    g_perp_vec = grad_s1 - float(grad_s1 @ t_hat) * t_hat
+    g_perp_norm = float(np.linalg.norm(g_perp_vec))
+    if g_perp_norm < 1e-12:
+        step_perp = np.zeros(2)
+    else:
+        n_hat = g_perp_vec / g_perp_norm
+        c_perp = -g_perp * g_perp_norm
+        step_perp = v_max * np.tanh(c_perp / v_max) * n_hat
+
+    step_tan = v_max * np.tanh(1.0) * t_hat
+
+    cluster._oecs_prev_tangent = t_hat
+    _log('TRACK')
     delta = step_perp + step_tan
     return float(delta[0]), float(delta[1])
