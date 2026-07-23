@@ -566,32 +566,6 @@ $\det(\boldsymbol{\Phi})$. At 10~Hz on the test hardware neither cost is
 a constraint; the exchange is the weighted sum's speed for the fit's
 robustness to real formation error.
 
-\subsection{Noise Model}
-\label{sec:noise_model}
-
-Two independent noise channels perturb the samples available to the
-estimator. Measurement noise is additive Gaussian on the $(u, v)$
-components read by each robot:
-\begin{equation}
-    u_i^m = u(\mathbf{p}_i) + \eta_i^u, \quad
-    v_i^m = v(\mathbf{p}_i) + \eta_i^v,
-    \quad \eta \sim \mathcal{N}(0, \sigma_{uv}^2),
-    \label{eq:meas_noise}
-\end{equation}
-with samples independent across robots, components, and time steps; this
-is the sensor model of \cite{9}. Position noise perturbs the location at
-which each robot samples the field,
-\begin{equation}
-    (u_i^m, v_i^m) = \mathbf{v}(\mathbf{p}_i + \boldsymbol{\xi}_i), \quad
-    \boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0}, \sigma_p^2 \mathbf{I}),
-    \label{eq:pos_noise}
-\end{equation}
-while the quadratic fit (\ref{eq:solve}) uses the nominal positions
-$\mathbf{p}_i$: the robot reads the field at a slightly wrong place,
-inducing, to first order, an effective measurement error
-$\mathbf{J}(\mathbf{p}_i)\,\boldsymbol{\xi}_i$ that couples the two
-channels through the local Jacobian magnitude.
-
 \subsection{Closed-Form Recovery of $D$, $\nabla D$, and $\mathbf{H}_D$}
 
 The estimated Jacobian at the centroid is assembled from the linear
@@ -676,13 +650,34 @@ quadratic fit. (On the double gyre, where $b \equiv 0$, the fitted
 $\hat{\mathbf{H}}_{s_1}$ is numerically zero.) The gradient
 (\ref{eq:grad_s1}) is unaffected: its transverse component recovers the
 trench-restoring signal with the correct sign and order (fitted slope
-$4.0$ against analytic curvature $6.9$). The $s_1$ tracker of
-Section~\ref{sec:oecs_controller} is designed around exactly this
-split: eigenframe and gradient in, Hessian out.
+$4.0$ against analytic curvature $6.9$).
 \end{remark}
 
 \subsection{Estimator Accuracy}
 \label{sec:sensitivity}
+
+Two independent noise channels perturb the samples available to the
+estimator. Measurement noise is additive Gaussian on the $(u, v)$
+components read by each robot:
+\begin{equation}
+    u_i^m = u(\mathbf{p}_i) + \eta_i^u, \quad
+    v_i^m = v(\mathbf{p}_i) + \eta_i^v,
+    \quad \eta \sim \mathcal{N}(0, \sigma_{uv}^2),
+    \label{eq:meas_noise}
+\end{equation}
+with samples independent across robots, components, and time steps; this
+is the sensor model of \cite{9}. Position noise perturbs the location at
+which each robot samples the field,
+\begin{equation}
+    (u_i^m, v_i^m) = \mathbf{v}(\mathbf{p}_i + \boldsymbol{\xi}_i), \quad
+    \boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0}, \sigma_p^2 \mathbf{I}),
+    \label{eq:pos_noise}
+\end{equation}
+while the quadratic fit (\ref{eq:solve}) uses the nominal positions
+$\mathbf{p}_i$: the robot reads the field at a slightly wrong place,
+inducing, to first order, an effective measurement error
+$\mathbf{J}(\mathbf{p}_i)\,\boldsymbol{\xi}_i$ that couples the two
+channels through the local Jacobian magnitude.
 
 Measurement noise enters the coefficients directly: since
 $\hat{\boldsymbol{\theta}}_u - \boldsymbol{\theta}_u =
@@ -721,22 +716,13 @@ radius, so larger formations average noise better. Truncation works the
 other way: on a field with third derivatives bounded by $M_3$, the
 Taylor remainder biases the fitted second-order coefficients by $O(M_3
 \rho)$, matching the bound proved for the symmetric estimator in
-\cite{15}, so smaller formations track curvature better. Balancing the
-two for the second-order coefficients gives
-\begin{equation}
-    \rho^* \propto \left(\sigma_{uv}/M_3\right)^{1/3},
-    \label{eq:rho_star}
-\end{equation}
-which is best read as a scaling law rather than a tuning rule. It
-explains the shape of Fig.~\ref{fig:est_accuracy}(b), a shallow bowl in
-$\rho$ for each derivative order, and its cube-root form makes the
-optimum flat: a factor-of-two error in the unknown $M_3$ moves $\rho^*$
-by only $26\%$. The optimum itself is not computable in the field, since
-$M_3$ is a property of an unknown flow; with six robots and six
-coefficients the fit is exactly determined, leaving no residual from
-which to estimate $M_3$ online. A seventh robot, or a temporal
-consistency check across cycles, would supply one, and the empirical
-minima for the benchmark field are reported below.
+\cite{15}, so smaller formations track curvature better. Balancing the two for the
+second-order coefficients gives an optimal radius $\rho^* \propto
+(\sigma_{uv}/M_3)^{1/3}$, a shallow cube-root bowl (Fig.~\ref{fig:est_accuracy}(b))
+whose flat optimum is not computable in the field, since $M_3$ is a
+property of an unknown flow and the exactly-determined six-robot fit
+leaves no residual to estimate it from. The radius is fixed at $\rho =
+0.075$ throughout this paper.
 
 Propagating coefficient errors to the navigation quantities separates
 cleanly by derivative order. The determinant obeys $|\hat{D} - D| \leq
@@ -783,26 +769,19 @@ eigenvalues nearly vanish and their signs become unreliable
     \label{fig:est_accuracy}
 \end{figure}
 
-These predictions were checked open loop: the formation was held static
-at a strain-region point of the double gyre, and $2 \times 10^5$
-independent noise draws per condition were passed through the
-controller's own fit. Every fitted coefficient's standard deviation
-matched Lemma~\ref{lem:gains} within 0.3\%, and the reading error
-induced by position noise matched its first-order prediction within
-1.1\%, confirming that the two channels combine into a single effective
-measurement noise. In Fig.~\ref{fig:est_accuracy}(a) each derivative
-order multiplies the noise gain by roughly $1/\rho$, about 13 at the
-nominal radius; reading the crossings of the dashed line, $\hat{D}$
-remains informative up to $\sigma_{uv} \approx 0.06$~m/s and
-$\nabla\hat{D}$ up to $\sigma_{uv} \approx 0.01$~m/s, while
-$\hat{\mathbf{H}}_D$ sits at the line even for the quietest sensors,
-held there by the structural bias. Its eigen-directions nevertheless
-remain accurate to $0.35^\circ$ on and near the separatrix and
-$3.8^\circ$ at the generic test point (Remark~\ref{rem:eigvec}).
-Fig.~\ref{fig:est_accuracy}(b) shows the shallow bowl the scaling law
-(\ref{eq:rho_star}) predicts, with empirical minima at $\rho \approx
-0.11$ for $\hat{D}$ and $\rho \approx 0.23$ for $\nabla\hat{D}$ and a
-radius-independent floor for $\hat{\mathbf{H}}_D$.
+These predictions were checked open loop, holding the formation static
+at a strain-region point of the double gyre over $2 \times 10^5$ noise
+draws per condition. Every fitted coefficient's standard deviation
+matched Lemma~\ref{lem:gains} within 0.3\%, and the position-noise
+reading error matched its first-order prediction within 1.1\%,
+confirming the two channels combine into a single effective measurement
+noise. Reading the dashed-line crossings of Fig.~\ref{fig:est_accuracy}(a),
+$\hat{D}$ stays informative to $\sigma_{uv} \approx 0.06$~m/s and
+$\nabla\hat{D}$ to $\approx 0.01$~m/s, while $\hat{\mathbf{H}}_D$ sits at
+the line even for the quietest sensors, held there by the structural
+bias; its eigen-directions nevertheless remain accurate to $0.35^\circ$
+on and near the separatrix and $3.8^\circ$ at the generic test point
+(Remark~\ref{rem:eigvec}).
 
 The gradient threshold marks where closed-loop degradation should
 begin: at $\sigma_{uv} \approx 0.01$ a single $\nabla\hat{D}$ estimate
@@ -1224,27 +1203,21 @@ channel as a bounded disturbance covered by
 Proposition~\ref{prop:iss}.
 
 The double-gyre separatrix satisfies Assumption~\ref{ass:trench} with
-$n = x$ and $s = y$: the field (\ref{eq:det_analytic_main}) is
-additively separable, so the cross terms vanish identically and
-$\varphi(s) = -\tfrac{\pi^4 A^2}{2}(1 + \cos 2\pi s_f)$ exactly, while
-the transverse profile matches the quadratic normal form to second
-order in $n$, with curvature $2\pi^6 A^2 \cos 2\pi x_f > 0$ on any tube
-with $w < 1/4$; the appendix shows the higher-order terms only
-strengthen the contraction.
+$n = x$, $s = y$: the field (\ref{eq:det_analytic_main}) is additively
+separable, so the cross terms vanish identically and the transverse
+curvature is positive on any tube with $w < 1/4$; the appendix shows the
+higher-order terms only strengthen the contraction.
 
-Two lemmas in Appendix~\ref{app:proofs} carry the proof. The first
-(Lemma~\ref{lem:transverse}) shows that every mode of the selector
-applies the identical transverse dynamics
+Two appendix lemmas carry the proof: every selector mode applies the
+identical transverse contraction
 \begin{equation}
     \dot{n} = -v_{\max}\tanh\!\left(\frac{n}{v_{\max}}\right),
     \label{eq:n_dynamics}
 \end{equation}
-so $|n|$ decreases strictly, the tube is forward invariant, and
-switching among modes cannot destabilize or chatter the transverse
-channel. The second (Lemma~\ref{lem:progress}) shows that no mode ever
-moves against the ambient flow along the trench, with tangential speed
-at least some $m > 0$ outside the $r_0$ balls. Together they give the
-main result.
+so the tube is forward invariant and mode switching cannot chatter it
+(Lemma~\ref{lem:transverse}), and no mode moves against the ambient flow
+along the trench, with tangential speed at least $m > 0$ outside the
+$r_0$ balls (Lemma~\ref{lem:progress}).
 
 \begin{theorem}[Separatrix network traversal]
 \label{thm:separatrix}
@@ -1321,22 +1294,15 @@ closed-loop navigation trajectory (\ref{eq:kinematic_model}) satisfies
 $\mathbf{p}'_c(t) = \mathbf{Q}(t)\mathbf{p}_c(t)$ up to the
 frame-transport term: on the structure, the tracker follows the same
 material path in every frame. This includes the tangent selection
-(\ref{eq:tangent_select}): $\hat{d}_1, \hat{d}_2$ are built from
-$\nabla\hat{s}_1$ and the co-rotating eigenframe alone, so the
-selected eigenvector and the sign it inherits from continuity both
-co-rotate with $\mathbf{Q}$, unlike a rule that instead resolved the
-same choice by projection onto the flow at every step, which would
-inherit $\dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}'$, a term with no
-counterpart in the inertial frame, at every step rather than only at
-the seed. The ACQUIRE branch saturates $\nabla\hat{s}_1$ componentwise
-in observer axes and is covariant only where the saturation is
-inactive; it descends the invariant $\hat{s}_1$ in every frame, so its
-contribution is a frame-dependent transient that the covariant
-contraction of (\ref{eq:oecs_n_dynamics}) absorbs. CROSS reads the
-flow directly and so is covariant only under a fixed observer
-rotation, not a time-dependent one; it is reached only on the first
-tracking step under an already-degenerate eigenframe with no prior
-tangent, essentially never in practice
+(\ref{eq:tangent_select}), built from $\nabla\hat{s}_1$ and the
+co-rotating eigenframe alone, so the selected eigenvector and its
+continuity-inherited sign both co-rotate with $\mathbf{Q}$. The two
+branches that are not covariant are confined and harmless: ACQUIRE
+saturates in observer axes but descends the invariant $\hat{s}_1$ in
+every frame, a frame-dependent transient the contraction
+(\ref{eq:oecs_n_dynamics}) absorbs; CROSS reads the flow directly but is
+reached only on the first tracking step under an already-degenerate
+eigenframe, essentially never in practice
 (Section~\ref{sec:oecs_controller}).
 \end{proposition}
 
@@ -1372,18 +1338,15 @@ full gradient,
     \mathrm{sat}(g_\perp\,\partial_k \hat{s}_1) \leq 0,
     \label{eq:s1_lyapunov}
 \end{equation}
-with equality only at a critical point of $\hat{s}_1$. This is the same
-descent ACQUIRE and PARK apply, so all three share
-(\ref{eq:s1_lyapunov}); what distinguishes CAPTURE is only its trigger,
+with equality only at a critical point of $\hat{s}_1$, the same descent
+ACQUIRE and PARK apply; CAPTURE differs only in its trigger,
 $\lVert\nabla\hat{s}_1\rVert < g_{\text{capture}}$, which fires at any
-network minimum the ride reaches rather than a single field-specific
-one. Unlike the $D$ tracker's own capture test, whose reliance on
-$\hat{\mathbf{H}}_D$ Remark~\ref{rem:capture_gap} shows to be unreliable
-exactly at a saddle, (\ref{eq:s1_lyapunov}) needs no curvature estimate
-at all: the saddle is recoverable as a two-dimensional minimum of the
-objective field $\hat{s}_1$ using only the gradient the estimator
-already certifies, and Section~\ref{sec:results_oecs} confirms the test
-fires reliably where the $D$ tracker's does not.
+network minimum. Unlike the $D$ tracker's Hessian-based test, unreliable
+at a saddle (Remark~\ref{rem:capture_gap}), (\ref{eq:s1_lyapunov}) needs
+no curvature estimate: the saddle is recoverable as a two-dimensional
+minimum of $\hat{s}_1$ from the gradient alone, and
+Section~\ref{sec:results_oecs} confirms it fires where the $D$ tracker's
+does not.
 
 \section{Simulation Program}
 \label{sec:methods}
@@ -1681,7 +1644,7 @@ $\sigma_{uv} = 0.005$ and $0.01$, coinciding with the open-loop
 $\nabla\hat{D}$ reliability threshold reported above: the estimator,
 not the control law, sets the noise ceiling. Position noise degrades
 the rate along the same curve scaled by $\|\mathbf{J}\|$, consistent
-with the effective-noise argument of Section~\ref{sec:noise_model}
+with the effective-noise argument of Section~\ref{sec:sensitivity}
 ($\sigma_p = 0.01$ alone and $\sigma_{uv} = 0.01$ alone give nearly
 identical rates). Beyond the cliff, success does not fall to zero but
 levels off in the low tens of percent through $\sigma_{uv} = 0.2$,
