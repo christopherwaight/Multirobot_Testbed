@@ -26,9 +26,12 @@
 \title{Multirobot Tracking of
 Instantaneous Coherent Structures}
 
-\author{Anonymous Authors}
+\author{Christopher Waight and Christopher A. Kitts,~\IEEEmembership{Senior Member,~IEEE}
+\thanks{C. Waight is a PhD Candidate in the Robotic Systems Laboratory, Department of Mechanical Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: cwaight@scu.edu)}
+\thanks{C. A. Kitts is Professor and Director of the Robotic Systems Laboratory, Department of Mechanical Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: ckitts@scu.edu)}
+}
 \markboth{IEEE Transactions on Robotics}%
-{Anonymous Authors: Multirobot Tracking of Instantaneous Coherent Structures}
+{Waight and Kitts: Multirobot Tracking of Instantaneous Coherent Structures}
 
 \maketitle
 
@@ -65,28 +68,35 @@ Estimation, Cluster Space Control
 \section{Introduction}
 \label{sec:intro}
 
-\IEEEPARstart{M}{ultirobot} systems exploit spatial distribution to
-sample and act on an environment more effectively than a single
-platform can \cite{1}. Equipped with field sensors, such teams form
-mobile sensor networks, and adaptive navigation (AN) techniques use
-their real-time measurements to direct the network to or along features
-of interest; unlike survey-oriented navigation, which traverses a
-region exhaustively and identifies features afterward, AN locates local
-features quickly and follows them as they evolve. AN in scalar fields
-is well developed: each robot contributes a single scalar measurement
-to a navigation policy that reaches and follows extrema, contour lines,
-ridges, trenches, saddle points, and fronts \cite{26,27,28,29}, with
-formations sized so that differential measurements across the cluster
-recover the gradient and curvature each policy consumes \cite{15,26}.
+\IEEEPARstart{D}{eploying} many robots in place of one builds in
+redundancy against individual failures, widens the area a team can
+cover, and spreads sensing across space rather than concentrating it at
+a single platform; multirobot systems now operate this way across
+domains from warehousing to search and rescue \cite{1}. Equipped with
+field sensors, such teams form mobile sensor networks that turn this
+spatial spread into simultaneous measurements at separated points.
+Adaptive navigation (AN) techniques use those measurements in real time
+to drive the network toward or along features of interest. Unlike
+survey-oriented navigation, which sweeps a region exhaustively and
+identifies features only afterward, AN locates local features quickly
+and follows them as they evolve.
+
+AN in scalar fields is well developed. Each robot contributes a single
+scalar measurement to a navigation policy that reaches and follows
+features such as extrema, contour lines, ridges, trenches, saddle
+points, and fronts \cite{26,27,28,29}, with formations sized so that
+differential measurements across the cluster recover the gradient and
+curvature each policy consumes \cite{15,26}.
 
 Some environments are better modeled by vector fields: ocean currents
 and other geophysical flows assign a velocity, not a scalar, to each
-point. In \cite{14}, a three-robot cluster estimated the location
-and type of an isolated critical point from a linear fit of
-simultaneous local velocity measurements. Coordinated
+point. In \cite{14}, a three-robot cluster estimated the location and
+type of an isolated critical point from a linear fit of simultaneous
+local velocity measurements, recovering the feature from instantaneous
+data alone rather than from an accumulated survey. Coordinated
 multi-vehicle sampling of dynamic ocean features is itself an active
-area of marine robotics, from drifter-referenced AUV surveys \cite{2}
-to front-tracking ASV/AUV teams \cite{3} and adaptive glider fleets
+area of marine robotics, from drifter-referenced AUV surveys \cite{2} to
+front-tracking ASV/AUV teams \cite{3} and adaptive glider fleets
 \cite{4}.
 
 Beyond isolated critical points, these missions increasingly call for
@@ -136,8 +146,8 @@ and the network crossing itself from objective quantities alone, with
 terminal capture the controller's default rather than an optional
 threshold. Fourth, it validates both trackers under a fully specified
 noise model, in a closed-loop rotating-frame objectivity experiment,
-and on real Santa Barbara Channel radar currents; hardware validation
-is future work (Section~\ref{sec:future}).
+and on real Santa Barbara Channel radar currents
+(Section~\ref{sec:future}).
 
 The remainder of the paper is organized as follows. The rest of this
 section reviews related work. Section~\ref{sec:detj_field} formulates
@@ -1529,22 +1539,26 @@ robustness metric for this paper's trials; no numerical comparison
 with the values reported in \cite{9} is implied, since the field, the
 formation, and the noise model all differ.
 
-The $D$ tracker's terminal target is fixed by design, the bottom saddle
-$\mathbf{p}^*_1$ that its selector's FLOW step always continues toward
-from this start. The $s_1$ tracker's is not fixed the same way: which
-saddle its flow-seeded tangent commits to
-(Section~\ref{sec:oecs_controller}) depends on the local flow direction
-at $(0, 0.35)$, so success is scored as contact with either saddle. The
-on-segment path to the nearer saddle, $\mathbf{p}^*_2$, is much shorter
-than the traverse to $\mathbf{p}^*_1$ (0.15 against 0.85), so a trial
-that commits to the near saddle completes in a fraction of the steps a
-trial committing to the far one needs; success rates compare cell by
-cell only qualitatively for this reason as well as the noise model's own
-differences. The prediction under test is the location of the failure
-cliff, which the estimator analysis places at $\sigma_{uv} \approx 0.01$
-for both controllers, while straddle retention and tracking error test
-whether the first-order eigenframe buys measurable robustness on the
-structure.
+Both controllers are scored against the same terminal target, the
+bottom saddle $\mathbf{p}^*_1$ that a noise-free ride from this start
+reaches for either: the $D$ tracker's selector always continues toward
+it by design, and the $s_1$ tracker's flow-seeded tangent
+(Section~\ref{sec:oecs_controller}) also commits toward it at zero and
+near-zero noise, since the local flow direction at $(0, 0.35)$ points
+that way. Contact with the other saddle, $\mathbf{p}^*_2$, does not
+count as success for either tracker; for the $s_1$ tracker specifically,
+it is scored as the controller having substituted an easier, shorter
+task rather than having ridden the separatrix, since noise can flip
+which saddle its one-time tangent-sign read commits to
+(Section~\ref{sec:results_oecs}). The prediction under test is the
+location of the failure cliff, which the estimator analysis places at
+$\sigma_{uv} \approx 0.01$ for the transverse-tracking mechanism common
+to both controllers; Fig.~\ref{fig:flip_resolution} shows the $s_1$
+tracker's own cliff falls earlier, at $\sigma_{uv} \approx 0.002$, set
+by the tangent-sign read rather than by transverse tracking, while
+straddle retention and tracking error test whether the first-order
+eigenframe buys measurable robustness on the structure once that sign
+is resolved correctly.
 
 \subsubsection{Objectivity demonstration}
 Both controllers run on the same physical double gyre expressed in two
@@ -1614,9 +1628,9 @@ behavior with terminal capture as a tightened-threshold special case.
 straddling start $(0, 0.35)$, random heading per trial, both scored
 against the single far saddle $\mathbf{p}^*_1$ a noise-free ride from
 this start reaches, over the full $\sigma_{uv} \times \sigma_p$ grid.
-(a) $D$ tracker traverse success. (b) $s_1$ tracker success; the
-transition falls entirely between $\sigma_{uv} = 0.001$ and $0.005$ at
-every $\sigma_p$ shown, resolved at 0.0005 spacing in
+(a) $D$ tracker traverse success. (b) $s_1$ tracker traverse success;
+the transition falls entirely between $\sigma_{uv} = 0.001$ and $0.005$
+at every $\sigma_p$ shown, resolved at 0.0005 spacing in
 Fig.~\ref{fig:flip_resolution} and Section~\ref{sec:results_oecs}.}
 \label{tab:mc_success}
 \footnotesize
@@ -1640,7 +1654,7 @@ $\sigma_{uv}$ \textbackslash\ $\sigma_p$ & 0.000 & 0.005 & 0.010 & 0.020 & 0.050
 \end{tabular}
 \hspace{1.5em}
 \begin{tabular}{r|rrrrr}
-\multicolumn{6}{l}{(b) $s_1$ tracker: $\mathbf{p}^*_1$ success (\%)} \\
+\multicolumn{6}{l}{(b) $s_1$ tracker: traverse success (\%)} \\
 \hline
 $\sigma_{uv}$ \textbackslash\ $\sigma_p$ & 0.000 & 0.005 & 0.010 & 0.020 & 0.050 \\
 \hline
@@ -1781,7 +1795,7 @@ carrying it for the life of the run.
 \end{figure}
 
 \subsubsection{Noise robustness}
-Table~\ref{tab:mc_success}(b) reports capture success for the $s_1$
+Table~\ref{tab:mc_success}(b) reports traverse success for the $s_1$
 tracker over the same noise grid, scored against $\mathbf{p}^*_1$
 specifically rather than either saddle: the flow-seeded tangent
 orientation (\ref{eq:tangent_select}) at this start can commit to
@@ -2487,8 +2501,8 @@ on Robotics and Automation (ICRA)}, pp. 3047--3053, 2022.
 \bibitem{13} D. Kularatne and M. A. Hsieh, "Tracking attracting manifolds in
 flows," \textit{Autonomous Robots}, vol. 41, no. 8, pp. 1575--1588, 2017.
 
-\bibitem{14} Anonymous, "Adaptive navigation of multirobot systems to
-critical points in 2D vector fields," submitted for publication.
+\bibitem{14} C. Waight and C. A. Kitts, "Adaptive navigation of multirobot
+systems to critical points in 2D vector fields," submitted for publication.
 
 \bibitem{15} L. Briñón-Arranz, A. Renzaglia, and L. Schenato, "Multirobot
 symmetric formations for gradient and Hessian estimation with application to
