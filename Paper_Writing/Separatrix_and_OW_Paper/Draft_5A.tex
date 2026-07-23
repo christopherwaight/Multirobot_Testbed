@@ -46,17 +46,23 @@ following these structures in real time, using only the flow velocity
 each robot measures at its own position. A distributed estimator
 recovers the local quadratic model of the field from one synchronous
 measurement set, and six robots are proved to be the minimum team for
-this recovery. The fit supplies two trackable surrogates: the Jacobian
-determinant, whose valley lines trace the separatrices of the flow, and
-the smaller rate-of-strain eigenvalue, whose structures are invariant
-to observer rotation. An adaptive navigation controller rides each.
-Monte Carlo sweeps place the determinant tracker's failure cliff at the
-estimator's own noise threshold, and a rotating-frame experiment shows
-the strain tracker recovering the same material curve in either
-observer frame. On Santa Barbara Channel radar currents, the
-determinant tracker follows a coherent ridge for 28 hours to a
-consistent landfall, and the strain tracker holds a transient
-attracting profile within one radar grid cell of offline ground truth.
+this recovery. The fit supplies two trackable surrogates. The first is the Jacobian
+determinant, whose valley lines trace the flow's separatrices; it is
+Galilean invariant but not objective, shifting under a rotating observer.
+The second is the smaller rate-of-strain eigenvalue, whose trench is
+objective, a material curve recovered identically in any observer frame.
+An adaptive navigation controller rides each. A rotating-frame experiment
+separates them: the strain tracker's inertial and rotating runs end
+0.025 apart, while the determinant tracker's diverge by 1.219 as its
+rotating-frame run leaves the structure. This objectivity has a
+measurable cost in robustness. Monte Carlo sweeps place the determinant
+tracker's failure cliff at the estimator's own noise threshold,
+$\sigma_{uv} \approx 0.01$, and the strain tracker's earlier, at
+$\sigma_{uv} \approx 0.002$; at zero noise their tracking errors are
+0.0016 and 0.0075. On Santa Barbara Channel radar currents, the
+determinant tracker follows a coherent ridge for 28 hours to a consistent
+landfall, and the strain tracker holds a transient attracting profile
+within one radar grid cell of offline ground truth.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -165,22 +171,19 @@ limitations, and Section~\ref{sec:conclusion} concludes.
 
 Haller and Yuan formalized the Lagrangian coherent structure (LCS) as
 the generalization of stable and unstable manifolds to flows with
-arbitrary time dependence \cite{6}, with the standard computable
-definition, a ridge of the finite-time Lyapunov exponent (FTLE) field,
-given in \cite{8} on the same double-gyre model used throughout this
-paper; objectivity and the Lagrangian/Eulerian tradeoff that motivate
-this paper's two surrogates are developed in
-Section~\ref{sec:detj_field}, with the underlying theory in
-\cite{16,17,18}; velocity-gradient recovery from sparse trajectories
-\cite{19} and the strain-spin decomposition itself \cite{20} remain
-active adjacent directions. The instantaneous criteria remain the
-computable workhorses: Okubo and Weiss partition a planar flow from the
-local velocity gradient alone \cite{21,22}, generalized to three
-dimensions \cite{23}, sharpened oceanographically \cite{24}, and used
-at scale in mesoscale eddy censuses \cite{5}. Unlike methods that sense
-only a scalar reduction of the field \cite{25}, the team here fits the
-full local quadratic vector field, so the surrogate's shape, not merely
-its sign, is available to the controllers.
+arbitrary time dependence \cite{6}. The standard computable definition,
+a ridge of the finite-time Lyapunov exponent (FTLE) field, is given in
+\cite{8} on the same double-gyre model used throughout this paper, and
+the objectivity and Lagrangian/Eulerian tradeoff that motivate this
+paper's two surrogates are developed in Section~\ref{sec:detj_field},
+with the underlying theory in \cite{16,17,18}. Velocity-gradient
+recovery from sparse trajectories \cite{19} and the strain-spin
+decomposition itself \cite{20} remain active adjacent directions. The
+instantaneous criteria remain the computable workhorses: Okubo and Weiss
+partition a planar flow from the local velocity gradient alone
+\cite{21,22}, generalized to three dimensions \cite{23}, sharpened
+oceanographically \cite{24}, and used at scale in mesoscale eddy censuses
+\cite{5}.
 
 The nearest prior work tracks a coherent structure directly with a
 robot formation. Michini et al. bracket a presumed stable or unstable
@@ -188,17 +191,17 @@ manifold with three robots using only local velocity measurements
 \cite{9}; the strategy extends to $N$ robots \cite{10}, was validated
 on micro surface vehicles in a flow tank \cite{11}, and related
 flow-based control operates marine robots in gyre-like environments
-\cite{12}. The straddle family commits to the manifold's identity
+\cite{12}. Unlike methods that sense only a scalar reduction of the
+field \cite{25}, the team here fits the full local quadratic vector
+field, so the surrogate's shape, not merely its sign, is available to
+the controllers. The straddle family commits to the manifold's identity
 before tracking begins, and neither controller nor proof addresses the
 saddle point itself, exactly where that identity becomes ambiguous.
 Kularatne and Hsieh instead compute the local FTLE field on board,
 recovering the structure's type at the price of a nonzero integration
 horizon \cite{13}. None of these strategies estimates the curvature of
 the field itself, which is what fixes not just where a structure lies
-but what kind it is and how many branches meet there; the estimator of
-Section~\ref{sec:estimation} supplies exactly that, so the branch to
-continue onto at a crossing is measured fresh each control cycle rather
-than assumed.
+but what kind it is and how many branches meet there.
 
 On the estimation side, \"{O}gren, Fiorelli, and Leonard established
 cooperative gradient climbing with a formation of mobile sensors
@@ -213,33 +216,52 @@ coupled two-component field doubles the estimation problem to twelve
 unknowns, and Section~\ref{sec:estimation} proves six robots, the same
 count as the ring-plus-center of \cite{15}, is the exact minimum for
 the coupled case, for any non-conic placement and against any
-algorithm.
-
-The team itself is controlled in cluster space: a formation is
-parameterized by aggregate quantities and that parameterization is
-inverted analytically to distribute one formation-level command to
-every robot \cite{30}, closed in the loop on physical surface vessels
-in \cite{31}. The side-angle-side (SAS) parameterization of \cite{14}
-is one instance, and the six-robot formation here is built from three
-SAS pairs sharing a centroid; the grouping is invisible to the
-estimator. The testbed lineage runs from a low-cost twelve-robot indoor
-platform \cite{32} to the Decabot fleet \cite{33}, whose identified
-robot dynamics this paper's simulations adopt; finite-time coordination
-results such as \cite{34} pursue convergence-rate analyses that this
-paper trades for geometric traversal guarantees. Where \cite{14} used a
-linear fit and \cite{15} the raw Hessian inverse, the modified Newton
-step introduced here combines per-eigendirection saturation with the
+algorithm. Where \cite{15} inverts the raw Hessian, the modified Newton
+step used here combines per-eigendirection saturation with the
 saddle-free sign flip of Dauphin et al. \cite{35}, previously unapplied
 to a robot team tracking a spatial field.
+
+Robotic work in vector-field environments divides by whether the field
+is measured or constructed. The critical-point and structure-tracking
+methods above \cite{9,10,11,12,13,14} navigate a naturally occurring
+flow that the team senses in situ. A separate and larger literature
+instead builds an artificial vector field as a control law, whose
+integral curves are designed to guide a single robot along a desired
+path \cite{37} or around obstacles \cite{38}; there the field is a
+synthetic guidance signal, not a measured environment. This paper is of
+the first kind: the flow is given by the ocean, sampled locally, and its
+transport skeleton is what the team is asked to find and follow.
 
 \section{Problem Formulation}
 \label{sec:detj_field}
 
-\subsection{Flow Fields and Local Polynomial Models}
+\subsection{Vector Fields and Local Polynomial Models}
 
-A planar flow assigns a velocity vector $\mathbf{v}(\mathbf{p}) =
+A planar vector field assigns a velocity vector $\mathbf{v}(\mathbf{p}) =
 (u(\mathbf{p}), v(\mathbf{p}))$ to each position $\mathbf{p} = (x, y)$ in its
-domain. Its Jacobian at $\mathbf{p}$ is
+domain. The critical-point estimator of \cite{14} fits a \emph{planar}
+(affine) model of each component to simultaneous measurements and solves
+the linear system for the point where $\mathbf{v} = \mathbf{0}$. The
+surrogates this paper tracks are built not from $\mathbf{v}$ but from its
+spatial derivatives, and navigating them requires derivatives through
+second order; a planar fit, whose second derivatives are identically zero,
+cannot supply them. The team therefore fits a local \emph{quadratic} model
+of each component,
+\begin{align}
+    u(\mathbf{p}) &\approx u_0 + u_x \tilde{x}
+        + u_y \tilde{y} + \tfrac{1}{2} u_{xx} \tilde{x}^2
+        + u_{xy} \tilde{x}\tilde{y} + \tfrac{1}{2} u_{yy} \tilde{y}^2,
+        \label{eq:quad_model_u} \\
+    v(\mathbf{p}) &\approx v_0 + v_x \tilde{x}
+        + v_y \tilde{y} + \tfrac{1}{2} v_{xx} \tilde{x}^2
+        + v_{xy} \tilde{x}\tilde{y} + \tfrac{1}{2} v_{yy} \tilde{y}^2,
+        \label{eq:quad_model_v}
+\end{align}
+where $\tilde{\mathbf{p}} = (\tilde{x}, \tilde{y}) = \mathbf{p} - \mathbf{p}_c$
+is position relative to the cluster centroid $\mathbf{p}_c$ and the twelve
+coefficients are the Taylor data of the field at $\mathbf{p}_c$: the value,
+gradient, and Hessian of each component. The first-order coefficients
+populate the Jacobian
 \begin{equation}
     \mathbf{J}(\mathbf{p}) =
     \begin{bmatrix}
@@ -248,27 +270,9 @@ domain. Its Jacobian at $\mathbf{p}$ is
     \end{bmatrix},
     \label{eq:jacobian}
 \end{equation}
-and we write $D(\mathbf{p}) = \det(\mathbf{J}(\mathbf{p}))$ throughout.
-
-The surrogate fields this paper tracks are built from $\mathbf{J}$, and
-navigating them requires their first and second spatial derivatives,
-which are polynomial functions of the first and second derivatives of
-$u$ and $v$. The team therefore fits a local quadratic model of each
-component,
-\begin{align}
-    u(\mathbf{p}_c + \tilde{\mathbf{p}}) &\approx u_0 + u_x \tilde{x}
-        + u_y \tilde{y} + \tfrac{1}{2} u_{xx} \tilde{x}^2
-        + u_{xy} \tilde{x}\tilde{y} + \tfrac{1}{2} u_{yy} \tilde{y}^2,
-        \label{eq:quad_model_u} \\
-    v(\mathbf{p}_c + \tilde{\mathbf{p}}) &\approx v_0 + v_x \tilde{x}
-        + v_y \tilde{y} + \tfrac{1}{2} v_{xx} \tilde{x}^2
-        + v_{xy} \tilde{x}\tilde{y} + \tfrac{1}{2} v_{yy} \tilde{y}^2,
-        \label{eq:quad_model_v}
-\end{align}
-where $\tilde{\mathbf{p}} = (\tilde{x}, \tilde{y})$ is position relative to
-the cluster centroid $\mathbf{p}_c$ and the twelve coefficients are the
-Taylor data of the field at $\mathbf{p}_c$: the value, gradient, and
-Hessian of each component. 
+and we write $D(\mathbf{p}) = \det(\mathbf{J}(\mathbf{p}))$ throughout; the
+two surrogate fields are built from $\mathbf{J}$ and its spatial
+derivatives, developed next.
 
 \subsection{Separatrices and Eulerian Surrogates}
 \label{sec:separatrix}
@@ -282,11 +286,9 @@ from the instantaneous field and its spatial derivatives. This paper
 tracks two, both delivered by the same fit: the determinant field $D$,
 Galilean invariant and globally connected, which coincides exactly with
 the separatrix for the steady double gyre
-(Section~\ref{sec:dg_example}); and the strain eigenvalue $s_1$, which
-underlies the attracting OECSs of \cite{17,18} and is fully objective.
-They are the two terms of the splitting identity of
-Section~\ref{sec:strain_field}, and the price and payoff of each choice
-are quantified in Section~\ref{sec:results}.
+(Section~\ref{sec:dg_example}); and the strain eigenvalue $s_1$, whose
+trench is the objective, fully frame-invariant surrogate underlying the
+attracting Eulerian coherent structures of \cite{17,18}.
 
 \subsection{Surrogate I: the Okubo-Weiss Field $D$}
 
@@ -364,17 +366,20 @@ lines and part ways everywhere else.
 The smaller eigenvalue $s_1$ is the local instantaneous contraction
 rate: where $s_1 < 0$, material filaments are compressed along
 $\mathbf{e}_1$ and stretched along $\mathbf{e}_2$ at rate $s_2 = -s_1$.
-Serra and Haller's attracting OECSs, operationalized as transient
-attracting profiles (TRAPs) for search-and-rescue prediction
-\cite{17,36}, are built from exactly this structure: a TRAP core is a
-local minimum of $s_1$ with $s_1 < 0$, and the attracting curve through
-the core is tangent to $\mathbf{e}_2$, terminated where attraction
-stops dominating. Attracting OECSs are thus trenches of the signed
-scalar field $s_1$, ridden along $\mathbf{e}_2$. One caution
-accompanies the eigenstructure: $\mathbf{e}_1, \mathbf{e}_2$ are
-direction fields with no globally consistent sign, undefined at
-isotropic points of $\mathbf{S}$ ($s_1 = s_2$), so the controller must
-orient its tangent by continuity rather than by any pointwise rule.
+An attracting Eulerian coherent structure is a trench of the signed
+scalar field $s_1$ ridden along the stretching eigenvector
+$\mathbf{e}_2$: a curve on which $s_1 < 0$ is locally most negative in
+the transverse direction, so neighboring material is drawn onto it
+\cite{17}. This is the objective counterpart of the $D$ trench, and it
+is what the second controller rides. Where such a trench deepens to a
+local minimum of $s_1$, the flow has an attracting core, the Eulerian
+structure operationalized as a transient attracting profile (TRAP) for
+search-and-rescue prediction \cite{36}; these are the terminal points a
+traverse settles at, not the object it follows. One caution accompanies
+the eigenstructure: $\mathbf{e}_1, \mathbf{e}_2$ are direction fields
+with no globally consistent sign, undefined at isotropic points of
+$\mathbf{S}$ ($s_1 = s_2$), so the controller must orient its tangent by
+continuity rather than by any pointwise rule.
 
 \subsection{Running Example: the Double Gyre}
 \label{sec:dg_example}
@@ -393,12 +398,11 @@ with $A = 0.1$. The flow is incompressible, the separatrix is the line
 $x = 0$, the saddle points are $\mathbf{p}^*_1 = (0, -0.5)$ and
 $\mathbf{p}^*_2 = (0, 0.5)$, and the gyre centers are $(\pm 0.5, 0)$.
 
-All quantities of interest have closed forms. Writing $s_x = \sin\pi
-x_f$, $c_x = \cos\pi x_f$, $s_y = \sin\pi y_f$, $c_y = \cos\pi y_f$,
-the Jacobian entries are $u_x = -\pi^2 A c_x c_y = -v_y$ and $u_y =
-\pi^2 A s_x s_y = -v_x$, so the flow is divergence free and direct
-differentiation of (\ref{eq:dg_u}) with the half-angle identities
-gives
+All quantities of interest have closed forms. The Jacobian entries are
+$u_x = -\pi^2 A \cos\pi x_f \cos\pi y_f = -v_y$ and
+$u_y = \pi^2 A \sin\pi x_f \sin\pi y_f = -v_x$, so the flow is divergence
+free, and direct differentiation of (\ref{eq:dg_u}) with the double-angle
+identities gives
 \begin{equation}
     D(\mathbf{p}) = -\frac{\pi^4 A^2}{2}
     \bigl(\cos 2\pi x_f + \cos 2\pi y_f\bigr),
@@ -414,8 +418,8 @@ gives
     \end{aligned}
     \label{eq:gradhess_analytic_main}
 \end{equation}
-with vorticity $\omega = -2\pi^2 A s_x s_y$. Three facts follow
-directly. First, the Okubo-Weiss boundary is the diamond
+with vorticity $\omega = -2\pi^2 A \sin\pi x_f \sin\pi y_f$. Three facts
+follow directly. First, the Okubo-Weiss boundary is the diamond
 $x_f \pm y_f \in \tfrac{1}{2} + \mathbb{Z}$ inscribed around each gyre
 center, $D > 0$ inside.
 
@@ -434,12 +438,14 @@ continues past a saddle is still on a trench
 Third, the strain field shares the grid but signs its segments. The
 shear strain vanishes identically, so $\mathbf{S} =
 \mathrm{diag}(u_x, -u_x)$ everywhere, eigenvectors fixed on the
-coordinate axes away from the degeneracy lines $c_x c_y = 0$, giving
+coordinate axes away from the degeneracy lines
+$\cos\pi x_f \cos\pi y_f = 0$, giving
 \begin{equation}
     s_1 = -\pi^2 A\,\lvert\cos \pi x_f \cos \pi y_f\rvert,
     \label{eq:s1_analytic_main}
 \end{equation}
-with TRAP cores, the minima $s_1 = -\pi^2 A$, at the six flow saddles.
+with the trench minima $s_1 = -\pi^2 A$ at the six flow saddles, the
+terminal cores a traverse settles at.
 Equation~(\ref{eq:s1_analytic_main}) shows $s_1$ is a transverse trench
 of the separatrix on \emph{both} halves: $\lvert\cos\pi x_f\rvert$ is
 maximal at $x = 0$ for every $y_f$, so $s_1$ is minimal there throughout,
@@ -492,8 +498,8 @@ selector's stationary-point test is tightened to stop the team there.
 
 \emph{Problem 2 (objective network traversal).} Drive the centroid onto
 the trench of $s_1$ and travel it, through the eigenvector swap where the
-attracting and repelling segments meet, to the nearest TRAP core, using
-only objective quantities throughout.
+attracting and repelling segments meet, to a terminal attracting core
+where the trench bottoms out, using only objective quantities throughout.
 
 Both require, at minimum, pointwise estimates of the surrogate, its
 gradient, and its curvature or eigenframe at the centroid. The next
@@ -544,32 +550,21 @@ are singular regardless of size or orientation; moving one robot to the
 center removes the degeneracy entirely (Corollary~\ref{cor:pentagon}).
 The resulting pentagon-plus-center shape, five robots on a ring of
 radius $\rho$ at $72^\circ$ spacing and one at the center, is the
-configuration \cite{15} derived for scalar Hessian estimation, but
-where the fixed symmetric weights of \cite{15} assume the ideal
-geometry, solving (\ref{eq:solve}) at the measured positions remains
-exact for quadratic fields under any deformation short of the conic
-degeneracy, so formation error affects accuracy only through the
+configuration \cite{15} derived for scalar Hessian estimation. The two
+methods trade cost against geometric assumptions. The fixed symmetric
+weights of \cite{15} reduce estimation to a precomputed weighted sum of
+the measurements, roughly 50 floating-point operations per component,
+but those weights are exact only for the ideal ring geometry; any
+deformation of the formation biases the recovered Hessian in proportion
+to the position error. Solving (\ref{eq:solve}) at the measured
+positions instead costs one $6 \times 6$ factorization per cycle, on the
+order of 140 operations and reused for both components, and in exchange
+stays exact for quadratic fields under any deformation short of the
+conic degeneracy, so formation error affects accuracy only through the
 conditioning of $\boldsymbol{\Phi}$, monitored online through
-$\det(\boldsymbol{\Phi})$. The contrast is measurable: under per-robot
-position scatter of $0.1\rho$ at zero measurement noise, the
-fixed-weight recovery's deviatoric $\hat{\mathbf{H}}_D$ scatter is 250
-times that of the measured-position fit and its strain eigenframe
-error averages $44^\circ$ against $2.8^\circ$, while at
-$\sigma_{uv} = 0.01$ both recoveries are noise-limited and
-indistinguishable; the measured-position fit costs one $6 \times 6$
-factorization per cycle and buys deformation robustness.
-
-\begin{remark}[Minimality and structural priors]
-\label{rem:minimality_priors}
-Proposition~\ref{prop:minimality} concerns the general quadratic model
-with all twelve coefficients free. Imposing exact incompressibility
-removes three coefficients, and five robots then supply ten equations
-for nine unknowns, a generically identifiable system. The estimator
-deliberately fits the unconstrained model: measured surface currents
-are weakly divergent, the fitted divergence is a live diagnostic rather
-than an assumption, and the sixth robot buys exactness over every
-planar quadratic field rather than over a constrained subclass.
-\end{remark}
+$\det(\boldsymbol{\Phi})$. At 10~Hz on the test hardware neither cost is
+a constraint; the exchange is the weighted sum's speed for the fit's
+robustness to real formation error.
 
 \subsection{Noise Model}
 \label{sec:noise_model}
@@ -727,14 +722,21 @@ other way: on a field with third derivatives bounded by $M_3$, the
 Taylor remainder biases the fitted second-order coefficients by $O(M_3
 \rho)$, matching the bound proved for the symmetric estimator in
 \cite{15}, so smaller formations track curvature better. Balancing the
-two effects for the second-order coefficients gives an optimal radius
+two for the second-order coefficients gives
 \begin{equation}
     \rho^* \propto \left(\sigma_{uv}/M_3\right)^{1/3},
     \label{eq:rho_star}
 \end{equation}
-so the formation radius is a sensing parameter, not merely a spacing
-choice: it should grow with the noise floor and shrink with the field's
-third-derivative scale.
+which is best read as a scaling law rather than a tuning rule. It
+explains the shape of Fig.~\ref{fig:est_accuracy}(b), a shallow bowl in
+$\rho$ for each derivative order, and its cube-root form makes the
+optimum flat: a factor-of-two error in the unknown $M_3$ moves $\rho^*$
+by only $26\%$. The optimum itself is not computable in the field, since
+$M_3$ is a property of an unknown flow; with six robots and six
+coefficients the fit is exactly determined, leaving no residual from
+which to estimate $M_3$ online. A seventh robot, or a temporal
+consistency check across cycles, would supply one, and the empirical
+minima for the benchmark field are reported below.
 
 Propagating coefficient errors to the navigation quantities separates
 cleanly by derivative order. The determinant obeys $|\hat{D} - D| \leq
@@ -797,10 +799,10 @@ $\hat{\mathbf{H}}_D$ sits at the line even for the quietest sensors,
 held there by the structural bias. Its eigen-directions nevertheless
 remain accurate to $0.35^\circ$ on and near the separatrix and
 $3.8^\circ$ at the generic test point (Remark~\ref{rem:eigvec}).
-Fig.~\ref{fig:est_accuracy}(b) confirms the radius trade-off
-(\ref{eq:rho_star}), with minima at $\rho \approx 0.11$ for $\hat{D}$
-and $\rho \approx 0.23$ for $\nabla\hat{D}$ and a radius-independent
-floor for $\hat{\mathbf{H}}_D$.
+Fig.~\ref{fig:est_accuracy}(b) shows the shallow bowl the scaling law
+(\ref{eq:rho_star}) predicts, with empirical minima at $\rho \approx
+0.11$ for $\hat{D}$ and $\rho \approx 0.23$ for $\nabla\hat{D}$ and a
+radius-independent floor for $\hat{\mathbf{H}}_D$.
 
 The gradient threshold marks where closed-loop degradation should
 begin: at $\sigma_{uv} \approx 0.01$ a single $\nabla\hat{D}$ estimate
@@ -2283,6 +2285,18 @@ passes through all six points, and Proposition~\ref{prop:conic}
 applies.
 \end{IEEEproof}
 
+\begin{remark}[Minimality and structural priors]
+\label{rem:minimality_priors}
+Proposition~\ref{prop:minimality} concerns the general quadratic model
+with all twelve coefficients free. Imposing exact incompressibility
+removes three coefficients, and five robots then supply ten equations
+for nine unknowns, a generically identifiable system. The estimator
+deliberately fits the unconstrained model: measured surface currents
+are weakly divergent, the fitted divergence is a live diagnostic rather
+than an assumption, and the sixth robot buys exactness over every
+planar quadratic field rather than over a constrained subclass.
+\end{remark}
+
 \begin{IEEEproof}[Proof of Lemma~\ref{lem:gains}]
 The value coefficient is exact: every basis function except the constant
 vanishes at the origin, so interpolation forces $\hat{u}_0$ to equal the
@@ -2599,6 +2613,14 @@ Information Processing Systems}, vol. 27, pp. 2933--2941, 2014.
 P. Lermusiaux, A. Allen, T. Peacock, and G. Haller, "Search and rescue
 at sea aided by hidden flow structures," \textit{Nature Communications},
 vol. 11, no. 1, p. 2525, 2020.
+
+\bibitem{37} W. Yao, H. G. de Marina, B. Lin, and M. Cao,
+"Singularity-free guiding vector field for robot navigation,"
+\textit{IEEE Trans. Robot.}, vol. 37, no. 4, pp. 1206--1221, 2021.
+
+\bibitem{38} T. Liddy and T.-F. Lu, "Obstacle avoidance using complex
+vector fields," in \textit{Proc. Australasian Conf. Robotics and
+Automation (ACRA)}, 2008.
 
 \end{thebibliography}
 
