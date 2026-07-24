@@ -37,6 +37,7 @@ and the summary CSV experiments/outputs/oecs/ocean_traverse_summary.csv.
 """
 import sys
 import os
+import argparse
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
@@ -81,6 +82,10 @@ R_BAND    = 0.05
 G_CAPTURE = 0.15
 
 START = (34.4, -120.39)     # lat, lon; same as the Logic C and OECS runs
+                            # default -- overridable via --start-lat/--start-lon
+                            # below, for sweeping candidate starts against the
+                            # D tracker's own landfall (start-sweep session,
+                            # Draft_5b referee-report response)
 
 LON_MIN, LON_MAX = -120.7, -119.7
 LAT_MIN, LAT_MAX =   33.8,   34.7
@@ -160,12 +165,27 @@ def trap_cores(xs, ys, S1, percentile=CORE_PERCENTILE):
 # ============================================================================
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--start-lat", type=float, default=START[0],
+                     help="start latitude, deg N (default: validated start)")
+    ap.add_argument("--start-lon", type=float, default=START[1],
+                     help="start longitude, deg W as a negative number "
+                          "(default: validated start)")
+    ap.add_argument("--tag", type=str, default="",
+                     help="suffix appended to the output PNG/CSV filenames "
+                          "(before the extension) so sweep runs do not "
+                          "overwrite each other or the validated baseline; "
+                          "default '' reproduces today's filenames exactly")
+    args = ap.parse_args()
+    start = (args.start_lat, args.start_lon)
+    suffix = f"_{args.tag}" if args.tag else ""
+
     field = AnalyticalField(ocean_hfr_socal_timevarying,
                             config_name=FIELD_CONFIG_NAME)
     cluster = PentagonCluster(FORMATION_CONFIG, field,
                               momentum_alpha=MOMENTUM_ALPHA,
                               stiction_threshold=STICTION_THRESHOLD)
-    sx, sy = _latlon_to_world(START[0], START[1], field.config)
+    sx, sy = _latlon_to_world(start[0], start[1], field.config)
     cluster.reset(sx, sy)
 
     def primitive(c):
@@ -175,7 +195,7 @@ def main():
         return vx * CONTROL_GAIN, vy * CONTROL_GAIN
 
     field.reset_clock()
-    print(f"Running objective traverser from ({START[0]:.3f}N, {START[1]:.3f}W)...")
+    print(f"Running objective traverser from ({start[0]:.3f}N, {start[1]:.3f}W)...")
     for _ in range(SIM_STEPS):
         cluster.move(primitive)
         field.step(cluster.timestep * TIME_WARP)
@@ -266,17 +286,17 @@ def main():
         fontsize=13, fontweight='bold')
     plt.tight_layout(rect=[0, 0, 1, 0.94])
 
-    out_path = os.path.join(OUT_DIR, "traverse_trajectory_overlay_2km.png")
+    out_path = os.path.join(OUT_DIR, f"traverse_trajectory_overlay_2km{suffix}.png")
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
     print(f"Saved: {out_path}")
 
-    csv_path = os.path.join(CSV_DIR, "ocean_traverse_summary.csv")
+    csv_path = os.path.join(CSV_DIR, f"ocean_traverse_summary{suffix}.csv")
     with open(csv_path, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["start_lat", "start_lon", "end_lat", "end_lon",
                     "hours", "d_core_world", "d_core_km", "n_cores",
                     "s1_tail_mean"] + [f"occ_{k}" for k in occupancy])
-        w.writerow([START[0], START[1], round(clats[-1], 4),
+        w.writerow([start[0], start[1], round(clats[-1], 4),
                     round(clons[-1], 4), hours, round(d_core_world, 4),
                     round(d_core_km, 2), len(cores),
                     round(float(np.mean(s1_tail)), 3)]
