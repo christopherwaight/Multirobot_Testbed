@@ -1073,9 +1073,23 @@ def oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
             })
 
     def _descend_s1():
-        vx = -v_max * np.tanh(g_perp * grad_s1[0] / v_max)
-        vy = -v_max * np.tanh(g_perp * grad_s1[1] / v_max)
-        return float(vx), float(vy)
+        # Vector saturation, NOT per-component.  Saturating each Cartesian
+        # component separately is frame dependent: it makes both the descent
+        # direction (up to 39 deg of skew) and the commanded speed (a factor
+        # of sqrt(2) between axis-aligned and diagonal gradients) depend on
+        # how the x-axis happens to be drawn.  That is inadmissible here --
+        # the entire point of building this controller on s1 rather than on
+        # Okubo-Weiss is that every quantity it acts on is objective, and a
+        # frame-dependent saturation would throw that away at the last step.
+        # Saturating the MAGNITUDE and keeping the direction is exactly
+        # equivariant: v(Q grad) = Q v(grad) for every rotation Q (verified
+        # to machine precision).  Matches the same fix in Primitive 11.
+        a = -g_perp * grad_s1
+        n = float(np.linalg.norm(a))
+        if n < 1e-12:
+            return 0.0, 0.0
+        scale = v_max * np.tanh(n / v_max) / n
+        return float(a[0] * scale), float(a[1] * scale)
 
     # -- 1. ACQUIRE: no structure yet, or eigenframe degenerate -------------
     if r < eps_degen or not banded:
@@ -1346,11 +1360,16 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
             })
 
     def _descend_s1():
-        # Original (per-component tanh saturation, distorts direction near
-        # saturation):
-        # vx = -v_max * np.tanh(g_perp * grad_s1[0] / v_max)
-        # vy = -v_max * np.tanh(g_perp * grad_s1[1] / v_max)
-        # return float(vx), float(vy)
+        # Vector saturation, NOT per-component (see Primitive 10's
+        # _descend_s1 for the full argument).  Per-component tanh is frame
+        # dependent -- it skews the descent direction by up to 39 deg and
+        # varies the commanded speed by a factor of sqrt(2) with the
+        # orientation of the x-axis -- which would break the objectivity
+        # claim this controller exists to support.  Saturating the magnitude
+        # and preserving the direction is exactly rotation equivariant, and
+        # it is the form the paper's PARK Lyapunov result states:
+        #     s1_dot = -c_max ||grad s1|| tanh(g_perp ||grad s1|| / c_max)
+        # Note the resulting speed cap is v_max, not sqrt(2) v_max.
         a = -g_perp * grad_s1
         n = float(np.linalg.norm(a))
         if n < 1e-12:
