@@ -156,8 +156,7 @@ heading-isotropic noise gains. Second, it
 develops the $D$ tracker, a hybrid controller built on a modified
 Newton step that snaps onto a trench of $D$, slides along it, and
 traverses the network of saddle crossings without committing to a
-manifold identity in advance (unlike \cite{9,10}), with terminal
-capture available by tightening one threshold. Third, it develops the
+manifold identity in advance (unlike \cite{9,10}). Third, it develops the
 $s_1$ tracker, an objective controller built from the strain
 eigenframe whose design follows from the structural result that no
 quadratic velocity fit can certify $s_1$-trench curvature; on the
@@ -546,9 +545,7 @@ $\dot{\mathbf{p}}_c$ that solves one of two problems, one per term of
 
 \emph{Problem 1 (separatrix network traversal).} Drive the cluster
 centroid onto the trench of $D$ and travel it, in the direction of the
-ambient flow, through the saddle points where trench segments cross;
-terminal capture at a single saddle is the special case in which the
-selector's stationary-point test is tightened to stop the team there.
+ambient flow, through the saddle points where trench segments cross.
 
 \emph{Problem 2 (objective network traversal).} Drive the centroid onto
 the trench of $s_1$ and travel it, through the eigenvector swap where the
@@ -1058,14 +1055,13 @@ directed against the ambient flow. The single parameter $c_{\max}$ sets
 the cruise speed far from the structure and the width of the terminal
 boundary layer near it.
 
-Two degeneracies fall outside (\ref{eq:d_law}), both arising when
-$\hat{\mathbf{H}}_{D,0}$ has eigenvalues of one sign and the trench frame
-is undefined. Off the band, the command reverts to the signed Newton
-step $\sum_k \mathrm{sat}(-\mathbf{w}_k^\top
-\hat{\mathbf{g}}_0/\lambda_k)\mathbf{w}_k$, which drives the centroid to
-the nearest stationary point of $\hat{D}$ and serves as the terminal
-capture law of Theorem~\ref{thm:attract}. On the band, it reverts to the
-saturated flow alone. With exact estimates, neither case arises on a
+The trench frame is undefined when $\hat{\mathbf{H}}_{D,0}$ has
+eigenvalues of one sign, so (\ref{eq:d_law}) needs a fallback there:
+off the band it reverts to the signed Newton step $\sum_k
+\mathrm{sat}(-\mathbf{w}_k^\top\hat{\mathbf{g}}_0/\lambda_k)\mathbf{w}_k$,
+which drives the centroid toward the nearest stationary point of
+$\hat{D}$ without a stability claim, and on the band it reverts to the
+saturated flow alone; with exact estimates, neither case arises on a
 trench away from the band boundary.
 
 Finally, the command is well defined despite the sign ambiguity of
@@ -1145,13 +1141,11 @@ the first cost of objectivity. Both channels read the same two
 projections from (\ref{eq:tangent_select}), so no additional estimated
 quantity enters the ride.
 
-Three situations clear the ride flag. Before the team has reached any
+Two situations clear the ride flag. Before the team has reached any
 structure, $\beta = 0$ and the descent term homes onto the trench from
 anywhere in the basin. We declare first contact, and latch $\beta$ to
-one, when $\hat{s}_1$ first falls below $-s_{\mathrm{trim}}$. If an
-optional core threshold $s_{\mathrm{capture}}$ is supplied, $\beta$
-returns to zero wherever $\hat{s}_1 < s_{\mathrm{capture}}$. The third
-situation is the default terminal behavior, and it holds the team at a
+one, when $\hat{s}_1$ first falls below $-s_{\mathrm{trim}}$. The second
+situation is the terminal behavior, and it holds the team at a
 two-dimensional stationary point of $\hat{s}_1$ when
 \begin{equation}
     r > r_{\mathrm{band}}, \qquad
@@ -1229,28 +1223,6 @@ and $k = 1.8$ on the ocean data, so per-step contraction is not
 guaranteed by this analysis and was verified numerically instead. All
 proofs are in Appendix~\ref{app:proofs}.
 
-We begin with the degenerate case of (\ref{eq:d_law}), the signed Newton
-step, because it supplies the terminal behavior the traversal result
-ends in.
-
-\begin{theorem}[Terminal capture]
-\label{thm:attract}
-Let $V_A = \tfrac{1}{2}\|\mathbf{g}(\mathbf{p}_c)\|^2$. Along
-(\ref{eq:kinematic_model}) with the signed Newton step,
-\begin{equation}
-    \dot{V}_A = -c_{\max} \sum_{k=1}^{2} \lambda_k^2\,
-    z_k \tanh\!\left(\frac{z_k}{c_{\max}}\right) \;\leq\; 0,
-    \label{eq:VA_dot}
-\end{equation}
-with equality exactly where $\mathbf{g} = \mathbf{0}$. Every bounded
-trajectory on which $\mathbf{H}_D$ is nonsingular therefore converges to
-the critical set of $D$, and isolated critical points with
-$\mathbf{H}_D$ nonsingular are locally exponentially stable.
-\end{theorem}
-
-The step descends $\|\nabla D\|^2$ toward the stationary set of $D$, and
-near a well, where $\mathbf{H}_D \succ 0$, convergence is exponential.
-
 For the traversal result we formalize the trench as a valley line with a
 flow along it, using arclength coordinates $(\ell, n)$ along and across
 a segment $\Gamma$.
@@ -1304,14 +1276,13 @@ trajectory of the $D$ tracker starting in $T_w$ (i) remains in $T_w$ and
 converges exponentially to the trench, and (ii) traverses the trench in
 the direction of the ambient flow, reaching the $r_0$ neighborhood of a
 flow saddle in finite time bounded by $L_\Gamma/m$, where $L_\Gamma$ is
-the trench length. At the saddle, $D$ attains a local minimum with
-$\mathbf{H}_D \succ 0$, so the degenerate case of (\ref{eq:d_law}) is
-active and (iii) Theorem~\ref{thm:attract} gives local exponential
-convergence to the saddle.
+the trench length.
 \end{theorem}
 
-Part (iii) is a statement about the true Hessian, and in practice the
-tracker continues past the saddle instead. The saddle is a crossing of
+At the saddle, $D$ attains a local minimum with $\mathbf{H}_D \succ 0$,
+so the true Hessian's eigenvalues share a sign and the degenerate case
+of (\ref{eq:d_law}) is active there. In practice the tracker continues
+past the saddle instead. The saddle is a crossing of
 two perpendicular trench segments, and
 near it the estimated eigenvalues nearly vanish, so their signs become
 unreliable and the degenerate case does not trigger on
@@ -1441,9 +1412,9 @@ $c_{\max}\tanh(c/c_{\max})$, so the commanded centroid speed never
 exceeds $\sqrt{2}\,c_{\max}$; the primitive command is amplified by a
 fixed navigation gain $k$ so that steady commands clear the stiction
 floor. Table~\ref{tab:params} collects all robot and controller
-parameters, fixed across every experiment unless noted;
-$s_{\text{capture}}$ sits just inside the double-gyre core wells, whose
-depth is $s_1 = -\pi^2 A \approx -0.987$.
+parameters, fixed across every experiment unless noted; the double-gyre
+core wells have depth $s_1 = -\pi^2 A \approx -0.987$, well past
+$-4s_{\mathrm{trim}}$ for the values in the table.
 
 \begin{table}[!t]
 \centering
@@ -1470,7 +1441,6 @@ $\varepsilon_{\text{raw}}$ & $10^{-3}$ & $10^{-3}$ & --- & on-structure raw thr.
 $\varepsilon_{\text{dim}}$ & 0.025 & 0.025 & --- & on-structure curv.-norm. thr. \\
 $g_\perp$ & 1.0 & 1.0 & --- & $s_1$-descent gain \\
 $s_{\text{trim}}$ & 0.05 & 0.3 & --- & attraction-dominance thr. \\
-$s_{\text{capture}}$ & unset & unset & --- & optional early-park thr. \\
 $g_{\text{capture}}$ & 0.15 & 0.15 & --- & terminal gradient-mag. thr. \\
 $r_{\text{band}}$ & 0.05 & 0.05 & --- & eigenframe-resolution thr. \\
 \hline
@@ -1535,11 +1505,8 @@ each saddle, and whether the run settles at a saddle or continues
 through it onto the crossing wall trench. Running both trackers from
 identical starts also gives the pairwise path gap between them, the mean
 nearest-point distance over the portion of the run where both are on the
-structure. For the $D$ tracker, a park-versus-traverse pair runs
-both settings of
-$D_{\text{capture}}$ from the same start; the $s_1$ tracker's own
-terminal test (\ref{eq:capture_test}) is unconditional by design and
-needs no such pair.
+structure. The $s_1$ tracker's terminal test (\ref{eq:capture_test}) is
+unconditional by design and fires without a separate setting to enable it.
 
 \subsubsection{Monte Carlo noise sweeps}
 Noise robustness is evaluated over a two-dimensional noise grid from
@@ -2019,8 +1986,8 @@ the destination of every start.
 \subsection{Ocean HFR: The $s_1$ Tracker}
 \label{sec:results_ocean_oecs}
 The $s_1$ tracker was run on the real 2~km field at the operating point
-of Table~\ref{tab:params}, $s_{\text{capture}}$ unset so the team relies
-on the terminal test (\ref{eq:capture_test}) alone. Ground truth is
+of Table~\ref{tab:params}, relying on the terminal test
+(\ref{eq:capture_test}) alone. Ground truth is
 computed offline from the full radar grid in the style of \cite{17,36},
 TRAP cores as local minima of $s_1$ at each hourly frame; unlike the
 double gyre, the ocean strain field is generic, with isolated
@@ -2091,50 +2058,6 @@ resolves branch identity at each crossing from the current fit; the two
 problem statements do not coincide, and a controlled head-to-head on
 identical fields, formations, and noise is future work.
 
-\subsection{Park versus Traverse}
-\label{sec:park_vs_traverse}
-
-Remark~\ref{rem:eigvec} identifies the terminal-capture test as
-the reason the deployed controller continues through every saddle: the
-biased $\hat{\mathbf{H}}_D$ makes it unreliable exactly where it would
-need to fire. An estimator-aware alternative restores capture using
-only the two quantities free of the Hessian's structural bias,
-$\hat{D}$ and $\hat{\mathbf{g}}$: the \emph{park step}, a fourth
-case checked before the on-structure test (\ref{eq:flow_band}) in
-(\ref{eq:d_law}),
-\begin{equation}
-    \dot{\mathbf{p}}_c =
-    -\mathrm{sat}(\hat{\mathbf{g}})
-    \quad \text{if } \hat{D} < D_{\text{capture}},
-    \label{eq:park_step}
-\end{equation}
-componentwise saturated gradient descent on $\hat{D}$, which carries
-its own certificate: with exact estimates $D$ itself is the Lyapunov
-function ($\dot{D} = -\sum_k g_k\,\mathrm{sat}(g_k) \leq 0$), so the
-team settles at the nearest local minimum of $D$, the flow saddle at
-the end of the current trench segment. $D_{\text{capture}}$ is the
-one-parameter knob: $D_{\text{capture}} = -\infty$ disables the test
-and the controller is trajectory-identical to the base selector
-(verified bit-exact in simulation), while a finite threshold inside the
-well (here $-0.5$, roughly half the well depth $\pi^4 A^2 \approx
-0.974$) parks the team there. Fig.~\ref{fig:park_vs_traverse} runs both
-settings from the same start, noise-free: traverse exits the domain
-after 228 steps riding the crossing trench; park settles 0.0124~m from
-$\mathbf{p}^*_1$ with zero position drift over its final 100 steps. One
-threshold thus recovers whichever behavior a mission calls for,
-terminal parking at a critical point or open-ended traversal of the
-network.
-
-\begin{figure}[!t]
-    \centering
-    \includegraphics[width=0.33\textwidth]{figures/park_vs_traverse.png}
-    \caption{Park versus traverse from the same start, noise-free.
-    Traverse (the default selector) rides the trench through the bottom
-    saddle and exits the domain; park ($D_{\text{capture}} = -0.5$)
-    holds the team 0.0124~m from the saddle.}
-    \label{fig:park_vs_traverse}
-\end{figure}
-
 \subsection{Objectivity Tradeoffs}
 \label{sec:objectivity_tradeoff}
 
@@ -2145,9 +2068,9 @@ the Earth inflates $\omega^2/4$ (\ref{eq:D_not_objective}), moving the
 $D$ tracker's trench and contaminating its flow-tested selector, while
 the $s_1$ tracker's strain-only pipeline, including tangent selection
 (\ref{eq:tangent_select}), stays on the true material curve past the
-single seeding instant. Zero-noise reach costs nothing on the double
-gyre, where the two trenches coincide exactly; what it costs there is
-rate (gradient- rather than Newton-normalized transverse convergence,
+single seeding instant. On the double gyre the two trenches coincide
+exactly, so objectivity costs no reach. What it costs is rate
+(gradient- rather than Newton-normalized transverse convergence,
 0.0075 zero-noise tracking error against 0.0016) and, under noise, the
 tangent's one-time flow-seeded sign committing to the wrong end of the
 network well before the transverse channel itself degrades. On the
@@ -2155,14 +2078,15 @@ ocean field, where no stationary point of $s_1$ sits near the ride,
 the $s_1$ tracker traverses
 rather than capturing, the same behavior the $D$ tracker shows
 everywhere. A mission whose separatrix carries vorticity, or whose
-platform is fixed in a known frame, may prefer the $D$ tracker's Newton
-rate and more reliably determined target; one that needs frame-proof
-material prediction, or operates from a rotating or drifting platform,
-gains that guarantee at the cost this section quantifies. Both consume
-the same fit, so the selection is one function call, not a new
-estimator or formation.
+platform is fixed in a known frame, may prefer the $D$ tracker's
+Newton-rate transverse convergence and its independence from a seeded
+tangent direction; one that needs frame-proof material prediction, or
+operates from a rotating or drifting platform, gains that guarantee at
+the cost this section quantifies. Both consume the same fit, so the
+selection is one function call, not a new estimator or formation.
 
 \subsection{Failure Modes}
+\label{sec:failure_modes}
 
 Three behaviors fall outside the guarantees of Section~\mbox{IV-D}. First,
 the estimator is ill-conditioned
@@ -2257,13 +2181,13 @@ grid under the same termination rules.
     branch (5.6\%), and loss on a boundary trench that exits the
     domain (47.1\%). Okubo-Weiss diamonds ($D = 0$) outlined, separatrix
     dashed, saddles marked $\times$, the six clean-run starts of
-    Fig.~\ref{fig:sep_trajectories} marked $\circ$. No start parks at a
+    Fig.~\ref{fig:sep_trajectories} marked $\circ$. No start settles at a
     gyre core: the basin is the watershed of the $\hat{D}$ descent, not
     the Okubo-Weiss partition.}
     \label{fig:basin_map}
 \end{figure}
 
-No start parks at a gyre core: descent of $\hat{D}$ from the
+No start settles at a gyre core: descent of $\hat{D}$ from the
 rotation-dominated interiors reaches the trench network within the
 500-step horizon in all 20\,000 runs, so the basin boundary is not the
 Okubo-Weiss partition. The map is instead the watershed of the descent
@@ -2299,12 +2223,15 @@ quadratic model, recovers the local
 quadratic model of a planar flow from a single synchronous sample, and
 with it both terms of the splitting identity $D = \omega^2/4 - s_1^2$,
 with closed-form, heading-isotropic noise gains verified to $0.3\%$.
-The $D$ tracker rides the connected trench network of $D$ on a modified
-Newton step, with a Lyapunov certificate and a network-traversal
-theorem whose terminal-capture case is one threshold away. The $s_1$
-tracker rides the same network from the strain term alone, with a
-capture test built only from the objective gradient where the $D$
-tracker's own capture test is known to misfire, and its frame
+The $D$ tracker solves Problem 1, riding the connected trench network of
+$D$ on a modified Newton step, with a Lyapunov certificate and a
+network-traversal theorem. The $s_1$
+tracker solves Problem 2, riding the same network from the strain term
+alone, with a terminal test built only from the objective gradient,
+because $s_1$'s minimum is recoverable from a first derivative of the
+fit where $D$'s needs a Hessian sign the estimator delivers correctly
+in magnitude but not reliably in sign (Remarks~\ref{rem:s1hess} and
+\ref{rem:eigvec}); its frame
 equivariance was demonstrated in closed loop rather than asserted: the
 same material curve in either observer frame (gap 0.025), where the $D$
 tracker follows a frame artifact (gap 1.219). Monte Carlo sweeps placed
@@ -2343,16 +2270,15 @@ natural next object for the same estimator and a separate paper.
 Place the ring robots at $\mathbf{p}_j = \rho(\cos\theta_j,
 \sin\theta_j)$ with $\theta_j = \psi + 2\pi j/5$, $j = 0, \ldots, 4$, and
 the sixth robot at the centroid, leaving the ring phase $\psi$ free.
-
 Every entry of $\boldsymbol{\Phi}^\top\boldsymbol{\Phi}$ is a ring sum of
-a monomial in $\cos\theta_j, \sin\theta_j$ of degree at most four, hence
-a combination of $\sum_j e^{in\theta_j} = e^{in\psi}\sum_j\omega^{jn}$
-with $\omega = e^{2\pi i/5}$ and $|n| \leq 4$. Since $\sum_j\omega^{jn}
-= 0$ unless $n \equiv 0 \pmod 5$, only $n = 0$ survives, and it carries
-no $\psi$: every power sum through fourth order is phase-independent.
-The odd sums vanish and the even ones are $\sum_j\cos^2\theta_j =
-\sum_j\sin^2\theta_j = \tfrac{5}{2}$, $\sum_j\cos^4\theta_j =
-\tfrac{15}{8}$, and $\sum_j\cos^2\theta_j\sin^2\theta_j = \tfrac{5}{8}$.
+a monomial in $\cos\theta_j, \sin\theta_j$ of degree at most four, hence a
+combination of the fifth roots of unity; every such sum vanishes unless
+its index is a multiple of five, so only the phase-independent $n = 0$
+term survives at every order through the fourth. The odd sums vanish
+identically and the surviving even sums are constants,
+$\sum_j\cos^2\theta_j = \sum_j\sin^2\theta_j = \tfrac{5}{2}$,
+$\sum_j\cos^4\theta_j = \tfrac{15}{8}$, and $\sum_j\cos^2\theta_j
+\sin^2\theta_j = \tfrac{5}{8}$, independent of $\psi$.
 
 The gains follow. Every basis function of (\ref{eq:basis}) except the
 constant vanishes at the origin, so the center robot's reading fixes
@@ -2367,58 +2293,6 @@ equal norm, making the gradient block of $\sigma_{uv}^2
 \boldsymbol{\Phi}^{-1}\boldsymbol{\Phi}^{-\top}$ exactly
 $\tfrac{4}{10}\sigma_{uv}^2\rho^{-2}\mathbf{I}$, isotropic for every
 heading.
-\end{IEEEproof}
-
-\begin{IEEEproof}[Proof of Theorem~\ref{thm:attract}]
-Write $\boldsymbol{\delta}$ for the signed Newton step, the degenerate
-case of (\ref{eq:d_law}), whose $k$-th eigendirection component is
-$\mathrm{sat}(-z_k) = -c_{\max}\tanh(z_k/c_{\max})$.
-
-\textit{Gradient of the Lyapunov function.} Since $V_A =
-\tfrac{1}{2}\mathbf{g}^\top\mathbf{g}$ with $\mathbf{g} = \nabla
-D(\mathbf{p}_c)$, the chain rule gives $\nabla V_A = (\partial
-\mathbf{g}/\partial\mathbf{p})^\top\mathbf{g} = \mathbf{H}_D\mathbf{g}$,
-using that the Jacobian of the gradient is the Hessian and that
-$\mathbf{H}_D$ is symmetric.
-
-\textit{Derivative along trajectories.} Differentiating along
-(\ref{eq:kinematic_model}), $\dot{V}_A = \nabla V_A^\top\dot{\mathbf{p}}_c
-= \mathbf{g}^\top\mathbf{H}_D\boldsymbol{\delta}$. Expanding
-$\boldsymbol{\delta}$ in the eigenbasis and using
-$\mathbf{H}_D\mathbf{w}_k = \lambda_k\mathbf{w}_k$,
-\begin{equation*}
-    \mathbf{g}^\top\mathbf{H}_D\boldsymbol{\delta} =
-    \sum_k \mathrm{sat}(-z_k)\,\lambda_k(\mathbf{w}_k^\top\mathbf{g}).
-\end{equation*}
-By the definition $z_k = (\mathbf{w}_k^\top\mathbf{g})/\lambda_k$ we have
-$\mathbf{w}_k^\top\mathbf{g} = \lambda_k z_k$, so each summand carries a
-factor $\lambda_k^2 z_k$, which is (\ref{eq:VA_dot}).
-
-\textit{Sign and equality case.} Every summand has the form $\lambda_k^2
-z_k\tanh(z_k/c_{\max})$ with $\lambda_k^2 \geq 0$ and $z\tanh z \geq 0$,
-vanishing only at $z = 0$. Hence $\dot{V}_A \leq 0$, with equality
-exactly when $z_1 = z_2 = 0$. Because $\mathbf{H}_D$ is nonsingular the
-$\lambda_k$ are nonzero, so this forces $\mathbf{w}_1^\top\mathbf{g} =
-\mathbf{w}_2^\top\mathbf{g} = 0$, and since $\{\mathbf{w}_1,
-\mathbf{w}_2\}$ is a basis of the plane, $\mathbf{g} = \mathbf{0}$.
-
-\textit{Convergence.} On a bounded trajectory along which $\mathbf{H}_D$
-stays nonsingular, $V_A$ is continuous, nonincreasing, and bounded below,
-so LaSalle's invariance principle gives convergence to the largest
-invariant subset of $\{\dot{V}_A = 0\}$, which by the previous step is the
-critical set $\{\mathbf{g} = \mathbf{0}\}$ of $D$.
-
-\textit{Local rate.} Near an isolated critical point
-$\mathbf{p}^\star_D$ with $\mathbf{H}_D$ nonsingular, $\|\mathbf{g}\|$ is
-small, so $|z_k| \ll c_{\max}$ and the saturation is inactive to first
-order: $\tanh(x) = x + O(x^3)$ gives $\boldsymbol{\delta} \approx
--\sum_k z_k\mathbf{w}_k = -\mathbf{H}_D^{-1}\mathbf{g}$. Linearizing
-$\mathbf{g}$ about $\mathbf{p}^\star_D$ gives $\mathbf{g} \approx
-\mathbf{H}_D(\mathbf{p}_c - \mathbf{p}^\star_D)$, so
-$\boldsymbol{\delta} \approx -(\mathbf{p}_c - \mathbf{p}^\star_D)$: a
-linear contraction at unit rate in the rescaled time of
-(\ref{eq:kinematic_model}), that is at rate $k$ in real time. Local
-exponential stability follows.
 \end{IEEEproof}
 
 \begin{IEEEproof}[Proof of Theorem~\ref{thm:separatrix}]
@@ -2467,23 +2341,6 @@ is monotone in the flow direction at rate at least $m$ outside the $r_0$
 balls, and because Step 1 holds in both branches the band test cannot
 reverse it. Travelling a trench of length $L_\Gamma$ therefore takes at
 most $L_\Gamma/m$.
-
-\textit{Step 4: capture, giving (iii).} At the flow saddle $D$ attains a
-local minimum, so the true $\mathbf{H}_D \succ 0$ and its eigenvalues
-share a sign. The degenerate case of (\ref{eq:d_law}) is then active and
-the command is exactly the signed Newton step certified by
-Theorem~\ref{thm:attract}, which gives local exponential convergence to
-that well; the well coincides with the flow saddle $\mathbf{p}^*$.
-
-\textit{Step 5: continuation when the test does not fire.} Step 4
-concerns the true Hessian. If the sign test fails on
-$\hat{\mathbf{H}}_{D,0}$ despite $\mathbf{H}_D \succ 0$ holding for the
-field, (\ref{eq:d_law}) stays in its band or off-band branch. The saddle
-is a right-angle crossing of two trench segments, so whichever segment
-the flow direction
-and the sign convention on $\mathbf{w}_1$ select satisfies
-Assumption~\ref{ass:trench} in its own right, and Steps 1 to 3 apply
-unchanged with $\Gamma$ relabeled.
 \end{IEEEproof}
 
 \begin{IEEEproof}[Proof of Proposition~\ref{prop:equivariance}]
@@ -2499,10 +2356,9 @@ invariant, the eigenvectors co-rotate as $\mathbf{e}_{k,Q} =
 
 \textit{Step 2: the same branch fires in both frames.} Every test setting
 the ride flag $\beta$ is a scalar inequality in those invariants: first
-contact on $\hat{s}_1 < -s_{\mathrm{trim}}$, the optional park on
-$\hat{s}_1 < s_{\mathrm{capture}}$, and (\ref{eq:capture_test}) on $r$,
-$\lVert\nabla\hat{s}_1\rVert$, and $\hat{s}_1$. So $\beta$ takes the same
-value at corresponding states.
+contact on $\hat{s}_1 < -s_{\mathrm{trim}}$, and (\ref{eq:capture_test}) on
+$r$, $\lVert\nabla\hat{s}_1\rVert$, and $\hat{s}_1$. So $\beta$ takes the
+same value at corresponding states.
 
 \textit{Step 3: the tangent is equivariant.} The comparison in
 (\ref{eq:tangent_select}) is unchanged by rotation, since

@@ -39,26 +39,36 @@ Legend: [ ] not started, [~] in progress, [x] done, [A] blocked on AUTHOR item.
 
 **Gate (tier-local compile check): PASSED** after a clean-aux rebuild. Transient compile failure on first attempt was traced to STALE aux/log files from before this session (last modified before any edit) -- not a content defect from my edits; `rm -f Draft_5c.aux Draft_5c.log ...` + two-pass rebuild fixed it. Zero undefined refs, zero multiply-defined labels, 20 pages (unchanged as expected -- Tier 2 nets out to roughly neutral length, additions offsetting the ocean-sentence trim).
 
-## Tier 3: the M5 cut (T20-T26)
+## Tier 3: the M5 cut (T20-T26) -- COMPLETE
 
-- [ ] T20.1: delete Theorem 1 + proof
-- [ ] T20.2: delete Theorem 2(iii) + proof Steps 4-5
-- [ ] T20.3: delete park step (39) + all of VII-B
-- [ ] T20.4: delete Fig 10 + file ref
-- [ ] T20.5: delete every D_capture occurrence
-- [ ] T20.6: delete s_capture row, Table I
-- [ ] T20.7: delete park-vs-traverse pair sentence
-- [ ] T20.8: delete contribution 2's capture clause
-- [ ] T20.9: delete VIII "one threshold away"
-- [ ] T20.10: delete Problem 1's capture clause
-- [ ] T20.11: reword VII-C "more reliably determined target"
-- [ ] T22: degenerate branch of (27) -> one-sentence guard
-- [ ] T23: fold Remark 2 capture consequence into III-D
-- [x] T24: Future Work sentence (TRAP/eddy cores to follow-on paper) -- DONE EARLY during Tier 2 (see judgment call #4). "Five extensions are direct... And targets other than critical points, transient attracting profiles, eddy cores, and other non-critical-point structures, are a natural next object for the same estimator and a separate paper."
-- [ ] T25: Lemma 1 ring-sum proof -> supplementary
-- [ ] T26 (optional): Prop 2 -> remark
+- [x] T20.1: deleted Theorem 1 (was L1236-1249) + lead-in (L1232-35) + trailing gloss (L1251-52) + proof (was L2372-2422). thm:attract and eq:VA_dot labels removed entirely (confirmed self-contained, no external refs).
+- [x] T20.2: Theorem 2 -> two parts (i)/(ii) only; part (iii) folded into a new prose sentence right after the theorem stating the true-Hessian fact without invoking Thm 1. Proof Steps 4-5 deleted, Steps 1-3 + \end{IEEEproof} kept.
+- [x] T20.3: deleted eq (39) (park step) + all of Section VII-B (was L2094-2136) in one block, including the "Remark~\ref{rem:eigvec} identifies..." lead-in and the full parking-certificate paragraph.
+- [x] T20.4: Fig 10 deleted as part of the VII-B block deletion above (\includegraphics + caption + label all removed together). Confirmed park_vs_traverse.png now correctly UNREFERENCED via verify-figures.sh (10 figures found, 0 missing).
+- [x] T20.5: every D_capture occurrence was inside VII-B, gone with that deletion. Verified via grep: zero D_{capture}/D_{text{capture}} survivors.
+- [x] T20.6: s_capture row deleted from Table I. ALSO deleted the entire s_capture MECHANISM (not just the row) since it's a separate optional early-park path for the s1 tracker, distinct from D_capture but equally dead/unset -- confirmed via referee report row 5 ("unset in both columns, dead parameter surface") and traced its 5 usage sites (control law, Table I intro sentence, Table I row, VI-D sentence, appendix Prop 3 proof Step 2). All 5 sites cleaned; ride-flag logic now correctly says "Two situations" not "Three". Caption checked, does not promise s_capture.
+- [x] T20.7: park-versus-traverse pair sentence deleted from V-D-1, replaced with one clause on the s1 terminal test being unconditional.
+- [x] T20.8: contribution 2's "with terminal capture available by tightening one threshold" deleted from Introduction.
+- [x] T20.9: VIII's capture sentence rewritten to carry the paper's central post-cut claim (work order Sec 7's sentence): D solves Problem 1 (Newton step + Lyapunov cert + traversal theorem), s1 solves Problem 2 (terminal test from objective gradient, because s1's minimum is a first derivative where D's needs an unreliable Hessian sign) -- cites Remarks 1 and 2 directly. This also closed T16's deferred third Problem 1/2 referring clause.
+- [x] T20.10: Problem 1's terminal-capture clause deleted from II-F; Problem 1 is now pure traversal.
+- [x] T20.11: VII-C's "more reliably determined target" reworded to "Newton-rate transverse convergence and its independence from a seeded tangent direction" (D tracker has no target post-cut). Bonus: fixed the adjacent S07-flagged "Zero-noise reach costs nothing... what it costs there is rate" sentence in the same edit since it's the same paragraph.
+- [x] T22: degenerate branch of (27) rewritten to a one-sentence-cluster well-definedness guard -- "the trench frame is undefined... so (27) needs a fallback... without a stability claim." No theorem, no certificate reference.
+- [x] T23: checked -- Remark 2 (rem:eigvec) already carries the capture-misfire mechanism generically in its own closing sentence ("near the wells... signs become unreliable") without naming deleted machinery. All 5 \ref{rem:eigvec} sites confirmed live and non-orphaned. No edit needed; content was already correctly scoped.
+- [x] T24: DONE in Tier 2 (see that section's log).
+- [x] T25: Lemma 1's ring-sum derivation compressed to a proof sketch IN PLACE in Appendix A (not moved to a separate supplementary file -- none exists in this repo, and creating one is new infrastructure; asked author, confirmed "cut to sketch" is the right call). Dropped the eigenvector expansion mechanics, kept the symmetry argument and the four numeric ring sums the rest of the proof needs.
+- [ ] T26 (optional, SKIPPED BY DEFAULT): Prop 2 (conic criterion) NOT demoted to a remark. Referee report S01 explicitly lists minimality/conic/pentagon as a strength to keep, and T26 is marked optional in the work order. Corollary 1 (pentagon) reads more naturally following a Proposition than a Remark. Judgment call, not executed.
 
-**Gate G1 (work order's actual G1):** [ ] grep capture/park/Theorem 1/D_capture/s_capture -- every survivor belongs to (30)/(37)/Future Work/Remark 1-2. Compile clean, zero undefined refs, theorem renumbering clean.
+Also: fixed the D tracker's L1636-area capture-test description (kept, legitimate -- describes the still-live lambda1*lambda2 sign guard, not deleted machinery). Reworded 2 instances of "No start parks at a gyre core" -> "No start settles at a gyre core" (basin_map caption + body) since "parks" is now confusable with the deleted park-step term even though it was being used as a plain verb. Added \label{sec:failure_modes} to VII-D (was the only unlabeled subsection).
+
+**Gate G1: PASSED.**
+- grep -iE "capture\|park": every survivor belongs to eq:capture_test/g_capture (the s1 terminal test, correctly kept per guardrail) or is a legitimate "s1 tracker captures" statement.
+- grep "park" as whole word: zero hits.
+- grep D_{capture}/s_{capture} bare forms: zero hits.
+- grep "Theorem 1"/thm:attract in source: zero hits; compiled PDF shows a single clean "Theorem 1 (Separatrix network traversal)" with correct renumbering, no orphaned "Theorem 2" anywhere.
+- Compile: clean, 0 undefined refs, 0 multiply-defined labels (verified via log grep after a clean-aux rebuild).
+- verify-figures.sh: 10/10 figures resolve, park_vs_traverse.png correctly unreferenced.
+- No hardcoded Section~\mbox{VII-*} refs exist anywhere, so VII-B's deletion (which shifts VII-C->VII-B, VII-D->VII-C) orphans no hardcoded cross-reference.
+- Page count: 19 (down from 20 after Tier 2).
 
 ## Tier 4: ocean reframe and positioning (T30-T38)
 
@@ -123,6 +133,27 @@ Legend: [ ] not started, [~] in progress, [x] done, [A] blocked on AUTHOR item.
    stated referent) was fixed while rewriting the same sentence for T10,
    using the HTML report's own suggested replacement ("a precomputed FTLE
    field"). Not a numbered task but directly adjacent and cost nothing extra.
+6. **T25 (Lemma 1's ring-sum proof "to supplementary"):** no supplementary-
+   material file or convention exists anywhere in this repo. Asked the author
+   rather than inventing one; confirmed decision was to compress the proof to
+   a sketch in place in Appendix A, not create new infrastructure
+   (`Draft_5c_supplementary.tex`). Dropped the eigenvector-expansion mechanics,
+   kept the symmetry argument and the four numeric ring sums the rest of the
+   proof needs.
+7. **T26 (Prop 2 -> remark) skipped by default.** It is marked optional in the
+   work order, and the referee report's own Strengths section (S01) lists
+   minimality/conic-criterion/pentagon together as content to keep, not
+   demote. Corollary 1 (pentagon nonsingular) also reads more naturally
+   following a Proposition than a Remark. No author check-in needed for an
+   optional item with a stated default of "keep."
+8. **T20.6 was broader than its literal wording.** The work order's item 6
+   only says "delete the s_capture row from Table I." But s_capture is a full
+   second capture mechanism (an optional early-park path for the s1 tracker,
+   separate from D_capture), not just a table row -- deleting only the row
+   would have left dead code paths in the control-law prose, the VI-D
+   results sentence, and the appendix equivariance proof. Traced and cleaned
+   all 5 usage sites, consistent with the referee report's own framing of
+   s_capture as "dead parameter surface" throughout, not merely in the table.
 
 ## Compile log (page count per tier)
 
@@ -132,3 +163,4 @@ Legend: [ ] not started, [~] in progress, [x] done, [A] blocked on AUTHOR item.
 | baseline (actual) | 20 | independently compiled 2026-07-25, clean (0 undefined refs, 0 multiply-defined labels). Discrepancy with 18.5 is expected: work order's figure is a word-count/col conversion estimate, not a real pdflatex page count. Track deltas from this 20-page baseline, targeting proportionally (~2.3pp cut from work order becomes ~2.5pp from this baseline; with Fig 3 kept, expect landing near 17.7-18.0 rather than 16.35). Will reassess after Tier 3 (largest single cut) with real numbers. |
 | after Tier 1 | 20 | mechanical edits only, no length change expected or observed |
 | after Tier 2 | 20 | blocking-item fixes roughly length-neutral (deletions offset additions); real cut begins Tier 3 |
+| after Tier 3 | 19 | M5 cut landed: Theorem 1 + proof, Thm 2(iii) + proof steps, all of VII-B + Fig 10, s_capture mechanism, D_capture, 4 downstream clauses. 1 page recovered so far; Tiers 4-5 (ocean reframe, Fig 8+9 merge, compression) still to come. |
