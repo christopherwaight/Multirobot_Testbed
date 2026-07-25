@@ -2,7 +2,7 @@
 _mc_common.py
 
 Shared Monte Carlo trial runner for the noise sweeps of
-Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex (Testing Plan /
+Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex (Testing Plan /
 Results sections). Used by mc_sweep_separatrix.py (and later
 mc_sweep_ow.py). Not an entry point.
 

@@ -2,7 +2,7 @@
 traverse_rotated_check.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the tilted-eigenframe generality check for the objective separatrix
           traverser (experiments/outputs/oecs/traverse_rotated_check.csv,
           figures/traverse_rotated_check.png).

@@ -2,7 +2,7 @@
 mc_sweep_flip_resolution.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the finer-resolution characterization of the tangent-sign flip found in
           rescore_single_target.py -- resolves whether the flip is a sharp step at
           one specific noise value or a smoother transition the coarse

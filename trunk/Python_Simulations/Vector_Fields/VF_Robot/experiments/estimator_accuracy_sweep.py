@@ -2,7 +2,7 @@
 estimator_accuracy_sweep.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes the data behind:
     - Fig. \\ref{fig:est_accuracy} (figures/estimator_accuracy_vs_noise.png),
       plotted from these CSVs by plot_estimator_accuracy.py.

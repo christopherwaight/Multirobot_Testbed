@@ -2,9 +2,15 @@
 ow_clean_runs.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
-  Makes:  Fig. \\ref{fig:ow_trajectories} (figures/ow_trajectories.png);
-          review copy + per-run CSV in experiments/outputs/ow_clean/.
+  Paper:  NONE. This script belongs to the Okubo-Weiss boundary-tracker
+          thread, which was cut from the paper; the current draft
+          (Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex) presents the
+          D tracker and the s1 tracker and carries no OW boundary-following
+          results. Kept for the record, not regenerated for the paper. It
+          formerly fed fig:ow_trajectories of Paper_Draft_2A.tex.
+  Makes:  Fig. \\ref{fig:ow_trajectories} (figures/ow_trajectories.png) of
+          that superseded draft; review copy + per-run CSV in
+          experiments/outputs/ow_clean/.
   Also produces the corner-event numbers for the Failure Modes discussion
   (corner hop onto the neighboring tile's zero line).
 

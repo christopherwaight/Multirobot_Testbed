@@ -2,7 +2,7 @@
 basin_map.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the zero-noise basin map figure and the Section VII-E basin
           characterization (SIM-2 of the T-RO hardening plan).
           Prediction under test: the traverse basin is the

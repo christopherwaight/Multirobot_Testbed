@@ -2,7 +2,7 @@
 mc_sweep_acquisition.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the acquisition-under-noise result of Section VI-A (SIM-1 of
           the T-RO hardening plan): Monte Carlo noise sweep of Logic C
           from two NON-straddling clean-run starts, so the acquisition

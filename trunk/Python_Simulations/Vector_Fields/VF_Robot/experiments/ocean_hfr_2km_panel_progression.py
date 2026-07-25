@@ -2,7 +2,7 @@
 ocean_hfr_2km_panel_progression.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  fig:ocean_progression, a 1x4 grid of path-so-far over the
           instantaneous current field at ~7h intervals.
 

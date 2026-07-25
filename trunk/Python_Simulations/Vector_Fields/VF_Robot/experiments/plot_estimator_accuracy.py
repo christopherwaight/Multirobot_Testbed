@@ -2,7 +2,7 @@
 plot_estimator_accuracy.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  Fig. \\ref{fig:est_accuracy}, file figures/estimator_accuracy_vs_noise.png
           (review copy written to experiments/outputs/estimator_accuracy/;
           copied into the paper's figures/ folder only at integration time).

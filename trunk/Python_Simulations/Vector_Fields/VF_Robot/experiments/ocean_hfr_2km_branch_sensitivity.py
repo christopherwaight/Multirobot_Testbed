@@ -2,7 +2,7 @@
 ocean_hfr_2km_branch_sensitivity.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  fig:ocean_branch_sensitivity, ~100 centroid starts jittered
           around the validated start point, color-coded by final landfall
           location, plus a distance-to-nearest-FTLE-ridge metric per path.

@@ -2,7 +2,7 @@
 mc_sweep_oecs_traverse.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the objective-tracker success-rate table of the Results section
           (tab:mc_success panel (b)), replacing the core-seeker sweep of
           mc_sweep_oecs.py now that Primitive 11 (oecs_separatrix_step) is

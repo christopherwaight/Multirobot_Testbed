@@ -2,7 +2,7 @@
 mc_sweep_flip_resolution_sigma_p.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5b.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the second panel of Fig. 7 (fig:flip_resolution) -- a fine-resolution
           sigma_p sweep at sigma_uv = 0, the referee-report finding M3: Table
           II(b)'s sigma_uv = 0 row collapses from 100% (sigma_p = 0) to 1.3%

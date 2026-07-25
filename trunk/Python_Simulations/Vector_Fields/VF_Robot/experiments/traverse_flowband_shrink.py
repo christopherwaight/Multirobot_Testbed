@@ -2,7 +2,7 @@
 traverse_flowband_shrink.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the flow-band-shrink table for the objective separatrix traverser
           (experiments/outputs/oecs/flowband_shrink.csv).
 

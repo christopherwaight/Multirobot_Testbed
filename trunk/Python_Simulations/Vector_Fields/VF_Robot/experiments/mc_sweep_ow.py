@@ -2,10 +2,15 @@
 mc_sweep_ow.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
+  Paper:  NONE. This script belongs to the Okubo-Weiss boundary-tracker
+          thread, which was cut from the paper; the current draft
+          (Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex) presents the
+          D tracker and the s1 tracker and carries no OW boundary-following
+          results. Kept for the record, not regenerated for the paper. It
+          formerly fed the OW success table of Paper_Draft_2A.tex.
   Makes:  the Okubo-Weiss boundary tracker success-rate table (and
           optional heatmap fig:ow_success) and |D| tracking statistics of
-          the Results section.
+          that superseded draft's Results section.
   Writes: experiments/outputs/mc_ow/trials_<mode>.csv, summary_<mode>.csv.
 
 EXPERIMENT (merged test plan; straight-through behavior per decision (a))

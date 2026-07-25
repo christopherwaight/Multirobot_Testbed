@@ -2,7 +2,7 @@
 mc_sweep_oecs.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_1A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the OECS-tracker success-rate table of the Results section
           (noise robustness of Controller 2), directly comparable cell by
           cell to the Logic C table from mc_sweep_separatrix.py.

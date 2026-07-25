@@ -7,7 +7,7 @@ ocean_hfr_2km_ftle_snapshots.py
 
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  fig:ocean_ftle_snapshots, FTLE computed at four anchor times
           across the 28-h dataset, showing the ridge structure evolving.
 

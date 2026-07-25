@@ -2,7 +2,7 @@
 plot_basin_map.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the basin-map figure (fig:basin_map),
           file figures/basin_map.png (review copy written to
           experiments/outputs/basin_map/; copied into the paper's

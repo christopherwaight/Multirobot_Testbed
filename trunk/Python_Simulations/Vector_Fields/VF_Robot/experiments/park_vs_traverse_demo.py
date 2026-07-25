@@ -2,7 +2,7 @@
 park_vs_traverse_demo.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the park-versus-traverse demonstration figure for the Discussion
           (park_vs_traverse.png; no draft label yet) and the numbers quoted
           with it. Review copy + CSV in experiments/outputs/separatrix_clean/.

@@ -2,7 +2,7 @@
 rescore_single_target.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Corrects: tab:mc_success panel (b) and its surrounding noise-robustness prose.
   Reads:  experiments/outputs/mc_separatrix/trials_fixed.csv (Controller 1, unchanged)
           experiments/outputs/mc_oecs_traverse/trials_fixed.csv (Controller 2, rescored)
@@ -56,6 +56,8 @@ Run:
 """
 import csv
 import os
+import subprocess
+from datetime import datetime, timezone
 
 SADDLE_FAR = (0.0, -0.5)     # the single target: what a true noise-free ride reaches
 SADDLE_CONTACT_D = 0.06
@@ -147,7 +149,26 @@ def main():
               f"{old_success:>17.1%} {single_target_success:>21.1%} "
               f"{straddle:>8.1%}")
 
+    # Provenance header, matching the sweep scripts' convention: this file
+    # is the direct source of the paper's tab:mc_success panel (b), so it
+    # must record which trial CSV it re-derived and at what trial count.
+    try:
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=project_root, text=True).strip()
+    except Exception:
+        commit = "unknown"
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    sizes = {len(g) for g in cells.values()}
+    per_cell = (str(sizes.pop()) if len(sizes) == 1
+                else f"{min(sizes)}-{max(sizes)} (uneven)")
     with open(OUT_PATH, "w", newline="") as f:
+        f.write(f"# generated_by: experiments/rescore_single_target.py\n"
+                f"# git_commit: {commit}\n# date: {stamp}\n"
+                f"# rescored_from: {os.path.relpath(TRIALS_PATH, project_root)}"
+                f"  trials_per_cell: {per_cell}\n"
+                f"# target: single far saddle {SADDLE_FAR}, "
+                f"contact_d={SADDLE_CONTACT_D}\n")
         writer = csv.DictWriter(f, fieldnames=list(rows_out[0].keys()))
         writer.writeheader()
         writer.writerows(rows_out)

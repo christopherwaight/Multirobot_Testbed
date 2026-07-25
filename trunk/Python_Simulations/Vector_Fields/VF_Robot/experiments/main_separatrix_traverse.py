@@ -2,7 +2,7 @@
 main_separatrix_traverse.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the path-match figure for the objective separatrix traverser
           (figures/traverse_vs_logic_c.png); review copy and per-run CSV in
           experiments/outputs/oecs/.

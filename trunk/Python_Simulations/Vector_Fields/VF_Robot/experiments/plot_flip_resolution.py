@@ -2,7 +2,7 @@
 plot_flip_resolution.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5b.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  figures/flip_resolution.png, the two-panel figure for Fig. 7
           (fig:flip_resolution). Panel (a) is the original sigma_uv-axis
           tangent-sign-flip finding (Section results_oecs); panel (b) is the

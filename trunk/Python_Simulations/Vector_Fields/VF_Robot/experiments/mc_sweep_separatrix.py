@@ -2,7 +2,7 @@
 mc_sweep_separatrix.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the separatrix-controller success-rate table (and optional
           heatmap fig:sep_success) and tracking-error statistics of the
           Results section; the straddle-retention column is the

@@ -2,7 +2,7 @@
 unsteady_gyre_check.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the unsteady double-gyre paragraph of Section VII-E (SIM-5 of
           the T-RO hardening plan): does the D tracker hold the
           instantaneous trench of a time-varying field with no

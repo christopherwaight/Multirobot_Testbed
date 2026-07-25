@@ -2,7 +2,7 @@
 identifiability_check.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_Separatrix_5A.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
   Makes:  the incompressibility remark (or corollary) after the
           minimality paragraph of Section III-A: whether five robots
           suffice to identify the quadratic model once exact
