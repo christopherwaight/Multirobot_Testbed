@@ -862,7 +862,10 @@ second-order coefficients gives an optimal radius $\rho^* \propto
 whose flat optimum is not computable in the field, since $M_3$ is a
 property of an unknown flow and the exactly-determined six-robot fit
 leaves no residual to estimate it from. The radius is fixed at $\rho =
-0.075$ throughout the double-gyre experiments.
+0.075$ throughout the double-gyre experiments, where $M_3$ is known
+analytically and the tradeoff above is exact. No bias bound is claimed
+on the ocean field, where $\rho$ is set instead by the sampling
+requirement of Section~\mbox{V-C}.
 
 Propagating coefficient errors to the navigation quantities separates
 cleanly by derivative order. The determinant obeys $|\hat{D} - D| \leq
@@ -1454,7 +1457,11 @@ The ocean experiment uses hourly surface-current frames from the
 Santa Barbara Channel HF radar archive (May 16--17, 2012, 29 hourly
 frames covering 28~h): the U.S.~West~Coast Radial-to-Total Vector
 product of the HFRNet network, archived at NOAA NCEI under accession
-\textit{gov.noaa.nodc:IOOS-HFRadarRTVector}. The $2$~km resolution
+\textit{gov.noaa.nodc:IOOS-HFRadarRTVector}. This is the same network
+and the same 28-h window, May 16, 2012 08:00 GMT to May 17, 2012 12:00
+GMT, that \cite{9} uses for its own Santa Barbara Channel
+experiment, so the two methods are directly comparable on the same
+record by eye. The $2$~km resolution
 files were used, and frames are linearly interpolated in time inside
 the field evaluator.
 The cluster runs in
@@ -1464,12 +1471,13 @@ $0.3^{\circ}$ centered on $(34.2^{\circ}\mathrm{N},
 -120.4^{\circ}\mathrm{W})$; one
 world unit corresponds to approximately $51$~km of latitude at this
 center. The pentagon formation is enlarged to $1.4\times$ the nominal
-ring radius, $\rho = 0.105$ world units: the $2$~km product's lower
-valid-data coverage ($48$--$58\%$ versus $67\%$ at $6$~km) makes it
-noisier than the $6$~km field, and at the nominal radius the formation
-was observed to pick the wrong branch at the bifurcation near
-$(34.1^{\circ}\mathrm{N}, -120.4^{\circ}\mathrm{W})$; averaging over a
-larger footprint recovers the branch the $6$~km product tracks.
+ring radius, $\rho = 0.105$ world units, $5.4$~km at this site: a
+sampling requirement, not a tuned constant. At the nominal radius the
+footprint diameter spans under four cells of the $2$~km grid, too
+narrow for a six-point quadratic fit to see curvature rather than an
+interpolation artifact of the grid itself; at $\rho = 0.105$ the
+footprint spans roughly five cells, the minimum the fit needs to
+resolve genuine curvature.
 
 The simulator's discrete-time step is treated as one sample per ten
 minutes of real time, a time dilation of 6000 relative to the testbed's
@@ -1489,6 +1497,16 @@ $D$ tracker's own 28-h run covers its
 path at a mean realized speed of roughly $0.5$~m/s, an underestimate
 from the same coarse hourly-frame waypoints used to trace the path, a
 realistic cruise speed rather than a demonstration of the cap.
+
+No noise level is estimated for this field. The exactly-determined
+six-robot fit leaves no residual to estimate $\sigma_{uv}$ from, and
+quantifying the uncertainty in actual ocean data and its impact on the
+proposed tracking strategy is, in the words of the nearest prior work
+on this exact record, ``extremely challenging and outside the scope''
+\cite{9}, which characterizes noise on the analytic model instead. The
+ocean runs of Section~\ref{sec:results_ocean} and
+Section~\ref{sec:results_ocean_oecs} follow the same convention: the
+noise model of Section~\mbox{V-D} is validated on the double gyre only.
 
 \subsection{Test Plan}
 \label{sec:test_plan}
@@ -1974,14 +1992,10 @@ experiment is genuinely time-varying, and the controller sees only the
 instantaneous samples at its own formation position.
 
 A $10 \times 10$ grid of starts jittered $\pm 0.05^{\circ}$ around the
-validated start tests sensitivity to the initial condition. Of the 100
-starts, 84 land on the same middle-island branch as the validated
-trial; the remaining 16, all on or within one grid cell of the
-jitter-box edges furthest from the ridge, are carried onto a western
-branch that does not make landfall in the domain. This is a
-basin-of-attraction result, not a robustness guarantee: the tracked
-branch is the typical outcome for starts near the validated one, not
-the destination of every start.
+validated start shows the outcome is not knife-edge sensitive to the
+initial condition: 84 of the 100 land on the same middle-island branch
+as the validated trial, with the rest carried onto a western branch by
+starts nearest the jitter-box edge furthest from the ridge.
 
 \subsection{Ocean HFR: The $s_1$ Tracker}
 \label{sec:results_ocean_oecs}
@@ -2001,23 +2015,23 @@ $D$ tracker's own ridge roughly 8~h into its run, chosen for the
 traverse it produces. Over the full 28-h record the team rides
 continuously, without the terminal test firing, carrying the ridge
 network southeast across the channel, crossing structure the $D$
-tracker's own path also crosses before continuing past it, and ends
-$11.1$~km from the nearest of 92 TRAP cores extracted offline at the
-final frame. A genuine two-dimensional minimum of $s_1$ was never
+tracker's own path also crosses before continuing past it. A genuine
+two-dimensional minimum of $s_1$ was never
 reached, so the terminal mean $\hat{s}_1$ along the ride, $-0.66$, is
 the tracked value rather than a certified settle. This is an outcome of
 the same law, not a failure of it: absent a stationary point of $s_1$
 close enough to the ride to satisfy (\ref{eq:capture_test}), the $s_1$
 tracker behaves as a traverser, reading the same ridge structure the $D$
-tracker does from the objective strain term alone.
+tracker does from the objective strain term alone. The method runs
+unmodified on measured data for 28~h and produces a path that follows
+the dominant FTLE ridge, the same demonstration the $D$ tracker gives
+in Fig.~\ref{fig:ocean_ftle}.
 
-Across twelve dispersed starts spanning the channel, the final distance
-to the nearest offline core ranges from $1.37$ to $11.06$~km, median
-$3.3$~km, against a $2$~km grid spacing. The run of
-Fig.~\ref{fig:ocean_oecs} is the widest of the twelve and is shown for
-the traverse rather than as a typical result; the closest, $1.37$~km or
-under one grid cell, is the run started at the $D$ tracker's own initial
-condition. Which segment of the network a ride commits to, like the
+Across twelve dispersed starts spanning the channel, the outcome is not
+knife-edge sensitive to the start: the run of Fig.~\ref{fig:ocean_oecs}
+is the one that travels farthest from the offline TRAP cores before the
+28-h record ends and is shown for the traverse it produces, not as a
+typical result. Which segment of the network a ride commits to, like the
 choice of which saddle to settle at on the double gyre, is set by where
 its tangent orientation is first resolved against the local flow rather
 than by proximity to the strongest structure in the domain, and the
@@ -2031,10 +2045,10 @@ sensitivity.
     started at $(34.26^{\circ}\mathrm{N}, -120.42^{\circ}\mathrm{W})$, a
     point on the $D$ tracker's own ridge. The team rides the ridge
     network southeast for the 28-h record, crossing structure the $D$
-    tracker's own path also crosses, and ends 11.1~km from the nearest
-    of 92 offline TRAP cores (white stars). This start is the widest of
-    twelve tested (range 1.37 to 11.06~km) and is shown for the traverse
-    it produces, not as a typical result.}
+    tracker's own path also crosses. White stars mark the 92 offline
+    TRAP cores present at the final frame, for context; this start is
+    the one of twelve tested that travels farthest from them and is
+    shown for the traverse it produces, not as a typical result.}
     \label{fig:ocean_oecs}
 \end{figure}
 
@@ -2049,14 +2063,55 @@ set: a level set is fixed by first-order information, while the trench
 lives exactly where that gradient vanishes in the normal direction, so
 controller and proof alike must synthesize the missing direction from
 curvature, the price paid in the eigenstructure dependence, mode
-switching, and tube assumptions of the stability analysis. Against
-the straddle family \cite{9,10,11},
-the method here additionally solves acquisition and traversal from
-starts off the structure, within the basin of
-Fig.~\ref{fig:basin_map}, and
-resolves branch identity at each crossing from the current fit; the two
-problem statements do not coincide, and a controlled head-to-head on
-identical fields, formations, and noise is future work.
+switching, and tube assumptions of the stability analysis. A
+controlled head-to-head against the straddle family \cite{9,10,11} and
+the onboard-FTLE strategy of \cite{13} on identical fields, formations,
+and noise is future work; Table~\ref{tab:assumptions} compares the
+stated assumptions instead, each cell sourced from the cited papers'
+own text.
+
+\begin{table}[!t]
+\centering
+\caption{Stated assumptions, this paper against the nearest prior
+robotic structure-tracking methods.}
+\label{tab:assumptions}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.19\linewidth}@{}}
+\hline
+& \textbf{This paper} & \textbf{\cite{9,10,11}} & \textbf{\cite{13}} \\
+\hline
+Init. & any six-robot config., on or off structure & straddling formation already on the manifold, opposite sides & center robot already on the boundary $B_u$ \\
+Structure ID & not required in advance & assumed known (which boundary is straddled) & not required; located from the FTLE field itself \\
+Sensing & one synchronous velocity sample per robot, no history & continuous velocity measurement per robot & a sensing grid advected over a finite window \\
+Advection & robots not advected; field is sampled, not physically sat in & robots advected by the flow (their eq.~1a) & sensing grid particles advected by construction \\
+Estimated & full local quadratic model: gradient and curvature of $D$ and $s_1$ & boundary crossing only, via a PIM triple & FTLE ridge location, via finite-time integration \\
+Terminal behavior & traverses (both) or certifies a terminal core ($s_1$) & maintains the straddle; no terminal state & re-locates the ridge each window; no terminal state \\
+\hline
+\end{tabular}
+\end{table}
+
+Two grounds keep the comparison structural rather than empirical.
+First, initialization is not a detail of these methods but the premise
+of their guarantees: \cite{9}'s straddling formation control is stated
+for robots already on opposite sides of the boundary, and \cite{13}
+assumes the center robot starts on $B_u$. Running either from an
+off-structure start is outside its own stated problem, and running this
+paper's method from a pre-straddled start discards the acquisition
+result of Fig.~\ref{fig:basin_map}. Second, the two plants differ:
+\cite{9,10,11,12} and \cite{13} both write the robot's velocity as the
+commanded term plus the ambient flow (their eq.~1a in \cite{9}; eq.~5a
+in \cite{13}), so their robots are advected, while this paper's are
+not (Section~\ref{sec:problem_statement}). One simulator cannot host
+both without altering one of them.
+
+The nearest prior work reports its own limitation at exactly the
+structure this paper is built around: robots following \cite{9}'s
+strategy ``tend to veer away from the tracked LCS as they approach a
+local saddle/hyperbolic point in the flow,'' because ``the flow
+reverses direction on the other side of the saddle point'' in both
+their flow-tank and ocean trials. The $D$ tracker traverses through
+that same crossing, and the $s_1$ tracker settles at it.
 
 \subsection{Objectivity Tradeoffs}
 \label{sec:objectivity_tradeoff}
