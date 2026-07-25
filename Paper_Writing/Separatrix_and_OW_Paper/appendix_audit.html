@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Appendix A audit and rewrite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --shelf:#EDF2F4;--surface:#FFFFFF;--ink:#0A1E29;--ink2:#3D5866;--ink3:#708895;
+  --rule:#CFDCE2;--rule2:#E3EBEF;--d1:#8FBECD;--d2:#3D8CA8;--d3:#1A5E80;--d4:#08334F;
+  --kelp:#2F6F55;--flag:#9E2A22;--sand:#B08415;
+  --display:'IBM Plex Sans Condensed','Arial Narrow',system-ui,sans-serif;
+  --body:'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{margin:0;background:var(--shelf);color:var(--ink);font-family:var(--body);font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{display:grid;grid-template-columns:212px minmax(0,1fr);gap:44px;max-width:1160px;margin:0 auto;padding:0 28px 120px}
+nav{position:sticky;top:0;align-self:start;padding:44px 0 0;font-family:var(--display);font-size:13px}
+nav .navlabel{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px;font-weight:600}
+nav a{display:block;padding:5px 0 5px 12px;color:var(--ink2);text-decoration:none;border-left:2px solid var(--rule);line-height:1.3}
+nav a:hover,nav a:focus{color:var(--ink);border-left-color:var(--d3);background:rgba(255,255,255,.55)}
+nav a .n{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-right:7px}
+header{padding:56px 0 34px;border-bottom:3px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--d3);margin:0 0 16px}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,3.6vw,44px);line-height:1.06;letter-spacing:-.015em;margin:0 0 6px;max-width:22ch}
+.subtitle{font-family:var(--display);font-size:17px;color:var(--ink2);margin:0 0 28px;font-weight:400;max-width:60ch}
+.meta{display:flex;flex-wrap:wrap;gap:0;border-top:1px solid var(--rule);padding-top:18px}
+.meta div{flex:1 1 120px;padding-right:20px}
+.meta dt{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.meta dd{margin:0;font-family:var(--display);font-size:15px;font-weight:500}
+.verdict{background:var(--d4);color:#EAF2F6;padding:28px 30px;margin:34px 0 0;border-radius:2px}
+.verdict h2{font-family:var(--display);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#8FBECD;margin:0 0 12px;font-weight:600}
+.verdict p{margin:0 0 12px;font-size:16px;line-height:1.6}
+.verdict p:last-child{margin-bottom:0}
+.verdict strong{color:#FFF}
+.verdict .rec{font-family:var(--display);font-size:25px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px;color:#FFF;line-height:1.2}
+section{padding-top:52px}
+h2.sec{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px;padding-bottom:10px;border-bottom:1px solid var(--ink)}
+h2.sec .num{font-family:var(--mono);font-size:13px;color:var(--d2);margin-right:12px;font-weight:500;vertical-align:2px}
+h3.sub{font-family:var(--display);font-size:19px;font-weight:600;margin:34px 0 10px}
+.lede{color:var(--ink2);margin:14px 0 26px;max-width:66ch}
+.finding{background:var(--surface);border:1px solid var(--rule2);border-left:4px solid var(--d2);padding:20px 24px;margin:0 0 14px;border-radius:2px}
+.finding.cut{border-left-color:var(--flag)}
+.finding.absorb{border-left-color:var(--sand)}
+.finding.keep{border-left-color:var(--kelp)}
+.fhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.tag{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:2px;color:#fff;background:var(--d2);white-space:nowrap}
+.tag.cut{background:var(--flag)}
+.tag.absorb{background:var(--sand)}
+.tag.keep{background:var(--kelp)}
+.fhead h3{font-family:var(--display);font-size:19px;font-weight:600;margin:0;line-height:1.25;flex:1 1 300px}
+.loc{font-family:var(--mono);font-size:11.5px;color:var(--d3);background:#EDF4F7;padding:2px 7px;border-radius:2px;white-space:nowrap}
+.finding p{margin:0 0 10px}
+.finding p:last-child{margin-bottom:0}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--rule2);border-radius:2px;margin:0 0 18px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font-family:var(--display);font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:12px 14px;border-bottom:2px solid var(--rule);white-space:nowrap;font-weight:600;background:#F7FAFB}
+td{padding:12px 14px;border-bottom:1px solid var(--rule2);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:12px;color:var(--d3);white-space:nowrap}
+td.num{font-family:var(--mono);font-size:13px;text-align:right;white-space:nowrap}
+.v{font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 6px;border-radius:2px;color:#fff;white-space:nowrap}
+.v.cut{background:var(--flag)}.v.absorb{background:var(--sand)}.v.keep{background:var(--kelp)}
+.q{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:#F2F7F9;padding:1px 5px;border-radius:2px}
+tfoot td{font-family:var(--display);font-weight:600;background:#F7FAFB;border-top:2px solid var(--rule)}
+.callout{background:#FDF7E6;border-left:4px solid var(--sand);padding:16px 20px;margin:0 0 18px;border-radius:2px;font-size:15px}
+.callout b{font-family:var(--display)}
+.callout.warn{background:#FBEEED;border-left-color:var(--flag)}
+.callout.win{background:#EAF3EE;border-left-color:var(--kelp)}
+
+/* manuscript blocks */
+.ms{background:var(--surface);border:1px solid var(--rule);border-radius:2px;margin:0 0 22px;overflow:hidden}
+.ms-head{background:#F4F8FA;border-bottom:1px solid var(--rule);padding:11px 22px;font-family:var(--display);font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--d3);font-weight:600;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ms-head .rt{color:var(--ink3);letter-spacing:.06em;text-transform:none;font-weight:400}
+.ms-body{padding:22px 26px;font-size:15.5px;line-height:1.72}
+.ms-body p{margin:0 0 13px}
+.ms-body p:last-child{margin-bottom:0}
+.ms-body .lbl{font-family:var(--body);font-style:italic;font-weight:600}
+.ms-body .step{font-family:var(--display);font-weight:600;font-size:13.5px;letter-spacing:.02em;color:var(--d4);display:block;margin:18px 0 5px}
+.ms-body .step:first-child{margin-top:0}
+.eq{display:block;text-align:center;margin:14px 0;font-size:16px}
+.old{background:#FBF6F5;border:1px dashed #DCC3C0;border-radius:2px;padding:14px 18px;margin:0 0 16px;font-size:14px;color:#5C4340;line-height:1.6}
+.old b{font-family:var(--display);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--flag);display:block;margin-bottom:6px}
+.ledger{background:var(--surface);border:1px solid var(--rule2);padding:26px;margin:0 0 22px;border-radius:2px}
+.ledger h3{font-family:var(--display);font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:0 0 18px;font-weight:600}
+.bar{display:flex;height:40px;border-radius:2px;overflow:hidden;margin-bottom:8px;border:1px solid var(--rule)}
+.bar span{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff;overflow:hidden;white-space:nowrap}
+.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:8px}
+.footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--rule);font-family:var(--display);font-size:13px;color:var(--ink3)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;gap:0}nav{position:static;padding:24px 0 0;display:flex;flex-wrap:wrap;gap:4px}nav .navlabel{width:100%}nav a{border-left:none;border-bottom:2px solid var(--rule);padding:4px 10px}}
+@media print{body{background:#fff;font-size:10.5pt}nav{display:none}.wrap{grid-template-columns:1fr;max-width:none}.finding,.tablewrap,.ms,.ledger{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav>
+  <div class="navlabel">Contents</div>
+  <a href="#verdict"><span class="n">00</span>The arithmetic</a>
+  <a href="#table"><span class="n">01</span>Item-by-item</a>
+  <a href="#cuts"><span class="n">02</span>Why each cut goes</a>
+  <a href="#t1"><span class="n">03</span>New Theorem 1 proof</a>
+  <a href="#t2"><span class="n">04</span>New Theorem 2 proof</a>
+  <a href="#p2"><span class="n">05</span>New Prop 2 proof</a>
+  <a href="#body"><span class="n">06</span>What moves to the body</a>
+  <a href="#ledger"><span class="n">07</span>Ledger</a>
+</nav>
+
+<main>
+
+<header>
+  <p class="eyebrow">Appendix A &mdash; audit and rewrite</p>
+  <h1>Ten items in, three out, all three rewritten</h1>
+  <p class="subtitle">Every proof, lemma, corollary, and remark in Appendix A, judged on whether the paper still needs it. Survivors written out in full, at roughly double length, in the manuscript's own voice.</p>
+  <dl class="meta">
+    <div><dt>Items now</dt><dd>10</dd></div>
+    <div><dt>Items after</dt><dd>3</dd></div>
+    <div><dt>Items removed</dt><dd>70%</dd></div>
+    <div><dt>Length now</dt><dd>~1.80 col</dd></div>
+    <div><dt>Length after</dt><dd>~0.95 col</dd></div>
+    <div><dt>Length removed</dt><dd>47%</dd></div>
+  </dl>
+</header>
+
+<div class="verdict" id="verdict">
+  <h2>The arithmetic, and one honest caveat</h2>
+  <p class="rec">Seven of ten items go. That is 70% of the appendix by item count, but only about 47% by length.</p>
+  <p>The two numbers diverge because the items that should go are, with one exception, the <em>short</em> ones: two-sentence proofs of things Section III already proves in the body, and a three-sentence sketch that gestures at a computation instead of performing it. Together they are only about a fifth of the appendix's length. The bulk of the appendix is the three proofs the paper's claims actually rest on, and those cannot go: <strong>Theorem 1 is the only global Lyapunov certificate in the manuscript, Theorem 2 is the D tracker's central claim, and Proposition 2 is the s<sub>1</sub> tracker's central claim and the theoretical half of the paper's headline result.</strong></p>
+  <p>So a 75% length cut is not reachable without deleting a proof a referee will want. What is reachable, and what this document delivers, is 47% &mdash; and the survivors come out clearer, not just shorter, because roughly a third of their current length is redundancy with the body, stale references to a controller architecture the manuscript no longer has, and one branch of Proposition 2 argued twice by two different routes.</p>
+  <p>If you need to go further, the one remaining lever is moving Proposition 2's proof to supplementary material, which takes the appendix to about 0.73 col (59% removed). I would not. The demonstration in Fig 6 is the evidence; the proof is the guarantee, and objectivity is the claim the paper is named for.</p>
+</div>
+
+<!-- ===================== 01 TABLE ===================== -->
+<section id="table">
+  <h2 class="sec"><span class="num">01</span>Item by item</h2>
+  <p class="lede">Every environment currently in Appendix A, in order of appearance.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">#</th><th>Item</th><th>Verdict</th><th>One-line reason</th><th class="num">Col</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">A1</td><td>Preamble paragraph</td>
+        <td><span class="v cut">Delete</span></td>
+        <td>Bookkeeping about a numbering scheme that does not hold up. It announces "formal statements&hellip; are in Section III" for three results that appear there only as prose.</td>
+        <td class="num">0.05</td>
+      </tr>
+      <tr>
+        <td class="mono">A2</td><td>Proof of Prop III-A (minimality)</td>
+        <td><span class="v cut">Delete</span></td>
+        <td>Rank-nullity in two sentences, and III-A already makes the identical argument in prose ("the solution set is a positive-dimensional affine subspace").</td>
+        <td class="num">0.06</td>
+      </tr>
+      <tr>
+        <td class="mono">A3</td><td>Proof of Prop 1 (conic criterion)</td>
+        <td><span class="v cut">Delete</span></td>
+        <td><b>Verbatim duplicate.</b> This proof is already printed in full in III-A directly under the proposition. The appendix copy also still uses the old p&#771; notation.</td>
+        <td class="num">0.06</td>
+      </tr>
+      <tr>
+        <td class="mono">A4</td><td>Proof of Cor III-A (pentagon)</td>
+        <td><span class="v cut">Delete</span></td>
+        <td>Duplicate, and the <em>weaker</em> of the two copies. See &sect;02.</td>
+        <td class="num">0.05</td>
+      </tr>
+      <tr>
+        <td class="mono">A5</td><td>Proof of Lemma 1 (noise gains)</td>
+        <td><span class="v cut">Relocate</span></td>
+        <td>Not a proof. "Follow from direct inversion of &Phi; using the fifth roots of unity" asserts that a computation exists. Move the algebra to supplementary; III-D already reports the numerical verification to 0.3%.</td>
+        <td class="num">0.13</td>
+      </tr>
+      <tr>
+        <td class="mono">A6</td><td><b>Proof of Theorem 1</b></td>
+        <td><span class="v keep">Keep, expand</span></td>
+        <td>Load-bearing and correct, but compressed to the point of being hard to check. Rewritten in &sect;03.</td>
+        <td class="num">0.18</td>
+      </tr>
+      <tr>
+        <td class="mono">A7</td><td>Lemma 2 + proof + footnote</td>
+        <td><span class="v absorb">Absorb</span></td>
+        <td><b>A fossil.</b> It proves that arbitrary switching cannot chatter the transverse channel &mdash; but the rewritten (26) has no switch in that channel, and IV-D already says so. Three lines survive, in IV-D.</td>
+        <td class="num">0.28</td>
+      </tr>
+      <tr>
+        <td class="mono">A8</td><td>Lemma 3 + eq (39) + case table</td>
+        <td><span class="v absorb">Absorb</span></td>
+        <td>Content is real and Theorem 2 needs it, but it is cited nowhere else, and its four-row table enumerates modes the current IV-B does not have. Folds into Theorem 2 as Step 2.</td>
+        <td class="num">0.35</td>
+      </tr>
+      <tr>
+        <td class="mono">A9</td><td><b>Proof of Theorem 2</b></td>
+        <td><span class="v keep">Keep, expand</span></td>
+        <td>Currently four sentences of pointers, one of which is "(i) is Lemma 2." Rewritten in &sect;04, absorbing A8.</td>
+        <td class="num">0.20</td>
+      </tr>
+      <tr>
+        <td class="mono">A10</td><td><b>Proof of Proposition 2</b></td>
+        <td><span class="v keep">Keep, restructure</span></td>
+        <td>The paper's central theoretical claim. Sound, but argues two branches twice by different routes and names five modes that IV-C does not define. Rewritten in &sect;05 &mdash; shorter, not longer.</td>
+        <td class="num">0.44</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="4">Current appendix</td><td class="num">1.80</td></tr>
+    </tfoot>
+  </table>
+  </div>
+
+  <div class="callout warn">
+    <b>One thing worth knowing before you cut.</b> Six of the ten items reference the controller vocabulary the manuscript no longer uses &mdash; the attract, slide, and flow steps of Lemma 2's proof, the four-row FLOW / SLIDE / ATTRACT / fallback table in Lemma 3, and the PARK / CAPTURE / ACQUIRE / TRACK / CROSS enumeration in Proposition 2. Every one of the survivors needs rewriting on those grounds alone, independent of length. That is why the rewrites below are not cosmetic.
+  </div>
+</section>
+
+<!-- ===================== 02 CUTS ===================== -->
+<section id="cuts">
+  <h2 class="sec"><span class="num">02</span>Why each cut goes</h2>
+  <p class="lede">Grouped by failure type, because the seven deletions are really three problems.</p>
+
+  <h3 class="sub">Problem one: three proofs are already in the body</h3>
+
+  <div class="finding cut">
+    <div class="fhead"><span class="tag cut">A3</span><h3>Proposition 1's proof is printed twice</h3><span class="loc">III-A and App A</span></div>
+    <p>Section III-A states Proposition 1 and gives its proof immediately: &Phi; is singular exactly when &Phi;c = 0 for some nonzero c, row i is &phi;(p&prime;<sub>i</sub>)&#8868;, so this holds iff all six points lie on the zero set of the quadratic &phi;(&middot;)&#8868;c. The appendix then gives the same argument again in three sentences.</p>
+    <p>There is no version of the paper in which both should appear. The body's placement is the right one, because a reader meets the conic criterion while thinking about formation geometry, not four pages later. Delete the appendix copy.</p>
+  </div>
+
+  <div class="finding cut">
+    <div class="fhead"><span class="tag cut">A4</span><h3>The pentagon corollary is duplicated, and the appendix copy is the sloppier one</h3><span class="loc">III-A and App A</span></div>
+    <p>The appendix argues: "The five vertices are in general position, so they determine a unique conic, their circumscribed circle." Five concyclic points are precisely <em>not</em> in general position for conics in the sense that phrase usually carries; the reason they determine a unique conic here is that any conic vanishing on five points of a circle must be a scalar multiple of that circle.</p>
+    <p>Which is exactly what III-A already says, correctly: "a conic vanishing at five points of a circle must be a multiple of that circle, and a circle does not pass through its own center." Keep the body's wording, delete the appendix's.</p>
+  </div>
+
+  <div class="finding cut">
+    <div class="fhead"><span class="tag cut">A2</span><h3>Minimality is proved in the body too</h3><span class="loc">III-A and App A</span></div>
+    <p>III-A: each robot contributes one equation per component, each system has six unknowns, so fewer than six robots leave the model unidentifiable and the solution set is a positive-dimensional affine subspace. The appendix restates this as a null-space argument. Same content, and the body version is the one a reader will actually encounter at the moment they care.</p>
+    <p>If you keep a numbered environment for minimality &mdash; and you should, since the abstract leans on it &mdash; number it in III-A on the same integer scheme as Proposition 1, and let the two-sentence argument sit inline beneath it.</p>
+  </div>
+
+  <h3 class="sub">Problem two: one item claims proof status without proving anything</h3>
+
+  <div class="finding cut">
+    <div class="fhead"><span class="tag cut">A5</span><h3>Lemma 1's proof is a description of a calculation, not the calculation</h3><span class="loc">App A</span></div>
+    <p>The operative sentence is: "The remaining rows follow from direct inversion of &Phi; using the fifth roots of unity; the row norms reduce to the stated constants, and repeating the computation with an arbitrary ring phase leaves them unchanged." A reader cannot check any of that. It tells them a computation was done and what it produced.</p>
+    <p>This is the item most likely to read as filling space, because it occupies proof real estate while doing no proof work. The final sentence also restates the isotropic gradient covariance that III-D has already given.</p>
+    <p>The closed-form gains are a genuine contribution and belong in the abstract where they are. The right handling is to state them as a lemma in III-D, cite the open-loop verification already reported there (every coefficient's standard deviation matching within 0.3%, over 2&times;10<sup>5</sup> draws), and put the roots-of-unity algebra in supplementary material for anyone who wants to verify it symbolically. An empirical verification of an analytic claim at that sample size is acceptable in this venue; a gestured proof is weaker than either.</p>
+  </div>
+
+  <h3 class="sub">Problem three: two lemmas are load-bearing for a controller you no longer have</h3>
+
+  <div class="finding absorb">
+    <div class="fhead"><span class="tag absorb">A7</span><h3>Lemma 2 proves something the rewritten control law makes structural</h3><span class="loc">App A</span></div>
+    <p>Lemma 2 exists to establish that "every selector mode applies the identical transverse contraction, so mode switching cannot chatter it." That was a real obligation when (26) was a three-case switch, because a reader had no way to see it without checking each case.</p>
+    <p>In the current IV-B there is nothing to check. The transverse term of (26) does not contain &tau;, so it is literally the same expression on and off the band, and IV-D already states this in the sentence beginning "The w<sub>2</sub> term does not contain &tau;." The lemma now proves a fact that is visible by inspection, and its proof does so by enumerating "the attract, slide, and flow steps" &mdash; three objects the manuscript no longer defines.</p>
+    <p>What genuinely survives is three lines, and they belong in IV-D, not the appendix: the reduction to n&#775; = &minus;c<sub>max</sub> tanh(n/c<sub>max</sub>) under Assumption 1 (already there), the exponential rate estimate, and the footnote about the exact double-gyre form. See &sect;06.</p>
+  </div>
+
+  <div class="finding absorb">
+    <div class="fhead"><span class="tag absorb">A8</span><h3>Lemma 3's content is needed; Lemma 3 is not</h3><span class="loc">App A</span></div>
+    <p>Unlike Lemma 2, this one carries something a reader cannot see from the law: the quantitative lower bound m on tangential speed, which is what makes Theorem 2(ii)'s finite-time claim L<sub>&Gamma;</sub>/m mean anything.</p>
+    <p>But it is cited from exactly one place, the proof of Theorem 2, four lines further down. A lemma with a single consumer immediately below it is a paragraph wearing a costume. And its proof table has four rows &mdash; FLOW, SLIDE off-band, ATTRACT off-band, attract fallback &mdash; where the current &tau; in (25) has two branches and (26) has one degenerate case.</p>
+    <p>Fold it into Theorem 2's proof as Step 2, rewritten against the two branches that now exist. The bound (39) survives as a displayed equation there, and the derivation gets shorter, because both branch bounds are one application of the monotonicity of tanh.</p>
+  </div>
+</section>
+
+<!-- ===================== 03 THEOREM 1 ===================== -->
+<section id="t1">
+  <h2 class="sec"><span class="num">03</span>Rewritten: Proof of Theorem 1</h2>
+  <p class="lede">The current proof is correct and compresses six distinct steps into four sentences, two of which contain three equalities each. Nothing here is new mathematics; it is the same argument with the intermediate steps restored so a reader can follow it without reconstructing them.</p>
+
+  <div class="old">
+    <b>What it says now &mdash; the compression to fix</b>
+    Since &nabla;V<sub>A</sub> = H<sub>D</sub>g, V&#775;<sub>A</sub> = g&#8868;H<sub>D</sub>&delta; = &minus;&Sigma;<sub>k</sub> v<sub>max</sub> tanh(z<sub>k</sub>/v<sub>max</sub>) g&#8868;H<sub>D</sub>w<sub>k</sub> = &minus;&Sigma;<sub>k</sub> v<sub>max</sub> tanh(z<sub>k</sub>/v<sub>max</sub>) &lambda;<sub>k</sub>(w<sub>k</sub>&#8868;g), and &lambda;<sub>k</sub>(w<sub>k</sub>&#8868;g) = &lambda;<sub>k</sub>&sup2;z<sub>k</sub>, giving (31)&hellip; Three of the five gaps a reader has to fill are in that one sentence. Note also v<sub>max</sub>, where Section IV writes c<sub>max</sub>.
+  </div>
+
+  <div class="ms">
+    <div class="ms-head"><span>Replacement text &mdash; Proof of Theorem 1</span><span class="rt">~185 words, from ~90</span></div>
+    <div class="ms-body">
+      <p><span class="lbl">Proof of Theorem 1:</span> Write &delta; for the signed Newton step, the degenerate case of (26), whose k-th eigendirection component is sat(&minus;z<sub>k</sub>) = &minus;c<sub>max</sub> tanh(z<sub>k</sub>/c<sub>max</sub>).</p>
+
+      <span class="step">Gradient of the Lyapunov function.</span>
+      <p>Since V<sub>A</sub> = &frac12;g&#8868;g with g = &nabla;D(p<sub>c</sub>), the chain rule gives &nabla;V<sub>A</sub> = (&part;g/&part;p)&#8868;g = H<sub>D</sub>g, using that the Jacobian of the gradient is the Hessian and that H<sub>D</sub> is symmetric.</p>
+
+      <span class="step">Derivative along trajectories.</span>
+      <p>Differentiating along (30),</p>
+      <p class="eq">V&#775;<sub>A</sub> = &nabla;V<sub>A</sub>&#8868; p&#775;<sub>c</sub> = g&#8868;H<sub>D</sub>&delta;.</p>
+      <p>Expanding &delta; in the eigenbasis and using H<sub>D</sub>w<sub>k</sub> = &lambda;<sub>k</sub>w<sub>k</sub>,</p>
+      <p class="eq">g&#8868;H<sub>D</sub>&delta; = &Sigma;<sub>k</sub> sat(&minus;z<sub>k</sub>) &lambda;<sub>k</sub>(w<sub>k</sub>&#8868;g).</p>
+      <p>By the definition z<sub>k</sub> = (w<sub>k</sub>&#8868;g)/&lambda;<sub>k</sub> we have w<sub>k</sub>&#8868;g = &lambda;<sub>k</sub>z<sub>k</sub>, so each summand carries a factor &lambda;<sub>k</sub>&sup2;z<sub>k</sub>, which is (31).</p>
+
+      <span class="step">Sign and equality case.</span>
+      <p>Every summand has the form &lambda;<sub>k</sub>&sup2; z<sub>k</sub> tanh(z<sub>k</sub>/c<sub>max</sub>) with &lambda;<sub>k</sub>&sup2; &ge; 0 and z tanh z &ge; 0, vanishing only at z = 0. Hence V&#775;<sub>A</sub> &le; 0, with equality exactly when z<sub>1</sub> = z<sub>2</sub> = 0. Because H<sub>D</sub> is nonsingular the &lambda;<sub>k</sub> are nonzero, so this forces w<sub>1</sub>&#8868;g = w<sub>2</sub>&#8868;g = 0, and since {w<sub>1</sub>, w<sub>2</sub>} is a basis of the plane, g = 0.</p>
+
+      <span class="step">Convergence.</span>
+      <p>On a bounded trajectory along which H<sub>D</sub> stays nonsingular, V<sub>A</sub> is continuous, nonincreasing, and bounded below, so LaSalle's invariance principle gives convergence to the largest invariant subset of {V&#775;<sub>A</sub> = 0}, which by the previous step is the critical set {g = 0} of D.</p>
+
+      <span class="step">Local rate.</span>
+      <p>Near an isolated critical point p<sup>&#8902;</sup><sub>D</sub> with H<sub>D</sub> nonsingular, &#8214;g&#8214; is small, so |z<sub>k</sub>| &#8810; c<sub>max</sub> and the saturation is inactive to first order: tanh(x) = x + O(x&sup3;) gives &delta; &asymp; &minus;&Sigma;<sub>k</sub> z<sub>k</sub>w<sub>k</sub> = &minus;H<sub>D</sub><sup>&minus;1</sup>g. Linearizing g about p<sup>&#8902;</sup><sub>D</sub> gives g &asymp; H<sub>D</sub>(p<sub>c</sub> &minus; p<sup>&#8902;</sup><sub>D</sub>), so &delta; &asymp; &minus;(p<sub>c</sub> &minus; p<sup>&#8902;</sup><sub>D</sub>): a linear contraction at unit rate in the rescaled time of (30), that is at rate k in real time. Local exponential stability follows.</p>
+    </div>
+  </div>
+
+  <div class="callout win">
+    <b>What the expansion buys.</b> Five things a referee currently has to supply: that &part;g/&part;p is H<sub>D</sub> and symmetric; that w<sub>k</sub>&#8868;g = &lambda;<sub>k</sub>z<sub>k</sub> is a definition and not a derivation; that the equality case needs nonsingularity <em>and</em> the basis property; that "the invariance principle" is LaSalle and which hypotheses it needs; and that "unit-rate" is in rescaled time, not real time. The last of these is the one most likely to be queried, since Section IV-D now explicitly flags that the simulator runs at k = 3.0 and k = 1.8.
+  </div>
+</section>
+
+<!-- ===================== 04 THEOREM 2 ===================== -->
+<section id="t2">
+  <h2 class="sec"><span class="num">04</span>Rewritten: Proof of Theorem 2</h2>
+  <p class="lede">This is the biggest structural change. The proof absorbs Lemma 3, drops its four-row table, and stops opening with a pointer. Steps 1 and 2 are the two properties IV-D already identifies in the law itself, now carried through to the bounds Theorem 2 needs.</p>
+
+  <div class="old">
+    <b>What it says now &mdash; the pointer problem</b>
+    "(i) is Lemma 2. (ii): by Lemma 3, &ell;(t) is monotone in the flow direction with rate at least m outside the r<sub>0</sub> balls, and mode switches cannot reverse it&hellip;" &mdash; the first sentence of the proof of the paper's main traversal theorem is a cross-reference, and the second delegates to a lemma whose case analysis no longer matches the controller.
+  </div>
+
+  <div class="ms">
+    <div class="ms-head"><span>Replacement text &mdash; Proof of Theorem 2</span><span class="rt">~330 words, replacing ~290 across two environments</span></div>
+    <div class="ms-body">
+      <p><span class="lbl">Proof of Theorem 2:</span> Work in the coordinates (&ell;, n) of Assumption 1 on the tube T<sub>w</sub>.</p>
+
+      <span class="step">Step 1: transverse convergence, giving (i).</span>
+      <p>The transverse term of (26) does not contain &tau;, so it is the same command whether or not p<sub>c</sub> &isin; B. Under the normal form (32) the Hessian is diagonal in (e&#770;<sub>&#8741;</sub>, e&#770;<sub>&perp;</sub>) with transverse eigenvalue &lambda;<sub>&perp;</sub> > 0 and transverse gradient component &lambda;<sub>&perp;</sub>n, so the Newton argument in that direction is &minus;&lambda;<sub>&perp;</sub>n/&lambda;<sub>&perp;</sub> = &minus;n and the saturated command is (33). The right-hand side is strictly opposite in sign to n, so V<sub>&perp;</sub> = &frac12;n&sup2; is strictly decreasing off n = 0 and T<sub>w</sub> is forward invariant. For |n| &le; c<sub>max</sub>, concavity of tanh on the positive axis gives tanh(n/c<sub>max</sub>) &ge; n tanh(1)/c<sub>max</sub>, hence V&#775;<sub>&perp;</sub> &le; &minus;2 tanh(1) V<sub>&perp;</sub> and n &rarr; 0 exponentially.</p>
+
+      <span class="step">Step 2: tangential progress.</span>
+      <p>Both branches of (25) return &tau; &ge; 0, and w<sub>1</sub> is signed so that v&#770;<sub>0</sub>&#8868;w<sub>1</sub> &ge; 0, so the tangential command never opposes the ambient flow. For a speed bound, take the branches in turn. On the band, &tau; = v&#770;<sub>0</sub>&#8868;w<sub>1</sub>, and since &Gamma; is flow-invariant with &#8214;v&#8214; &ge; f<sub>min</sub> outside the r<sub>0</sub> balls, &tau; &ge; f<sub>min</sub> there. Off the band, &tau; = |w<sub>1</sub>&#8868;g&#770;<sub>0</sub>|/|&lambda;<sub>1</sub>| = |h&prime;(&ell;)|/|&lambda;<sub>1</sub>| &ge; m<sub>h</sub>/&lambda;&#772;<sub>&#8741;</sub>, using |h&prime;| &ge; m<sub>h</sub> wherever the band test fails on &Gamma; and |&lambda;<sub>1</sub>| &le; &lambda;&#772;<sub>&#8741;</sub> on the tube. Since tanh is increasing, the realized tangential speed is at least</p>
+      <p class="eq">m = min{ c<sub>max</sub> tanh(f<sub>min</sub>/c<sub>max</sub>), c<sub>max</sub> tanh(m<sub>h</sub>/(&lambda;&#772;<sub>&#8741;</sub>c<sub>max</sub>)) }.</p>
+
+      <span class="step">Step 3: finite-time arrival, giving (ii).</span>
+      <p>By Step 2, &ell;(t) is monotone in the flow direction at rate at least m outside the r<sub>0</sub> balls, and because Step 1 holds in both branches the band test cannot reverse it. Travelling a trench of length L<sub>&Gamma;</sub> therefore takes at most L<sub>&Gamma;</sub>/m.</p>
+
+      <span class="step">Step 4: capture, giving (iii).</span>
+      <p>At the flow saddle D attains a local minimum, so the true H<sub>D</sub> &#8827; 0 and its eigenvalues share a sign. The degenerate case of (26) is then active and the command is exactly the signed Newton step certified by Theorem 1, which gives local exponential convergence to that well; the well coincides with the flow saddle p<sup>&#8727;</sup>.</p>
+
+      <span class="step">Step 5: continuation when the test does not fire.</span>
+      <p>Step 4 concerns the true Hessian. If the sign test fails on H&#770;<sub>D,0</sub> despite H<sub>D</sub> &#8827; 0 holding for the field, (26) stays in its band or off-band branch. The saddle is a right-angle crossing of two trench segments (Section II-E), so whichever segment the flow direction and the sign convention on w<sub>1</sub> select satisfies Assumption 1 in its own right, and Steps 1 to 3 apply unchanged with &Gamma; relabeled. Remark 2 gives the conditions under which this occurs, and Section VI reports it at every saddle reached.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>Note on Step 5.</b> The current text says the tracker "falls through to Lemma 3's flow or descent case," which will not survive Lemma 3's removal. More importantly, this paragraph is the formal counterpart of a behavior the results section reports at <em>every</em> saddle, so it is doing more work than its position at the end of a proof suggests. It reads better as a labeled step than as a trailing clause.
+  </div>
+</section>
+
+<!-- ===================== 05 PROP 2 ===================== -->
+<section id="p2">
+  <h2 class="sec"><span class="num">05</span>Rewritten: Proof of Proposition 2</h2>
+  <p class="lede">The only survivor that gets <em>shorter</em>. It is currently one 400-word paragraph that argues the descent branches twice by two different routes, names five modes IV-C does not define, and closes with a sentence of discussion. The logical skeleton underneath is five steps and it is clean.</p>
+
+  <div class="old">
+    <b>The redundancy to remove</b>
+    The current proof says "PARK, CAPTURE, and the transverse channel (28) apply the invariant gradient along n&#770;&prime; = Qn&#770;&hellip; all three output the rotated command Q&delta;," and then two sentences later says "ACQUIRE, PARK, and CAPTURE are the vector-saturated descent &minus;sat(g<sub>&perp;</sub>&nabla;s&#770;<sub>1</sub>) of (28), which preserves the direction of the co-rotating invariant gradient and is therefore exactly covariant." PARK and CAPTURE are covered twice, by two different arguments. The second is the correct and general one; the first is a remnant of the era when the saturation acted componentwise and each branch needed separate treatment. With vector saturation in (28), one argument covers every branch at once.
+  </div>
+
+  <div class="ms">
+    <div class="ms-head"><span>Replacement text &mdash; Proof of Proposition 2</span><span class="rt">~300 words, from ~400</span></div>
+    <div class="ms-body">
+      <p><span class="lbl">Proof of Proposition 2:</span> Let the observer rotate as p<sub>Q</sub> = Q(t)p.</p>
+
+      <span class="step">Step 1: what transforms how.</span>
+      <p>The transformed velocity gradient is J<sub>Q</sub> = QJQ&#8868; + Q&#775;Q&#8868;. The transport term Q&#775;Q&#8868; is antisymmetric, so it lands entirely in the spin part and the strain part transforms by similarity, S<sub>Q</sub> = QSQ&#8868;. Four consequences follow: the eigenvalues s<sub>1</sub>, s<sub>2</sub> are invariant; the deviatoric magnitude r = (s<sub>2</sub> &minus; s<sub>1</sub>)/2 is invariant; the eigenvectors co-rotate, e<sub>k,Q</sub> = Qe<sub>k</sub>; and the gradient of the invariant scalar s<sub>1</sub> co-rotates, &nabla;<sub>Q</sub>s<sub>1,Q</sub> = Q&nabla;s<sub>1</sub>.</p>
+
+      <span class="step">Step 2: the same branch fires in both frames.</span>
+      <p>Every test that sets the ride flag &beta; is a scalar inequality in the quantities of Step 1: first contact tests s&#770;<sub>1</sub> < &minus;s<sub>trim</sub>, the optional park tests s&#770;<sub>1</sub> < s<sub>capture</sub>, and the terminal condition (29) tests r, &#8214;&nabla;s&#770;<sub>1</sub>&#8214;, and s&#770;<sub>1</sub>. All are invariant, so &beta; takes the same value at corresponding states.</p>
+
+      <span class="step">Step 3: the tangent is equivariant.</span>
+      <p>The comparison in (27) uses |&nabla;s&#770;<sub>1</sub>&#8868;e<sub>k</sub>|, and |(Q&nabla;s&#770;<sub>1</sub>)&#8868;(Qe<sub>k</sub>)| = |&nabla;s&#770;<sub>1</sub>&#8868;e<sub>k</sub>|, so the same eigenvector is selected in both frames. For the sign, suppose t<sub>ref,Q</sub> = Qt<sub>prev</sub> at some step; then sgn(t<sub>ref,Q</sub>&#8868;t<sub>raw,Q</sub>) = sgn(t<sub>ref</sub>&#8868;t<sub>raw</sub>) and t<sub>Q</sub> = Qt, which supplies the reference for the next step. By induction this holds from the second tracking step onward.</p>
+
+      <span class="step">Step 4: the command co-rotates.</span>
+      <p>The projector transforms as P<sub>Q</sub> = I &minus; &beta;t<sub>Q</sub>t<sub>Q</sub>&#8868; = QPQ&#8868;, so P<sub>Q</sub>&nabla;s&#770;<sub>1,Q</sub> = QP&nabla;s&#770;<sub>1</sub>. The saturation in (28) acts on a vector by scaling its magnitude, which is invariant, and preserving its direction, which co-rotates; the ride term is a scalar multiple of t<sub>Q</sub> = Qt. Summing the two terms of (28) gives &delta;<sub>Q</sub> = Q&delta;, and integrating (30) gives p<sub>c,Q</sub>(t) = Q(t)p<sub>c</sub>(t) up to the frame-transport term.</p>
+
+      <span class="step">Step 5: the single exception.</span>
+      <p>The degenerate guard of Section IV-C reads the measured flow directly, and the flow is not objective: in the rotating frame it carries Q&#775;Q&#8868;p<sub>Q</sub>, which has no inertial counterpart. The guard is reachable only on the first tracking step, when r < r<sub>band</sub> with no previous tangent, and the same flow fallback supplies the sign reference on the first invocation of the ride. At that one instant the resolved sign need not agree between frames. From the second step onward, Step 3 carries the orientation by continuity alone, which is covariant.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>Two things I dropped deliberately.</b> The closing sentence of the current proof ("This is the same single-instant caveat the D tracker's own ride mode carries for its own tangent seed") is a comparison, not a step, and it already appears in IV-C and again in VII-C. And the enumeration of which named modes are covered by which argument disappears entirely: with vector saturation, Step 4 covers every branch of (28) in one line, which is a better advertisement for the design than a list.
+  </div>
+</section>
+
+<!-- ===================== 06 BODY ===================== -->
+<section id="body">
+  <h2 class="sec"><span class="num">06</span>What moves into the body</h2>
+  <p class="lede">Three small insertions. Together they are about 0.12 col and they are what makes the deletions safe.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">From</th><th>Insert</th><th class="mono">Into</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="mono">A7</td>
+        <td>The exponential rate. After the sentence in IV-D that gives (33), add: for |n| &le; c<sub>max</sub> the saturation satisfies tanh(n/c<sub>max</sub>) &ge; n tanh(1)/c<sub>max</sub>, so &frac12;n&sup2; decays at rate at least 2 tanh(1). One sentence, and it is the only quantitative content Lemma 2 had.</td>
+        <td class="mono">IV-D</td>
+      </tr>
+      <tr>
+        <td class="mono">A7</td>
+        <td>The footnote on the exact double-gyre form, that the true transverse Newton argument is &minus;tan(2&pi;n)/(2&pi;) rather than &minus;n, which shares the sign of n and has magnitude at least |n| for |n| &lt; 1/4, so the contraction is at least as fast. Keep it as a footnote; it is a genuine observation and it pre-empts a reader who checks (8) against (32).</td>
+        <td class="mono">IV-D footnote</td>
+      </tr>
+      <tr>
+        <td class="mono">A2, A4</td>
+        <td>Number minimality and the pentagon corollary in III-A on the integer scheme, so the appendix stops citing "Proposition III-A" and "Corollary III-A" as formal statements that do not exist. The arguments themselves are already written there.</td>
+        <td class="mono">III-A</td>
+      </tr>
+      <tr>
+        <td class="mono">A5</td>
+        <td>In III-D, after Lemma 1's statement, replace "The proof&hellip; is in Appendix A" with a pointer to the supplementary derivation plus the sentence that the gains were verified over 2&times;10<sup>5</sup> draws to within 0.3%, which III-D already reports two paragraphs later.</td>
+        <td class="mono">III-D</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout win">
+    <b>Side effect worth having.</b> Once A2, A3, and A4 are gone, Appendix A contains nothing about the estimator at all &mdash; it is purely the control-theoretic results. That is a cleaner division than the current one, where a reader hunting for the traversal proof has to page past three formation-geometry arguments they already read in Section III.
+  </div>
+</section>
+
+<!-- ===================== 07 LEDGER ===================== -->
+<section id="ledger">
+  <h2 class="sec"><span class="num">07</span>Ledger</h2>
+
+  <div class="ledger">
+    <h3>Appendix A, before and after</h3>
+    <div class="bar">
+      <span style="width:2.8%;background:#9E2A22" title="preamble"></span>
+      <span style="width:3.3%;background:#A8352D" title="Prop III-A"></span>
+      <span style="width:3.3%;background:#B24036" title="Prop 1"></span>
+      <span style="width:2.8%;background:#BC4B3F" title="Cor III-A"></span>
+      <span style="width:7.2%;background:#C55648">A5</span>
+      <span style="width:10%;background:#2F6F55">A6</span>
+      <span style="width:15.6%;background:#B08415">A7</span>
+      <span style="width:19.4%;background:#BE9226">A8</span>
+      <span style="width:11.1%;background:#3A7F63">A9</span>
+      <span style="width:24.4%;background:#468F71">A10</span>
+    </div>
+    <div class="scale"><span>current, 1.80 col</span><span>red = delete &nbsp;&middot;&nbsp; amber = absorb &nbsp;&middot;&nbsp; green = keep</span></div>
+    <div class="bar" style="width:52.8%">
+      <span style="width:33.7%;background:#2F6F55">Thm 1, 0.32</span>
+      <span style="width:40%;background:#3A7F63">Thm 2, 0.38</span>
+      <span style="width:26.3%;background:#468F71">Prop 2, 0.25</span>
+    </div>
+    <div class="scale"><span>after, 0.95 col</span><span>&minus;47%</span></div>
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Line</th><th class="num">Col</th></tr></thead>
+    <tbody>
+      <tr><td>Appendix A as it stands</td><td class="num">1.80</td></tr>
+      <tr><td>Deleted outright (A1, A2, A3, A4)</td><td class="num">&minus;0.22</td></tr>
+      <tr><td>Relocated to supplementary (A5)</td><td class="num">&minus;0.13</td></tr>
+      <tr><td>Lemma 2 removed, three lines to IV-D (A7)</td><td class="num">&minus;0.28</td></tr>
+      <tr><td>Lemma 3 folded into Theorem 2, table dropped (A8)</td><td class="num">&minus;0.35</td></tr>
+      <tr><td>Theorem 1 proof expanded (A6, 0.18 &rarr; 0.32)</td><td class="num">+0.14</td></tr>
+      <tr><td>Theorem 2 proof expanded, absorbing A8 (A9, 0.20 &rarr; 0.38)</td><td class="num">+0.18</td></tr>
+      <tr><td>Proposition 2 proof deduplicated (A10, 0.44 &rarr; 0.25)</td><td class="num">&minus;0.19</td></tr>
+      <tr><td>Insertions into III-A, III-D, IV-D (&sect;06)</td><td class="num">+0.12</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td>Net change to the manuscript</td><td class="num">&minus;0.73 col</td></tr>
+    </tfoot>
+  </table>
+  </div>
+
+  <div class="callout">
+    <b>Against the page target.</b> Roughly three quarters of a column, so about 0.37 pages of the 1.5 you are looking for, from the appendix alone. The remaining page and a bit has to come from the body, and the two candidates that cost nothing scientifically are still the ocean figures, which share a base map and a colorbar and want to be one two-panel figure, and the park-versus-traverse ablation, which is one threshold and two trajectories carried by a single number.
+  </div>
+
+  <div class="callout warn">
+    <b>The one thing not to do.</b> If the 75% figure is load-bearing for some other reason, the temptation will be to cut Theorem 2's proof, since it is the longest survivor and its statement reads plausibly on its own. Do not. It is the only formal support for the D tracker's traversal claim, that claim is one of the paper's four stated contributions, and the finite-time bound L<sub>&Gamma;</sub>/m is meaningless without Step 2. Proposition 2 to supplementary is the safer lever if you truly need another quarter column, and even that costs you the theoretical half of the objectivity result.
+  </div>
+
+  <p class="footer">Appendix A audit. Column estimates assume T-RO two-column format. Replacement text is drafted to slot in directly, with c<sub>max</sub> used throughout on the assumption the symbol conflict with Table I is resolved in the same pass.</p>
+</section>
+
+</main>
+</div>
+</body>
+</html>

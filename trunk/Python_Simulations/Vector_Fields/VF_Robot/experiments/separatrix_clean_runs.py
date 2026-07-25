@@ -46,6 +46,9 @@ V_MAX, GAIN = 0.04, 3.0
 EPS_RAW, EPS_DIM = 1e-3, 0.025
 SIM_STEPS = 600
 A = 0.1
+# Selector-mode occupancy strip beneath the trajectory panel. Off by
+# default; --mode-strip restores it. See the note in main().
+SHOW_MODE_STRIP = False
 BAND_X = 0.05          # |x_c| threshold for time-to-band
 BAND_HOLD = 10         # consecutive steps required
 
@@ -137,10 +140,20 @@ def main():
     except Exception:
         commit = "unknown"
 
-    fig = plt.figure(figsize=(7.0, 5.3))
-    gs = fig.add_gridspec(2, 1, height_ratios=[3.0, 1.35], hspace=0.30)
-    ax = fig.add_subplot(gs[0])
-    ax_m = fig.add_subplot(gs[1])
+    # The mode-occupancy strip is off by default: Draft_5c describes both
+    # controllers by the single command of Eq. (d_law) rather than by named
+    # selector modes, so FLOW/SLIDE/ATTRACT labels have no definition in the
+    # paper body. Per-mode fractions are still written to the CSV. Pass
+    # --mode-strip to restore the two-panel figure.
+    if SHOW_MODE_STRIP:
+        fig = plt.figure(figsize=(7.0, 5.3))
+        gs = fig.add_gridspec(2, 1, height_ratios=[3.0, 1.35], hspace=0.30)
+        ax = fig.add_subplot(gs[0])
+        ax_m = fig.add_subplot(gs[1])
+    else:
+        fig = plt.figure(figsize=(7.0, 3.9))
+        ax = fig.add_subplot(1, 1, 1)
+        ax_m = None
     # streamlines + D=0 contour
     gx = np.linspace(-1, 1, 240)
     gy = np.linspace(-0.5, 0.5, 120)
@@ -200,27 +213,28 @@ def main():
     # the selector of Eq. (27): FLOW includes FLOW_DRIFT, ATTRACT
     # includes ATTRACT_FALLBACK; exact per-mode fractions stay in the
     # CSV. Palette: validated categorical steps (dataviz skill).
-    FAMILY = {"FLOW": 0, "FLOW_DRIFT": 0, "SLIDE": 1,
-              "ATTRACT": 2, "ATTRACT_FALLBACK": 2}
-    FAM_COLORS = ["#2a78d6", "#1baf7a", "#eb6834"]
-    FAM_LABELS = ["FLOW", "SLIDE", "ATTRACT"]
-    from matplotlib.patches import Patch
-    for i, (name, sx, sy, r) in enumerate(rows):
-        fams = [FAMILY[d["mode"]] for d in r["diag"]]
-        k0 = 0
-        for k in range(1, len(fams) + 1):
-            if k == len(fams) or fams[k] != fams[k0]:
-                ax_m.broken_barh([(k0, k - k0)], (i - 0.38, 0.76),
-                                 facecolors=FAM_COLORS[fams[k0]])
-                k0 = k
-    ax_m.set_yticks(range(len(rows)))
-    ax_m.set_yticklabels([row[0] for row in rows], fontsize=8)
-    ax_m.set_ylim(len(rows) - 0.5, -0.5)
-    ax_m.set_xlabel("control step", fontsize=9)
-    ax_m.tick_params(labelsize=8)
-    ax_m.legend(handles=[Patch(facecolor=c, label=l)
-                         for c, l in zip(FAM_COLORS, FAM_LABELS)],
-                loc="lower right", frameon=False, fontsize=7.5, ncol=3)
+    if ax_m is not None:
+        FAMILY = {"FLOW": 0, "FLOW_DRIFT": 0, "SLIDE": 1,
+                  "ATTRACT": 2, "ATTRACT_FALLBACK": 2}
+        FAM_COLORS = ["#2a78d6", "#1baf7a", "#eb6834"]
+        FAM_LABELS = ["FLOW", "SLIDE", "ATTRACT"]
+        from matplotlib.patches import Patch
+        for i, (name, sx, sy, r) in enumerate(rows):
+            fams = [FAMILY[d["mode"]] for d in r["diag"]]
+            k0 = 0
+            for k in range(1, len(fams) + 1):
+                if k == len(fams) or fams[k] != fams[k0]:
+                    ax_m.broken_barh([(k0, k - k0)], (i - 0.38, 0.76),
+                                     facecolors=FAM_COLORS[fams[k0]])
+                    k0 = k
+        ax_m.set_yticks(range(len(rows)))
+        ax_m.set_yticklabels([row[0] for row in rows], fontsize=8)
+        ax_m.set_ylim(len(rows) - 0.5, -0.5)
+        ax_m.set_xlabel("control step", fontsize=9)
+        ax_m.tick_params(labelsize=8)
+        ax_m.legend(handles=[Patch(facecolor=c, label=l)
+                             for c, l in zip(FAM_COLORS, FAM_LABELS)],
+                    loc="lower right", frameon=False, fontsize=7.5, ncol=3)
     fig.tight_layout()
     out_png = os.path.join(OUT_DIR, "separatrix_trajectories.png")
     fig.savefig(out_png, dpi=300, bbox_inches="tight")
@@ -269,4 +283,12 @@ def main():
 
 
 if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--mode-strip", action="store_true",
+                    help="restore the selector-mode occupancy strip beneath "
+                         "the trajectory panel (off by default; the paper "
+                         "does not name selector modes)")
+    if ap.parse_args().mode_strip:
+        SHOW_MODE_STRIP = True
     main()

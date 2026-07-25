@@ -1450,13 +1450,13 @@ $v_{\text{max,robot}}$ & 0.3 & 0.3 & 25.5~m/s & robot speed limit \\
 $v_{\text{stiction}}$ & 0.025 & 0.002 & 0.17~m/s & stiction floor \\
 $\alpha_{\text{mom}}$ & 0.7 & 0 & --- & momentum coefficient \\
 $\rho$ & 0.075 & 0.105 ($1.4\times$) & 5.4~km & formation ring radius \\
-$\varepsilon_{\text{raw}}$ & $10^{-3}$ & $10^{-3}$ & --- & FLOW-band raw thr. (s$^{-2}$) \\
-$\varepsilon_{\text{dim}}$ & 0.025 & 0.025 & --- & FLOW-band curv.-norm. thr. (m$^2$) \\
+$\varepsilon_{\text{raw}}$ & $10^{-3}$ & $10^{-3}$ & --- & on-structure raw thr. (s$^{-2}$) \\
+$\varepsilon_{\text{dim}}$ & 0.025 & 0.025 & --- & on-structure curv.-norm. thr. (m$^2$) \\
 $g_\perp$ & 1.0 & 1.0 & --- & $s_1$-descent gain (m$^2$) \\
 $s_{\text{trim}}$ & 0.05 & 0.3 & --- & attraction-dominance thr. (s$^{-1}$) \\
 $s_{\text{capture}}$ & unset & unset & --- & optional early-park thr. (s$^{-1}$) \\
-$g_{\text{capture}}$ & 0.15 & 0.15 & --- & CAPTURE gradient-mag. thr. (s$^{-1}$m$^{-1}$) \\
-$r_{\text{band}}$ & 0.05 & 0.05 & --- & CROSS strain-mag. thr. (s$^{-1}$) \\
+$g_{\text{capture}}$ & 0.15 & 0.15 & --- & terminal gradient-mag. thr. (s$^{-1}$m$^{-1}$) \\
+$r_{\text{band}}$ & 0.05 & 0.05 & --- & eigenframe-resolution thr. (s$^{-1}$) \\
 \hline
 \end{tabular}
 \end{table}
@@ -1510,14 +1510,20 @@ realistic cruise speed rather than a demonstration of the cap.
 Four experiment families validate the trackers.
 
 \subsubsection{Double-gyre clean runs}
-Each tracker runs noise-free from six initial conditions spanning both
-gyre halves, the origin, and points off the structure entirely,
-verifying the designed mode sequences and terminal behaviors against the
-analytic geometry of Section~\ref{sec:dg_example}. For the $D$ tracker, a
-park-versus-traverse pair (Section~\ref{sec:park_vs_traverse}) runs both
-settings of $D_{\text{capture}}$ from the same start; the $s_1$ tracker's
-own capture test is unconditional by design and needs no such pair
-(Section~\ref{sec:oecs_controller}).
+Each tracker runs noise-free from the same six initial conditions,
+spanning both gyre halves, the origin, and points off the structure
+entirely, checked against the analytic geometry of
+Section~\ref{sec:dg_example}. Each run records the step at which the
+centroid first reaches the trench and holds it, the closest approach to
+each saddle, and whether the run settles at a saddle or continues
+through it onto the crossing wall trench. Running both trackers from
+identical starts also gives the pairwise path gap between them, the mean
+nearest-point distance over the portion of the run where both are on the
+structure. For the $D$ tracker, a park-versus-traverse pair
+(Section~\ref{sec:park_vs_traverse}) runs both settings of
+$D_{\text{capture}}$ from the same start; the $s_1$ tracker's own
+terminal test (\ref{eq:capture_test}) is unconditional by design and
+needs no such pair.
 
 \subsubsection{Monte Carlo noise sweeps}
 Noise robustness is evaluated over a two-dimensional noise grid from
@@ -1532,7 +1538,7 @@ random-walk floor does not), and $\sigma_p \in
 \{0,\, 0.005,\, 0.01,\, 0.02,\, 0.05\}$ m, at 10\,000 trials per cell of
 at most 500 steps each. Every trial draws an independent initial
 heading, testing the isotropy prediction of Lemma~\ref{lem:gains}.
-Task success is reaching the tracker's terminal target (centroid
+Task success is reaching the terminal target (centroid
 within 0.06) without formation collapse (root-mean-square error of the
 fifteen inter-robot distances, all 15 pairs among the six robots, from
 their nominal values exceeding 0.30, four times the formation radius
@@ -1546,29 +1552,47 @@ robustness metric for this paper's trials; no numerical comparison
 with the values reported in \cite{9} is implied, since the field, the
 formation, and the noise model all differ.
 
-Both controllers are scored against the same terminal target, the
-bottom saddle $\mathbf{p}^*_1$ that a noise-free ride from this start
-reaches for either: the $D$ tracker's selector always continues toward
-it by design, and the $s_1$ tracker's flow-seeded tangent
-(Section~\ref{sec:oecs_controller}) also commits toward it at zero and
-near-zero noise, since the local flow direction at $(0, 0.35)$ points
-that way. Contact with the other saddle, $\mathbf{p}^*_2$, does not
-count as success for either tracker; for the $s_1$ tracker specifically,
-it is scored as the controller having substituted an easier, shorter
-task rather than having ridden the separatrix, since noise can flip
-which saddle its one-time tangent-sign read commits to
-(Section~\ref{sec:results_oecs}). The prediction under test is the
-location of the failure cliff, which the estimator analysis places at
-$\sigma_{uv} \approx 0.01$ for the transverse-tracking mechanism common
-to both controllers; Fig.~\ref{fig:flip_resolution} shows the $s_1$
-tracker's own cliff falls earlier, at $\sigma_{uv} \approx 0.002$, set
-by the tangent-sign read rather than by transverse tracking, while
-straddle retention and tracking error test whether the first-order
-eigenframe buys measurable robustness on the structure once that sign
-is resolved correctly.
+Both trackers are scored against one and the same terminal target, the
+far saddle $\mathbf{p}^*_1 = (0, -0.5)$ that a noise-free run from this
+start reaches for either. This is the point of the comparison: $D$ and
+$s_1$ are two surrogates for the same object, so the fair test holds the
+object fixed and varies only the surrogate. The $D$ tracker's command
+continues toward $\mathbf{p}^*_1$ by construction. The $s_1$ tracker's
+tangent seed (\ref{eq:tangent_select}) also commits toward it at zero
+noise, in every one of the 10\,000 noise-free trials, because the
+ambient flow at $(0, 0.35)$ points down the separatrix even though the
+near saddle $\mathbf{p}^*_2 = (0, 0.5)$ is only $0.15$ away against
+$\mathbf{p}^*_1$'s $0.85$. Contact with $\mathbf{p}^*_2$ therefore does
+not count as success. For the $s_1$ tracker this is a substantive
+choice, not a bookkeeping one: a run that settles at the near saddle has
+ridden the separatrix in the wrong direction, a failure of the same kind
+as losing the structure altogether, and scoring it as success would
+replace the task with a shorter one exactly where the harder one starts
+to fail. Runs terminating at either saddle are also counted separately,
+as a diagnostic that separates riding the wrong way from losing the
+structure.
+
+Two mechanics of the $s_1$ sweep differ from the $D$ tracker's and are
+reported for reproducibility. The domain exit box is widened to
+$|y| \leq 0.60$, because the terminal descent of (\ref{eq:oecs_law})
+approaches the saddle along the same saturated gradient that holds it
+and can overshoot $y = 0.5$ by a few centimetres before the restoring
+term catches it; at the $D$ tracker's own $0.52$ box those runs are
+scored as domain exits while still converging. The step budget, start,
+contact radius, and collapse guard are identical between the two sweeps.
+
+The prediction under test is the location of the failure cliff, which
+the estimator analysis places at $\sigma_{uv} \approx 0.01$ for the
+transverse-tracking mechanism common to both trackers. The $s_1$
+tracker's own transition is resolved at $0.0005$ spacing on each noise
+axis separately (Fig.~\ref{fig:flip_resolution}), to test whether it is
+set by transverse tracking at all or by the one-time tangent seed.
+Straddle retention and tracking error test whether the first-order
+eigenframe buys measurable robustness on the structure once that seed
+resolves correctly.
 
 \subsubsection{Objectivity demonstration}
-Both controllers run on the same physical double gyre expressed in two
+Both trackers run on the same physical double gyre expressed in two
 observer frames: the inertial frame, and a frame rotating at
 $\Omega = 0.2$ rad/s, in which the field is
 $\mathbf{v}'(\mathbf{p}', t) = \mathbf{Q}\mathbf{v}(\mathbf{Q}^\top
@@ -1577,7 +1601,8 @@ $2\Omega = 0.4$ is 20\% of the gyre-core vorticity; the rate keeps the
 structure's apparent speed at the tracked radius, $\Omega r \leq 0.10$,
 inside the command authority $k\,c_{\max} = 0.12$. Rotating-frame
 trajectories are pulled back to inertial coordinates and compared with
-the inertial run of the same controller;
+the inertial run of the same tracker, both by their final separation and
+by each run's mean distance to the true trench network.
 Proposition~\ref{prop:equivariance} predicts near-zero gaps for the
 $s_1$ tracker and offers no such protection to the $D$ tracker, whose
 surrogate obeys (\ref{eq:D_not_objective}).
@@ -1588,7 +1613,10 @@ Ocean operating point of Table~\ref{tab:params}, evaluated against
 ground truth computed offline from the full radar grid: 24-h
 forward-time FTLE fields for the $D$ tracker and TRAP cores (local
 minima of $s_1$ per hourly frame) for the $s_1$ tracker; a $10 \times
-10$ grid of jittered starts tests start sensitivity.
+10$ grid of jittered starts tests start sensitivity for the $D$ tracker,
+and a set of twelve dispersed starts does the same for the $s_1$
+tracker, whose terminal test admits any strain minimum the ride reaches
+rather than one designated target.
 
 \section{Results}
 \label{sec:results}
