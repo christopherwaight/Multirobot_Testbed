@@ -116,12 +116,36 @@ def main():
         commit = "unknown"
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
+    # Per-cell checkpoint: append each cell as it finishes so an interrupted
+    # multi-hour run resumes instead of starting over.  Only rows matching the
+    # current --trials are reused.  Delete the file to force a clean run.
+    ckpt_path = os.path.join(OUT_DIR, "checkpoint_flip_resolution_sigma_p.csv")
+    done = {}
+    if os.path.exists(ckpt_path):
+        with open(ckpt_path) as f:
+            for line in f:
+                p = line.strip().split(",")
+                if len(p) == 5 and int(float(p[4])) == args.trials:
+                    done[float(p[0])] = (float(p[1]), float(p[2]), float(p[3]))
+        if done:
+            print(f"  checkpoint: resuming, {len(done)} cells already done")
+
     rows = []
     print(f"Resolving the sigma_p flip: sigma_uv={SIGMA_UV}, {args.trials} "
           f"trials/cell, {len(SIGMA_P_POINTS)} sigma_p points from 0.0005 "
           f"to 0.005:")
     with Pool(args.workers) as pool:
         for s_p in SIGMA_P_POINTS:
+            if s_p in done:
+                sr, sg, sd = done[s_p]
+                rows.append({"sigma_uv": SIGMA_UV, "sigma_p": s_p,
+                             "success_single_target": sr,
+                             "far_saddle_sign_rate": sg,
+                             "success_straddle": sd})
+                print(f"  sigma_p={s_p:<7} success={sr:6.1%}  "
+                      f"sign_rate={sg:6.1%}  straddle={sd:6.1%}  "
+                      f"(from checkpoint)", flush=True)
+                continue
             specs = cell_specs(s_p, args.trials)
             out = list(pool.imap_unordered(_worker, specs, chunksize=16))
             n = len(out)
@@ -156,6 +180,12 @@ def main():
                 "far_saddle_sign_rate": round(sign_rate, 4),
                 "success_straddle": round(straddle_rate, 4),
             })
+            with open(ckpt_path, "a") as cf:
+                cf.write(f"{s_p},{round(success_rate, 4)},"
+                         f"{round(sign_rate, 4)},{round(straddle_rate, 4)},"
+                         f"{args.trials}\n")
+                cf.flush()
+                os.fsync(cf.fileno())
             print(f"  sigma_p={s_p:<7} success={success_rate:6.1%}  "
                   f"sign_rate={sign_rate:6.1%}  straddle={straddle_rate:6.1%}",
                   flush=True)

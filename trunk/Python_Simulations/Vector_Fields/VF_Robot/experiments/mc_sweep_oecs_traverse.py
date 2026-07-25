@@ -109,11 +109,88 @@ def cell_specs(sigma_uv, sigma_p, n_trials):
              "seed": (base + 7919 * t) % (2**31)} for t in range(n_trials)]
 
 
+TRIAL_COLS = ["sigma_uv", "sigma_p", "seed", "start_x", "start_y", "heading",
+              "t_band", "steps", "success_traverse", "success_band",
+              "success_straddle", "first_straddle", "collapsed",
+              "track_mean", "track_p95", "shape_rms_max", "effort",
+              "final_x", "final_y"]
+
+# Per-cell checkpoint.  A 10,000-trial run takes hours and previously wrote
+# nothing until the very end, so any interruption threw the whole run away
+# (lost a 42-minute run at cell 41 of 60 on 2026-07-24).  Every completed
+# cell is now appended here immediately; a restart with the same --trials
+# skips the cells already present.  Delete this file to force a clean run.
+CKPT_PATH = os.path.join(OUT_DIR, "checkpoint_trials.csv")
+
+
+def _fmt(r):
+    return ",".join(f"{r[c]:.6g}" if isinstance(r[c], float) else str(r[c])
+                    for c in TRIAL_COLS)
+
+
+def load_checkpoint(n_trials):
+    """Return (rows, summary) for cells already complete in the checkpoint.
+
+    A cell counts only if it holds exactly n_trials rows, so a cell that was
+    interrupted mid-write is discarded and simply rerun.
+    """
+    rows, summary = [], {}
+    if not os.path.exists(CKPT_PATH):
+        return rows, summary
+
+    by_cell = {}
+    with open(CKPT_PATH) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or line.startswith("sigma_uv,"):
+                continue
+            parts = line.split(",")
+            if len(parts) != len(TRIAL_COLS):
+                continue
+            rec = {}
+            for c, p in zip(TRIAL_COLS, parts):
+                try:
+                    rec[c] = float(p)
+                except ValueError:
+                    rec[c] = p
+            by_cell.setdefault((rec["sigma_uv"], rec["sigma_p"]), []).append(rec)
+
+    for key, out in sorted(by_cell.items()):
+        if len(out) != n_trials:
+            print(f"  checkpoint: cell {key} has {len(out)} of {n_trials} "
+                  f"trials, will rerun", flush=True)
+            continue
+        rows.extend(out)
+        summary[key] = (np.mean([r["success_traverse"] for r in out]),
+                        np.mean([r["success_band"] for r in out]),
+                        np.mean([r["success_straddle"] for r in out]),
+                        np.mean([r["track_mean"] for r in out]),
+                        np.mean([r["track_p95"] for r in out]))
+    if summary:
+        print(f"  checkpoint: resuming, {len(summary)} cells already done",
+              flush=True)
+    return rows, summary
+
+
 def run_cells(pool, cells, n_trials, rows, summary):
     for s_uv, s_p in cells:
+        if (s_uv, s_p) in summary:
+            st, sb, ss, tm, tp = summary[(s_uv, s_p)]
+            print(f"  sigma_uv={s_uv:<6} sigma_p={s_p:<6} "
+                  f"capture={st:5.1%} band={sb:5.1%} straddle={ss:5.1%} "
+                  f"track_mean={tm:.4f} p95={tp:.4f}  (from checkpoint)",
+                  flush=True)
+            continue
         specs = cell_specs(s_uv, s_p, n_trials)
         out = list(pool.imap_unordered(_worker, specs, chunksize=16))
         rows.extend(out)
+        # Append before summarizing: if this dies mid-cell the partial rows
+        # are discarded on reload (count != n_trials) and the cell reruns.
+        with open(CKPT_PATH, "a") as f:
+            for r in out:
+                f.write(_fmt(r) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
         st = np.mean([r["success_traverse"] for r in out])
         sb = np.mean([r["success_band"] for r in out])
         ss = np.mean([r["success_straddle"] for r in out])
@@ -140,7 +217,7 @@ def main():
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     sigma_uv_levels = list(SIGMA_UV_BASE)
-    rows, summary = [], {}
+    rows, summary = load_checkpoint(args.trials)
 
     with Pool(args.workers) as pool:
         print(f"Base grid ({len(sigma_uv_levels)}x{len(SIGMA_P_BASE)} "
@@ -168,17 +245,12 @@ def main():
               f"# start: {mc.FIXED_START}  band_x: {mc.BAND_X}  "
               f"collapse_rms: {mc.COLLAPSE_RMS}\n")
 
-    cols = ["sigma_uv", "sigma_p", "seed", "start_x", "start_y", "heading",
-            "t_band", "steps", "success_traverse", "success_band",
-            "success_straddle", "first_straddle", "collapsed",
-            "track_mean", "track_p95", "shape_rms_max", "effort",
-            "final_x", "final_y"]
+    cols = TRIAL_COLS
     with open(os.path.join(OUT_DIR, "trials_fixed.csv"), "w") as f:
         f.write(header)
         f.write(",".join(cols) + "\n")
         for r in rows:
-            f.write(",".join(f"{r[c]:.6g}" if isinstance(r[c], float)
-                             else str(r[c]) for c in cols) + "\n")
+            f.write(_fmt(r) + "\n")
 
     with open(os.path.join(OUT_DIR, "summary_fixed.csv"), "w") as f:
         f.write(header)
