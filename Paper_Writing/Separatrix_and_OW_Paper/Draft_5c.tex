@@ -1421,8 +1421,8 @@ time constant $\tau = -\Delta t/\ln\alpha_{\text{mom}} \approx 0.28$~s
 at $\Delta t = 0.1$~s, consistent with the identified Decabot lag, a
 speed limit, and a stiction floor.
 The trackers saturate every command channel through
-$v_{\max}\tanh(c/v_{\max})$, so the commanded centroid speed never
-exceeds $\sqrt{2}\,v_{\max}$; the primitive command is amplified by a
+$c_{\max}\tanh(c/c_{\max})$, so the commanded centroid speed never
+exceeds $\sqrt{2}\,c_{\max}$; the primitive command is amplified by a
 fixed navigation gain $k$ so that steady commands clear the stiction
 floor. Table~\ref{tab:params} collects all robot and controller
 parameters, fixed across every experiment unless noted;
@@ -1444,7 +1444,7 @@ world unit is approximately 51~km at the ocean site
 \hline
 \textbf{Sym.} & \textbf{Decabot} & \textbf{Ocean} & \textbf{Ocean (phys.)} & \textbf{Description} \\
 \hline
-$v_{\max}$ & 0.04 & 0.04 & 3.4~m/s & primitive saturation speed \\
+$c_{\max}$ & 0.04 & 0.04 & 3.4~m/s & primitive saturation speed \\
 $k$ & 3.0 & 1.8 & --- & navigation gain \\
 $v_{\text{max,robot}}$ & 0.3 & 0.3 & 25.5~m/s & robot speed limit \\
 $v_{\text{stiction}}$ & 0.025 & 0.002 & 0.17~m/s & stiction floor \\
@@ -1497,7 +1497,7 @@ analogue. The navigation gain is retuned to $k = 1.8$; empirically this
 lets the tracker follow the ridge branch that makes landfall on the
 middle island rather than continuing east past it. With $168$ steps the
 trial spans $28$~h, the full archived record. The commanded speed cap
-at this operating point, $k\sqrt{2}\,v_{\max} \approx 8.7$~m/s, is far
+at this operating point, $k\sqrt{2}\,c_{\max} \approx 8.7$~m/s, is far
 above what any ASV formation sustains, but is rarely approached: the
 $D$ tracker's own 28-h run (Section~\ref{sec:results_ocean}) covers its
 path at a mean realized speed of roughly $0.5$~m/s, an underestimate
@@ -1575,7 +1575,7 @@ $\mathbf{v}'(\mathbf{p}', t) = \mathbf{Q}\mathbf{v}(\mathbf{Q}^\top
 \mathbf{p}') + \Omega\,(-y', x')^\top$. The added solid-body vorticity
 $2\Omega = 0.4$ is 20\% of the gyre-core vorticity; the rate keeps the
 structure's apparent speed at the tracked radius, $\Omega r \leq 0.10$,
-inside the command authority $k\,v_{\max} = 0.12$. Rotating-frame
+inside the command authority $k\,c_{\max} = 0.12$. Rotating-frame
 trajectories are pulled back to inertial coordinates and compared with
 the inertial run of the same controller;
 Proposition~\ref{prop:equivariance} predicts near-zero gaps for the
@@ -2238,201 +2238,203 @@ robots, or a reduced-order estimator.
 \section{Proofs}
 \label{app:proofs}
 
-This appendix collects the proofs. The formal statements of
-Proposition~\ref{prop:minimality} (minimality), Proposition~\ref{prop:conic}
-(conic criterion), Corollary~\ref{cor:pentagon} (pentagon plus center), and
-Remark~\ref{rem:minimality_priors} (minimality and structural priors) are
-in Section~\ref{sec:estimation}, restated here only where their proofs
-need them.
-
-\begin{IEEEproof}[Proof of Proposition~\ref{prop:minimality}]
-With $N < 6$, $\boldsymbol{\Phi} \in \mathbb{R}^{N \times 6}$ has a
-nontrivial null space, so $\boldsymbol{\theta}_u$ and
-$\boldsymbol{\theta}_u + \boldsymbol{\theta}_0$ with
-$\boldsymbol{\Phi}\boldsymbol{\theta}_0 = \mathbf{0}$,
-$\boldsymbol{\theta}_0 \neq \mathbf{0}$, generate identical
-measurements: no estimator can select between them. With $N = 6$,
-(\ref{eq:solve}) is uniquely solvable iff $\det(\boldsymbol{\Phi})
-\neq 0$.
-\end{IEEEproof}
-
-\begin{IEEEproof}[Proof of Proposition~\ref{prop:conic}]
-$\boldsymbol{\Phi}$ is singular iff its columns are linearly dependent,
-iff there is a nonzero coefficient vector $\mathbf{c}$ with
-$\boldsymbol{\phi}(\mathbf{p}_i)^\top \mathbf{c} = 0$ for all
-$i$. The function $q = \boldsymbol{\phi}^\top \mathbf{c}$ is precisely a
-nonzero polynomial of degree at most two vanishing at all six points.
-\end{IEEEproof}
-
-\begin{IEEEproof}[Proof of Corollary~\ref{cor:pentagon}]
-The five vertices are in general position, so they determine a unique
-conic, their circumscribed circle, which misses the center: no conic
-passes through all six points, and Proposition~\ref{prop:conic}
-applies.
-\end{IEEEproof}
-
 \begin{IEEEproof}[Proof of Lemma~\ref{lem:gains}]
-The value coefficient is exact: every basis function except the constant
-vanishes at the origin, so interpolation forces $\hat{a}_1$ to equal the
-center robot's reading, giving unit gain. The remaining rows follow from
-direct inversion of $\boldsymbol{\Phi}$ using the fifth roots of unity;
-the row norms reduce to the stated constants, and repeating the
-computation with an arbitrary ring phase leaves them unchanged. The
-error covariance of the estimated gradient is in fact isotropic,
-$\tfrac{4}{10}\sigma_{uv}^2\,\rho^{-2}\mathbf{I}$, for every heading.
+Place the ring robots at $\mathbf{p}_j = \rho(\cos\theta_j,
+\sin\theta_j)$ with $\theta_j = \psi + 2\pi j/5$, $j = 0, \ldots, 4$, and
+the sixth robot at the centroid, leaving the ring phase $\psi$ free.
+
+Every entry of $\boldsymbol{\Phi}^\top\boldsymbol{\Phi}$ is a ring sum of
+a monomial in $\cos\theta_j, \sin\theta_j$ of degree at most four, hence
+a combination of $\sum_j e^{in\theta_j} = e^{in\psi}\sum_j\omega^{jn}$
+with $\omega = e^{2\pi i/5}$ and $|n| \leq 4$. Since $\sum_j\omega^{jn}
+= 0$ unless $n \equiv 0 \pmod 5$, only $n = 0$ survives, and it carries
+no $\psi$: every power sum through fourth order is phase-independent.
+The odd sums vanish and the even ones are $\sum_j\cos^2\theta_j =
+\sum_j\sin^2\theta_j = \tfrac{5}{2}$, $\sum_j\cos^4\theta_j =
+\tfrac{15}{8}$, and $\sum_j\cos^2\theta_j\sin^2\theta_j = \tfrac{5}{8}$.
+
+The gains follow. Every basis function of (\ref{eq:basis}) except the
+constant vanishes at the origin, so the center robot's reading fixes
+$\hat{a}_1$ and $\sigma_{a_1} = \sigma_{uv}$. The vanishing odd sums
+leave the linear block orthogonal to the constant and quadratic blocks,
+so the system separates; the linear block inverts against
+$\tfrac{5}{2}\rho^2$ and the quadratic block against the fourth-order
+sums scaled by $\rho^4$. Row norms of $\boldsymbol{\Phi}^{-1}$ then give
+(\ref{eq:gain_grad}) and (\ref{eq:gain_hess}). No power sum depends on
+$\psi$, so neither do the gains. The gradient rows are orthogonal with
+equal norm, making the gradient block of $\sigma_{uv}^2
+\boldsymbol{\Phi}^{-1}\boldsymbol{\Phi}^{-\top}$ exactly
+$\tfrac{4}{10}\sigma_{uv}^2\rho^{-2}\mathbf{I}$, isotropic for every
+heading.
 \end{IEEEproof}
 
 \begin{IEEEproof}[Proof of Theorem~\ref{thm:attract}]
-Since $\nabla V_A = \mathbf{H}_D \mathbf{g}$,
-$\dot{V}_A = \mathbf{g}^\top \mathbf{H}_D \boldsymbol{\delta}
-= -\sum_k v_{\max} \tanh(z_k/v_{\max})\,
-\mathbf{g}^\top \mathbf{H}_D \mathbf{w}_k
-= -\sum_k v_{\max} \tanh(z_k/v_{\max})\,\lambda_k
-(\mathbf{w}_k^\top\mathbf{g})$, and $\lambda_k(\mathbf{w}_k^\top
-\mathbf{g}) = \lambda_k^2 z_k$, giving (\ref{eq:VA_dot}); each summand
-is nonnegative because $z\tanh z \geq 0$. Equality requires $z_1 = z_2 =
-0$, that is $\mathbf{g} = \mathbf{0}$. Convergence to the critical set
-follows from the invariance principle. Near an isolated critical point
-$|z_k| \ll v_{\max}$, the saturation is inactive at first order,
-$\boldsymbol{\delta} \approx -\mathbf{H}_D^{-1}\mathbf{g} \approx
--(\mathbf{p}_c - \mathbf{p}^\star_D)$, a unit-rate linear contraction.
+Write $\boldsymbol{\delta}$ for the signed Newton step, the degenerate
+case of (\ref{eq:d_law}), whose $k$-th eigendirection component is
+$\mathrm{sat}(-z_k) = -c_{\max}\tanh(z_k/c_{\max})$.
+
+\textit{Gradient of the Lyapunov function.} Since $V_A =
+\tfrac{1}{2}\mathbf{g}^\top\mathbf{g}$ with $\mathbf{g} = \nabla
+D(\mathbf{p}_c)$, the chain rule gives $\nabla V_A = (\partial
+\mathbf{g}/\partial\mathbf{p})^\top\mathbf{g} = \mathbf{H}_D\mathbf{g}$,
+using that the Jacobian of the gradient is the Hessian and that
+$\mathbf{H}_D$ is symmetric.
+
+\textit{Derivative along trajectories.} Differentiating along
+(\ref{eq:kinematic_model}), $\dot{V}_A = \nabla V_A^\top\dot{\mathbf{p}}_c
+= \mathbf{g}^\top\mathbf{H}_D\boldsymbol{\delta}$. Expanding
+$\boldsymbol{\delta}$ in the eigenbasis and using
+$\mathbf{H}_D\mathbf{w}_k = \lambda_k\mathbf{w}_k$,
+\begin{equation*}
+    \mathbf{g}^\top\mathbf{H}_D\boldsymbol{\delta} =
+    \sum_k \mathrm{sat}(-z_k)\,\lambda_k(\mathbf{w}_k^\top\mathbf{g}).
+\end{equation*}
+By the definition $z_k = (\mathbf{w}_k^\top\mathbf{g})/\lambda_k$ we have
+$\mathbf{w}_k^\top\mathbf{g} = \lambda_k z_k$, so each summand carries a
+factor $\lambda_k^2 z_k$, which is (\ref{eq:VA_dot}).
+
+\textit{Sign and equality case.} Every summand has the form $\lambda_k^2
+z_k\tanh(z_k/c_{\max})$ with $\lambda_k^2 \geq 0$ and $z\tanh z \geq 0$,
+vanishing only at $z = 0$. Hence $\dot{V}_A \leq 0$, with equality
+exactly when $z_1 = z_2 = 0$. Because $\mathbf{H}_D$ is nonsingular the
+$\lambda_k$ are nonzero, so this forces $\mathbf{w}_1^\top\mathbf{g} =
+\mathbf{w}_2^\top\mathbf{g} = 0$, and since $\{\mathbf{w}_1,
+\mathbf{w}_2\}$ is a basis of the plane, $\mathbf{g} = \mathbf{0}$.
+
+\textit{Convergence.} On a bounded trajectory along which $\mathbf{H}_D$
+stays nonsingular, $V_A$ is continuous, nonincreasing, and bounded below,
+so LaSalle's invariance principle gives convergence to the largest
+invariant subset of $\{\dot{V}_A = 0\}$, which by the previous step is the
+critical set $\{\mathbf{g} = \mathbf{0}\}$ of $D$.
+
+\textit{Local rate.} Near an isolated critical point
+$\mathbf{p}^\star_D$ with $\mathbf{H}_D$ nonsingular, $\|\mathbf{g}\|$ is
+small, so $|z_k| \ll c_{\max}$ and the saturation is inactive to first
+order: $\tanh(x) = x + O(x^3)$ gives $\boldsymbol{\delta} \approx
+-\sum_k z_k\mathbf{w}_k = -\mathbf{H}_D^{-1}\mathbf{g}$. Linearizing
+$\mathbf{g}$ about $\mathbf{p}^\star_D$ gives $\mathbf{g} \approx
+\mathbf{H}_D(\mathbf{p}_c - \mathbf{p}^\star_D)$, so
+$\boldsymbol{\delta} \approx -(\mathbf{p}_c - \mathbf{p}^\star_D)$: a
+linear contraction at unit rate in the rescaled time of
+(\ref{eq:kinematic_model}), that is at rate $k$ in real time. Local
+exponential stability follows.
 \end{IEEEproof}
 
-\begin{lemma}[Common transverse contraction]
-\label{lem:transverse}
-Under Assumption~\ref{ass:trench}(i), in every mode of the $D$ tracker
-the transverse coordinate obeys (\ref{eq:n_dynamics}): $|n|$ decreases
-strictly for $n \neq 0$, the tube $T_w$ is forward invariant, and
-$n \to 0$ exponentially once $|n| \leq v_{\max}$, unaffected by
-arbitrary switching among the modes.
-\end{lemma}
+\begin{IEEEproof}[Proof of Theorem~\ref{thm:separatrix}]
+Work in the coordinates $(\ell, n)$ of Assumption~\ref{ass:trench} on the
+tube $T_w$.
 
-\begin{IEEEproof}
-By (\ref{eq:normal_form}) the Hessian is diagonal in
-$(\hat{\mathbf{e}}_\parallel, \hat{\mathbf{e}}_\perp)$ with
-transverse eigenvalue $\lambda_\perp > 0$, and the transverse gradient
-component is $\lambda_\perp n$. The $\hat{\mathbf{e}}_\perp$
-component of the attract, slide, and flow steps (the transverse
-eigenvalue is positive, so signed and magnitude denominators agree) is
-built from the same argument $-\lambda_\perp n / \lambda_\perp =
--n$,\footnote{For the double gyre itself the normal form holds to
-second order rather than exactly: the exact transverse gradient and
-curvature give the Newton argument $-\tan(2\pi n)/(2\pi)$ in place of
-$-n$, which has the sign of $n$ and magnitude at least $|n|$ for
-$|n| < 1/4$, so the resulting contraction is at least as fast as
-(\ref{eq:n_dynamics}) and every conclusion that follows is
-unchanged.} saturation gives (\ref{eq:n_dynamics}). The right side is negative for $n > 0$ and
-positive for $n < 0$, so $V_\perp = \tfrac{1}{2}n^2$ is a common
-Lyapunov function for the switched system; for $|n| \leq v_{\max}$,
-$\tanh(n/v_{\max}) \geq n \tanh(1)/v_{\max}$ yields $\dot{V}_\perp \leq
--2\tanh(1) V_\perp$.
-\end{IEEEproof}
+\textit{Step 1: transverse convergence, giving (i).} The transverse term
+of (\ref{eq:d_law}) does not contain $\tau$, so it is the same command
+whether or not $\mathbf{p}_c \in \mathcal{B}$. Under the normal form
+(\ref{eq:normal_form}) the Hessian is diagonal in
+$(\hat{\mathbf{e}}_\parallel, \hat{\mathbf{e}}_\perp)$ with transverse
+eigenvalue $\lambda_\perp > 0$ and transverse gradient component
+$\lambda_\perp n$, so the Newton argument in that direction is
+$-\lambda_\perp n/\lambda_\perp = -n$ and the saturated command is
+(\ref{eq:n_dynamics}). The right-hand side is strictly opposite in sign
+to $n$, so $V_\perp = \tfrac{1}{2}n^2$ is strictly decreasing off $n = 0$
+and $T_w$ is forward invariant. For $|n| \leq c_{\max}$, concavity of
+$\tanh$ on the positive axis gives $\tanh(n/c_{\max}) \geq
+n\tanh(1)/c_{\max}$, hence $\dot{V}_\perp \leq -2\tanh(1)V_\perp$ and
+$n \to 0$ exponentially.
 
-\begin{lemma}[Flow-consistent progress]
-\label{lem:progress}
-Under Assumption~\ref{ass:trench}, on $\Gamma$ (after the transient of
-Lemma~\ref{lem:transverse}) the tangential velocity $\dot{\ell}$
-satisfies, in every mode, $\dot{\ell}\,(\mathbf{v}^\top
-\hat{\mathbf{e}}_\parallel) \geq 0$: the team never moves against the
-ambient flow along the trench. Moreover $|\dot{\ell}| \geq m > 0$ outside
-the $r_0$ balls, with
+\textit{Step 2: tangential progress.} Both branches of (\ref{eq:tau})
+return $\tau \geq 0$, and $\mathbf{w}_1$ is signed so that
+$\hat{\mathbf{v}}_0^\top\mathbf{w}_1 \geq 0$, so the tangential command
+never opposes the ambient flow. For a speed bound, take the branches in
+turn. On the band, $\tau = \hat{\mathbf{v}}_0^\top\mathbf{w}_1$, and
+since $\Gamma$ is flow-invariant with $\|\mathbf{v}\| \geq f_{\min}$
+outside the $r_0$ balls, $\tau \geq f_{\min}$ there. Off the band, $\tau
+= |\mathbf{w}_1^\top\hat{\mathbf{g}}_0|/|\lambda_1| =
+|h'(\ell)|/|\lambda_1| \geq m_h/\bar{\lambda}_\parallel$, using $|h'|
+\geq m_h$ wherever the band test fails on $\Gamma$ and $|\lambda_1| \leq
+\bar{\lambda}_\parallel$ on the tube. Since $\tanh$ is increasing, the
+realized tangential speed is at least
 \begin{equation}
     m = \min\Bigl\{
-    v_{\max}\tanh\!\bigl(\tfrac{f_{\min}}{v_{\max}}\bigr),\;
-    v_{\max}\tanh\!\bigl(\tfrac{m_h}
-    {\bar{\lambda}_\parallel v_{\max}}\bigr)
+    c_{\max}\tanh\!\bigl(\tfrac{f_{\min}}{c_{\max}}\bigr),\;
+    c_{\max}\tanh\!\bigl(\tfrac{m_h}
+    {\bar{\lambda}_\parallel c_{\max}}\bigr)
     \Bigr\},
     \label{eq:progress_rate}
 \end{equation}
 where $\bar{\lambda}_\parallel$ bounds $|\lambda_1|$ on the tube.
-\end{lemma}
 
-\begin{IEEEproof}
-In every mode the tangential sign agrees with the flow and the
-magnitude is bounded below by (\ref{eq:progress_rate}):
-\begin{center}
-\footnotesize
-\begin{tabular}{@{}p{0.16\linewidth}p{0.34\linewidth}p{0.42\linewidth}@{}}
-\hline
-\textbf{Mode} & \textbf{Tangential command} & \textbf{Why it tracks the flow} \\
-\hline
-FLOW &
-$v_{\max}\tanh\!\bigl(\frac{\mathbf{f}^\top\mathbf{w}_1}{v_{\max}}\bigr)$
-along $\mathbf{w}_1$ &
-Product form: a nonnegative multiple of the flow's own tangential
-component; covers the crest by Assumption~\ref{ass:trench}(ii). \\
-SLIDE (off-band) &
-$v_{\max}\tanh\!\bigl(\frac{|h'|}{|\lambda_1|v_{\max}}\bigr)$
-along descent &
-Selected precisely when the flow agrees with the descent direction
-$-\mathrm{sign}(h')\hat{\mathbf{e}}_\parallel$. \\
-ATTRACT (off-band) &
-$-h'/\lambda_1$ ($\lambda_1 < 0$), along ascent, same magnitude &
-Selected when the flow opposes descent, so ascent is the flow
-direction instead. \\
-Attract fallback &
-Descends toward the well &
-The well's stable-manifold endpoint is the local flow direction. \\
-\hline
-\end{tabular}
-\end{center}
-\end{IEEEproof}
+\textit{Step 3: finite-time arrival, giving (ii).} By Step 2, $\ell(t)$
+is monotone in the flow direction at rate at least $m$ outside the $r_0$
+balls, and because Step 1 holds in both branches the band test cannot
+reverse it. Travelling a trench of length $L_\Gamma$ therefore takes at
+most $L_\Gamma/m$.
 
-\begin{IEEEproof}[Proof of Theorem~\ref{thm:separatrix}]
-(i) is Lemma~\ref{lem:transverse}. (ii): by Lemma~\ref{lem:progress},
-$\ell(t)$ is monotone in the flow direction with rate at least $m$ outside
-the $r_0$ balls, and mode switches cannot reverse it, so the ball is
-reached in time at most $L_\Gamma/m$. Capture (iii): inside the ball,
-$\mathbf{H}_D \succ 0$, the selector is in its attract fallback, and
-Theorem~\ref{thm:attract} gives local exponential convergence to the
-well, which coincides with the flow saddle $\mathbf{p}^*$. Continuation:
-if the fallback test fails to trigger despite $\mathbf{H}_D \succ 0$
-holding for the true field, the selector instead falls through to
-Lemma~\ref{lem:progress}'s flow or descent case on whichever of the two
-crossing segments the flow direction and sign convention of
-$\hat{\mathbf{g}}$ select, and (i)-(ii) apply unchanged with $\Gamma$
-relabeled.
+\textit{Step 4: capture, giving (iii).} At the flow saddle $D$ attains a
+local minimum, so the true $\mathbf{H}_D \succ 0$ and its eigenvalues
+share a sign. The degenerate case of (\ref{eq:d_law}) is then active and
+the command is exactly the signed Newton step certified by
+Theorem~\ref{thm:attract}, which gives local exponential convergence to
+that well; the well coincides with the flow saddle $\mathbf{p}^*$.
+
+\textit{Step 5: continuation when the test does not fire.} Step 4
+concerns the true Hessian. If the sign test fails on
+$\hat{\mathbf{H}}_{D,0}$ despite $\mathbf{H}_D \succ 0$ holding for the
+field, (\ref{eq:d_law}) stays in its band or off-band branch. The saddle
+is a right-angle crossing of two trench segments
+(Section~\ref{sec:dg_example}), so whichever segment the flow direction
+and the sign convention on $\mathbf{w}_1$ select satisfies
+Assumption~\ref{ass:trench} in its own right, and Steps 1 to 3 apply
+unchanged with $\Gamma$ relabeled. Section~\ref{sec:results} reports this
+at every saddle reached.
 \end{IEEEproof}
 
 \begin{IEEEproof}[Proof of Proposition~\ref{prop:equivariance}]
-$\mathbf{S}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^\top$, so $s_1' = s_1$,
-$r' = r$, $\mathbf{e}_k' = \mathbf{Q}\mathbf{e}_k$, and $\nabla' s_1' =
-\mathbf{Q}\nabla s_1$ (the gradient of an invariant scalar co-rotates).
-The branch conditions are scalar thresholds on the invariants $r$,
-$\hat{s}_1$, and $\lVert\nabla\hat{s}_1\rVert$ (the banded and captured
-flags), so each branch fires identically in both frames. The tangent
-selection (\ref{eq:tangent_select}) uses only the
-invariant inner products $\hat{d}_k' = \lvert\nabla' s_1'^\top
-\mathbf{e}_k'\rvert = \lvert\nabla s_1^\top \mathbf{e}_k\rvert =
-\hat{d}_k$, so the same eigenvector is selected in both frames; its
-sign is fixed by $\mathrm{sign}(\mathbf{t}_{\text{ref}}'^\top
-\mathbf{t}_{\text{raw}}')$ with $\mathbf{t}_{\text{ref}}' = \mathbf{Q}
-\mathbf{t}_{\text{prev}}$ once a previous tangent exists, by induction,
-so from the second tracking step onward the inner product is invariant
-and $\hat{\mathbf{t}}' = \mathbf{Q}\hat{\mathbf{t}}$. PARK, CAPTURE, and
-the transverse channel (\ref{eq:oecs_law}) apply the invariant gradient
-along $\hat{\mathbf{n}}' = \mathbf{Q}\hat{\mathbf{n}}$ (whichever
-eigenvector $\hat{\mathbf{t}}$ did not select, itself co-rotating by the
-same argument), and the tangential channel commands
-$v_{\max}\tanh(1)\hat{\mathbf{t}}'$; all three output the rotated
-command $\mathbf{Q}\boldsymbol{\delta}$ from the second tracking step
-on. ACQUIRE, PARK, and CAPTURE are the vector-saturated descent
-$-\mathrm{sat}(g_\perp\nabla\hat{s}_1)$ of (\ref{eq:oecs_law}), which
-preserves the direction of the co-rotating invariant gradient and is
-therefore exactly covariant. Only the flow $\mathbf{f}$ enters
-noncovariantly, and it does so at a single instant: CROSS's direct use
-of it, reached only if $r < r_{\text{band}}$ on the first tracking step
-with no $\mathbf{t}_{\text{prev}}$ established, and the sign reference on
-TRACK's own first invocation whenever CROSS is not reached, where
-$\mathbf{t}_{\text{ref}} = \mathbf{f}$ in the absence of a previous
-tangent. Under a time-dependent $\mathbf{Q}(t)$ the measured flow in the
-rotating frame carries the transport term
-$\dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}'$, which has no counterpart
-in the inertial frame, so at this one instant the resolved sign is not
-guaranteed to agree between frames; thereafter, by the induction above,
-it is carried forward by continuity alone and the closed loop is
-covariant for the remainder of the run. This is the same single-instant
-caveat the $D$ tracker's own ride mode carries for its own tangent seed.
+Let the observer rotate as $\mathbf{p}_Q = \mathbf{Q}(t)\mathbf{p}$.
+
+\textit{Step 1: what transforms how.} The transformed velocity gradient
+is $\mathbf{J}_Q = \mathbf{Q}\mathbf{J}\mathbf{Q}^\top +
+\dot{\mathbf{Q}}\mathbf{Q}^\top$, whose transport term is antisymmetric
+and so lands entirely in the spin part, leaving $\mathbf{S}_Q =
+\mathbf{Q}\mathbf{S}\mathbf{Q}^\top$. Hence $s_1$, $s_2$, and $r$ are
+invariant, the eigenvectors co-rotate as $\mathbf{e}_{k,Q} =
+\mathbf{Q}\mathbf{e}_k$, and $\nabla_Q s_{1,Q} = \mathbf{Q}\nabla s_1$.
+
+\textit{Step 2: the same branch fires in both frames.} Every test setting
+the ride flag $\beta$ is a scalar inequality in those invariants: first
+contact on $\hat{s}_1 < -s_{\mathrm{trim}}$, the optional park on
+$\hat{s}_1 < s_{\mathrm{capture}}$, and (\ref{eq:capture_test}) on $r$,
+$\lVert\nabla\hat{s}_1\rVert$, and $\hat{s}_1$. So $\beta$ takes the same
+value at corresponding states.
+
+\textit{Step 3: the tangent is equivariant.} The comparison in
+(\ref{eq:tangent_select}) is unchanged by rotation, since
+$\lvert(\mathbf{Q}\nabla\hat{s}_1)^\top(\mathbf{Q}\mathbf{e}_k)\rvert =
+\lvert\nabla\hat{s}_1^\top\mathbf{e}_k\rvert$, so the same eigenvector is
+selected. If $\mathbf{t}_{\mathrm{ref},Q} =
+\mathbf{Q}\mathbf{t}_{\mathrm{prev}}$ at some step, the sign test
+$\mathrm{sgn}(\mathbf{t}_{\mathrm{ref}}^\top\mathbf{t}_{\mathrm{raw}})$
+is likewise unchanged and $\mathbf{t}_Q = \mathbf{Q}\mathbf{t}$, which
+supplies the reference for the next step; by induction this holds from
+the second tracking step onward.
+
+\textit{Step 4: the command co-rotates.} The projector transforms as
+$\mathbf{P}_Q = \mathbf{I} - \beta\mathbf{t}_Q\mathbf{t}_Q^\top =
+\mathbf{Q}\mathbf{P}\mathbf{Q}^\top$. The saturation in
+(\ref{eq:oecs_law}) scales an invariant magnitude and preserves a
+co-rotating direction, and the ride term is a scalar multiple of
+$\mathbf{t}_Q$, so both terms rotate with $\mathbf{Q}$: one argument
+covers every branch. Summing gives $\boldsymbol{\delta}_Q =
+\mathbf{Q}\boldsymbol{\delta}$, and integrating
+(\ref{eq:kinematic_model}) gives $\mathbf{p}_{c,Q}(t) =
+\mathbf{Q}(t)\mathbf{p}_c(t)$ up to the frame-transport term.
+
+\textit{Step 5: the single exception.} The degenerate guard of
+Section~\ref{sec:oecs_controller} reads the measured flow, which is not
+objective: in the rotating frame it carries
+$\dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}_Q$, with no inertial
+counterpart. It is reachable only on the first tracking step, when $r <
+r_{\mathrm{band}}$ with no previous tangent, and the same fallback seeds
+the sign on the ride's first invocation. At that one instant the resolved
+sign need not agree between frames; from the second step onward Step 3
+carries orientation by continuity alone, which is covariant.
 \end{IEEEproof}
 
 \begin{thebibliography}{99}
