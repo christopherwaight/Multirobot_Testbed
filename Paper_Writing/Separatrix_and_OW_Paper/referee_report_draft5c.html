@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Referee report (Draft 5c, revision plan): Multirobot Tracking of Separatrices and OECS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --shelf:#EDF2F4;--surface:#FFFFFF;--ink:#0A1E29;--ink2:#3D5866;--ink3:#708895;
+  --rule:#CFDCE2;--rule2:#E3EBEF;--d1:#8FBECD;--d2:#3D8CA8;--d3:#1A5E80;--d4:#08334F;
+  --kelp:#2F6F55;--flag:#9E2A22;--sand:#B08415;
+  --display:'IBM Plex Sans Condensed','Arial Narrow',system-ui,sans-serif;
+  --body:'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{margin:0;background:var(--shelf);color:var(--ink);font-family:var(--body);font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;max-width:1180px;margin:0 auto;padding:0 28px 120px}
+nav{position:sticky;top:0;align-self:start;padding:44px 0 0;font-family:var(--display);font-size:13px}
+nav .navlabel{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px;font-weight:600}
+nav a{display:block;padding:5px 0 5px 12px;color:var(--ink2);text-decoration:none;border-left:2px solid var(--rule);line-height:1.3}
+nav a:hover,nav a:focus{color:var(--ink);border-left-color:var(--d3);background:rgba(255,255,255,.55)}
+nav a .n{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-right:7px}
+header{padding:56px 0 34px;border-bottom:3px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--d3);margin:0 0 16px}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,3.6vw,44px);line-height:1.06;letter-spacing:-.015em;margin:0 0 6px;max-width:24ch}
+.subtitle{font-family:var(--display);font-size:17px;color:var(--ink2);margin:0 0 28px;font-weight:400}
+.meta{display:flex;flex-wrap:wrap;gap:0;border-top:1px solid var(--rule);padding-top:18px}
+.meta div{flex:1 1 130px;padding-right:20px}
+.meta dt{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.meta dd{margin:0;font-family:var(--display);font-size:15px;font-weight:500}
+.verdict{background:var(--d4);color:#EAF2F6;padding:28px 30px;margin:34px 0 0;border-radius:2px}
+.verdict h2{font-family:var(--display);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#8FBECD;margin:0 0 12px;font-weight:600}
+.verdict p{margin:0 0 12px;font-size:16px;line-height:1.6}
+.verdict p:last-child{margin-bottom:0}
+.verdict strong{color:#FFF}
+.verdict .rec{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px;color:#FFF}
+section{padding-top:52px}
+h2.sec{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px;padding-bottom:10px;border-bottom:1px solid var(--ink)}
+h2.sec .num{font-family:var(--mono);font-size:13px;color:var(--d2);margin-right:12px;font-weight:500;vertical-align:2px}
+.lede{color:var(--ink2);margin:14px 0 26px;max-width:66ch}
+.finding{background:var(--surface);border:1px solid var(--rule2);border-left:4px solid var(--d2);padding:20px 24px;margin:0 0 14px;border-radius:2px}
+.finding.blocking{border-left-color:var(--d4)}
+.finding.major{border-left-color:var(--d3)}
+.finding.minor{border-left-color:var(--d2)}
+.finding.note{border-left-color:var(--d1)}
+.finding.good{border-left-color:var(--kelp)}
+.fhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.tag{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:2px;color:#fff;background:var(--d2);white-space:nowrap}
+.tag.blocking{background:var(--d4)}
+.tag.major{background:var(--d3)}
+.tag.minor{background:var(--d2)}
+.tag.note{background:var(--d1);color:#08334F}
+.tag.good{background:var(--kelp)}
+.fhead h3{font-family:var(--display);font-size:19px;font-weight:600;margin:0;line-height:1.25;flex:1 1 320px}
+.loc{font-family:var(--mono);font-size:11.5px;color:var(--d3);background:#EDF4F7;padding:2px 7px;border-radius:2px;white-space:nowrap}
+.finding p{margin:0 0 10px}
+.finding p:last-child{margin-bottom:0}
+.fix{border-top:1px dashed var(--rule);padding-top:10px;margin-top:12px}
+.fix b{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--kelp);display:block;margin-bottom:4px}
+.gauge{display:inline-flex;gap:2px;align-items:flex-end;height:14px;margin-right:2px}
+.gauge i{width:4px;background:var(--rule);border-radius:1px}
+.gauge i:nth-child(1){height:4px}.gauge i:nth-child(2){height:7px}.gauge i:nth-child(3){height:10px}.gauge i:nth-child(4){height:14px}
+.g1 i:nth-child(-n+1),.g2 i:nth-child(-n+2),.g3 i:nth-child(-n+3),.g4 i:nth-child(-n+4){background:var(--d3)}
+.g4 i{background:var(--d4)}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--rule2);border-radius:2px;margin:0 0 18px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font-family:var(--display);font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:12px 14px;border-bottom:2px solid var(--rule);white-space:nowrap;font-weight:600;background:#F7FAFB}
+td{padding:12px 14px;border-bottom:1px solid var(--rule2);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:12px;color:var(--d3);white-space:nowrap}
+td.num{font-family:var(--mono);font-size:13px;text-align:right;white-space:nowrap}
+.q{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:#F2F7F9;padding:1px 5px;border-radius:2px}
+.arrow{color:var(--kelp);font-weight:600}
+tfoot td{font-family:var(--display);font-weight:600;background:#F7FAFB;border-top:2px solid var(--rule)}
+.ledger{background:var(--surface);border:1px solid var(--rule2);padding:26px;margin:0 0 22px;border-radius:2px}
+.ledger h3{font-family:var(--display);font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:0 0 18px;font-weight:600}
+.bar{display:flex;height:44px;border-radius:2px;overflow:hidden;margin-bottom:10px;border:1px solid var(--rule)}
+.bar span{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff;overflow:hidden;white-space:nowrap}
+.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:26px}
+.callout{background:#FDF7E6;border-left:4px solid var(--sand);padding:16px 20px;margin:0 0 18px;border-radius:2px;font-size:15px}
+.callout b{font-family:var(--display)}
+.callout.win{background:#EAF3EE;border-left-color:var(--kelp)}
+.footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--rule);font-family:var(--display);font-size:13px;color:var(--ink3)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;gap:0}nav{position:static;padding:24px 0 0;display:flex;flex-wrap:wrap;gap:4px}nav .navlabel{width:100%}nav a{border-left:none;border-bottom:2px solid var(--rule);padding:4px 10px}}
+@media print{body{background:#fff;font-size:10.5pt}nav{display:none}.wrap{grid-template-columns:1fr;max-width:none}.finding,.tablewrap,.ledger{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav>
+  <div class="navlabel">Contents</div>
+  <a href="#verdict"><span class="n">00</span>Verdict</a>
+  <a href="#strengths"><span class="n">01</span>Strengths</a>
+  <a href="#major"><span class="n">02</span>Major issues</a>
+  <a href="#m5cut"><span class="n">03</span>The M5 cut list</a>
+  <a href="#contra"><span class="n">04</span>Internal consistency</a>
+  <a href="#dangling"><span class="n">05</span>Dangling items</a>
+  <a href="#clarity"><span class="n">06</span>Clarity &amp; redundancy</a>
+  <a href="#prose"><span class="n">07</span>Sentences that don't parse</a>
+  <a href="#notation"><span class="n">08</span>Notation &amp; units</a>
+  <a href="#figs"><span class="n">09</span>Figures &amp; floats</a>
+  <a href="#length"><span class="n">10</span>Length vs T-RO norms</a>
+  <a href="#sidequest"><span class="n">11</span>Sidequest audit</a>
+  <a href="#trim"><span class="n">12</span>Cut ledger</a>
+  <a href="#order"><span class="n">13</span>Order of work</a>
+</nav>
+
+<main>
+
+<header>
+  <p class="eyebrow">Referee report &middot; Draft 5c &middot; revision plan</p>
+  <h1>Multirobot Tracking of Separatrices and Objective Eulerian Coherent Structures</h1>
+  <p class="subtitle">Waight and Kitts. One cooperative second-order estimator; a D tracker and an objective s<sub>1</sub> tracker built on it.</p>
+  <dl class="meta">
+    <div><dt>Venue</dt><dd>IEEE T-RO</dd></div>
+    <div><dt>Length</dt><dd>18.5 pp / 16,119 words</dd></div>
+    <div><dt>Target</dt><dd>16.2 pp</dd></div>
+    <div><dt>Floats</dt><dd>11 figs &rarr; 8</dd></div>
+    <div><dt>Findings</dt><dd>7 major, 12 consistency</dd></div>
+    <div><dt>Status</dt><dd>All dispositions settled</dd></div>
+  </dl>
+</header>
+
+<div class="verdict" id="verdict">
+  <h2>Summary judgement</h2>
+  <p class="rec">The cuts sharpen the claim. This is not damage control.</p>
+  <p>Everything below is decided, so the fix boxes read as instructions rather than options. The two blocking items (Conclusion versus Results on the s<sub>1</sub> ocean run, and the unit system) are edits. The structural change is <strong>M5: the terminal-capture machinery comes out entirely</strong>, which frees about 1.4 columns and, more importantly, replaces a wobble with a thesis.</p>
+  <p>Before the cut the paper says both trackers can capture and one does it reliably, which reads as an admission. After, it says: <strong>the D tracker traverses; the s<sub>1</sub> tracker traverses and can certify a terminal core, because s<sub>1</sub>'s minimum is recoverable from a gradient while D's needs a Hessian sign the estimator cannot deliver.</strong> That is Remark 1 and Remark 2 paying off together, and it is the strongest sentence the paper could end on.</p>
+  <p>The second reframe is M4: the ocean sections stop pretending to be quantitative validation and become what they are, a demonstration on measured data. That removes three referee questions the paper cannot answer and saves 0.4 col in the process.</p>
+  <p>On positioning, the decision is no head-to-head, and the Michini paper supplies the material to make that stick without looking evasive. Details in M6, including the fact that <strong>both papers use the same radar record over the same 28-hour window</strong>, which the manuscript currently does not mention.</p>
+</div>
+
+<!-- ===================== 01 STRENGTHS ===================== -->
+<section id="strengths">
+  <h2 class="sec"><span class="num">01</span>Strengths</h2>
+  <p class="lede">Listed because &sect;12 is aggressive, and these must survive it intact.</p>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>The splitting identity as structural spine</h3><span class="loc">II-D, eq (5)</span></div>
+    <p>Deriving both surrogates as the two terms of one exact identity, then assigning a controller to each, is what makes this one paper instead of two. Equation (6) isolating the frame artifact entirely in the spin term is the payoff, and it is set up correctly. I checked (5), (6), (8), (9) and (10) against the double-gyre field by hand; the algebra is right.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Remark 1, and what it becomes after M5</h3><span class="loc">III-C</span></div>
+    <p>A structural impossibility that dictates a design decision (gradient channel, not Newton), then reappears as a measured cost (0.0075 against 0.0016). Theory to design to measurement in three moves.</p>
+    <p>After the capture cut it does more than that. Remark 1 and Remark 2 together become the explanation for why the two trackers have different terminal behaviour at all: one surrogate's minimum lives in a first derivative of the fit and the other's lives in a second derivative the fit gets structurally wrong. Promote that pairing into the Introduction's contribution list; right now the two remarks sit three subsections apart and never shake hands.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Minimality, the conic criterion, and the pentagon corollary</h3><span class="loc">III-A</span></div>
+    <p>Three results, six lines of proof between them, immediately useful to anyone building a formation. The "any six robots on one circle are singular, move one to the centre" observation is the kind referees remember. Corollary 1's argument is sound: a line meets a circle twice, so no three of five circle points are collinear and the conic through them is unique.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>The closed-loop objectivity experiment</h3><span class="loc">V-D-3, VI-B-2, Fig 6</span></div>
+    <p>Same physical flow, two observer frames, 0.025 against 1.219. Most objectivity papers stop at the algebra. The 5c addition justifying &Omega; against gyre-core vorticity and command authority answers the obvious objection before it is raised.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Table II(b) against Table II(c) as a diagnostic</h3><span class="loc">VI-B-3</span></div>
+    <p>Reporting that far-saddle success is 0.0% at &sigma;<sub>uv</sub> = 0.005 while 90.9% of those same runs settle cleanly at <em>a</em> saddle, then naming the mechanism as a one-time sign inversion rather than a decay toward chance, is the most informative table pair in the paper. It converts a failure into a measurement. The trim does not touch it.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Eq (17): naming the four terms the model cannot see</h3><span class="loc">III-B</span></div>
+    <p>Writing out D<sub>xx</sub> in true derivatives and stating that four third-order terms "are set to zero by construction, not made small by a good fit" is unusually honest, and after M5 it is load-bearing twice over: it explains the Hessian bias and it explains why the D tracker has no terminal test. Keep the sentence verbatim.</p>
+  </div>
+</section>
+
+<!-- ===================== 02 MAJOR ===================== -->
+<section id="major">
+  <h2 class="sec"><span class="num">02</span>Major issues</h2>
+  <p class="lede">Dispositions settled. The gauge marks severity as submitted; the fix box states the decision.</p>
+
+  <div class="finding blocking">
+    <div class="fhead"><span class="gauge g4"><i></i><i></i><i></i><i></i></span><span class="tag blocking">M1 Blocking</span><h3>The Conclusion's s<sub>1</sub> ocean result is not in the Results</h3><span class="loc">VIII vs VI-D, Abstract</span></div>
+    <p>Three places describe the same experiment three different ways:</p>
+    <div class="tablewrap" style="margin-top:12px">
+      <table>
+        <thead><tr><th class="mono">Where</th><th>What it says</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">Abstract</td><td>"the strain tracker, started on that same ridge, rides the same network structure from the objective strain term alone", i.e. a traverse.</td></tr>
+          <tr><td class="mono">VI-D</td><td>One narrated run: rides continuously, terminal test never fires, ends 11.1 km from the nearest of 92 cores. No run is described as converging, holding, or looping.</td></tr>
+          <tr><td class="mono">VIII</td><td>"the s<sub>1</sub> tracker converged to and held a stable local trench loop through the same 28-h record, within 1.4 km of offline ground truth."</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>"Loop" appears nowhere in Section VI. "Converged to and held" contradicts VI-D's explicit statement that a genuine two-dimensional minimum was never reached. The 1.4 km is the minimum of a twelve-start range, quoted as if it were the result of the run being described.</p>
+    <div class="fix"><b>Decided</b>
+    The Conclusion is wrong; rewrite it to the body. The honest headline is strong on its own: the s<sub>1</sub> tracker rode the same ridge network for 28 hours from the objective strain term alone. Drop "loop", "converged to and held", and the 1.4 km. Per M4 the 11.1 km goes too, so VIII carries no ocean distance claim at all.
+    <br><br><b>Do not add a limitations clause about this.</b> VI-D already states it three times in one paragraph: the team rides "without the terminal test firing", "a genuine two-dimensional minimum of s<sub>1</sub> was never reached", and the terminal &#349;<sub>1</sub> is "the tracked value rather than a certified settle". Introduction contribution 3 scopes it a fourth time, capture on the double gyre and traversal on a field without a stationary point close enough. The fact is disclosed in the two places a reader looks. A fifth statement in VII-E is the redundancy &sect;06 is trying to remove.
+    <br><br><b>The real risk is the opposite one.</b> M4(d) collapses VI-D, and those three phrases are exactly the kind of qualifying language a compression pass deletes. Keep all three. Losing them is the only version of this that a referee could fairly call concealment.</div>
+  </div>
+
+  <div class="finding blocking">
+    <div class="fhead"><span class="gauge g4"><i></i><i></i><i></i><i></i></span><span class="tag blocking">M2 Blocking</span><h3>The unit system is incoherent</h3><span class="loc">II-E, III-D, V-B, Table I, VI-A, VI-B</span></div>
+    <p>Section II-E declares the double gyre non-dimensional. Everything downstream reports that non-dimensional field in SI: &sigma;<sub>uv</sub> and &sigma;<sub>p</sub> grids in m/s and m, "informative to &sigma;<sub>uv</sub> &asymp; 0.06 m/s", "tracking error rises from 0.002 m", Table I's Decabot column carrying s<sup>&minus;2</sup>, m<sup>2</sup> and s<sup>&minus;1</sup>m<sup>&minus;1</sup>. Meanwhile VI-B-3 gives the same tracking-error quantity as "0.0075" with no unit at all.</p>
+    <div class="fix"><b>Decided</b>
+    Keep the double gyre non-dimensional and strip m and m/s from every double-gyre number, including Table I's Decabot column. Add the non-dimensional note to the Abstract. Keep SI only in the Ocean (phys.) column.
+    <br><br><b>Normalise against two references, not one.</b> Against peak flow (&pi;A &asymp; 0.314), &sigma;<sub>uv</sub> = 0.002 is 0.6%, which reads brutal and is the wrong denominator for the failure being described. The tangent seed reads a <em>difference</em> across the formation, and VI-B-3 already gives that span as &asymp; 0.12, so the same noise is 1.7% of the signal the decision actually consumes. Report both: peak flow for the field, differential span for the seed. One clause, and it changes how the fragility reads from alarming to legible.</div>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g3"><i></i><i></i><i></i><i></i></span><span class="tag major">M3 Major</span><h3>The no-advection assumption is load-bearing and nearly invisible</h3><span class="loc">II-F, missing from VII-E</span></div>
+    <p>The modelling premise sits in one clause of II-F: robot motion is "commanded by the control law, not advected by the sampled flow." It never returns. VII-E lists four limitations and this is not among them. On the ocean field the realized speed is roughly 0.5 m/s, the same order as Santa Barbara Channel surface currents, so the 28-hour landfall result is conditional on an authority margin the paper never states.</p>
+    <div class="fix"><b>Decided</b>
+    No partial measurement. Reporting &#8214;v&#8214; against command speed without simulating advection invites "so run it with advection", which is the wrong invitation during a page cut.
+    <br><br>Instead, reframe it as a scope boundary and say it twice. <b>For the Decabot testbed the assumption is exact, not approximate:</b> the robots are not immersed in anything, the field is encoded and read (per [33]). So it is a scope boundary for the validation platform and an extrapolation caveat for the ocean. Two sentences in VII-E, one line in Future Work.
+    <br><br><b>Do not cite [9] as precedent here.</b> Michini's robots are advected by construction: their eq (1a) carries u<sub>i</sub> additively, and in the passive straddle state V<sub>i</sub> = 0, so L and R drift with the flow. Different precedent or none.</div>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g3"><i></i><i></i><i></i><i></i></span><span class="tag major">M4 Major</span><h3>The ocean sections claim validation and can only support demonstration</h3><span class="loc">V-C, VI-C, VI-D</span></div>
+    <p>The ocean runs currently carry quantitative furniture they cannot bear: 11.1 km against 92 cores with no null model, a 1.37 to 11.06 km spread with median 3.3 against 2 km grid spacing, 84 of 100 starts. None of it is anchored, because there is no noise budget for the ocean field and no error model for the offline ground truth.</p>
+    <div class="fix"><b>Decided, four parts</b>
+    <b>(a) Delete the 6 km comparison, but replace it, do not just cut it.</b> As written it is the only justification for &rho; = 0.105, and it says the radius was enlarged until the tracker agreed with a different dataset. Delete that and 1.4&times; becomes an unexplained tuned constant, which is worse. Replace with a sampling argument that never mentions 6 km: at &rho; = 0.105 the ring is 5.4 km, so the footprint spans roughly five 2 km grid cells, the minimum for a six-point quadratic to see curvature rather than interpolation artifact; at &rho; = 0.075 it spans under four. Principled, true, and it drops the provenance.
+    <br><br><b>(b) Keep the truncation-bias analysis, scope it.</b> It makes &rho; a tradeoff rather than a free parameter, it is the foundation of Remark 2 and therefore of the whole M5 argument, and it is what Fig 2(b)'s floor curves plot. Your objection holds for the ocean, where M<sub>3</sub> is unknown, not for the double gyre, where it is analytic. So confine the claims to the double gyre and add one sentence: no bias bound is claimed on the ocean field, where &rho; was set by (a). Twelve words, and a latent hole becomes a stated boundary.
+    <br><br><b>(c) No &sigma;<sub>uv</sub> estimate for the 2 km product.</b> It is not recoverable from the fit: six equations, six unknowns, zero residual by construction. Scope it out and cite [9] when you do. Michini's Section IV closing paragraph scopes out exactly this, in this venue, in the nearest prior work: quantifying uncertainty in real ocean data and its impact on tracking is challenging and outside their scope, which is why they characterise noise on the analytic model instead. That is your paper's structure precisely, and citing it converts an omission into an inherited convention.
+    <br><br><b>(d) Reframe both ocean runs as demonstrations.</b> The claim becomes "the method runs unmodified on measured data for 28 h and produces a path following the dominant FTLE ridge", which is unarguable. The twelve-start spread and the 10&times;10 jitter grid each collapse to one sentence about the outcome not being knife-edge sensitive to the start. Cut the 11.1 km entirely. Roughly 0.4 col beyond the ledger, and three referee questions disappear with it.</div>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g4"><i></i><i></i><i></i><i></i></span><span class="tag major">M5 Major</span><h3>The terminal-capture machinery serves a mode the controller never enters</h3><span class="loc">Thm 1, Thm 2(iii), App A, VII-B, Fig 10</span></div>
+    <p>Theorem 1 certifies terminal capture under the signed Newton step. Theorem 2(iii) invokes it at the flow saddle. The paragraph immediately after states that "in practice the tracker continues past the saddle instead", and VI-A confirms it: every run continues past. VII-B then restores the behaviour by a different mechanism entirely, the park step (39), with its own Lyapunov argument, disabled by default. A theorem, a 470-word proof, part of a second theorem, two proof steps, a discussion subsection and a full figure, all for a terminal behaviour that appears in one reported run produced by a fourth control case that is off.</p>
+    <div class="fix"><b>Decided: cut the whole case.</b>
+    Full inventory in &sect;03. About 1.4 columns, the largest single saving in the plan.
+    <br><br><b>Three things survive the cut and must not be swept up in it.</b> (1) The degenerate branch of (27) stays as a well-definedness guard, since the trench frame is undefined when the eigenvalues share a sign and the law needs something; one sentence, no theorem, no certificate. (2) The s<sub>1</sub> terminal test (30) and its Lyapunov certificate (37) stay. That is not the park step, it fires, and it is demonstrated on all six double-gyre runs. It becomes the only terminal behaviour in the paper, which makes it more load-bearing, not less, and is why &minus;4s<sub>trim</sub> now needs its twelve words of justification (&sect;05). (3) The saddle of the D field stays as the object the traverse passes through.
+    <br><br><b>What the cut buys.</b> The paper stops arguing with itself about whether its controller stops. TRAP cores, eddy cores and other non-critical-point targets go to the follow-on paper, with one Future Work sentence pointing there.</div>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g3"><i></i><i></i><i></i><i></i></span><span class="tag major">M6 Major</span><h3>Positioning against [9]: no head-to-head, but the gap has to be filled</h3><span class="loc">VII-A, VI-C, ref [14]</span></div>
+    <p><b>The head-to-head is off, and the Michini paper is the reason.</b> Three independent grounds, all citable from their own text:</p>
+    <div class="tablewrap" style="margin-top:12px">
+      <table>
+        <thead><tr><th>Ground</th><th>From [9]</th></tr></thead>
+        <tbody>
+          <tr><td>Their initialization <em>is</em> the method</td><td>Assumption 1 requires d(x<sub>C</sub>(0), B<sub>S</sub>) &lt; &epsilon; with L and R already on opposite sides. Running them from your off-structure starts puts them outside their own theorem, which is a strawman. Running you from a straddling start discards your acquisition claim.</td></tr>
+          <tr><td>Different plants</td><td>Their robots are advected (eq 1a); yours are not (II-F). One simulator cannot host both without altering one of them.</td></tr>
+          <tr><td>The noise arithmetic would mislead</td><td>Their Table I gives 74% at I = 0.005, which is &sigma; = 0.1 against a mean flow of 0.42, roughly 24% relative noise. Yours degrades near 3%. But their criterion is "straddle maintained after 1.5 s", yours is "reach a designated saddle over up to 500 steps", and they average over measurement history where you take one synchronous sample. A reader takes away "the 2014 method is ten times more noise-robust", which is false and unfixable in a caption.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><b>But VII-A currently makes performance claims against [9] to [11] with no evidence,</b> and a simulation-only paper still has to answer "compared to what?". Three cheap moves close it without running anything.</p>
+    <div class="fix"><b>Decided</b>
+    <b>(a) Say explicitly that it is the same field.</b> Michini's Section V-D uses Santa Barbara Channel HF radar on a 2 km grid over a 28-h window, May 16 2012 08:00 GMT to May 17 12:00 GMT. Yours is May 16 to 17 2012, 29 hourly frames covering 28 h, 2 km, same network. Same record, same window. The manuscript does not mention this. A referee who knows [9] spots it immediately, and silence reads worse than acknowledgment. Said out loud it becomes an asset: the fields are directly comparable by eye, at zero experimental cost.
+    <br><br><b>(b) Make the comparison structural, not empirical.</b> A five or six row table on stated assumptions: initialization requirement, structure identity known in advance, sensing model (single synchronous sample versus measurement history), advection, what is estimated (velocity, gradient, curvature), terminal behaviour. Every cell sourced from published assumptions, so nothing is arguable. Roughly 0.3 col, and it replaces VII-A's prose rather than adding to it.
+    <br><br><b>(c) Cite their own reported limitation.</b> Their Discussion states that the robots "tend to veer away from the tracked LCS as they approach a local saddle/hyperbolic point", observed in both the flow tank and the ocean runs, and attributed to the flow reversing across the saddle. That is precisely the behaviour your method is built around: your D tracker traverses through the crossing and your s<sub>1</sub> tracker settles at it. Quoting a paper's own stated limitation is the least adversarial comparison that exists.
+    <br><br><b>(d) [14] to arXiv.</b> Separate from the baseline question and not negotiable. It carries eq (38), the 0.3 s settling separation that licenses the kinematic abstraction in (31), and the prior-art framing. A referee who cannot see it cannot check the stability analysis's premise.</div>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g2"><i></i><i></i><i></i><i></i></span><span class="tag major">M7 Major</span><h3>The minimality headline is defended by an unsupported claim and an unkept promise</h3><span class="loc">Abstract, I, III-A</span></div>
+    <p>Six is minimal for the unconstrained quadratic model, correctly qualified in 5c. But both test fields are incompressible, so the headline count is minimal for a model class the paper never needs, and the defence offered is two assertions: that measured surface currents are "weakly divergent", cited to nothing, and that "the fitted divergence is a live diagnostic rather than an assumption", never reported anywhere in Section VI.</p>
+    <div class="fix"><b>Decided</b>
+    Delete "weakly divergent" and delete the divergence-diagnostic promise. Replace with the presupposition argument, which is thematically consistent and stronger: the Introduction already sells "neither pre-straddling an assumed manifold nor accumulation of data points", and this extends the same line to "and no constitutive assumption about the field". The sixth robot becomes a deliberate refusal to presuppose rather than a defensive footnote. Tie it back to the Introduction explicitly.
+    <br><br><b>No appendix.</b> The five-robot counting is one line and is already nearly in your text: imposing &nabla;&middot;v = 0 and its two first derivatives removes three of twelve coefficients, so five robots supply ten equations for nine unknowns. Three sentences in III-A. Adding an appendix during a page cut is the wrong direction, and by the paper's own sidequest test it fails.</div>
+  </div>
+</section>
+
+<!-- ===================== 03 M5 CUT LIST ===================== -->
+<section id="m5cut">
+  <h2 class="sec"><span class="num">03</span>The M5 cut list</h2>
+  <p class="lede">Terminal capture touches eleven places. Missing one leaves a dangling reference to a mode that no longer exists, which is the characteristic failure of a cut this size. Work the list.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">#</th><th>Item</th><th class="mono">Loc</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">1</td><td>Theorem 1 (terminal capture) and its proof</td><td class="mono">IV-D, App A</td><td>Delete both. ~590 w.</td></tr>
+      <tr><td class="mono">2</td><td>Theorem 2 part (iii), plus proof Steps 4 and 5</td><td class="mono">IV-D, App A</td><td>Delete. Theorem 2 becomes two parts: transverse convergence, and traversal in the flow direction. ~200 w.</td></tr>
+      <tr><td class="mono">3</td><td>The park step, eq (39), and Section VII-B</td><td class="mono">VII-B</td><td>Delete entirely, including the D&#775; Lyapunov argument. ~243 w.</td></tr>
+      <tr><td class="mono">4</td><td>Fig 10</td><td class="mono">VII-B</td><td>Delete. Not supplementary; it illustrates a mode that no longer exists.</td></tr>
+      <tr><td class="mono">5</td><td>D<sub>capture</sub></td><td class="mono">V-D-1, VII-B</td><td>Delete every occurrence.</td></tr>
+      <tr><td class="mono">6</td><td>s<sub>capture</sub> row in Table I</td><td class="mono">Table I</td><td>Delete. It is "unset" in both columns, so it is dead parameter surface.</td></tr>
+      <tr><td class="mono">7</td><td>"a park-versus-traverse pair runs both settings of D<sub>capture</sub>"</td><td class="mono">V-D-1</td><td>Delete the sentence.</td></tr>
+      <tr><td class="mono">8</td><td>Contribution 2: "with terminal capture available by tightening one threshold"</td><td class="mono">I</td><td>Delete the clause.</td></tr>
+      <tr><td class="mono">9</td><td>"whose terminal-capture case is one threshold away"</td><td class="mono">VIII</td><td>Delete the clause.</td></tr>
+      <tr><td class="mono">10</td><td>Problem 1's terminal-capture clause</td><td class="mono">II-F</td><td>Delete. Problem 1 becomes pure traversal, which is what the tracker does.</td></tr>
+      <tr><td class="mono">11</td><td>VII-C: the D tracker's "more reliably determined target"</td><td class="mono">VII-C</td><td>Reword. With capture gone it has no target. Its advantages are Newton-rate transverse convergence and no dependence on a seeded tangent direction.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout win">
+    <b>What survives, and gets stronger.</b> Contribution 3 already says the s<sub>1</sub> tracker "captures reliably at a terminal core rather than continuing past it". That was a comparative boast; it is now the paper's structural finding, and the asymmetry between the trackers stops being an embarrassment. Fig 5's caption, which says the D tracker "continues onto the crossing wall trench past every saddle it reaches", changes from describing a defect to describing designed behaviour. No figure needs re-rendering for this cut.
+  </div>
+</section>
+
+<!-- ===================== 04 CONSISTENCY ===================== -->
+<section id="contra">
+  <h2 class="sec"><span class="num">04</span>Internal consistency and cross-references</h2>
+  <p class="lede">All single-line edits. C1, C2 and C4 are the ones a referee notices unaided.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">#</th><th>Statement</th><th>Problem</th><th>Resolution</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">C1</td><td>IV-A: cluster-of-clusters gives "<span class="q">twelve shape variables</span> in place of the twelve Cartesian coordinates"</td><td>The count is right and the noun is wrong. Twelve cluster variables replace twelve Cartesian coordinates: 3 pose plus 9 shape, the 2N &minus; 3 partition of [30] that this paper cites. Your own parameterisation counts the same way: three pairs at (L, &theta;) is 6, the SAS triangle contributes 3 shape and 3 pose. V-A's "nine formation shape terms" is correct.</td><td>"twelve cluster variables in place of the twelve Cartesian coordinates, nine of them shape." Keep the 12; it is the 12&times;12 Jacobian's domain.</td></tr>
+      <tr><td class="mono">C2</td><td>III-D: "The radius is fixed at &rho; = 0.075 <span class="q">throughout this paper</span>."</td><td>V-C and Table I both set &rho; = 0.105 for the ocean runs.</td><td>"throughout the double-gyre experiments." Pairs with M4(a), which now gives &rho; = 0.105 its own justification.</td></tr>
+      <tr><td class="mono">C3</td><td>Section III heading: "<span class="q">Distributed</span> Second-Order Estimation"</td><td>Abstract, contributions, IV and VIII all say <em>cooperative</em>. The estimator pools six measurements into one central solve, which is not distributed. Flagged last round, not fixed.</td><td>Retitle to "Cooperative Second-Order Estimation."</td></tr>
+      <tr><td class="mono">C4</td><td>Fig 5 caption: "captures at the <span class="q">nearest</span> saddle its tangent orientation resolves toward"</td><td>Two rules glued together. VI-B-1 says "whichever one their initial tangent orientation resolves toward", and V-D-2 makes the point that from (0, 0.35) the seed commits to the <em>far</em> saddle at 0.85 over the near one at 0.15.</td><td>Delete "nearest."</td></tr>
+      <tr><td class="mono">C5</td><td>Assumption 1: eigenvalue gap "&lambda;<sub>2</sub> &minus; &lambda;<sub>1</sub> &ge; &gamma; &gt; 0"</td><td>&gamma; appears once and is used by nothing. The Theorem 2 proof runs on &lambda;<sub>&perp;</sub>, &lambda;&#772;<sub>&#8741;</sub>, m<sub>h</sub>, f<sub>min</sub>, r<sub>0</sub> and w.</td><td>Delete the clause. The M5 cut shortens this proof anyway.</td></tr>
+      <tr><td class="mono">C6</td><td>II-F states Problems 1 and 2 as numbered objects</td><td>Neither is referenced again. IV does not say which controller solves which, VI does not report against them, VIII does not close them.</td><td><b>Keep and close the loop.</b> One clause in IV-B, one in IV-C, one in VIII. Problem 1 also loses its terminal-capture clause per M5.</td></tr>
+      <tr><td class="mono">C7</td><td>IV-A: "<span class="q">This is the layer</span> where the two trackers actually differ"</td><td>The preceding sentence describes the cluster space layer, so the antecedent reads wrong. The referent is the adaptive navigation layer.</td><td>"The adaptive navigation layer is where the two trackers differ."</td></tr>
+      <tr><td class="mono">C8</td><td>V-D-2: the s<sub>1</sub> sweep uses an exit box of |y| &le; 0.60, the D sweep 0.52</td><td>Table II(a) and II(b) are presented as like-for-like but one column was scored under a looser rule. The text says runs would otherwise be scored as exits "while still converging" without saying how many.</td><td>Give the count, or the s<sub>1</sub> success rate under the 0.52 box, in one parenthesis.</td></tr>
+      <tr><td class="mono">C9</td><td>VI-A: from the gyre-centre start, arrival at p*<sub>1</sub> "holds near 40% from zero noise"</td><td>At zero noise the only stochastic input is initial heading, so heading alone decides 60% of outcomes. That sits three sentences from "confirming the isotropy of Lemma 1."</td><td>Add a clause separating estimator isotropy (Lemma 1, which holds) from outcome isotropy (which does not, off-structure).</td></tr>
+      <tr><td class="mono">C10</td><td>Abstract: "a measurable cost in <span class="q">robustness</span>"</td><td>The costs given are a convergence <em>rate</em> and a one-time <em>seed</em> fragility. Neither is robustness in the usual sense, and VII-C says so.</td><td>"a measurable cost in convergence rate and in noise tolerance at a single decision point."</td></tr>
+      <tr><td class="mono">C11</td><td>V-D-2 disclaims comparison with [9]'s straddle-retention values, then VI-A and VI-B-3 call it "the failure metric of [9]" four times</td><td>The repeated attribution invites the comparison the disclaimer forbids. With M6 now handling positioning explicitly, this matters more.</td><td>Name it once with the disclaimer, then call it "straddle retention" thereafter.</td></tr>
+      <tr><td class="mono">C12</td><td>Fig 9 caption: "ends 11.1 km from the nearest of 92 offline TRAP cores (white stars)"</td><td>M4(d) cuts the distance claim, which leaves the caption asserting a measurement the text no longer makes, and leaves 92 white stars with no stated role.</td><td>Recaption the stars as context at the final frame rather than a distance target.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout win">
+    <b>Two consistency checks done well.</b> VII-E's treatment of 47.1%<sub>grid loss</sub> against 47.1%<sub>random</sub> separates two numerically identical but unrelated quantities, names the genuine check between them (47.4% grid success against 47.1% random success), and flags only the digit match as coincidence. Correct handling of a suspicious number. Second: V-D-2's decision to score the s<sub>1</sub> tracker against the far saddle and count near-saddle settles separately in Table II(c) is methodologically right. The argument is too long (ledger item 5) but the decision is sound.
+  </div>
+</section>
+
+<!-- ===================== 05 DANGLING ===================== -->
+<section id="dangling">
+  <h2 class="sec"><span class="num">05</span>Introduced with no lead-in, or no follow-up</h2>
+  <p class="lede">Default disposition is cut, plus whatever prose repair keeps the surrounding argument standing. Four exceptions, marked.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Item</th><th class="mono">Where</th><th>Disposition</th></tr></thead>
+    <tbody>
+      <tr><td><b>Problems 1 and 2</b></td><td class="mono">II-F</td><td><b>Keep, and close the loop.</b> They are the statement of what the method estimates and tracks, and Problem 1 gets cleaner once M5 removes its terminal-capture clause. One referring clause each in IV-B, IV-C and VIII (C6).</td></tr>
+      <tr><td><b>&minus;4s<sub>trim</sub></b></td><td class="mono">eq (30)</td><td><b>Keep, and name it.</b> It is not a physical relation; it is a Schmitt trigger. Capture arms at 4&times; the first-contact depth and releases at 1&times;, so noise near the contact level cannot arm and disarm the terminal test. Deleting the third condition would need a re-run of the s<sub>1</sub> sweeps to confirm nothing changes, which is the wrong trade now. Twelve words calling it a hysteresis ratio turns the dangling 4 into a stated design choice. This matters more after M5, since (30) becomes the only terminal test in the paper.</td></tr>
+      <tr><td><b>&epsilon; = 0.1 spot check</b></td><td class="mono">VII-E</td><td><b>Keep, two sentences.</b> It is the only time-varying evidence in the paper, and "the noise sweeps use the static field" is otherwise a bare limitation. Michini makes a point of showing their static-derived strategy works on the time-dependent gyre and calls it a strength. Cutting yours leaves the nearest prior work with a demonstration you lack, on a criticism you have already invited. ~90 words as written. Cheap insurance.</td></tr>
+      <tr><td><b>"analytic curvature 6.9"</b></td><td class="mono">Remark 1 &rarr; VI-B-3</td><td><b>Relocate, do not delete.</b> Cut it from Remark 1 and drop "and order" there, leaving the sign claim, which is what the controller depends on. Keep the measured-versus-analytic pair in VI-B-3 alongside the restoring slope 4.0, where an open-loop verification belongs. State the evaluation point. Net effect is a shorter Remark 1 and a properly anchored number.</td></tr>
+      <tr><td>Fitted divergence "a live diagnostic"</td><td class="mono">III-A</td><td>Cut, with "weakly divergent" (M7).</td></tr>
+      <tr><td>&gamma;</td><td class="mono">Assumption 1</td><td>Cut (C5).</td></tr>
+      <tr><td>11.1 km against 92 cores</td><td class="mono">VI-D, Fig 9</td><td>Cut, per M4(d). Repair Fig 9's caption (C12).</td></tr>
+      <tr><td>Twelve-start spread, 1.37 to 11.06 km</td><td class="mono">VI-D</td><td>Cut to one sentence on start insensitivity (M4(d)).</td></tr>
+      <tr><td>The flow-projection counterfactual</td><td class="mono">VI-B-2</td><td>Cut. Sixty words of ablation on a controller the paper never presents; the reader has to hold a counterfactual design in mind to parse it.</td></tr>
+      <tr><td>"negligible at 10 Hz"</td><td class="mono">III-A</td><td>Cut the claim. The only computational statement in the paper and it is unmeasured.</td></tr>
+      <tr><td>&kappa;(&Phi;) versus det(&Phi;)</td><td class="mono">III-A, VII-D</td><td>Not a cut, a merge. III-A monitors the condition number, VII-D the determinant, and VII-D describes it as a proposal. Pick one quantity and say whether it ran.</td></tr>
+      <tr><td>TRAP definition placement</td><td class="mono">II-D</td><td>Shorten to one sentence and move the "not the object it follows" clause to where traverse is defined. The full apparatus now belongs to the follow-on paper (M5).</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ===================== 06 CLARITY ===================== -->
+<section id="clarity">
+  <h2 class="sec"><span class="num">06</span>Clarity and redundancy</h2>
+  <p class="lede">The prose reasons rather than reports, which is why the paper is readable at this length. The cost is four arguments made between five and eleven times each.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Argument</th><th class="mono">Restated in</th><th class="num">Times</th><th>Suggestion</th></tr></thead>
+    <tbody>
+      <tr><td>Why objectivity matters, and what the frame artifact does</td><td class="mono">Abstract, I, II-B, II-D, IV intro, IV-C intro, IV-C close, Prop 3, VI-B-2, VII-C, VIII</td><td class="num">11</td><td>Keep four: the II-D mathematical fact (6), the Prop 3 statement, the VI-B-2 measurement, one clause in VIII. Reduce IV intro, IV-C intro and VII-C to a sentence each; delete the II-B preview.</td></tr>
+      <tr><td>The tangent-sign seed caveat</td><td class="mono">IV-C, Prop 3, Prop 3 proof step 5, VI-B-2, VI-B-3, VI-D, VII-C, VII-E</td><td class="num">8</td><td>Keep VI-B-3 (mechanism and measurement), VII-E (the three unadopted fixes), and the one-clause exception in Prop 3. The rest become cross-references.</td></tr>
+      <tr><td>Hessian bias leads to capture-test misfire</td><td class="mono">III-D, Remark 2, Thm 2 discussion, VI-A, VI-B-1, VII-B</td><td class="num">6</td><td>M5 removes three of these outright. Remark 2 is the right home for what remains; state the consequence there once and cite it.</td></tr>
+      <tr><td>Instantaneous sensing, no map, no integration</td><td class="mono">Abstract, I &times;2, II-B, II-F, IV-A, VI-C, VIII</td><td class="num">8</td><td>It is the paper's identity, so Abstract, Introduction and Conclusion keep it. Cut the three mid-paper restatements. M7 folds the no-constitutive-assumption line into the same argument, so this becomes one idea rather than two.</td></tr>
+      <tr><td>"Both trackers consume the same fit, so switching is one function call"</td><td class="mono">IV intro, IV-A close, VII-C close</td><td class="num">3</td><td>Keep the IV-A statement, where it is architecturally true. Delete the other two.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="lede" style="margin-top:8px">Structural redundancy, which is where the pages actually are:</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">Loc</th><th>Overlap</th><th>Suggestion</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">V-D-2 and VI-B-3</td><td>V-D-2 spends 584 words justifying the far-saddle scoring choice, the exit-box change, and the II(c) diagnostic. VI-B-3 re-derives the same rationale while reporting the numbers.</td><td>Test Plan states the rule in three sentences; Results carries the justification, where the reader has the numbers in front of them. ~0.35 col.</td></tr>
+      <tr><td class="mono">V-D-1 and VI-A/VI-B-1</td><td>The clean-run protocol lists what each run records; VI-A and VI-B-1 list the same quantities again as they report them.</td><td>Delete the recording list from V-D-1. The park-versus-traverse sentence goes with M5 anyway.</td></tr>
+      <tr><td class="mono">II-B and II-C, II-D</td><td>II-B (108 words) previews exactly what II-C and II-D then say.</td><td>Delete II-B; move its one useful clause (FTLE needs a horizon this sensing model excludes) into II-A.</td></tr>
+      <tr><td class="mono">VII-A and I</td><td>VII-A "Implications" (117 words) restates the Introduction's contribution claim plus a comparison the paper defers to future work.</td><td>Replace with M6's assumptions table. The comparative prose was the part that needed evidence; the table supplies it structurally.</td></tr>
+      <tr><td class="mono">VII-C and VI-B-2, VII-E</td><td>Objectivity Tradeoffs (217 words) restates the Fig 6 result, the rate cost, and the seed fragility, all reported elsewhere.</td><td>Cut to a five-line "which tracker to pick" paragraph, the only part not stated elsewhere. Also fixes the "more reliably determined target" wording (M5, item 11).</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ===================== 07 PROSE ===================== -->
+<section id="prose">
+  <h2 class="sec"><span class="num">07</span>Sentences that do not parse, or say the wrong thing</h2>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">Loc</th><th>As written</th><th>Problem and suggestion</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">IV intro</td><td class="q">everywhere they differ traces to which term of (5) the tracker trusts, both terms for the D tracker's network reach, the strain term alone for the s<sub>1</sub> tracker's frame invariance</td><td>No grammatical subject, and the two appositives are comma-spliced onto it. Try: "Every difference between them follows from which term of (5) the tracker uses: both, for the D tracker's network reach; the strain term alone, for the s<sub>1</sub> tracker's frame invariance."</td></tr>
+      <tr><td class="mono">II-F</td><td class="q">The field is a number computed or replayed at that instant, not a current the platform sits in</td><td>The field is a vector field, not a number, and "a current the platform sits in" is the thing being excluded, so it reads as a category error on first pass. Try: "The measured flow is a sampled datum, not a current that advects the platform." This sentence carries M3, so it is worth getting right.</td></tr>
+      <tr><td class="mono">VII-C</td><td class="q">Zero-noise reach costs nothing on the double gyre... what it costs there is rate</td><td>Says the cost is nothing, then names the cost, in one sentence. The subject is also wrong: objectivity has the cost, not "zero-noise reach." Try: "On the double gyre the two trenches coincide, so objectivity costs no reach. What it costs is rate."</td></tr>
+      <tr><td class="mono">VII-A</td><td class="q">the price paid by the eigenstructure dependence, mode switching, and tube assumptions</td><td>"paid by" should be "paid in." As written the assumptions are the payer.</td></tr>
+      <tr><td class="mono">II-D</td><td class="q">A transient attracting profile (TRAP) is this core: a local minimum of s<sub>1</sub> that marks where drifting material is predicted to converge over the finite window the profile is computed for, the Eulerian structure the search-and-rescue literature builds on [35]</td><td>46 words, and the closing appositive can attach to "core", "minimum", or "window". Being shortened anyway per &sect;05.</td></tr>
+      <tr><td class="mono">II-E</td><td class="q">...runs along the separatrix, while on the lower half it is the compression eigenvector e<sub>1</sub> that does, the two trading roles exactly on three degeneracy lines where S = 0: the two vertical lines...</td><td>72 words with a comma splice at "that does, the two trading roles" and a colon list inside it. Break at "that does." This passage is also compressed by ledger item 8.</td></tr>
+      <tr><td class="mono">VI-B-1</td><td class="q">It is largest where the two trackers commit to different saddles... the divergence Remark 2 already predicts</td><td>71 words, three clauses, spliced final appositive. It explains the headline path-gap range of 0.020 to 0.322, so it earns three clean sentences.</td></tr>
+      <tr><td class="mono">III-A</td><td class="q">Measured surface currents are weakly divergent, the fitted divergence is a live diagnostic rather than an assumption, and...</td><td>Comma splice, and both clauses are being cut per M7. Replacement text should not inherit the construction.</td></tr>
+      <tr><td class="mono">VI-B-3</td><td class="q">...by a margin that noise of this size reverses systematically rather than symmetrically, the flip is near-total above the threshold rather than an even split</td><td>The mechanism is right and important, but "systematically rather than symmetrically" is unglossed. One clause: the noise is comparable to the signal span, so above threshold nearly every draw crosses it in the same direction. Pairs with M2's differential-span normalisation.</td></tr>
+      <tr><td class="mono">VII-E</td><td class="q">...would need its own noise sweep to verify, future work alongside the hardware validation above.</td><td>Trailing fragment. Make it a sentence.</td></tr>
+      <tr><td class="mono">VIII</td><td class="q">a team that can sense second-order structure locally does not need the map</td><td>"the map" has no referent, and after eighteen pages of careful qualification the flourish reads glib. Name it ("does not need a precomputed FTLE field") or cut.</td></tr>
+      <tr><td class="mono">Abstract</td><td class="mono">whole</td><td>~290 words against a T-RO norm of 150 to 250, opening on two sentences of background. Cut to ~210. M5 removes the terminal-capture clause and M4 removes the ocean distance claim, so roughly half the reduction is already paid for.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ===================== 08 NOTATION ===================== -->
+<section id="notation">
+  <h2 class="sec"><span class="num">08</span>Notation and units</h2>
+  <p class="lede">c<sub>max</sub>/v<sub>max</sub> and the theorem numbering are both fixed. Prior-round items closed.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">Symbol</th><th>Issue</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">m, m/s, s<sup>&minus;1</sup></td><td>SI dimensions on a declared non-dimensional field</td><td>Strip from all double-gyre numbers including Table I's Decabot column. Normalise the noise axis twice: peak flow for the field, differential span for the seed (M2).</td></tr>
+      <tr><td class="mono">&gamma;</td><td>Declared in Assumption 1, unused</td><td>Delete (C5).</td></tr>
+      <tr><td class="mono">&minus;4s<sub>trim</sub></td><td>Unmotivated factor in (30)</td><td>Keep; name it a hysteresis ratio in twelve words (&sect;05).</td></tr>
+      <tr><td class="mono">D<sub>capture</sub>, s<sub>capture</sub></td><td>Both removed by M5</td><td>Delete the s<sub>capture</sub> row from Table I and every D<sub>capture</sub> occurrence. Check the Table I caption does not still promise them.</td></tr>
+      <tr><td class="mono">&kappa;(&Phi;) vs det(&Phi;)</td><td>III-A monitors one, VII-D the other</td><td>One quantity, and say whether it was logged.</td></tr>
+      <tr><td class="mono">D</td><td>Collides with the material derivative for a fluids-literate referee</td><td>Decision already made to keep. One footnote at first use, given the T-RO/oceanography readership overlap.</td></tr>
+      <tr><td class="mono">Ocean (phys.) column</td><td>25.5 m/s and 8.7 m/s presented as physical values</td><td>With the ocean reframed as demonstration (M4d), drop the physical column for the two speed rows and keep it for &rho; and c<sub>max</sub>, where it is meaningful. Keep the realized 0.5 m/s, which is the only credible speed number and now does real work.</td></tr>
+      <tr><td class="mono">Abstract numerals</td><td>0.025, 1.219, 0.0016, 0.0075 bare</td><td>One clause stating that double-gyre figures are non-dimensional world units.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ===================== 09 FIGURES ===================== -->
+<section id="figs">
+  <h2 class="sec"><span class="num">09</span>Figures and floats</h2>
+  <p class="lede">Eleven figures down to eight, and one new table. Net float area falls by roughly 0.8 col.</p>
+
+  <div class="finding blocking">
+    <div class="fhead"><span class="tag blocking">Delete</span><h3>Fig 10, park versus traverse</h3><span class="loc">VII-B</span></div>
+    <p>Not supplementary. It illustrates a control mode that no longer exists after M5, so it cannot be referenced from anywhere.</p>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="tag major">Delete</span><h3>Fig 3, the three-layer architecture</h3><span class="loc">IV-A</span></div>
+    <p>Cited to [14], [27], [28], [30] and described completely in a 195-word paragraph. Nothing in it is specific to this paper, and the one architecturally novel claim, that the two trackers differ only at the top layer, is textual. Cheapest full figure in the paper to remove.</p>
+  </div>
+
+  <div class="finding minor">
+    <div class="fhead"><span class="tag minor">Merge</span><h3>Figs 8 and 9 into one two-panel ocean figure</h3><span class="loc">VI-C, VI-D</span></div>
+    <p>Same 24-h forward FTLE field, same domain, same colorbar, different overlaid path. A shared colorbar saves ~0.45 col and makes the D versus s<sub>1</sub> comparison visible rather than requiring a page turn. With M4(d)'s demonstration framing, a two-panel figure is also the right rhetorical unit: two paths, one field, no distance claims.</p>
+  </div>
+
+  <div class="finding note">
+    <div class="fhead"><span class="tag note">Fix</span><h3>Caption repairs</h3><span class="loc">Figs 5, 9, Table II</span></div>
+    <p>Fig 5: delete "nearest" (C4). Fig 9: drop the 11.1 km and recaption the 92 white stars as context at the final frame (C12). Table II: the caption runs ~130 words including the transition-resolution detail and the panel (c) rationale; move the rationale into VI-B-3 and keep the caption to what the panels contain. Fig 7's caption has the same problem at smaller scale.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Add</span><h3>The assumptions table (M6b)</h3><span class="loc">replaces VII-A</span></div>
+    <p>Five or six rows against [9] to [11] and [13]: initialization requirement, structure identity known in advance, sensing model, advection, what is estimated, terminal behaviour. ~0.3 col, and it is the paper's answer to "compared to what?" without running anyone else's controller.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Figs 1, 2, 4, 6, 7, 11</h3><span class="loc">throughout</span></div>
+    <p>Fig 2 carries the estimator argument and Fig 2(b)'s truncation floors are why M4(b) keeps that analysis. Fig 6 is the decisive experiment. Fig 7 resolves the failure Table II can only bracket. Fig 11 is the only basin estimate in this literature. All earn their space.</p>
+  </div>
+</section>
+
+<!-- ===================== 10 LENGTH ===================== -->
+<section id="length">
+  <h2 class="sec"><span class="num">10</span>Length: where this sits against T-RO practice</h2>
+  <p class="lede">There is no published corpus statistic for T-RO section lengths, so the norm column is a referee's working expectation for a methods-plus-validation paper in this journal, not a measured mean. The hard facts bracket it: T-RO regular papers may not exceed 20 formatted pages, and mandatory overlength charges apply to every page beyond 12.</p>
+
+  <div class="callout">
+    <b>Two numbers worth holding.</b> At 18.5 pages you pay overlength on 6.5 pages; at 16.2 on 4.2. The modal T-RO regular paper sits at 12 to 16 pages precisely because the charge starts at 12, so an 18.5-page submission reads as long before a referee has read a word. That is a real prior working against you, and 16.2 puts you inside the band.
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Section</th><th class="num">Words</th><th class="num">Share</th><th class="num">Norm</th><th>Read</th></tr></thead>
+    <tbody>
+      <tr><td>I Introduction + Related Work</td><td class="num">1,438</td><td class="num">8.9%</td><td class="num">12&ndash;15%</td><td>Lean. Do not cut further. M6's assumptions table lands adjacent to this and partly compensates.</td></tr>
+      <tr><td>II Problem Formulation</td><td class="num">1,828</td><td class="num">11.3%</td><td class="num">8&ndash;12%</td><td>Top of band. The running example (581 w) is the swollen part.</td></tr>
+      <tr><td>III Estimation</td><td class="num">1,761</td><td class="num">10.9%</td><td rowspan="2" class="num">25&ndash;30%<br><span style="font-size:11px">(combined)</span></td><td rowspan="2">Combined 28.1%: <b>on norm</b>. The method is correctly sized. Only M5 touches it.</td></tr>
+      <tr><td>IV Controllers</td><td class="num">2,776</td><td class="num">17.2%</td></tr>
+      <tr><td>V Simulation Program</td><td class="num">1,693</td><td class="num">10.5%</td><td class="num">5&ndash;8%</td><td><b>Roughly 1.6&times; norm.</b> V-D-2 alone is 584 words of scoring rationale.</td></tr>
+      <tr><td>VI Results</td><td class="num">2,757</td><td class="num">17.1%</td><td class="num">25&ndash;30%</td><td><b>Well under norm</b> for a paper with four experiment families and eleven figures.</td></tr>
+      <tr><td>VII Discussion</td><td class="num">1,478</td><td class="num">9.2%</td><td class="num">5&ndash;8%</td><td>Over, across five subsections averaging 296 words. M5 removes one of them outright.</td></tr>
+      <tr><td>VIII Conclusion</td><td class="num">345</td><td class="num">2.1%</td><td class="num">2&ndash;3%</td><td>Correct length, wrong content in one sentence (M1).</td></tr>
+      <tr><td>App A Proofs</td><td class="num">2,043</td><td class="num">12.7%</td><td class="num">0&ndash;8%</td><td><b>Over.</b> M5 removes one proof and two steps of another; Lemma 1's derivation goes to supplementary. Lands near 8%.</td></tr>
+    </tbody>
+    <tfoot><tr><td>Total prose</td><td class="num">16,119</td><td class="num">100%</td><td class="num"></td><td>42 display equations, 10 formal environments, 7 proofs</td></tr></tfoot>
+  </table>
+  </div>
+
+  <p style="margin:0 0 18px;color:var(--ink2)">The diagnostic falls out of two rows. <b>Setup plus Discussion plus Appendix is 32.4%</b> of the prose against a working norm near 15 to 18%. <b>Results is 17.1%</b> against a norm near 27%. That is the meander: not one bloated section, but a paper that spends more words planning experiments and reflecting on them than reporting them. A reader reaches VI-A on page 12 having read four pages about what is going to happen. The plan below shifts roughly 3 points of share from setup and appendix back toward results without adding a word to Section VI.</p>
+
+  <p style="margin:0 0 18px;color:var(--ink2)">Second signal: <b>10 formal environments and 7 proofs</b>, against a typical 3 to 6 for a T-RO control paper. M5 removes one theorem and one proof; demoting Prop 2 to a remark would take it to 8 and 5, which reads materially lighter for about twenty words of editing.</p>
+
+  <div class="callout">
+    <b>Conversion used below.</b> 16,119 words across 18.5 pages, net of roughly 5 pages of float area, gives about 550 to 600 prose words per column. One page is two columns.
+  </div>
+</section>
+
+<!-- ===================== 11 SIDEQUEST ===================== -->
+<section id="sidequest">
+  <h2 class="sec"><span class="num">11</span>Sidequest audit</h2>
+  <p class="lede">Every formal result and every experiment scored by whether the spine (one estimator, two surrogates, one identity) breaks without it. Dispositions now settled.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Result</th><th class="mono">Loc</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Prop 1 (minimality)</td><td class="mono">III-A</td><td><b>Spine.</b> Keep, with M7's presupposition framing replacing the divergence defence.</td></tr>
+      <tr><td>Corollary 1 (pentagon nonsingular)</td><td class="mono">III-A</td><td><b>Spine.</b> Keep as is.</td></tr>
+      <tr><td>Lemma 1 (noise gains)</td><td class="mono">III-D</td><td><b>Spine statement, sidequest proof.</b> Keep the lemma and its two consequences; the fifth-roots-of-unity ring sums go to supplementary.</td></tr>
+      <tr><td>Remark 1 (no s<sub>1</sub> Hessian)</td><td class="mono">III-C</td><td><b>Spine</b>, and after M5 it is half the paper's central claim. Shortened by relocating the 6.9 comparison to VI-B-3.</td></tr>
+      <tr><td>Remark 2 (Hessian bias)</td><td class="mono">III-D</td><td><b>Spine</b>, and the other half. Fold the capture consequence in here once; M5 removes three of its five downstream citations.</td></tr>
+      <tr><td>Theorem 2 (network traversal)</td><td class="mono">IV-D</td><td><b>Spine</b> for parts (i) and (ii). Part (iii) deleted with M5.</td></tr>
+      <tr><td>Prop 3 (frame equivariance)</td><td class="mono">IV-D</td><td><b>Spine.</b> Keep.</td></tr>
+      <tr><td>Prop 2 (conic criterion)</td><td class="mono">III-A</td><td><b>Elegant, cheap.</b> Keep the content; consider demoting to a remark to cut the environment count.</td></tr>
+      <tr><td>Theorem 1 (terminal capture)</td><td class="mono">IV-D, App A</td><td><b>Cut entirely</b> (M5).</td></tr>
+      <tr><td>Assumption 1</td><td class="mono">IV-D</td><td><b>Spine</b>, minus the unused &gamma; clause.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Experiment</th><th class="mono">Loc</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td>Double-gyre clean runs, both trackers</td><td class="mono">VI-A, VI-B-1</td><td><b>Spine.</b></td></tr>
+      <tr><td>Monte Carlo noise grid, both trackers</td><td class="mono">VI-A, VI-B-3</td><td><b>Spine.</b> The paper's best quantitative content.</td></tr>
+      <tr><td>Rotating-frame objectivity</td><td class="mono">VI-B-2</td><td><b>Spine.</b> The claim the title makes.</td></tr>
+      <tr><td>Ocean HFR, both trackers</td><td class="mono">VI-C, VI-D</td><td><b>Spine, reframed as demonstration</b> (M4d). Stronger for it: the claims become unarguable.</td></tr>
+      <tr><td>Open-loop estimator checks</td><td class="mono">III-D, VI-B-3</td><td><b>Spine.</b> Gains the relocated 6.9 comparison.</td></tr>
+      <tr><td>&epsilon; = 0.1 time-varying spot check</td><td class="mono">VII-E</td><td><b>Keep, two sentences.</b> Only time-varying evidence in the paper, and [9] treats the equivalent as a selling point.</td></tr>
+      <tr><td>Basin map, 200&times;100 grid</td><td class="mono">VII-E, Fig 11</td><td><b>Keep the map</b>, the only basin estimate in this literature. Cut the 80-word coincidence discussion to one sentence.</td></tr>
+      <tr><td>Off-structure acquisition sweep</td><td class="mono">VI-A</td><td><b>Two sentences.</b> The finding is one line: acquisition is not the noise-limited phase. Also needs the C9 isotropy clause.</td></tr>
+      <tr><td>Ocean start-jitter grid, 10&times;10</td><td class="mono">VI-C</td><td><b>One sentence</b> on start insensitivity (M4d).</td></tr>
+      <tr><td>Park-versus-traverse ablation</td><td class="mono">VII-B, Fig 10</td><td><b>Cut entirely</b> (M5).</td></tr>
+      <tr><td>Flow-projection counterfactual</td><td class="mono">VI-B-2</td><td><b>Cut</b> (&sect;05).</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <b>The pattern, restated.</b> Every sidequest is a good result, which is exactly why they are hard to cut and exactly why they cost: each stops the reader without advancing the argument that six robots plus one identity yields two trackers with a quantified tradeoff. The test on each pass: <em>if I deleted this, would a referee be unable to follow the next paragraph?</em> With M5 the answer for the whole capture apparatus is no, and the follow-on paper is where TRAP cores, eddy cores and other non-critical-point targets belong.
+  </div>
+</section>
+
+<!-- ===================== 12 TRIM ===================== -->
+<section id="trim">
+  <h2 class="sec"><span class="num">12</span>Cut ledger</h2>
+  <p class="lede">5.29 columns freed against about 0.70 spent. Net 4.6 columns, roughly 2.3 pages, landing near 16.2.</p>
+
+  <div class="ledger">
+    <h3>Where the columns come from</h3>
+    <div class="bar">
+      <span style="width:26.5%;background:#08334F">Capture machinery (M5)</span>
+      <span style="width:9.5%;background:#0F4467">Figs 8+9</span>
+      <span style="width:7.6%;background:#175778">Lemma 1 proof</span>
+      <span style="width:7.6%;background:#1A5E80">Ocean &rarr; demo</span>
+      <span style="width:6.6%;background:#22688A">V-D dedup</span>
+      <span style="width:6.6%;background:#26718F">Objectivity</span>
+      <span style="width:5.7%;background:#2E7C9C">Fig 3</span>
+      <span style="width:4.7%;background:#3D8CA8">II-E</span>
+      <span style="width:4.2%;background:#4C97B0">VII-C</span>
+      <span style="width:4.2%;background:#5DA2B8">Acquis.</span>
+      <span style="width:8.5%;background:#6DAEC1">II-B + rel. work</span>
+      <span style="width:8.3%;background:#8FBECD">line level</span>
+    </div>
+    <div class="scale"><span>0 columns freed</span><span>5.29</span></div>
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">#</th><th>Cut</th><th class="mono">Where</th><th class="num">Col</th><th>Risk</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">1</td><td>The full M5 inventory: Theorem 1 and proof, Theorem 2(iii) and proof steps 4 and 5, eq (39), VII-B, Fig 10, D<sub>capture</sub>, s<sub>capture</sub>, and the four downstream clauses.</td><td class="mono">&sect;03</td><td class="num">1.40</td><td>Med</td></tr>
+      <tr><td class="mono">2</td><td>Merge Figs 8 and 9 into one two-panel ocean figure, shared colorbar.</td><td class="mono">Figs 8, 9</td><td class="num">0.50</td><td>Low</td></tr>
+      <tr><td class="mono">3</td><td>Lemma 1's ring-sum derivation to supplementary; statement and consequences stay in III-D.</td><td class="mono">App A</td><td class="num">0.40</td><td>Low</td></tr>
+      <tr><td class="mono">4</td><td>Ocean reframed as demonstration: 6 km paragraph, twelve-start spread, 10&times;10 detail, 11.1 km.</td><td class="mono">V-C, VI-C, VI-D</td><td class="num">0.40</td><td>Low</td></tr>
+      <tr><td class="mono">5</td><td>Fold V-D-2's scoring rationale into VI-B-3; delete V-D-1's recording list.</td><td class="mono">V-D</td><td class="num">0.35</td><td>Low</td></tr>
+      <tr><td class="mono">6</td><td>Objectivity argument: 11 statements down to 4.</td><td class="mono">multiple</td><td class="num">0.35</td><td>Low</td></tr>
+      <tr><td class="mono">7</td><td>Delete Fig 3; keep the 195-word architecture paragraph.</td><td class="mono">Fig 3</td><td class="num">0.30</td><td>Low</td></tr>
+      <tr><td class="mono">8</td><td>Compress II-E's degeneracy-line analysis; keep (10), the swap sentence, and the nongenericity caveat.</td><td class="mono">II-E</td><td class="num">0.25</td><td>Low</td></tr>
+      <tr><td class="mono">9</td><td>Off-structure acquisition sweep to two sentences.</td><td class="mono">VI-A</td><td class="num">0.22</td><td>Med</td></tr>
+      <tr><td class="mono">10</td><td>Objectivity Tradeoffs to a five-line "which tracker to pick" paragraph.</td><td class="mono">VII-C</td><td class="num">0.22</td><td>Low</td></tr>
+      <tr><td class="mono">11</td><td>Delete II-B; one clause moves to II-A.</td><td class="mono">II-B</td><td class="num">0.20</td><td>Low</td></tr>
+      <tr><td class="mono">12</td><td>Related-work artificial-vector-field paragraph to one sentence; tangent-seed caveat from 8 places to 3.</td><td class="mono">I-A, multiple</td><td class="num">0.25</td><td>Low</td></tr>
+      <tr><td class="mono">13</td><td>&sect;05 cuts: 6.9 relocation, flow-projection counterfactual, 10 Hz claim, &kappa;/det merge, TRAP shortening, basin coincidence paragraph.</td><td class="mono">multiple</td><td class="num">0.20</td><td>Low</td></tr>
+      <tr><td class="mono">14</td><td>Line level: the eleven sentences of &sect;07, Table II and Fig 7 captions, abstract to ~210 words.</td><td class="mono">global</td><td class="num">0.25</td><td>Low</td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="3">Total freed</td><td class="num">5.29</td><td></td></tr></tfoot>
+  </table>
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Spent on</th><th class="mono">Where</th><th class="num">Col</th></tr></thead>
+    <tbody>
+      <tr><td>M6 assumptions table, the shared-dataset sentence, and the [9] saddle-veering citation</td><td class="mono">VII-A &rarr; new</td><td class="num">0.35</td></tr>
+      <tr><td>M4: &rho; sampling argument, truncation scoping sentence, [9] noise-scoping citation</td><td class="mono">V-C, III-D</td><td class="num">0.10</td></tr>
+      <tr><td>M3: advection limitation and future-work line</td><td class="mono">VII-E, VIII</td><td class="num">0.08</td></tr>
+      <tr><td>M2: dual normalisation clauses</td><td class="mono">V-D-2, VI-B-3</td><td class="num">0.05</td></tr>
+      <tr><td>M7: five-robot counting in prose</td><td class="mono">III-A</td><td class="num">0.05</td></tr>
+      <tr><td>Problems 1 and 2 loop closure, hysteresis clause, caption repairs</td><td class="mono">multiple</td><td class="num">0.07</td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="2">Total spent</td><td class="num">0.70</td></tr></tfoot>
+  </table>
+  </div>
+
+  <div class="callout win">
+    <b>Net 4.59 columns, about 2.3 pages, landing at 16.2.</b> That is 0.8 pages under your own 17 target, which is the right margin: reviewer-requested additions in round two have somewhere to go without a second trim. It also drops you to 4.2 overlength pages instead of 6.5.
+  </div>
+</section>
+
+<!-- ===================== 13 ORDER ===================== -->
+<section id="order">
+  <h2 class="sec"><span class="num">13</span>Order of work</h2>
+  <p class="lede">Sorted by machinery required. Tier 3 is the one to do while fresh; it touches eleven places and a missed reference is the characteristic failure.</p>
+
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-top:3px solid #08334F;padding-top:12px;margin:34px 0 4px">
+    <span style="font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:#08334F;font-weight:600">TIER 1</span>
+    <span style="font-family:var(--display);font-size:21px;font-weight:600">Find and replace</span>
+    <span style="font-family:var(--display);font-size:14px;color:var(--ink3);margin-left:auto">~40 min</span>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">1.n</th><th>Do</th><th class="mono">Locator</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">1.1</td><td>Retitle Section III to "Cooperative Second-Order Estimation" (C3).</td><td class="mono">III heading</td></tr>
+      <tr><td class="mono">1.2</td><td>"twelve shape variables" to "twelve cluster variables, nine of them shape" (C1).</td><td class="mono">IV-A</td></tr>
+      <tr><td class="mono">1.3</td><td>"&rho; = 0.075 throughout this paper" to "throughout the double-gyre experiments" (C2).</td><td class="mono">III-D</td></tr>
+      <tr><td class="mono">1.4</td><td>Delete "nearest" from the Fig 5 caption (C4); delete the &gamma; clause from Assumption 1 (C5).</td><td class="mono">Fig 5, IV-D</td></tr>
+      <tr><td class="mono">1.5</td><td>"This is the layer" to "The adaptive navigation layer is where..." (C7).</td><td class="mono">IV-A</td></tr>
+      <tr><td class="mono">1.6</td><td>Abstract: "cost in robustness" to "cost in convergence rate and in noise tolerance at a single decision point" (C10).</td><td class="mono">Abstract</td></tr>
+      <tr><td class="mono">1.7</td><td>Fix the four comma splices and the dangling fragment in &sect;07.</td><td class="mono">III-A, II-E, VI-B-1, VII-E</td></tr>
+      <tr><td class="mono">1.8</td><td>Delete "weakly divergent" and the fitted-divergence promise (M7); add the three-sentence five-robot counting and the presupposition tie-back to the Introduction.</td><td class="mono">III-A, I</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-top:3px solid #0F4467;padding-top:12px;margin:40px 0 4px">
+    <span style="font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:#0F4467;font-weight:600">TIER 2</span>
+    <span style="font-family:var(--display);font-size:21px;font-weight:600">The two blocking items</span>
+    <span style="font-family:var(--display);font-size:14px;color:var(--ink3);margin-left:auto">~3 h</span>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">2.n</th><th>Do</th><th class="mono">Locator</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">2.1</td><td>Rewrite VIII's s<sub>1</sub> ocean sentence to the traverse; drop "loop", "converged to and held", 1.4 km and 11.1 km (M1). No limitations clause; VI-D already carries the fact.</td><td class="mono">VIII, VII-E</td></tr>
+      <tr><td class="mono">2.2</td><td>Unit pass: strip m and m/s from every double-gyre number including Table I's Decabot column; add the dual normalisation (peak flow, differential span); add the non-dimensional note to the Abstract (M2).</td><td class="mono">global</td></tr>
+      <tr><td class="mono">2.3</td><td>Add advection to VII-E as a scope boundary, exact for Decabot and extrapolative for the ocean, plus one Future Work line (M3).</td><td class="mono">VII-E, VIII</td></tr>
+      <tr><td class="mono">2.4</td><td>Give C8 its missing count and C9 its isotropy clause.</td><td class="mono">V-D-2, VI-A</td></tr>
+      <tr><td class="mono">2.5</td><td>Close the loop on Problems 1 and 2: one clause each in IV-B, IV-C, VIII (C6). Add the hysteresis clause to (30).</td><td class="mono">IV-B, IV-C, VIII</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-top:3px solid #175778;padding-top:12px;margin:40px 0 4px">
+    <span style="font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:#175778;font-weight:600">TIER 3</span>
+    <span style="font-family:var(--display);font-size:21px;font-weight:600">The M5 cut</span>
+    <span style="font-family:var(--display);font-size:14px;color:var(--ink3);margin-left:auto">~half a day, one sitting</span>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">3.n</th><th>Do</th><th class="mono">Locator</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">3.1</td><td>Work the eleven-item cut list in &sect;03 top to bottom. Do not stop at item 4; items 8 to 11 are the ones that leave dangling references.</td><td class="mono">&sect;03</td></tr>
+      <tr><td class="mono">3.2</td><td>Rewrite the degenerate branch of (27) as a one-sentence well-definedness guard with no certificate.</td><td class="mono">IV-B</td></tr>
+      <tr><td class="mono">3.3</td><td>Fold Remark 2's capture consequence into III-D and repoint the surviving citations.</td><td class="mono">III-D, VI-A, VI-B</td></tr>
+      <tr><td class="mono">3.4</td><td>Add the Future Work sentence pointing TRAP cores, eddy cores and non-critical-point targets to the follow-on paper.</td><td class="mono">VIII</td></tr>
+      <tr><td class="mono">3.5</td><td>Lemma 1's proof to supplementary; Prop 2 to a remark if you want the environment count at 8.</td><td class="mono">App A, III-A</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-top:3px solid #1A5E80;padding-top:12px;margin:40px 0 4px">
+    <span style="font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:#1A5E80;font-weight:600">TIER 4</span>
+    <span style="font-family:var(--display);font-size:21px;font-weight:600">Ocean reframe and positioning</span>
+    <span style="font-family:var(--display);font-size:14px;color:var(--ink3);margin-left:auto">~half a day</span>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">4.n</th><th>Do</th><th class="mono">Locator</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">4.1</td><td>Delete the 6 km comparison; write the &rho; = 0.105 sampling argument (M4a).</td><td class="mono">V-C</td></tr>
+      <tr><td class="mono">4.2</td><td>Scope the truncation analysis to the double gyre; one sentence saying no bias bound is claimed on the ocean field (M4b).</td><td class="mono">III-D</td></tr>
+      <tr><td class="mono">4.3</td><td>Scope out ocean-noise quantification, citing [9]'s own scoping in their Section IV (M4c).</td><td class="mono">V-C</td></tr>
+      <tr><td class="mono">4.4</td><td>Reframe VI-C and VI-D as demonstrations; collapse the twelve-start spread and the 10&times;10 grid to one sentence each; repair Fig 9's caption (M4d, C12).</td><td class="mono">VI-C, VI-D, Fig 9</td></tr>
+      <tr><td class="mono">4.5</td><td>State that [9] uses the same radar record over the same 28-h window (M6a).</td><td class="mono">V-C or VI-C</td></tr>
+      <tr><td class="mono">4.6</td><td>Replace VII-A with the assumptions table; add the [9] saddle-veering citation (M6b, M6c).</td><td class="mono">VII-A</td></tr>
+      <tr><td class="mono">4.7</td><td>Merge Figs 8 and 9; delete Fig 3.</td><td class="mono">Figs 3, 8, 9</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-top:3px solid #3D8CA8;padding-top:12px;margin:40px 0 4px">
+    <span style="font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:#3D8CA8;font-weight:600">TIER 5</span>
+    <span style="font-family:var(--display);font-size:21px;font-weight:600">Compression and the one external dependency</span>
+    <span style="font-family:var(--display);font-size:14px;color:var(--ink3);margin-left:auto">~a day, plus lead time</span>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">5.n</th><th>Do</th><th class="mono">Locator</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">5.1</td><td><b>Get [14] to arXiv.</b> Start it now, since it is the only item with external lead time. It carries eq (38), the 0.3 s settling separation behind (31), and the prior-art framing (M6d).</td><td class="mono">refs</td></tr>
+      <tr><td class="mono">5.2</td><td>Ledger items 5, 6, 8 to 14: redundancy dedup first, results-narration compression last, when you can see how much room you actually need.</td><td class="mono">&sect;12</td></tr>
+      <tr><td class="mono">5.3</td><td>Optional, cheap: two or three more &Omega; points on Fig 6, so objectivity is a trend and not a point.</td><td class="mono">V-D-3, Fig 6</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout" style="margin-top:30px">
+    <b>Bottom line.</b> Tiers 1 and 2 are under a day and clear both blocking items. Tier 3 is the structural fix and the largest single saving, so it pays twice. Tier 4 converts the paper's weakest section into its most defensible and answers "compared to what?" without running anyone else's controller. Tier 5 is compression plus the one thing you cannot do at the last minute.
+  </div>
+
+  <p class="footer">Referee report on Draft 5c, revision-plan revision. Findings keyed M (major) and C (consistency); all dispositions settled with the author. Word counts computed from the LaTeX source with display math and markup excluded. Column estimates assume T-RO two-column format and about 550 to 600 prose words per column, calibrated on this manuscript. Norm columns in &sect;10 are a referee's working expectation, not a measured corpus statistic; the 20-page ceiling and the 12-page overlength threshold are T-RO policy. Comparisons to [9] are drawn from Michini, Hsieh, Forgoston and Schwartz, IEEE T-RO 30(3), 2014.</p>
+</section>
+
+</main>
+</div>
+</body>
+</html>

@@ -55,14 +55,17 @@ An adaptive navigation controller rides each. A rotating-frame experiment
 separates them: the strain tracker's inertial and rotating runs end
 0.025 apart, while the determinant tracker's diverge by 1.219 as its
 rotating-frame run leaves the structure. This objectivity has a
-measurable cost in robustness. Monte Carlo sweeps place the determinant
+measurable cost in convergence rate and in noise tolerance at a single
+decision point. Monte Carlo sweeps place the determinant
 tracker's failure cliff at the estimator's own noise threshold,
 $\sigma_{uv} \approx 0.01$, and the strain tracker's earlier, at
 $\sigma_{uv} \approx 0.002$; at zero noise their tracking errors are
 0.0016 and 0.0075. On Santa Barbara Channel radar currents, the
 determinant tracker follows a coherent ridge for 28 hours to a consistent
 landfall, and the strain tracker, started on that same ridge, rides the
-same network structure from the objective strain term alone.
+same network structure from the objective strain term alone. Double-gyre
+quantities are reported in the field's non-dimensional world units
+throughout.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -501,8 +504,8 @@ with no sign change and no ridge to cross. What alternates by segment is
 not the scalar trench but the \emph{material} identity of its tangent:
 on the upper half the stretching eigenvector $\mathbf{e}_2$ (tangent to
 an attracting OECS) runs along the separatrix, while on the lower half
-it is the compression eigenvector $\mathbf{e}_1$ that does, the two
-trading roles exactly on three degeneracy lines where $\mathbf{S} =
+it is the compression eigenvector $\mathbf{e}_1$ that does. The two
+trade roles exactly on three degeneracy lines where $\mathbf{S} =
 \mathbf{0}$: the two vertical lines $x = -0.5$ and $x = 0.5$, and the
 horizontal line $y = 0$. The separatrix ($x = 0$) crosses only the
 third of these, at the origin, which is where the swap described above
@@ -557,7 +560,7 @@ gradient, and its curvature or eigenframe at the centroid. The next
 section shows how a six-robot formation produces all of them from one
 fit.
 
-\section{Distributed Second-Order Estimation}
+\section{Cooperative Second-Order Estimation}
 \label{sec:estimation}
 
 \subsection{Quadratic Fit from Six Simultaneous Measurements}
@@ -609,11 +612,14 @@ Any method returning a single answer from five robots is therefore
 supplying a structural prior rather than reading one from the data. Such
 a prior is available: imposing exact incompressibility ties $a_2 + b_3 =
 0$ together with its two first derivatives, removing three coefficients,
-and five robots then supply ten equations for nine unknowns. The
-estimator fits the unconstrained model deliberately. Measured surface
-currents are weakly divergent, the fitted divergence is a live diagnostic
-rather than an assumption, and the sixth robot buys exactness over every
-planar quadratic field rather than over a constrained
+so five robots then supply ten equations for nine unknowns. The
+estimator fits the unconstrained model deliberately, extending to the
+constitutive assumption on the field the same refusal to presuppose
+that motivates the rest of the method: this paper's approach already
+requires neither pre-straddling an assumed manifold nor accumulation of
+data points (Section~\ref{sec:intro}), and the sixth robot buys the same
+independence from a constitutive assumption about the field, exactness
+over every planar quadratic field rather than only over an incompressible
 subclass.\label{rem:minimality_priors}
 
 Six robots suffice exactly when $\boldsymbol{\Phi}$ is nonsingular, and
@@ -859,7 +865,7 @@ second-order coefficients gives an optimal radius $\rho^* \propto
 whose flat optimum is not computable in the field, since $M_3$ is a
 property of an unknown flow and the exactly-determined six-robot fit
 leaves no residual to estimate it from. The radius is fixed at $\rho =
-0.075$ throughout this paper.
+0.075$ throughout the double-gyre experiments.
 
 Propagating coefficient errors to the navigation quantities separates
 cleanly by derivative order. The determinant obeys $|\hat{D} - D| \leq
@@ -927,10 +933,11 @@ is as wrong as it is right.
 \label{sec:controllers}
 
 This section derives the two controllers. They share the estimation
-step, the saturation idiom, and the three-layer architecture below;
-everywhere they differ traces to which term of (\ref{eq:splitting}) the
-tracker trusts, both terms for the $D$ tracker's network reach, the
-strain term alone for the $s_1$ tracker's frame invariance.
+step, the saturation idiom, and the three-layer architecture below.
+Every difference between them follows from which term of
+(\ref{eq:splitting}) the tracker uses: both, for the $D$ tracker's
+network reach; the strain term alone, for the $s_1$ tracker's frame
+invariance.
 
 \subsection{Multilayer Control Architecture}
 \label{sec:arch}
@@ -948,11 +955,11 @@ velocity down. The cluster space layer holds the formation rigid
 around that centroid command using a cluster-of-clusters
 parameterization, robots grouped into three pairs (length $L$, angle
 $\theta$ each) whose midpoints form a Side-Angle-Side triangle
-\cite{31}, twelve shape variables in place of the twelve Cartesian
-coordinates, regulated to the pentagon-plus-center nominal
+\cite{31}, twelve cluster variables in place of the twelve Cartesian
+coordinates, nine of them shape, regulated to the pentagon-plus-center nominal
 (Corollary~\ref{cor:pentagon}) except the centroid and heading, which
-the top layer's command alone determines. This is the layer where the
-two trackers of this paper actually differ from each other: everything
+the top layer's command alone determines. The adaptive navigation layer
+is where the two trackers of this paper actually differ from each other: everything
 beneath it is a fixed, tracker-agnostic mechanism, so replacing the $D$
 tracker with the $s_1$ tracker changes nothing about the two layers
 beneath it.
@@ -1252,8 +1259,7 @@ On a tube $T_w = \{|n| \leq w\}$ about $\Gamma$,
     \qquad 0 < \underline{\lambda} \leq \lambda_\perp(\ell),
     \label{eq:normal_form}
 \end{equation}
-with vanishing cross terms and eigenvalue gap $\lambda_2 - \lambda_1
-\geq \gamma > 0$ wherever $\mathbf{H}_D$ has mixed signs. The curve
+with vanishing cross terms. The curve
 $\Gamma$ is invariant under the flow, with $\|\mathbf{v}\| \geq f_{\min}
 > 0$ outside balls of radius $r_0$ around the flow saddles. The
 stationary points of $h$ are wells at the flow saddles and crests inside
@@ -1785,10 +1791,10 @@ orientation resolves toward: four at $\mathbf{p}^*_1 = (0, -0.5)$ and
 two at $\mathbf{p}^*_2 = (0, 0.5)$. The mean
 path gap against the $D$ tracker's own trajectory from the same start,
 measured over the common on-trench portion of each run, is 0.020 to
-0.322 across the six. It is largest where the two trackers commit to
-different saddles, from a start equidistant enough that the seeded
-tangent and the $D$ tracker's own flow-tested tangential term do not
-agree; where they commit to the same saddle the two paths are visually
+0.322 across the six. The gap is largest where the two trackers commit
+to different saddles. That happens from a start equidistant enough that
+the seeded tangent and the $D$ tracker's own flow-tested tangential term
+do not agree; where they commit to the same saddle the two paths are visually
 coincident until the $s_1$ tracker settles and the $D$ tracker continues
 onto the crossing wall trench, the divergence Remark~\ref{rem:eigvec}
 already predicts for the $D$ tracker's own command. This is the
@@ -1802,8 +1808,8 @@ what it finds.
     \includegraphics[width=0.34\textwidth]{figures/traverse_vs_logic_c.png}
     \caption{$s_1$ tracker versus $D$ tracker, six matched starts,
     noise-free. Both traverse the same network through the eigenvector
-    swap at the origin; the $s_1$ tracker captures at the nearest saddle
-    its tangent orientation resolves toward, while the $D$ tracker
+    swap at the origin; the $s_1$ tracker captures at the saddle its
+    tangent orientation resolves toward, while the $D$ tracker
     continues onto the crossing wall trench past every saddle it
     reaches.}
     \label{fig:traverse_vs_logic_c}
@@ -2059,7 +2065,7 @@ Tracking a trench is structurally harder than tracking a regular level
 set: a level set is fixed by first-order information, while the trench
 lives exactly where that gradient vanishes in the normal direction, so
 controller and proof alike must synthesize the missing direction from
-curvature, the price paid by the eigenstructure dependence, mode
+curvature, the price paid in the eigenstructure dependence, mode
 switching, and tube assumptions of the stability analysis. Against
 the straddle family \cite{9,10,11},
 the method here additionally solves acquisition and traversal from
@@ -2196,8 +2202,8 @@ trades the single-instant risk for a short transient of ordinary
 tracking-error exposure, closer in spirit to how time-to-band already
 absorbs acquisition. None was implemented, since the finding was made
 late enough in the noise-sweep validation that a design change here
-would need its own noise sweep to verify, future work alongside the
-hardware validation above.
+would need its own noise sweep to verify. That is future work, alongside
+the hardware validation above.
 
 All results are from simulation; hardware validation on the Decabot
 testbed is planned as a follow-on study. The double-gyre noise sweeps
