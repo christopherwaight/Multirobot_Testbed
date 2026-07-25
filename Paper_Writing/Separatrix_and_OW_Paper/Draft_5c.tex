@@ -225,15 +225,22 @@ recover the gradient and Hessian of a scalar signal in closed form
 \cite{15}. McDonald, Kitts, and Neumann developed the complementary
 adaptive-navigation primitives that follow scalar-field ridges,
 trenches, and saddle points from local differences alone
-\cite{27,28,29}. Every prior formation samples one signal channel; a
-coupled two-component field doubles the estimation problem to twelve
-unknowns, and Section~\ref{sec:estimation} proves six robots, the same
-count as the ring-plus-center of \cite{15}, is the exact minimum for
-the coupled case, for any non-conic placement and against any
-algorithm. Where \cite{15} inverts the raw Hessian, the modified Newton
-step used here combines per-eigendirection saturation with the
-saddle-free sign flip of Dauphin et al. \cite{35}, previously unapplied
-to a robot team tracking a spatial field.
+\cite{27,28,29}. Every one of these formations samples a single signal
+channel. A coupled two-component field doubles the estimation problem
+to twelve unknowns, and Section~\ref{sec:estimation} shows that six
+robots, the same count as the ring-plus-center of \cite{15}, is the
+exact minimum for the unconstrained quadratic model, against any
+algorithm, and that six suffice for every placement outside a single
+conic degeneracy. Where \cite{15} applies fixed symmetric weights valid
+for the ideal ring geometry, the estimator here solves at the measured
+positions and so stays exact under formation deformation. On the
+control side, the step used here normalizes the Newton component by the
+magnitude of the curvature in each eigendirection, a substitution that
+also appears in the saddle-free method of Dauphin et al. \cite{35},
+and takes the direction of the along-trench motion from the ambient
+flow. The purpose differs: \cite{35} uses the substitution to escape
+stationary points, while both trackers developed here are built to
+find and hold them.
 
 Robotic work in vector-field environments divides by whether the field
 is measured or constructed. The critical-point and structure-tracking
@@ -262,33 +269,36 @@ second order; a planar fit, whose second derivatives are identically zero,
 cannot supply them.
 
 The team therefore works from the second-order Taylor expansion of each
-component about the cluster centroid $\mathbf{p}_c$. Writing
-$\mathbf{p}' = (x', y') = \mathbf{p} - \mathbf{p}_c$ for position relative
-to the centroid,
+component about the cluster centroid $\mathbf{p}_c$. Coordinates
+$\mathbf{p} = (x, y)$ are measured from the centroid throughout this
+section, so that $\mathbf{p} = \mathbf{0}$ is the centroid itself:
 \begin{align}
-    u(\mathbf{p}) &= u_0 + u_x x' + u_y y'
-        + \tfrac{1}{2} u_{xx} {x'}^2 + u_{xy} x' y'
-        + \tfrac{1}{2} u_{yy} {y'}^2
-        + \mathcal{O}(\|\mathbf{p}'\|^3),
+    u(\mathbf{p}) &= a_1 + a_2 x + a_3 y
+        \nonumber \\
+        &\quad + a_4 xy + \tfrac{1}{2} a_5 x^2 + \tfrac{1}{2} a_6 y^2
+        + \mathcal{O}(\|\mathbf{p}\|^3),
         \label{eq:quad_model_u} \\
-    v(\mathbf{p}) &= v_0 + v_x x' + v_y y'
-        + \tfrac{1}{2} v_{xx} {x'}^2 + v_{xy} x' y'
-        + \tfrac{1}{2} v_{yy} {y'}^2
-        + \mathcal{O}(\|\mathbf{p}'\|^3).
+    v(\mathbf{p}) &= b_1 + b_2 x + b_3 y
+        \nonumber \\
+        &\quad + b_4 xy + \tfrac{1}{2} b_5 x^2 + \tfrac{1}{2} b_6 y^2
+        + \mathcal{O}(\|\mathbf{p}\|^3).
         \label{eq:quad_model_v}
 \end{align}
-Throughout, a subscript $0$ marks evaluation at the centroid and a
-coordinate subscript marks partial differentiation, so that
-$u_0 = u(\mathbf{p}_c)$, $u_x = \partial u/\partial x |_{\mathbf{p}_c}$,
-and $u_{xy} = \partial^2 u/\partial x \partial y |_{\mathbf{p}_c}$. All
-twelve coefficients are constants; the position dependence in
-(\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}) is carried entirely by
-$\mathbf{p}'$.
+The twelve coefficients are constants; all position dependence in
+(\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}) is carried by $x$ and
+$y$. Each coefficient is a derivative of the field at the centroid, and
+the one-half factors are chosen so that the match is direct:
+$a_1 = u(\mathbf{p}_c)$, $a_2 = \partial u/\partial x|_{\mathbf{p}_c}$,
+$a_4 = \partial^2 u/\partial x \partial y|_{\mathbf{p}_c}$,
+$a_5 = \partial^2 u/\partial x^2|_{\mathbf{p}_c}$, and likewise for
+$b_1, \ldots, b_6$ with $v$ in place of $u$. Where a partial derivative
+of the true field is meant rather than a fitted coefficient, this paper
+writes it as a derivative: $u_x$, $u_{xy}$, and so on.
 
 The team estimates these coefficients by fitting the quadratic model that
-remains when the $\mathcal{O}(\|\mathbf{p}'\|^3)$ remainder is discarded,
-and marks the results with a hat: $\hat{u}_{xx}$ is an estimate of
-$u_{xx}$, not the quantity itself. Two mechanisms separate them. Sensor
+remains when the $\mathcal{O}(\|\mathbf{p}\|^3)$ remainder is discarded,
+and marks the results with a hat: $\hat{a}_5$ is an estimate of $a_5$,
+not the quantity itself. Two mechanisms separate them. Sensor
 noise perturbs each measurement, and truncation bias arises because the
 discarded cubic terms are not zero over a footprint of finite size, so the
 fit absorbs part of them into the retained coefficients.
@@ -304,8 +314,9 @@ field Jacobian
     \end{bmatrix},
     \label{eq:jacobian}
 \end{equation}
-so that $\mathbf{J}_0$ has entries $u_x$, $u_y$, $v_x$, $v_y$, and we write
-$D(\mathbf{p}) = \det(\mathbf{J}(\mathbf{p}))$ throughout.
+so that $\mathbf{J}_0 = \mathbf{J}(\mathbf{p}_c)$ has entries $a_2$,
+$a_3$, $b_2$, $b_3$, and we write $D(\mathbf{p}) =
+\det(\mathbf{J}(\mathbf{p}))$ throughout.
 
 \subsection{Separatrices and Eulerian Surrogates}
 \label{sec:separatrix}
@@ -405,8 +416,8 @@ lines and part ways everywhere else.
 The smaller eigenvalue $s_1$ is the local instantaneous contraction
 rate: where $s_1 < 0$, material filaments are compressed along
 $\mathbf{e}_1$ and stretched along $\mathbf{e}_2$ at rate $s_2 = -s_1$.
-An attracting Eulerian coherent structure is a trench of the signed
-scalar field $s_1$ ridden along the stretching eigenvector
+An attracting objective Eulerian coherent structure (OECS) is a trench
+of the signed scalar field $s_1$ ridden along the stretching eigenvector
 $\mathbf{e}_2$: a curve on which $s_1 < 0$ is locally most negative in
 the transverse direction, so neighboring material is drawn onto it
 \cite{17}. This is the objective counterpart of the $D$ trench, and it
@@ -562,21 +573,22 @@ fit.
 
 \subsection{Quadratic Fit from Six Simultaneous Measurements}
 
-Let $\mathbf{p}'_i = \mathbf{p}_i - \mathbf{p}_c$ denote robot positions
-relative to the centroid and define the quadratic basis vector
+With robot positions $\mathbf{p}_i = (x_i, y_i)$ again measured from the
+centroid, define the quadratic basis vector
 \begin{equation}
-    \boldsymbol{\phi}(\mathbf{p}') =
-    \bigl[\,1, \; x', \; y', \; \tfrac{1}{2}{x'}^2, \;
-    x' y', \; \tfrac{1}{2}{y'}^2\,\bigr]^\top,
+    \boldsymbol{\phi}(\mathbf{p}) =
+    \bigl[\,1, \; x, \; y, \; xy, \;
+    \tfrac{1}{2}x^2, \; \tfrac{1}{2}y^2\,\bigr]^\top,
     \label{eq:basis}
 \end{equation}
-whose one-half factors let the recovered coefficients estimate the Taylor
-derivatives in (\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}) directly,
-with no rescaling. Stacking the six robots' basis vectors row-wise gives
+whose entries are the terms of
+(\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}) in the same order, so
+the recovered coefficients estimate the Taylor derivatives directly with
+no rescaling. Stacking the six robots' basis vectors row-wise gives
 the $6 \times 6$ formation matrix $\boldsymbol{\Phi}$, and the coefficient
-estimates $\hat{\boldsymbol{\theta}}_u = [\hat{u}_0, \hat{u}_x,
-\hat{u}_y, \hat{u}_{xx}, \hat{u}_{xy}, \hat{u}_{yy}]^\top$ and
-$\hat{\boldsymbol{\theta}}_v$ solve
+estimates $\hat{\boldsymbol{\theta}}_u = [\hat{a}_1, \ldots,
+\hat{a}_6]^\top$ and $\hat{\boldsymbol{\theta}}_v = [\hat{b}_1, \ldots,
+\hat{b}_6]^\top$ solve
 \begin{equation}
     \boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_u = \mathbf{m}_u, \qquad
     \boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_v = \mathbf{m}_v,
@@ -586,30 +598,26 @@ where $\mathbf{m}_u = [u_1, \ldots, u_6]^\top$ and
 $\mathbf{m}_v = [v_1, \ldots, v_6]^\top$ collect the measurements, $u_i$
 and $v_i$ being the field components sampled by robot $i$. One matrix
 factorization serves both components. If the field is exactly quadratic
-over the formation footprint, the $\mathcal{O}(\|\mathbf{p}'\|^3)$
+over the formation footprint, the $\mathcal{O}(\|\mathbf{p}\|^3)$
 remainder vanishes identically, and noise-free measurements give
 $\hat{\boldsymbol{\theta}}_u = \boldsymbol{\theta}_u$ and
 $\hat{\boldsymbol{\theta}}_v = \boldsymbol{\theta}_v$ for any nonsingular
-$\boldsymbol{\Phi}$. On a general smooth field the remainder does not
-vanish, and Section~\ref{sec:sensitivity} quantifies the bias it leaves
-in the fit. The estimation is cooperative rather than distributed in the
-consensus sense: it pools six position and velocity-field pairs, 24
-scalars per cycle, at one common solver, not an iterative exchange among
-peers.
+$\boldsymbol{\Phi}$; neither condition holds exactly in practice.
 
-\textit{Minimality:} each robot contributes one equation per component to
+\textit{Minimality:}\label{prop:minimality} each robot contributes one equation per component to
 (\ref{eq:solve}), and each system has six unknowns, so a synchronous
 sample from fewer than six robots leaves the unconstrained quadratic
 model unidentifiable. The solution set is a positive-dimensional affine
 subspace, and any method returning a single answer from five robots is
 supplying a structural prior rather than reading one from the data. Such
-a prior is available: imposing exact incompressibility ties $u_x + v_y =
+a prior is available: imposing exact incompressibility ties $a_2 + b_3 =
 0$ together with its two first derivatives, removing three coefficients,
 and five robots then supply ten equations for nine unknowns. The
 estimator fits the unconstrained model deliberately. Measured surface
 currents are weakly divergent, the fitted divergence is a live diagnostic
 rather than an assumption, and the sixth robot buys exactness over every
-planar quadratic field rather than over a constrained subclass.
+planar quadratic field rather than over a constrained
+subclass.\label{rem:minimality_priors}
 
 Six robots suffice exactly when $\boldsymbol{\Phi}$ is nonsingular, and
 the singular formations admit a clean geometric description.
@@ -620,22 +628,22 @@ $\boldsymbol{\Phi}$ is singular if and only if the six sampling points
 lie on a common conic, including degenerate conics such as line pairs.
 \end{proposition}
 
-\begin{proof}
+\begin{IEEEproof}
 $\boldsymbol{\Phi}$ is singular exactly when
 $\boldsymbol{\Phi}\mathbf{c} = \mathbf{0}$ for some nonzero
 $\mathbf{c} \in \mathbb{R}^6$. Row $i$ of $\boldsymbol{\Phi}$ is
-$\boldsymbol{\phi}(\mathbf{p}'_i)^\top$, so this holds if and only if
-$\boldsymbol{\phi}(\mathbf{p}'_i)^\top \mathbf{c} = 0$ for every $i$,
+$\boldsymbol{\phi}(\mathbf{p}_i)^\top$, so this holds if and only if
+$\boldsymbol{\phi}(\mathbf{p}_i)^\top \mathbf{c} = 0$ for every $i$,
 that is, if and only if all six points lie on the zero set of the nonzero
 quadratic polynomial $\boldsymbol{\phi}(\cdot)^\top \mathbf{c}$.
-\end{proof}
+\end{IEEEproof}
 
 The criterion carries a practical warning: any six robots on one circle,
 a regular hexagon for example, are singular regardless of size or
 orientation. Moving one robot to the center removes the degeneracy
 entirely, because a conic vanishing at five points of a circle must be a
 multiple of that circle, and a circle does not pass through its own
-center. The resulting pentagon-plus-center shape, five robots on a ring
+center. The resulting pentagon-plus-center shape,\label{cor:pentagon} five robots on a ring
 of radius $\rho$ at $72^\circ$ spacing and one at the center, is the
 configuration \cite{15} derived for scalar Hessian estimation, whose
 fixed symmetric weights are exact only for the ideal ring geometry and
@@ -653,45 +661,45 @@ coefficients,
 \begin{equation}
     \hat{\mathbf{J}}_0 =
     \begin{bmatrix}
-        \hat{u}_x & \hat{u}_y \\ \hat{v}_x & \hat{v}_y
+        \hat{a}_2 & \hat{a}_3 \\ \hat{b}_2 & \hat{b}_3
     \end{bmatrix},
     \qquad
-    \hat{D}_0 = \hat{u}_x \hat{v}_y - \hat{u}_y \hat{v}_x.
+    \hat{D}_0 = \hat{a}_2 \hat{b}_3 - \hat{a}_3 \hat{b}_2.
     \label{eq:J_hat}
 \end{equation}
 Away from the centroid the fitted model makes every Jacobian entry affine
-in $\mathbf{p}'$,
+in position,
 \begin{equation}
     \hat{\mathbf{J}}(\mathbf{p}) = \hat{\mathbf{J}}_0 +
     \begin{bmatrix}
-        \hat{u}_{xx} x' + \hat{u}_{xy} y' &
-        \hat{u}_{xy} x' + \hat{u}_{yy} y' \\
-        \hat{v}_{xx} x' + \hat{v}_{xy} y' &
-        \hat{v}_{xy} x' + \hat{v}_{yy} y'
+        \hat{a}_5 x + \hat{a}_4 y &
+        \hat{a}_4 x + \hat{a}_6 y \\
+        \hat{b}_5 x + \hat{b}_4 y &
+        \hat{b}_4 x + \hat{b}_6 y
     \end{bmatrix},
     \label{eq:jac_affine}
 \end{equation}
 so $\hat{D}(\mathbf{p}) = \det(\hat{\mathbf{J}}(\mathbf{p}))$ is an exactly
-quadratic polynomial in $\mathbf{p}'$ over the footprint. Differentiating
-it and evaluating at $\mathbf{p}' = \mathbf{0}$ gives the gradient and
-Hessian at the centroid as polynomials in the fitted coefficients:
+quadratic polynomial in position over the footprint. Differentiating
+it and evaluating at the centroid $\mathbf{p} = \mathbf{0}$ gives the
+gradient and Hessian there as polynomials in the fitted coefficients:
 \begin{equation}
     \hat{\mathbf{g}}_0 =
     \begin{bmatrix}
-        \hat{u}_{xx} \hat{v}_y + \hat{u}_x \hat{v}_{xy}
-            - \hat{u}_{xy} \hat{v}_x - \hat{u}_y \hat{v}_{xx} \\
-        \hat{u}_{xy} \hat{v}_y + \hat{u}_x \hat{v}_{yy}
-            - \hat{u}_{yy} \hat{v}_x - \hat{u}_y \hat{v}_{xy}
+        \hat{a}_5 \hat{b}_3 + \hat{a}_2 \hat{b}_4
+            - \hat{a}_4 \hat{b}_2 - \hat{a}_3 \hat{b}_5 \\
+        \hat{a}_4 \hat{b}_3 + \hat{a}_2 \hat{b}_6
+            - \hat{a}_6 \hat{b}_2 - \hat{a}_3 \hat{b}_4
     \end{bmatrix},
     \label{eq:grad_det}
 \end{equation}
 \begin{equation}
     \hat{\mathbf{H}}_{D,0} =
     \begin{bmatrix}
-        2(\hat{u}_{xx} \hat{v}_{xy} - \hat{u}_{xy} \hat{v}_{xx}) &
-        \hat{u}_{xx} \hat{v}_{yy} - \hat{u}_{yy} \hat{v}_{xx} \\
-        \hat{u}_{xx} \hat{v}_{yy} - \hat{u}_{yy} \hat{v}_{xx} &
-        2(\hat{u}_{xy} \hat{v}_{yy} - \hat{u}_{yy} \hat{v}_{xy})
+        2(\hat{a}_5 \hat{b}_4 - \hat{a}_4 \hat{b}_5) &
+        \hat{a}_5 \hat{b}_6 - \hat{a}_6 \hat{b}_5 \\
+        \hat{a}_5 \hat{b}_6 - \hat{a}_6 \hat{b}_5 &
+        2(\hat{a}_4 \hat{b}_6 - \hat{a}_6 \hat{b}_4)
     \end{bmatrix}.
     \label{eq:hess_det}
 \end{equation}
@@ -704,41 +712,54 @@ The two quantities also differ in what the truncation costs them. Every
 term of $\nabla D(\mathbf{p}_c)$ pairs a second derivative of the field
 with a first derivative, so the quadratic model retains all of the field
 data the true gradient depends on. The Hessian does not have that
-property. Its $(1,1)$ entry expands as
+property. Written in derivatives of the true field, its $(1,1)$ entry
+expands as
 \begin{equation}
-    D_{xx} = 2(u_{xx} v_{xy} - u_{xy} v_{xx})
-        + u_{xxx} v_y + u_x v_{xxy}
+\begin{split}
+    D_{xx} = {}&2(u_{xx} v_{xy} - u_{xy} v_{xx}) \\
+        &+ u_{xxx} v_y + u_x v_{xxy}
         - u_{xxy} v_x - u_y v_{xxx},
+\end{split}
     \label{eq:Dxx_true}
 \end{equation}
-and (\ref{eq:hess_det}) keeps only the first pair. The four third-order
-terms are set to zero by construction, not made small by a good fit;
+whose first pair is what (\ref{eq:hess_det}) recovers as $2(\hat{a}_5
+\hat{b}_4 - \hat{a}_4 \hat{b}_5)$. The four third-order terms have no
+counterpart among the twelve fitted coefficients: they are set to zero by
+construction, not made small by a good fit;
 Section~\ref{sec:sensitivity} quantifies the resulting bias. With the
-estimated flow at the centroid, $\hat{\mathbf{v}}_0 = (\hat{u}_0,
-\hat{v}_0)$, (\ref{eq:J_hat})--(\ref{eq:hess_det}) supply every quantity
+estimated flow at the centroid, $\hat{\mathbf{v}}_0 = (\hat{a}_1,
+\hat{b}_1)$, (\ref{eq:J_hat})--(\ref{eq:hess_det}) supply every quantity
 the $D$ tracker consumes.
 
 \subsection{Closed-Form Recovery of $s_1$ and the Strain Eigenframe}
 \label{sec:s1_estimation}
 
 The same fit supplies the objective quantities of
-Section~\ref{sec:strain_field}. Writing $\mu = (u_x + v_y)/2$ (zero for
-incompressible flow), $a = (u_x - v_y)/2$, and $b = (u_y + v_x)/2$ for
-the mean, deviatoric normal, and shear strain, the strain eigenvalues
-are $s_{1,2} = \mu \mp r$ with $r = \sqrt{a^2 + b^2}$, and the
+Section~\ref{sec:strain_field}. Write $\mu$, $s_n$, and $s_s$ for the
+mean, deviatoric normal, and shear strain, which the fitted first-order
+coefficients give as
+\begin{equation}
+    \mu = \frac{\hat{a}_2 + \hat{b}_3}{2}, \quad
+    s_n = \frac{\hat{a}_2 - \hat{b}_3}{2}, \quad
+    s_s = \frac{\hat{a}_3 + \hat{b}_2}{2},
+    \label{eq:strain_parts}
+\end{equation}
+with $\mu = 0$ for incompressible flow. The strain eigenvalues are
+$s_{1,2} = \mu \mp r$ with $r = \sqrt{s_n^2 + s_s^2}$, and the
 eigenframe $(\mathbf{e}_1, \mathbf{e}_2)$ is that of the symmetric
-matrix $\hat{\mathbf{S}}$ assembled from the linear coefficients. Under
-the quadratic model, $\mu$, $a$, and $b$ are affine functions of
+matrix $\hat{\mathbf{S}}$ assembled from the same coefficients. Under
+the quadratic model, $\mu$, $s_n$, and $s_s$ are affine functions of
 position, so the gradient of $\hat{s}_1$ is exact for the fitted field:
 \begin{equation}
     \nabla \hat{s}_1 = \nabla\mu
-    - \frac{a\,\nabla a + b\,\nabla b}{r},
+    - \frac{s_n\,\nabla s_n + s_s\,\nabla s_s}{r},
     \label{eq:grad_s1}
 \end{equation}
-with $\nabla\mu$, $\nabla a$, $\nabla b$ read directly off the
-second-order coefficients (for example $\nabla a = \tfrac{1}{2}(u_{xx} -
-v_{xy},\; u_{xy} - v_{yy})^\top$). Two properties distinguish this
-pipeline from the $D$ pipeline, one favorable and one prohibitive.
+with $\nabla\mu$, $\nabla s_n$, $\nabla s_s$ read directly off the
+second-order coefficients (for example $\nabla s_n = \tfrac{1}{2}
+(\hat{a}_5 - \hat{b}_4,\; \hat{a}_4 - \hat{b}_6)^\top$). Two properties
+distinguish this pipeline from the $D$ pipeline, one favorable and one
+prohibitive.
 
 The favorable one: the tangent the $s_1$ tracker rides,
 $\mathbf{e}_2$, comes from the \emph{first-order} fitted coefficients
@@ -751,12 +772,12 @@ difference by direct measurement.
 \label{rem:s1hess}
 The prohibitive one: a Newton step on $(\nabla \hat{s}_1,
 \hat{\mathbf{H}}_{s_1})$ is impossible in principle, not merely
-inaccurate. Under the quadratic model the map $\mathbf{p} \mapsto (a,
-b)$ is affine, so $\hat{s}_1 = \mu - \|(a, b)\|$ is concave and its
+inaccurate. Under the quadratic model the map $\mathbf{p} \mapsto (s_n,
+s_s)$ is affine, so $\hat{s}_1 = \mu - \|(s_n, s_s)\|$ is concave and its
 Hessian is negative semidefinite \emph{for every field and every
 formation}; the positive transverse curvature of an $s_1$ trench lives
 in third derivatives of the velocity field, outside the span of any
-quadratic fit. (On the double gyre, where $b \equiv 0$, the fitted
+quadratic fit. (On the double gyre, where $s_s \equiv 0$, the fitted
 $\hat{\mathbf{H}}_{s_1}$ is numerically zero.) The gradient
 (\ref{eq:grad_s1}) is unaffected: its transverse component recovers the
 trench-restoring signal with the correct sign and order (fitted slope
@@ -801,19 +822,19 @@ have closed form.
 For five robots on a ring of radius $\rho$ and one at the centroid, the
 coefficient standard deviations are
 \begin{equation}
-    \sigma_{u_0} = \sigma_{uv}, \quad
-    \sigma_{u_x} = \sigma_{u_y} = \frac{2}{\sqrt{10}}\frac{\sigma_{uv}}{\rho},
+    \sigma_{a_1} = \sigma_{uv}, \quad
+    \sigma_{a_2} = \sigma_{a_3} = \frac{2}{\sqrt{10}}\frac{\sigma_{uv}}{\rho},
     \label{eq:gain_grad}
 \end{equation}
 \begin{equation}
-    \sigma_{u_{xx}} = \sigma_{u_{yy}} = \frac{8}{\sqrt{10}}
+    \sigma_{a_5} = \sigma_{a_6} = \frac{8}{\sqrt{10}}
     \frac{\sigma_{uv}}{\rho^2},
     \qquad
-    \sigma_{u_{xy}} = \frac{4}{\sqrt{10}}\frac{\sigma_{uv}}{\rho^2},
+    \sigma_{a_4} = \frac{4}{\sqrt{10}}\frac{\sigma_{uv}}{\rho^2},
     \label{eq:gain_hess}
 \end{equation}
-independent of the formation heading, and identically for
-$\boldsymbol{\theta}_v$.
+independent of the formation heading, and identically for the
+coefficients $b_1, \ldots, b_6$ of $\boldsymbol{\theta}_v$.
 \end{lemma}
 
 The proof, by direct inversion of $\boldsymbol{\Phi}$ using the fifth
@@ -943,529 +964,422 @@ beneath it.
     \label{fig:control_architecture}
 \end{figure}
 
-\subsection{The Modified Newton Step}
-\label{sec:mod_newton}
-
-Under the quadratic model, $\hat{D}(\mathbf{p})$ is an exact quadratic
-surface with gradient $\hat{\mathbf{g}}$ and constant Hessian
-$\hat{\mathbf{H}}_D$, so the natural navigation move is the Newton step
-$-\hat{\mathbf{H}}_D^{-1}\hat{\mathbf{g}}$, which in the eigenbasis
-$\hat{\mathbf{H}}_D \mathbf{w}_k = \lambda_k \mathbf{w}_k$ ($\lambda_1
-\leq \lambda_2$ throughout) has per-direction components
-$-(\mathbf{w}_k^\top \hat{\mathbf{g}})/\lambda_k$. As a velocity
-command the raw step fails twice: its magnitude explodes where
-$\hat{\mathbf{H}}_D$ is near singular, and it converges to whatever
-stationary point the local model exhibits, climbing a trench wherever
-the along-trench curvature is negative. Componentwise saturation
-through
-\begin{equation}
-    \mathrm{sat}(c) = v_{\max} \tanh\!\left(\frac{c}{v_{\max}}\right)
-    \label{eq:sat}
-\end{equation}
-repairs the first defect, giving the \emph{attract step}
-\begin{equation}
-    \dot{\mathbf{p}}_c = \sum_{k=1}^{2}
-    \mathrm{sat}\!\left(-\frac{\mathbf{w}_k^\top
-    \hat{\mathbf{g}}}{\lambda_k}\right)\mathbf{w}_k,
-    \label{eq:attract_step}
-\end{equation}
-a bounded constant-speed reach far from the structure that recovers the
-exact Newton component, with its superlinear local convergence, once
-the argument is small; the one parameter $v_{\max}$ sets both the
-cruise speed and the terminal boundary layer. Replacing each eigenvalue
-by its magnitude, the saddle-free Newton modification of \cite{35},
-repairs the second, giving the \emph{slide step}
-\begin{equation}
-    \dot{\mathbf{p}}_c = \sum_{k=1}^{2}
-    \mathrm{sat}\!\left(-\frac{\mathbf{w}_k^\top
-    \hat{\mathbf{g}}}{|\lambda_k|}\right)\mathbf{w}_k,
-    \label{eq:slide_step}
-\end{equation}
-which agrees with (\ref{eq:attract_step}) in directions of positive
-curvature, snapping the centroid onto the trench floor, and reverses
-the Newton component into a curvature-normalized descent along the
-trench, away from crests, in the direction of negative curvature. Every
-term of both laws is quadratic in $\mathbf{w}_k$, so the sign ambiguity
-of eigenvectors leaves the commands unchanged.
 
 \subsection{The $D$ Tracker}
 \label{sec:sep_controller}
 
-The $D$ tracker composes the two step bodies with a third,
-flow-assisted mode, needed because the slide step descends $D$ and
-therefore stalls at the crest, where the along-trench gradient
-vanishes, while the separatrix continues through it. On the separatrix
-the ambient flow is tangent to the structure and nonzero away from the
-saddles, so the flow can carry the team across. The cluster is declared
-on the separatrix (FLOW band) when either
+The $D$ tracker drives the cluster centroid onto the trench of $D$ and
+then along it, following the separatrix through the crest that separates
+one saddle from the next. Both motions are built from the local
+quadratic surface the estimator returns.
+
+We work in the eigenbasis of the estimated Hessian. Let
+$\hat{\mathbf{H}}_{D,0}\mathbf{w}_k = \lambda_k \mathbf{w}_k$ with
+$\|\mathbf{w}_k\| = 1$ and $\lambda_1 \leq \lambda_2$. A trench of $D$ is
+convex across and concave along, so it is the case
+$\lambda_1 < 0 < \lambda_2$: the eigenvector $\mathbf{w}_2$ points across
+the trench and $\mathbf{w}_1$ points along it. The sign of an eigenvector
+is arbitrary, and we fix the sign of $\mathbf{w}_1$ so that
+$\hat{\mathbf{v}}_0^\top \mathbf{w}_1 \geq 0$, which orients it
+downstream.
+
+Because $\hat{D}$ is an exact quadratic surface, the Newton step
+$-\hat{\mathbf{H}}_{D,0}^{-1}\hat{\mathbf{g}}_0$ moves in one stroke to
+its stationary point. Two properties prevent us from issuing it as a
+velocity command. Its magnitude grows without bound as
+$\hat{\mathbf{H}}_{D,0}$ approaches singularity, and the stationary point
+it seeks is the crest of the trench rather than a point on the
+separatrix. We bound the first with the saturation
 \begin{equation}
-    |\hat{D}| < \varepsilon_{\text{raw}}
+    \mathrm{sat}(c) = c_{\max} \tanh\!\left(\frac{c}{c_{\max}}\right),
+    \label{eq:sat}
+\end{equation}
+and address the second by treating the two eigendirections separately.
+
+Across the trench, the Newton component is what we want, and we keep it.
+Along the trench, we keep its magnitude and take its direction from the
+ambient flow, which is what distinguishes the separatrix we are
+following from the crest we are passing through.
+
+The along-trench command changes character once the cluster reaches the
+separatrix. Away from it, the along-trench gradient supplies a descent
+rate. On it, that gradient vanishes at the crest and the descent rate
+vanishes with it, while the separatrix continues through, so the flow
+supplies the speed instead. We declare the cluster on the separatrix,
+written $\mathbf{p}_c \in \mathcal{B}$, when
+\begin{equation}
+    |\hat{D}_0| < \varepsilon_{\mathrm{raw}}
     \quad\text{or}\quad
-    \frac{|\hat{D}|}{\|\hat{\mathbf{H}}_D\|_F} < \varepsilon_{\text{dim}},
+    \frac{|\hat{D}_0|}{\|\hat{\mathbf{H}}_{D,0}\|_F}
+        < \varepsilon_{\dim}.
     \label{eq:flow_band}
 \end{equation}
-where $\varepsilon_{\text{raw}}$ is a raw threshold and
-$\varepsilon_{\text{dim}}$ a curvature-normalized threshold (units of
-length squared) that makes the band scale with the local landscape. In
-the FLOW band the command follows the measured flow along the trench
-tangent $\mathbf{w}_1$ and retains the Newton snap across it: the
-\emph{flow step} is
+The first test is a raw threshold on the estimated determinant. The
+second normalizes it by the local curvature, so that the band scales
+with the landscape rather than with the absolute size of $D$; the ratio
+has units of length squared, which fixes the band width in physical
+units. The along-trench speed is then
 \begin{equation}
-    \dot{\mathbf{p}}_c =
-    \mathrm{sat}\!\left(\mathbf{f}^\top \mathbf{w}_1\right)\mathbf{w}_1
-    + \mathrm{sat}\!\left(-\frac{\hat{\mathbf{g}}^\top
-    \mathbf{w}_2}{\lambda_2}\right)\mathbf{w}_2.
-    \label{eq:flow_step}
-\end{equation}
-Off the band, with $\mathbf{w}_1$ oriented so that
-$\hat{\mathbf{g}}^\top \mathbf{w}_1 \leq 0$ (descent along the
-trench), the complete control law, with cases evaluated in order once
-per cycle, is
-\begin{equation}
-    \dot{\mathbf{p}}_c =
+    \tau =
     \begin{cases}
-        \text{flow (\ref{eq:flow_step})}, &
-            \text{(\ref{eq:flow_band}) holds (FLOW)}, \\[1pt]
-        \text{attract (\ref{eq:attract_step})}, &
-            \lambda_1\lambda_2 \geq 0 \ \text{or}\
-            \mathbf{f}^\top\mathbf{w}_1 \leq 0 \ \text{(ATTRACT)}, \\[1pt]
-        \text{slide (\ref{eq:slide_step})}, &
-            \text{otherwise (SLIDE)}.
+        \hat{\mathbf{v}}_0^\top \mathbf{w}_1,
+            & \mathbf{p}_c \in \mathcal{B}, \\[6pt]
+        \dfrac{|\mathbf{w}_1^\top \hat{\mathbf{g}}_0|}{|\lambda_1|},
+            & \text{otherwise},
     \end{cases}
-    \label{eq:d_selector}
+    \label{eq:tau}
 \end{equation}
-The ATTRACT case carries the terminal behaviors inline:
-$\lambda_1\lambda_2 \geq 0$ is the stationary-point (capture) test,
-satisfied near a well of $D$, where the attract step becomes the
-terminal capture law of Theorem~\ref{thm:attract}, the sub-case
-Sections~\ref{sec:results} and~\ref{sec:discussion} call the
-\emph{attract fallback}; and
-$\mathbf{f}^\top\mathbf{w}_1 \leq 0$ catches upstream starts, for
-which the attract step climbs to the crest, whose FLOW band hands the
-team to the flow. Both sub-cases and the flow-drift guard of the next
-paragraph are refinements inside the three named modes, not additional
-entries in the switching law itself. In all three modes the tangential motion is never
-directed against the ambient flow.
+and the velocity command is
+\begin{equation}
+    \dot{\mathbf{p}}_c =
+    \mathrm{sat}(\tau)\,\mathbf{w}_1
+    + \mathrm{sat}\!\left(-\frac{\mathbf{w}_2^\top
+      \hat{\mathbf{g}}_0}{\lambda_2}\right)\mathbf{w}_2.
+    \label{eq:d_law}
+\end{equation}
 
-One guard is not shown in (\ref{eq:d_selector}): inside the band, if $\hat{\mathbf{H}}_D$ has no
-saddle structure, the command falls back to the saturated flow alone;
-with exact estimates this cannot occur on the trench away from the band
-boundary, and Section~\ref{sec:results} counts it as the flow-drift
-refinement. Note that the $\mathbf{w}_2$ component is one and the same
-in all three laws: on a trench $\lambda_2 > 0$, so the signed and
-magnitude denominators agree and every mode applies the identical
-transverse Newton snap. The modes differ only in their motion along the
-structure, which is what makes the switched system tractable in
-Section~\ref{sec:stability}.
+This control law decouples transverse and tangential motion. The
+$\mathbf{w}_2$ term is unaffected by (\ref{eq:tau}) and is therefore the
+same command on and off the band. It snaps the centroid onto the trench
+floor, and recovers the exact Newton component, with its superlinear
+local convergence, once the argument falls inside the boundary layer.
+The $\mathbf{w}_1$ term carries the centroid along the structure at the
+curvature-normalized rate off the band and at the flow speed on it.
+Since $\tau \geq 0$ in both cases, the tangential motion is never
+directed against the ambient flow. The single parameter $c_{\max}$ sets
+the cruise speed far from the structure and the width of the terminal
+boundary layer near it.
+
+Two degeneracies fall outside (\ref{eq:d_law}), both arising when
+$\hat{\mathbf{H}}_{D,0}$ has eigenvalues of one sign and the trench frame
+is undefined. Off the band, the command reverts to the signed Newton
+step $\sum_k \mathrm{sat}(-\mathbf{w}_k^\top
+\hat{\mathbf{g}}_0/\lambda_k)\mathbf{w}_k$, which drives the centroid to
+the nearest stationary point of $\hat{D}$ and serves as the terminal
+capture law of Theorem~\ref{thm:attract}. On the band, it reverts to the
+saturated flow alone. With exact estimates, neither case arises on a
+trench away from the band boundary.
+
+Finally, the command is well defined despite the sign ambiguity of
+eigenvectors. The transverse term is quadratic in $\mathbf{w}_2$ and so
+does not depend on its sign, and the tangential term fixes the sign of
+$\mathbf{w}_1$ explicitly.
+
 
 \subsection{The $s_1$ Tracker}
 \label{sec:oecs_controller}
 
-The case for a second controller is not that $D$ is wrong, but that it
-is not a property of the material: by (\ref{eq:splitting}), $D$ mixes
-the strain term with the spin term $\omega^2/4$, and
-(\ref{eq:D_not_objective}) shows a platform rotating at $\Omega$
-relative to the one the field was recorded in sees a different scalar
-field, with different trenches, saddles, and crossings, from the same
-physical water. The strain term alone does not carry this: $s_1$ is an
-eigenvalue of $\mathbf{S} = (\mathbf{J} + \mathbf{J}^\top)/2$, which
-transforms as $\mathbf{S}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^\top$ under
-any rotation of the observer, so its eigenvalues are exactly invariant
-and its eigenframe co-rotates, on both the attracting segment (tangent
-to $\mathbf{e}_2$) and the repelling one (tangent to $\mathbf{e}_1$,
-Section~\ref{sec:dg_example}) alike: the same guarantee Serra and
-Haller's attracting OECSs and the TRAP-core search-and-rescue
-literature build on \cite{17,36}. The second
-controller developed here
-asks whether that guarantee is reachable with the same cooperative,
-map-free, single-sample estimator the $D$ tracker uses, riding the same
-separatrix network rather than a bounded segment of it
-(Section~\ref{sec:results_oecs}). Section~\ref{sec:objectivity_tradeoff}
-and Section~\ref{sec:limitations} report what that guarantee costs at
-this paper's own test point.
+Section~\ref{sec:strain_field} established that $s_1$ is objective where
+$D$ is not. The second controller tests whether that guarantee is
+reachable with the same cooperative, map-free, single-sample estimator,
+riding the separatrix network rather than a bounded segment of it.
 
-The second controller traverses the trench of $s_1$
-(Section~\ref{sec:strain_field}) using only the objective quantities the
-fit delivers: $\hat{s}_1$, $\nabla\hat{s}_1$, the deviatoric strain
-magnitude $r$, and the strain eigenframe $(\mathbf{e}_1, \mathbf{e}_2)$.
-Remark~\ref{rem:s1hess} rules out a Newton snap, so both channels are
-built from the gradient rather than the curvature. The trench is
-transverse on both separatrix halves (Section~\ref{sec:dg_example}), and
-which eigenvector is tangent to it swaps at the degeneracy lines, so
-neither channel names an eigenvector directly; instead, away from a
-stationary point of $s_1$ the gradient itself resolves the split, since
-the transverse derivative vanishes on the trench by construction and
-$\nabla\hat{s}_1$ points almost entirely along it:
+The controller traverses the trench of $s_1$ using four quantities the
+fit delivers: the eigenvalue $\hat{s}_1$, its gradient
+$\nabla\hat{s}_1$, the strain eigenframe $(\mathbf{e}_1, \mathbf{e}_2)$,
+and the deviatoric strain magnitude $r$, which is half the eigenvalue gap
+and therefore measures how well resolved that eigenframe is.
+Remark~\ref{rem:s1hess} rules out a Newton snap on $s_1$, so both
+channels of this controller are built from the gradient rather than the
+curvature.
+
+We first identify the trench tangent. Naming an eigenvector directly will
+not work, because which of the two is tangent swaps at the degeneracy
+lines. Instead we use the gradient. On the trench, the transverse
+derivative of $s_1$ vanishes by construction, so away from a stationary
+point $\nabla\hat{s}_1$ points almost entirely along the trench, and the
+tangent is whichever eigenvector the gradient is less orthogonal to:
 \begin{equation}
-    \hat{d}_1 = \bigl\lvert \nabla\hat{s}_1^\top \mathbf{e}_1
-    \bigr\rvert, \qquad
-    \hat{d}_2 = \bigl\lvert \nabla\hat{s}_1^\top \mathbf{e}_2
-    \bigr\rvert,
-    \label{eq:d1d2}
-\end{equation}
-\begin{equation}
-    \hat{\mathbf{t}} = \mathrm{sign}\bigl(\mathbf{t}_{\text{ref}}^\top
-    \mathbf{t}_{\text{raw}}\bigr)\,\mathbf{t}_{\text{raw}}, \qquad
-    \mathbf{t}_{\text{raw}} = \begin{cases}
-        \mathbf{e}_1, & \hat{d}_1 \geq \hat{d}_2, \\
-        \mathbf{e}_2, & \hat{d}_1 < \hat{d}_2,
-    \end{cases}
+    \mathbf{t}_{\mathrm{raw}} =
+    \arg\max_{\mathbf{e} \in \{\mathbf{e}_1, \mathbf{e}_2\}}
+    \bigl\lvert \nabla\hat{s}_1^\top \mathbf{e} \bigr\rvert,
+    \qquad
+    \mathbf{t} = \mathrm{sgn}\bigl(\mathbf{t}_{\mathrm{ref}}^\top
+    \mathbf{t}_{\mathrm{raw}}\bigr)\,\mathbf{t}_{\mathrm{raw}},
     \label{eq:tangent_select}
 \end{equation}
-with $\mathbf{t}_{\text{ref}}$ the previous step's tangent
-$\mathbf{t}_{\text{prev}}$ once established, or the measured flow
-$\mathbf{f}$ on the first tracking step. The larger of
-(\ref{eq:d1d2}) is the tangent, matching the verified geometry: it
-selects $\mathbf{e}_2$ on the attracting half and $\mathbf{e}_1$ on the
-repelling half, swapping automatically through the origin, and it is
-this same pair that resolves which trench branch to continue onto at a
-crossing, since the crossing wall trench has its own, different larger
-projection. Continuity with $\mathbf{t}_{\text{prev}}$ fixes only the
-residual sign; the direction itself never depends on it, and TRACK never
-consults the flow past its own first invocation
-(Proposition~\ref{prop:equivariance}); CROSS does read the flow directly,
-guarded by $r < r_{\text{band}}$ and reachable only on the very first
-tracking step. The transverse channel descends
-$\hat{s}_1$ along whichever component (\ref{eq:d1d2}) did not select,
-\begin{equation}
-    \dot{\mathbf{p}}_c^{\,\perp} =
-    \mathrm{sat}\!\bigl(-g_\perp\,\nabla\hat{s}_1^\top
-    \hat{\mathbf{n}}\bigr)\,\hat{\mathbf{n}}, \qquad
-    \hat{\mathbf{n}} = \begin{cases}
-        \mathbf{e}_2, & \hat{\mathbf{t}} = \pm\mathbf{e}_1, \\
-        \mathbf{e}_1, & \hat{\mathbf{t}} = \pm\mathbf{e}_2,
-    \end{cases}
-    \label{eq:oecs_perp}
-\end{equation}
-a saturated gradient step with fixed gain $g_\perp$ in place of the
-unavailable curvature normalization; on the trench the argument is a
-restoring signal whose slope is the true transverse curvature, so
-(\ref{eq:oecs_perp}) contracts at gradient rate rather than Newton
-rate, the first cost of objectivity. The tangential channel rides at
-constant cruise speed, $\dot{\mathbf{p}}_c^{\,\parallel} =
-v_{\max}\tanh(1)\,\hat{\mathbf{t}}$. Both channels are built from the
-same two projections (\ref{eq:d1d2}), so no third estimated quantity
-enters the ride. A flow saddle is not merely a crossing of two
-transverse trenches; it is a genuine two-dimensional local minimum of
-$s_1$ (verified numerically: the true Hessian of $s_1$ has both
-eigenvalues strictly positive there, $s_1'' \approx 9.7$ at the
-double-gyre saddle, consistent with the well depth $s_1 = -\pi^2 A$),
-so $\nabla\hat{s}_1$ vanishes in \emph{every} direction, not only
-transversally, and this distinguishes it cleanly from an ordinary
-trench point, where the gradient stays large along the trench even
-though it vanishes across it. This matters because the ambient flow
-also collapses at a saddle, a stagnation point of the flow itself, so a
-tangent rule built from the flow would be starved of a reliable
-direction exactly where the ride most needs one; testing the gradient
-magnitude directly sidesteps the ambiguity entirely. The complete
-control law, with cases evaluated in order once per cycle, is
+where $\mathbf{t}_{\mathrm{ref}}$ is the previous step's tangent once one
+has been established, or the measured flow $\hat{\mathbf{v}}_0$ on the
+first tracking step. This rule selects $\mathbf{e}_2$ on the attracting
+half of the separatrix and $\mathbf{e}_1$ on the repelling half, swapping
+automatically through the origin. The same comparison resolves which
+branch to continue onto at a network crossing, where the wall trench has
+its own, larger projection. Continuity fixes only the residual sign; the
+direction itself does not depend on it.
+
+The controller alternates between two behaviors. While traversing, it
+rides along $\mathbf{t}$ at constant speed and descends $\hat{s}_1$ only
+across the trench. While settling, it stops riding and descends
+$\hat{s}_1$ in every direction. Let $\beta \in \{0,1\}$ be the ride flag,
+one while traversing and zero while settling. The velocity command is
 \begin{equation}
     \dot{\mathbf{p}}_c =
-    \begin{cases}
-        -\mathrm{sat}(g_\perp\nabla\hat{s}_1), &
-            \text{pre-band (ACQUIRE)}, \\[1pt]
-        -\mathrm{sat}(g_\perp\nabla\hat{s}_1), &
-            \hat{s}_1 < s_{\text{capture}}\ \text{(PARK)}, \\[1pt]
-        -\mathrm{sat}(g_\perp\nabla\hat{s}_1), &
-            \lVert\nabla\hat{s}_1\rVert < g_{\text{capture}}\
-            \text{(CAPTURE)}, \\[1pt]
-        v_{\max}\tanh(1)\,\hat{\mathbf{f}} + \dot{\mathbf{p}}_c^{\,\perp},
-            & r < r_{\text{band}}\ \text{(CROSS)}, \\[1pt]
-        \dot{\mathbf{p}}_c^{\,\perp} +
-            \dot{\mathbf{p}}_c^{\,\parallel}, &
-            \text{otherwise (TRACK)},
-    \end{cases}
-    \label{eq:oecs_selector}
+    \beta\,c_{\max}\tanh(1)\,\mathbf{t}
+    - \mathrm{sat}\!\bigl(g_\perp\,\mathbf{P}\,\nabla\hat{s}_1\bigr),
+    \qquad
+    \mathbf{P} = \mathbf{I} - \beta\,\mathbf{t}\mathbf{t}^\top,
+    \label{eq:oecs_law}
 \end{equation}
-where the saturation in the ACQUIRE, PARK, and CAPTURE cases acts
-componentwise on the gradient, $s_{\text{trim}} > 0$ is the
-attraction-dominance threshold that marks the ride as having reached
-genuine structure rather than a noise fluctuation, the flag banded
-latches once $\hat{s}_1 < -s_{\text{trim}}$ first holds, and PARK is active only
-when $s_{\text{capture}}$ is set (default: unset). CAPTURE needs no
-field-specific value the way PARK does, but it is not unconditional: it
-is guarded by $r > r_{\text{band}}$ so it is not confused with the
-isotropic point, where the gradient can be small for a different
-reason, and, once fired, it is latched until $\hat{s}_1$ rises back
-above $-s_{\text{trim}}$, which bridges a noise-driven flicker of the
-gradient test at the well without holding past a genuine departure from
-it, a bounded latch distinct from the banded flag's own, unbounded one.
-CROSS, reached only on the very first tracking step if $r <
-r_{\text{band}}$ with no prior tangent to fall back on, rides the flow
-directly and is essentially unreachable once tracking is underway,
-since ACQUIRE's gradient descent lands on-trench well before $r$ drops
-this low with no established tangent. TRACK's own tangent selection
-also reads the flow, but only once: on its first invocation, if CROSS
-was not reached, $\mathbf{t}_{\text{ref}}$ in (\ref{eq:tangent_select})
-falls back to the measured flow to fix the initial sign, exactly as the
-sign of the $D$ tracker's own ride tangent is seeded
-(Section~\ref{sec:sep_controller}); every subsequent step resolves the
-sign from $\mathbf{t}_{\text{prev}}$ alone. The cases carry the terminal
-behavior inline: ACQUIRE descends $\hat{s}_1$ toward stronger attraction
-before first structure contact; PARK settles early inside a core well if
-a threshold is supplied; CAPTURE settles at any two-dimensional
-stationary point of $\hat{s}_1$ the ride reaches, the default terminal
-behavior with no field-specific threshold to set.
+where $\mathrm{sat}$ acts on a vector by saturating its magnitude and
+preserving its direction, reducing to (\ref{eq:sat}) on any scalar
+multiple of a unit vector.
 
-CAPTURE plays the role the capture test plays in the $D$ tracker, but
-where $D_{\text{capture}}$ (Section~\ref{sec:park_vs_traverse}) is an
-opt-in threshold the user sets to override the base selector's
-continuation, CAPTURE fires by default and needs no field-specific
-value: it holds any two-dimensional stationary point the objective
-gradient finds. Every quantity the selector consumes transforms
-equivariantly under a time-dependent rotation of the observer
-(Proposition~\ref{prop:equivariance}), so in ACQUIRE, PARK, CAPTURE, and
-both channels of TRACK the commanded velocity co-rotates and the
-closed-loop trajectory is the same material path in any frame, with one
-exception confined to a single instant: on TRACK's first invocation, if
-no previous tangent has yet been established (CROSS was not reached),
-the sign reference falls back to the measured flow, exactly as the $D$
-tracker's own ride mode seeds its tangent; thereafter orientation is
-carried forward by continuity alone, which is covariant, for the
-remainder of the run. This is a stronger objectivity claim than a
-design built on continuity alone would give, and no weaker than the $D$
-tracker's own ride mode: continuity fixes only a sign, so a rule that
-instead resolved (\ref{eq:tangent_select}) by best alignment with the
-flow at every step, mirroring the $D$ tracker's own flow test in
-(\ref{eq:d_selector}), would inherit the flow's dependence on the
-observer frame at every step, not merely once, at the seed. What the controller
-gives up is explicit and gradient-rate throughout, not merely at the
-transverse channel: it traverses the full separatrix, through the
-eigenvector swap and the network crossing alike, using no Newton step
-and, in TRACK, no flow. Section~\ref{sec:results} shows both sides.
+This control law decouples descent from travel through the projector.
+With $\beta = 1$, $\mathbf{P}$ removes the along-trench component of the
+gradient, so the team descends only across the trench while riding along
+it at cruise speed $c_{\max}\tanh(1)$. With $\beta = 0$, the projector
+becomes the identity, the ride term drops out, and the same expression
+is full gradient descent on $\hat{s}_1$, which settles at a local
+minimum. The gain $g_\perp$ is fixed, standing in for the curvature
+normalization that Remark~\ref{rem:s1hess} rules out, so the transverse
+channel contracts at gradient rate rather than at Newton rate. This is
+the first cost of objectivity. Both channels read the same two
+projections from (\ref{eq:tangent_select}), so no additional estimated
+quantity enters the ride.
+
+Three situations clear the ride flag. Before the team has reached any
+structure, $\beta = 0$ and the descent term homes onto the trench from
+anywhere in the basin. We declare first contact, and latch $\beta$ to
+one, when $\hat{s}_1$ first falls below $-s_{\mathrm{trim}}$. If an
+optional core threshold $s_{\mathrm{capture}}$ is supplied, $\beta$
+returns to zero wherever $\hat{s}_1 < s_{\mathrm{capture}}$. The third
+situation is the default terminal behavior, and it holds the team at a
+two-dimensional stationary point of $\hat{s}_1$ when
+\begin{equation}
+    r > r_{\mathrm{band}}, \qquad
+    \lVert\nabla\hat{s}_1\rVert < g_{\mathrm{capture}}, \qquad
+    \hat{s}_1 < -4 s_{\mathrm{trim}}.
+    \label{eq:capture_test}
+\end{equation}
+
+A flow saddle is not merely a crossing of two transverse trenches. It is
+a genuine two-dimensional minimum of $s_1$, verified numerically at the
+double-gyre saddle, so the full gradient collapses there, while at an
+ordinary trench point the gradient remains large along the trench even
+though it vanishes across it. Testing the gradient magnitude is
+therefore enough to distinguish the two. This matters because the
+ambient flow also stagnates at a saddle, which would starve any
+flow-based tangent rule of a direction exactly where the ride needs one.
+The three tests in (\ref{eq:capture_test}) reject, in order, the
+isotropic point, an ordinary trench point, and a shallow flat spot of
+$\hat{s}_1$ away from real structure. The condition latches once
+satisfied and releases when $\hat{s}_1$ rises back above
+$-s_{\mathrm{trim}}$, the same threshold that declares first contact. A
+noise-driven flicker of the gradient test therefore does not send the
+team back through the tangent comparison at the well, while a genuine
+departure from the well still does.
+
+One guard falls outside (\ref{eq:oecs_law}). If the eigenframe is
+degenerate, $r < r_{\mathrm{band}}$, and no previous tangent has been
+established, then neither (\ref{eq:tangent_select}) nor continuity
+supplies a direction. The command then rides the measured flow,
+$\mathbf{t} = \hat{\mathbf{v}}_0/\|\hat{\mathbf{v}}_0\|$, with the
+projector set to the identity. Only the first tracking step can reach
+this case, and it is the one place in the controller where the ambient
+flow enters the command.
+
+Every quantity in (\ref{eq:oecs_law}) transforms equivariantly under a
+time-dependent rotation of the observer
+(Proposition~\ref{prop:equivariance}). The scalars $\hat{s}_1$ and $r$
+are invariant, the gradient and the eigenframe co-rotate, the projector
+is built from a co-rotating unit vector, and the saturation preserves
+direction. The commanded velocity therefore co-rotates, and the
+closed-loop trajectory is the same material path in any frame. One
+exception is confined to a single instant: on the first tracking step,
+the sign reference falls back to the measured flow. Every step
+thereafter carries orientation forward by continuity, which is
+covariant. A rule that instead resolved (\ref{eq:tangent_select}) by
+alignment with the flow at each step would inherit the observer
+dependence at every step rather than once.
 
 \subsection{Stability Properties}
 \label{sec:stability}
 
-The analysis is carried out at the navigation level: the cluster
+The analysis is carried out at the navigation level. The cluster
 centroid is modeled as a kinematic integrator
 \begin{equation}
     \dot{\mathbf{p}}_c = k\,\boldsymbol{\delta}(\mathbf{p}_c),
     \label{eq:kinematic_model}
 \end{equation}
-where $\boldsymbol{\delta}$ is the right-hand side of the active
-control law, (\ref{eq:d_selector}) or (\ref{eq:oecs_selector}), and
-$k > 0$ is the navigation gain (time is rescaled so $k = 1$). The
-results below are continuous-time; the simulator advances
-(\ref{eq:kinematic_model}) by explicit Euler at $\Delta t = 0.1$~s with
-$k = 3.0$ (double gyre) or $k = 1.8$ (ocean), so the per-step
-contraction is only conditionally guaranteed by this analysis and was
-instead verified numerically at both operating points: the noise-free
-runs of Section~\ref{sec:results} converge without overshoot or
-oscillation at the reported gains. This abstracts the
-cluster and robot layers, whose tracking dynamics are an order of
-magnitude faster ($\tau \approx 0.3$~s against transit times of tens of
-seconds), a separation validated in hardware in \cite{14}. Estimates
-are taken exact unless stated otherwise; $\mathbf{w}_1, \mathbf{w}_2$
-denote unit eigenvectors of $\mathbf{H}_D$ with $\lambda_1 \leq
-\lambda_2$, and $z_k = (\mathbf{w}_k^\top \mathbf{g})/\lambda_k$ are
-the Newton components. All proofs are collected in
-Appendix~\ref{app:proofs}.
+where $\boldsymbol{\delta}$ is the right-hand side of the active control
+law, (\ref{eq:d_law}) or (\ref{eq:oecs_law}), and $k > 0$ is the
+navigation gain, with time rescaled so that $k = 1$. This abstracts the
+cluster and robot layers, whose tracking dynamics settle in roughly
+0.3~s against transit times of tens of seconds, a separation validated
+in hardware in \cite{14}. Estimates are taken exact throughout, so hats
+are dropped: $\mathbf{g} = \nabla D$, $\mathbf{H}_D$ is its Hessian, and
+$\mathbf{w}_1, \mathbf{w}_2$ are unit eigenvectors of $\mathbf{H}_D$
+with $\lambda_1 \leq \lambda_2$. We write $z_k = (\mathbf{w}_k^\top
+\mathbf{g})/\lambda_k$ for the Newton components. The results are
+continuous-time; the simulator advances (\ref{eq:kinematic_model}) by
+explicit Euler at $\Delta t = 0.1$~s with $k = 3.0$ on the double gyre
+and $k = 1.8$ on the ocean data, so per-step contraction is not
+guaranteed by this analysis and was verified numerically instead. All
+proofs are in Appendix~\ref{app:proofs}.
 
-The first result certifies the attract step globally, wherever
-$\mathbf{H}_D$ is nonsingular.
+We begin with the degenerate case of (\ref{eq:d_law}), the signed Newton
+step, because it supplies the terminal behavior the traversal result
+ends in.
 
-\begin{theorem}[Attract-mode certificate]
+\begin{theorem}[Terminal capture]
 \label{thm:attract}
 Let $V_A = \tfrac{1}{2}\|\mathbf{g}(\mathbf{p}_c)\|^2$. Along
-(\ref{eq:kinematic_model}) with the attract step
-(\ref{eq:attract_step}),
+(\ref{eq:kinematic_model}) with the signed Newton step,
 \begin{equation}
-    \dot{V}_A = -v_{\max} \sum_{k=1}^{2} \lambda_k^2\,
-    z_k \tanh\!\left(\frac{z_k}{v_{\max}}\right) \;\leq\; 0,
+    \dot{V}_A = -c_{\max} \sum_{k=1}^{2} \lambda_k^2\,
+    z_k \tanh\!\left(\frac{z_k}{c_{\max}}\right) \;\leq\; 0,
     \label{eq:VA_dot}
 \end{equation}
-with equality exactly where $\mathbf{g} = \mathbf{0}$. Consequently
-every bounded trajectory on which $\mathbf{H}_D$ remains nonsingular
-converges to the critical set $\{\mathbf{g} = \mathbf{0}\}$ of $D$, and
-isolated critical points with $\mathbf{H}_D$ nonsingular are locally
-exponentially stable.
+with equality exactly where $\mathbf{g} = \mathbf{0}$. Every bounded
+trajectory on which $\mathbf{H}_D$ is nonsingular therefore converges to
+the critical set of $D$, and isolated critical points with
+$\mathbf{H}_D$ nonsingular are locally exponentially stable.
 \end{theorem}
 
-Far from the trench the attract step is the approach law, descending
-$\|\nabla D\|^2$ toward the stationary set of $D$; near a well of $D$,
-where $\mathbf{H}_D \succ 0$, it is the terminal capture law, and
-convergence is exponential.
+The step descends $\|\nabla D\|^2$ toward the stationary set of $D$, and
+near a well, where $\mathbf{H}_D \succ 0$, convergence is exponential.
 
-For the traversal result the trench is formalized as a valley line with
-a flow along it.
+For the traversal result we formalize the trench as a valley line with a
+flow along it, using arclength coordinates $(\ell, n)$ along and across
+a segment $\Gamma$.
 
 \begin{assumption}[Trench and flow structure]
 \label{ass:trench}
-There is a segment $\Gamma$ with tangent $\hat{\mathbf{e}}_\parallel$,
-normal $\hat{\mathbf{e}}_\perp$, arclength coordinates $(\ell, n)$, and
-a tube $T_w = \{|n| \leq w\}$ on which: (i)
+On a tube $T_w = \{|n| \leq w\}$ about $\Gamma$,
 \begin{equation}
     D(\ell, n) = h(\ell) + \tfrac{1}{2}\lambda_\perp(\ell)\,n^2,
     \qquad 0 < \underline{\lambda} \leq \lambda_\perp(\ell),
     \label{eq:normal_form}
 \end{equation}
-with vanishing cross terms
-($\hat{\mathbf{e}}_\perp^\top \mathbf{H}_D \hat{\mathbf{e}}_\parallel
-= 0$ on $T_w$) and eigenvalue gap $\lambda_2 - \lambda_1 \geq \gamma >
-0$ wherever the selector is outside its attract fallback; and (ii)
-$\Gamma$ is an invariant curve of the flow, with $\|\mathbf{v}\| \geq
-f_{\min} > 0$ outside balls of radius $r_0$ around the flow saddles,
-and the stationary points of $h$ are wells at the flow saddles
-and crests inside the FLOW band, with $|h'(\ell)| \geq m_h >
-0$ wherever the band test fails on $\Gamma$.
+with vanishing cross terms and eigenvalue gap $\lambda_2 - \lambda_1
+\geq \gamma > 0$ wherever $\mathbf{H}_D$ has mixed signs. The curve
+$\Gamma$ is invariant under the flow, with $\|\mathbf{v}\| \geq f_{\min}
+> 0$ outside balls of radius $r_0$ around the flow saddles. The
+stationary points of $h$ are wells at the flow saddles and crests inside
+the band $\mathcal{B}$, with $|h'(\ell)| \geq m_h > 0$ wherever the band
+test fails on $\Gamma$.
 \end{assumption}
 
-The cross-term condition holds exactly for additively separable
-fields, the double gyre among them; for $\ell$-dependent $\lambda_\perp$
-the residual cross term $\lambda_\perp'(\ell)\,n$ enters the transverse
-channel as a bounded disturbance covered by
-Proposition~\ref{prop:iss}.
+The double-gyre separatrix satisfies this with $n = x$ and $\ell = y$:
+the field (\ref{eq:det_analytic_main}) is additively separable, so the
+cross terms vanish identically and the transverse curvature is positive
+on any tube with $w < 1/4$. For an $\ell$-dependent $\lambda_\perp$ the
+residual cross term $\lambda_\perp'(\ell)\,n$ enters the transverse
+channel as a bounded disturbance, covered by (\ref{eq:iss_bound}) below.
 
-The double-gyre separatrix satisfies Assumption~\ref{ass:trench} with
-$n = x$, $\ell = y$: the field (\ref{eq:det_analytic_main}) is additively
-separable, so the cross terms vanish identically and the transverse
-curvature is positive on any tube with $w < 1/4$; the appendix shows the
-higher-order terms only strengthen the contraction.
-
-Two appendix lemmas carry the proof: every selector mode applies the
-identical transverse contraction
+Two properties of (\ref{eq:d_law}) carry the proof, and both are visible
+in the law itself. The $\mathbf{w}_2$ term does not contain $\tau$, so
+the transverse command is the same on and off the band. Under
+(\ref{eq:normal_form}) it reduces to
 \begin{equation}
-    \dot{n} = -v_{\max}\tanh\!\left(\frac{n}{v_{\max}}\right),
+    \dot{n} = -c_{\max}\tanh\!\left(\frac{n}{c_{\max}}\right),
     \label{eq:n_dynamics}
 \end{equation}
-so the tube is forward invariant and mode switching cannot chatter it
-(Lemma~\ref{lem:transverse}), and no mode moves against the ambient flow
-along the trench, with tangential speed at least $m > 0$ outside the
-$r_0$ balls (Lemma~\ref{lem:progress}).
+which makes the tube forward invariant and leaves nothing for the band
+switch to chatter. Along the trench, $\tau \geq 0$ in both branches of
+(\ref{eq:tau}), so the centroid never moves against the ambient flow,
+and its speed is bounded below by some $m > 0$ outside the $r_0$ balls.
 
 \begin{theorem}[Separatrix network traversal]
 \label{thm:separatrix}
 Under Assumption~\ref{ass:trench}, with exact estimates, every
-trajectory of the $D$ tracker starting in the tube $T_w$ (i) remains in
-$T_w$ and converges exponentially to the trench, and (ii) traverses the
-trench in the direction of the ambient flow, reaching the $r_0$
-neighborhood of a flow saddle in finite time bounded by $L_\Gamma/m$,
-with $L_\Gamma$ the trench length and $m$ the progress rate of
-Lemma~\ref{lem:progress}. At the saddle, $D$ attains a local minimum
-with $\mathbf{H}_D \succ 0$, the selector's stationary-point test
-$\lambda_1\lambda_2 \geq 0$ is satisfied, and (iii)
-Theorem~\ref{thm:attract} gives local exponential convergence to the
-saddle: terminal capture.
+trajectory of the $D$ tracker starting in $T_w$ (i) remains in $T_w$ and
+converges exponentially to the trench, and (ii) traverses the trench in
+the direction of the ambient flow, reaching the $r_0$ neighborhood of a
+flow saddle in finite time bounded by $L_\Gamma/m$, where $L_\Gamma$ is
+the trench length. At the saddle, $D$ attains a local minimum with
+$\mathbf{H}_D \succ 0$, so the degenerate case of (\ref{eq:d_law}) is
+active and (iii) Theorem~\ref{thm:attract} gives local exponential
+convergence to the saddle.
 \end{theorem}
 
-\begin{remark}[Capture depends on the estimated Hessian]
-\label{rem:capture_gap}
-The trench is not a single arc: the saddle is a crossing of two
-perpendicular trench segments (Section~\ref{sec:dg_example}), so a
-selector that reaches the ball without certifying $\mathbf{H}_D \succ
-0$ remains in its flow or slide modes and continues onto the crossing
-segment, repeating (i)-(ii) with $\Gamma$ relabeled.
-Remark~\ref{rem:eigvec} says exactly when this happens: near the wells
-the biased eigenvalues nearly vanish and their signs become unreliable,
-so the test does not fire on $\hat{\mathbf{H}}_D$ even without noise,
-and the selector takes continuation rather than capture, as
-Section~\ref{sec:results} confirms at every saddle reached. Tightening
-the test recovers capture (Section~\ref{sec:discussion}); both
-behaviors are the same theorem applied to different premises at the
-crossing.
-\end{remark}
+Part (iii) is a statement about the true Hessian, and in practice the
+tracker continues past the saddle instead. The saddle is a crossing of
+two perpendicular trench segments (Section~\ref{sec:dg_example}), and
+near it the estimated eigenvalues nearly vanish, so their signs become
+unreliable and the degenerate case does not trigger on
+$\hat{\mathbf{H}}_{D,0}$ even without noise
+(Remark~\ref{rem:eigvec}). The tracker then continues onto the crossing
+segment, repeating (i) and (ii) with $\Gamma$ relabeled, which is what
+Section~\ref{sec:results} reports at every saddle reached. Both
+behaviors are the same theorem applied to different premises.
 
-Robustness to estimation error follows from the saturation structure:
-every command channel passes its argument through a $\tanh$, which is
-1-Lipschitz, so bounded estimate perturbations become bounded command
-disturbances.
-
-\begin{proposition}[Ultimate bound under bounded estimate error]
-\label{prop:iss}
-Suppose the estimate errors induce a bounded disturbance $d(t)$, $|d|
-\leq \bar{d} < v_{\max}$, in the transverse channel, so that
-(\ref{eq:n_dynamics}) becomes $\dot{n} = -v_{\max}\tanh(n/v_{\max}) +
-d$. Then the trench remains practically stable with ultimate bound
+Robustness follows from the saturation structure, since $\tanh$ is
+1-Lipschitz and every command channel passes its argument through one.
+If estimate errors induce a bounded disturbance $|d| \leq \bar{d} 
+c_{\max}$ in the transverse channel, so that (\ref{eq:n_dynamics})
+becomes $\dot{n} = -c_{\max}\tanh(n/c_{\max}) + d$, then the trench is
+practically stable with ultimate bound
 \begin{equation}
     \limsup_{t\to\infty} |n(t)| \;\leq\;
-    v_{\max}\operatorname{artanh}\!\left(\frac{\bar{d}}{v_{\max}}\right),
+    c_{\max}\operatorname{artanh}\!\left(\frac{\bar{d}}{c_{\max}}\right)
+    \;\approx\; \bar{d}
+    \quad\text{for } \bar{d} \ll c_{\max}.
     \label{eq:iss_bound}
 \end{equation}
-which is $\approx \bar{d}$ for $\bar{d} \ll v_{\max}$.\footnote{Proof:
-$\tfrac{d}{dt}\tfrac{1}{2}n^2 = n(-v_{\max}\tanh(n/v_{\max}) + d) < 0$
-whenever $v_{\max}\tanh(|n|/v_{\max}) > \bar{d}$, that is outside the
-stated interval, which is therefore attractive and invariant.}
-\end{proposition}
+The bound follows because $\tfrac{d}{dt}\tfrac{1}{2}n^2 < 0$ outside the
+stated interval, which is therefore attractive and invariant. Since
+$\bar{d}$ inherits the noise and truncation scalings of
+Section~\ref{sec:sensitivity}, (\ref{eq:iss_bound}) degrades linearly in
+the measurement noise level.
 
-The disturbance level $\bar{d}$ inherits the noise and truncation
-scalings of Section~\ref{sec:sensitivity}, so the bound
-(\ref{eq:iss_bound}) degrades linearly in the measurement noise level;
-the Monte Carlo sweeps described in Section~\ref{sec:test_plan} and
-reported in Section~\ref{sec:results} quantify these predictions
-empirically.
-
-For the $s_1$ tracker, two properties are stated at the same
-navigation level.
+Two properties of the $s_1$ tracker are stated at the same level. The
+first is the objectivity claim the controller was built for.
 
 \begin{proposition}[Frame equivariance of the closed loop]
 \label{prop:equivariance}
-Let $\mathbf{p}'= \mathbf{Q}(t)\mathbf{p}$ be a time-dependent rotation
-of the observer frame, and let the tracker of
-Section~\ref{sec:oecs_controller} run on the transformed field
-$\mathbf{v}'(\mathbf{p}', t) = \mathbf{Q}\mathbf{v}(\mathbf{Q}^\top
-\mathbf{p}', t) + \dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}'$ with
-exact estimates. Then the selector branch chosen at each state is the
-same in both frames, and in the PARK, CAPTURE, and both channels of
-TRACK the commanded velocity transforms as
-$\boldsymbol{\delta}' = \mathbf{Q}\boldsymbol{\delta}$, so the
-closed-loop navigation trajectory (\ref{eq:kinematic_model}) satisfies
-$\mathbf{p}'_c(t) = \mathbf{Q}(t)\mathbf{p}_c(t)$ up to the
-frame-transport term: on the structure, the tracker follows the same
-material path in every frame. This includes the tangent selection
-(\ref{eq:tangent_select}), built from $\nabla\hat{s}_1$ and the
-co-rotating eigenframe alone, so the selected eigenvector and its
-continuity-inherited sign both co-rotate with $\mathbf{Q}$. The two
-branches that are not covariant are confined and harmless: ACQUIRE
-saturates in observer axes but descends the invariant $\hat{s}_1$ in
-every frame, a frame-dependent transient the contraction
-(\ref{eq:oecs_n_dynamics}) absorbs; CROSS reads the flow directly but is
-reached only on the first tracking step under an already-degenerate
-eigenframe, essentially never in practice
-(Section~\ref{sec:oecs_controller}).
+Let an observer rotate as $\mathbf{p}_Q = \mathbf{Q}(t)\mathbf{p}$, and
+let the tracker of Section~\ref{sec:oecs_controller} run on the
+transformed field $\mathbf{v}_Q(\mathbf{p}_Q, t) =
+\mathbf{Q}\mathbf{v}(\mathbf{Q}^\top\mathbf{p}_Q, t) +
+\dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}_Q$ with exact estimates. Then
+the commanded velocity satisfies $\boldsymbol{\delta}_Q =
+\mathbf{Q}\boldsymbol{\delta}$, and the closed-loop trajectory satisfies
+$\mathbf{p}_{c,Q}(t) = \mathbf{Q}(t)\mathbf{p}_c(t)$ up to the
+frame-transport term: the tracker follows the same material path in
+every frame. The single exception is the degenerate guard of
+Section~\ref{sec:oecs_controller}, which reads the flow directly and is
+reachable only on the first tracking step.
 \end{proposition}
 
-For local convergence, the transverse channel replaces the common
-Newton snap of Lemma~\ref{lem:transverse} with the saturated gradient
-step (\ref{eq:oecs_perp}). On a trench of $s_1$ satisfying the analogue
-of Assumption~\ref{ass:trench}, $s_1(\ell, n) = h_1(\ell) +
-\tfrac{1}{2}\kappa_\perp(\ell)\,n^2$ with $0 < \underline{\kappa} \leq
-\kappa_\perp$, the transverse coordinate obeys
+The proposition covers the tangent selection
+(\ref{eq:tangent_select}) because it is built from $\nabla s_1$ and the
+co-rotating eigenframe alone, so both the selected eigenvector and its
+continuity-inherited sign co-rotate. It covers the descent term because
+$\mathrm{sat}$ preserves direction.
+
+The second property is local convergence. Where the $D$ tracker snaps
+transversally at Newton rate, the $s_1$ tracker descends at gradient
+rate. On a trench satisfying the analogue of Assumption~\ref{ass:trench},
+$s_1(\ell, n) = h_1(\ell) + \tfrac{1}{2}\kappa_\perp(\ell)\,n^2$ with
+$0 < \underline{\kappa} \leq \kappa_\perp$, the projector in
+(\ref{eq:oecs_law}) leaves only the transverse gradient and
 \begin{equation}
-    \dot{n} = -v_{\max}\tanh\!\left(
-    \frac{g_\perp \kappa_\perp(\ell)\,n}{v_{\max}}\right),
+    \dot{n} = -c_{\max}\tanh\!\left(
+    \frac{g_\perp \kappa_\perp(\ell)\,n}{c_{\max}}\right),
     \label{eq:oecs_n_dynamics}
 \end{equation}
-the same saturated scalar contraction as (\ref{eq:n_dynamics}) with the
-unit Newton rate replaced by the field-dependent rate $g_\perp
-\kappa_\perp$: exponential once $|n| \leq v_{\max}/(g_\perp
-\underline{\kappa})$, with rate proportional to the local curvature
-rather than normalized by it. Because $\hat{\mathbf{n}}$ is whichever
-eigenvector (\ref{eq:tangent_select}) did not select as tangent, this
-holds on both separatrix halves without change, the transverse identity
-swapping along with the tangent's. The disturbance analysis of
-Proposition~\ref{prop:iss} carries over verbatim with $\bar{d}$ now the
-error in $g_\perp \nabla\hat{s}_1^\top\hat{\mathbf{n}}$.
+the same saturated contraction as (\ref{eq:n_dynamics}) with the unit
+Newton rate replaced by $g_\perp\kappa_\perp$: exponential once $|n|
+\leq c_{\max}/(g_\perp\underline{\kappa})$, at a rate proportional to
+the local curvature rather than normalized by it. Because the projector
+is built from whichever eigenvector (\ref{eq:tangent_select}) did not
+select, this holds on both separatrix halves without change. The
+disturbance bound (\ref{eq:iss_bound}) carries over with $\bar{d}$ now
+the error in the transverse gradient.
 
-Termination is by CAPTURE rather than by a boundary condition:
-componentwise saturated descent of $\hat{s}_1$ carries its own
-certificate independent of the transverse-channel argument above,
-since under exact estimates $s_1$ itself is a Lyapunov function for the
-full gradient,
+Termination carries its own certificate. When the ride flag clears,
+$\beta = 0$, the projector becomes the identity and $s_1$ is a Lyapunov
+function for the resulting full gradient descent,
 \begin{equation}
-    \dot{\hat{s}}_1 = -\sum_k (\partial_k \hat{s}_1)\,
-    \mathrm{sat}(g_\perp\,\partial_k \hat{s}_1) \leq 0,
+    \dot{s}_1 = -c_{\max}\|\nabla s_1\|
+    \tanh\!\left(\frac{g_\perp\|\nabla s_1\|}{c_{\max}}\right)
+    \;\leq\; 0,
     \label{eq:s1_lyapunov}
 \end{equation}
-with equality only at a critical point of $\hat{s}_1$, the same descent
-ACQUIRE and PARK apply; CAPTURE differs only in its trigger,
-$\lVert\nabla\hat{s}_1\rVert < g_{\text{capture}}$, which fires at any
-network minimum. Unlike the $D$ tracker's Hessian-based test, unreliable
-at a saddle (Remark~\ref{rem:capture_gap}), (\ref{eq:s1_lyapunov}) needs
-no curvature estimate: the saddle is recoverable as a two-dimensional
-minimum of $\hat{s}_1$ from the gradient alone, and
-Section~\ref{sec:results_oecs} confirms it fires where the $D$ tracker's
-does not.
+with equality only at a critical point of $s_1$. The team therefore
+settles at the network minimum rather than being held there by a
+boundary condition.
 
 \section{Simulation Program}
 \label{sec:methods}
@@ -1506,7 +1420,7 @@ with $\alpha_{\text{mom}}$ (Table~\ref{tab:params}) giving equivalent
 time constant $\tau = -\Delta t/\ln\alpha_{\text{mom}} \approx 0.28$~s
 at $\Delta t = 0.1$~s, consistent with the identified Decabot lag, a
 speed limit, and a stiction floor.
-The trackers saturate every command component through
+The trackers saturate every command channel through
 $v_{\max}\tanh(c/v_{\max})$, so the commanded centroid speed never
 exceeds $\sqrt{2}\,v_{\max}$; the primitive command is amplified by a
 fixed navigation gain $k$ so that steady commands clear the stiction
@@ -1817,8 +1731,8 @@ $r_{\text{band}}$ from 0.05 to 0 reported in
 Section~\ref{sec:limitations}, CROSS never fires once, so the crossing
 is carried entirely by ordinary tangent selection
 (\ref{eq:tangent_select}). All six starts reach CAPTURE, at whichever
-saddle their initial tangent orientation resolves toward: three end
-within 0.02 of $\mathbf{p}^*_2 = (0, 0.5)$, three at $\mathbf{p}^*_1 = (0, -0.5)$. The mean
+saddle their initial tangent orientation resolves toward: two end
+within 0.02 of $\mathbf{p}^*_2 = (0, 0.5)$, four at $\mathbf{p}^*_1 = (0, -0.5)$. The mean
 path gap against the $D$ tracker's own trajectory from the same start,
 measured over the common on-trench portion of each run, is 0.02 to 0.32
 across the six, growing only where the two controllers commit to
@@ -1826,7 +1740,7 @@ different saddles from a start equidistant enough that the flow-seeded
 tangent and the $D$ tracker's own flow-tested FLOW step do not agree;
 where they commit to the same saddle the two paths are visually
 coincident until the $s_1$ tracker settles and the $D$ tracker continues
-onto the crossing wall trench, the divergence Remark~\ref{rem:capture_gap}
+onto the crossing wall trench, the divergence Remark~\ref{rem:eigvec}
 already predicts for the $D$ tracker's own selector. This is the
 designed contrast with Fig.~\ref{fig:sep_trajectories}: both controllers
 traverse the same network from the same objective starting condition,
@@ -2094,13 +2008,13 @@ identical fields, formations, and noise is future work.
 \subsection{Park versus Traverse}
 \label{sec:park_vs_traverse}
 
-Remark~\ref{rem:capture_gap} identifies the terminal-capture test as
+Remark~\ref{rem:eigvec} identifies the terminal-capture test as
 the reason the deployed controller continues through every saddle: the
 biased $\hat{\mathbf{H}}_D$ makes it unreliable exactly where it would
 need to fire. An estimator-aware alternative restores capture using
 only the two quantities free of the Hessian's structural bias,
 $\hat{D}$ and $\hat{\mathbf{g}}$: the \emph{park step}, a fourth
-case checked before the FLOW test in (\ref{eq:d_selector}),
+case checked before the FLOW test in (\ref{eq:d_law}),
 \begin{equation}
     \dot{\mathbf{p}}_c =
     -\mathrm{sat}(\hat{\mathbf{g}})
@@ -2345,7 +2259,7 @@ measurements: no estimator can select between them. With $N = 6$,
 \begin{IEEEproof}[Proof of Proposition~\ref{prop:conic}]
 $\boldsymbol{\Phi}$ is singular iff its columns are linearly dependent,
 iff there is a nonzero coefficient vector $\mathbf{c}$ with
-$\boldsymbol{\phi}(\tilde{\mathbf{p}}_i)^\top \mathbf{c} = 0$ for all
+$\boldsymbol{\phi}(\mathbf{p}_i)^\top \mathbf{c} = 0$ for all
 $i$. The function $q = \boldsymbol{\phi}^\top \mathbf{c}$ is precisely a
 nonzero polynomial of degree at most two vanishing at all six points.
 \end{IEEEproof}
@@ -2359,7 +2273,7 @@ applies.
 
 \begin{IEEEproof}[Proof of Lemma~\ref{lem:gains}]
 The value coefficient is exact: every basis function except the constant
-vanishes at the origin, so interpolation forces $\hat{u}_0$ to equal the
+vanishes at the origin, so interpolation forces $\hat{a}_1$ to equal the
 center robot's reading, giving unit gain. The remaining rows follow from
 direct inversion of $\boldsymbol{\Phi}$ using the fifth roots of unity;
 the row norms reduce to the stated constants, and repeating the
@@ -2487,7 +2401,7 @@ $r' = r$, $\mathbf{e}_k' = \mathbf{Q}\mathbf{e}_k$, and $\nabla' s_1' =
 The branch conditions are scalar thresholds on the invariants $r$,
 $\hat{s}_1$, and $\lVert\nabla\hat{s}_1\rVert$ (the banded and captured
 flags), so each branch fires identically in both frames. The tangent
-selection (\ref{eq:d1d2})--(\ref{eq:tangent_select}) uses only the
+selection (\ref{eq:tangent_select}) uses only the
 invariant inner products $\hat{d}_k' = \lvert\nabla' s_1'^\top
 \mathbf{e}_k'\rvert = \lvert\nabla s_1^\top \mathbf{e}_k\rvert =
 \hat{d}_k$, so the same eigenvector is selected in both frames; its
@@ -2496,18 +2410,19 @@ sign is fixed by $\mathrm{sign}(\mathbf{t}_{\text{ref}}'^\top
 \mathbf{t}_{\text{prev}}$ once a previous tangent exists, by induction,
 so from the second tracking step onward the inner product is invariant
 and $\hat{\mathbf{t}}' = \mathbf{Q}\hat{\mathbf{t}}$. PARK, CAPTURE, and
-the transverse channel (\ref{eq:oecs_perp}) apply the invariant gradient
+the transverse channel (\ref{eq:oecs_law}) apply the invariant gradient
 along $\hat{\mathbf{n}}' = \mathbf{Q}\hat{\mathbf{n}}$ (whichever
 eigenvector $\hat{\mathbf{t}}$ did not select, itself co-rotating by the
 same argument), and the tangential channel commands
 $v_{\max}\tanh(1)\hat{\mathbf{t}}'$; all three output the rotated
 command $\mathbf{Q}\boldsymbol{\delta}$ from the second tracking step
-on. Two inputs are not exactly covariant (ACQUIRE, whose observer-axis
-saturation still descends the invariant $\hat{s}_1$ in either frame,
-per the body statement above), both confined to a single
-instant: CROSS's direct use of the flow $\mathbf{f}$, reached only if
-$r < r_{\text{band}}$ on the first tracking step with no
-$\mathbf{t}_{\text{prev}}$ established, and the sign reference on
+on. ACQUIRE, PARK, and CAPTURE are the vector-saturated descent
+$-\mathrm{sat}(g_\perp\nabla\hat{s}_1)$ of (\ref{eq:oecs_law}), which
+preserves the direction of the co-rotating invariant gradient and is
+therefore exactly covariant. Only the flow $\mathbf{f}$ enters
+noncovariantly, and it does so at a single instant: CROSS's direct use
+of it, reached only if $r < r_{\text{band}}$ on the first tracking step
+with no $\mathbf{t}_{\text{prev}}$ established, and the sign reference on
 TRACK's own first invocation whenever CROSS is not reached, where
 $\mathbf{t}_{\text{ref}} = \mathbf{f}$ in the absence of a previous
 tangent. Under a time-dependent $\mathbf{Q}(t)$ the measured flow in the

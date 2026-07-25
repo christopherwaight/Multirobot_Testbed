@@ -54,7 +54,27 @@ import numpy as np
 # -----------------------------------------------------------------------
 
 def _quadratic_basis(rx, ry):
-    """Basis vector for a single relative position (rx, ry)."""
+    """Basis vector for a single relative position (rx, ry).
+
+    Paper cross-reference (Draft_5c.tex, Eq. 7): the paper writes the
+    fitted coefficients as a_1..a_6 for u and b_1..b_6 for v, in place of
+    the derivative-style names used here:
+
+        u0, ux, uy, uxx, uxy, uyy  ->  a_1, a_2, a_3, a_5, a_4, a_6
+        v0, vx, vy, vxx, vxy, vyy  ->  b_1, b_2, b_3, b_5, b_4, b_6
+
+    Note the slot order differs. This basis is [1, x, y, x^2/2, xy, y^2/2],
+    so the xy term sits in slot 5; the paper's basis is
+    [1, x, y, xy, x^2/2, y^2/2], with xy in slot 4. Both are internally
+    consistent and give identical fits, but a_4 is the xy coefficient
+    while theta[4] here is also xy, whereas theta[3] is xx and maps to
+    a_5. Mind the swap when comparing code against the paper's Eq. 8-9.
+
+    The one-half factors on x^2 and y^2 (absent on xy) are load-bearing in
+    both conventions: they make the recovered coefficients equal the Taylor
+    derivatives directly, and Lemma 1's noise gains (8/sqrt(10) for the
+    pure second-order terms, 4/sqrt(10) for the mixed one) assume them.
+    """
     return np.array([1.0, rx, ry, rx**2 / 2.0, rx * ry, ry**2 / 2.0])
 
 
@@ -1326,9 +1346,17 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
             })
 
     def _descend_s1():
-        vx = -v_max * np.tanh(g_perp * grad_s1[0] / v_max)
-        vy = -v_max * np.tanh(g_perp * grad_s1[1] / v_max)
-        return float(vx), float(vy)
+        # Original (per-component tanh saturation, distorts direction near
+        # saturation):
+        # vx = -v_max * np.tanh(g_perp * grad_s1[0] / v_max)
+        # vy = -v_max * np.tanh(g_perp * grad_s1[1] / v_max)
+        # return float(vx), float(vy)
+        a = -g_perp * grad_s1
+        n = float(np.linalg.norm(a))
+        if n < 1e-12:
+            return 0.0, 0.0
+        scale = v_max * np.tanh(n / v_max) / n
+        return float(a[0] * scale), float(a[1] * scale)
 
     # -- 1. ACQUIRE: no structure yet -----------------------------------
     if not banded:
