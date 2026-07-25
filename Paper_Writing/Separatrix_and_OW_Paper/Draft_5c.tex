@@ -536,9 +536,9 @@ points of a generic strain field \cite{17}; the ocean field is generic.
 Consider $N$ robots at positions $\mathbf{p}_i$, each measuring the
 local flow $(u_i, v_i) = \mathbf{v}(\mathbf{p}_i)$ at the common
 sampling instant, with no map, forecast, or prior field model and no
-trajectory integration. The field is a number computed or replayed at
-that instant, not a current the platform sits in: robot motion is
-commanded by the control law, not advected by the sampled flow. Using
+trajectory integration. The measured flow is a sampled datum, not a
+current that advects the platform: robot motion is commanded by the
+control law, not advected by the sampled flow. Using
 only the current synchronous samples at
 each control cycle, the team must generate a centroid velocity command
 $\dot{\mathbf{p}}_c$ that solves one of two problems, one per term of
@@ -918,8 +918,8 @@ matched Lemma~\ref{lem:gains} within 0.3\%, and the position-noise
 reading error matched its first-order prediction within 1.1\%,
 confirming the two channels combine into a single effective measurement
 noise. Reading the dashed-line crossings of Fig.~\ref{fig:est_accuracy}(a),
-$\hat{D}$ stays informative to $\sigma_{uv} \approx 0.06$~m/s and
-$\nabla\hat{D}$ to $\approx 0.01$~m/s, while $\hat{\mathbf{H}}_D$ sits at
+$\hat{D}$ stays informative to $\sigma_{uv} \approx 0.06$ and
+$\nabla\hat{D}$ to $\approx 0.01$, while $\hat{\mathbf{H}}_D$ sits at
 the line even for the quietest sensors, held there by the structural
 bias; its eigen-directions nevertheless remain accurate to $0.35^\circ$
 on and near the separatrix and $3.8^\circ$ at the generic test point
@@ -978,8 +978,8 @@ beneath it.
 
 The $D$ tracker drives the cluster centroid onto the trench of $D$ and
 then along it, following the separatrix through the crest that separates
-one saddle from the next. Both motions are built from the local
-quadratic surface the estimator returns.
+one saddle from the next: this is Problem 1. Both motions are built from
+the local quadratic surface the estimator returns.
 
 We work in the eigenbasis of the estimated Hessian. Let
 $\hat{\mathbf{H}}_{D,0}\mathbf{w}_k = \lambda_k \mathbf{w}_k$ with
@@ -1078,7 +1078,7 @@ $\mathbf{w}_1$ explicitly.
 \label{sec:oecs_controller}
 
 The strain eigenvalue $s_1$ is objective where $D$ is not. The second
-controller tests whether that guarantee is
+controller solves Problem 2, testing whether that guarantee is
 reachable with the same cooperative, map-free, single-sample estimator,
 riding the separatrix network rather than a bounded segment of it.
 
@@ -1170,7 +1170,11 @@ ambient flow also stagnates at a saddle, which would starve any
 flow-based tangent rule of a direction exactly where the ride needs one.
 The three tests in (\ref{eq:capture_test}) reject, in order, the
 isotropic point, an ordinary trench point, and a shallow flat spot of
-$\hat{s}_1$ away from real structure. The condition latches once
+$\hat{s}_1$ away from real structure. The $-4s_{\mathrm{trim}}$ depth
+threshold is a hysteresis ratio, not a physical relation: the test arms
+at four times the first-contact depth and releases at one times it, so
+noise near the contact level cannot arm and disarm the test on
+successive steps. The condition latches once
 satisfied and releases when $\hat{s}_1$ rises back above
 $-s_{\mathrm{trim}}$, the same threshold that declares first contact. A
 noise-driven flicker of the gradient test therefore does not send the
@@ -1462,13 +1466,13 @@ $v_{\text{max,robot}}$ & 0.3 & 0.3 & 25.5~m/s & robot speed limit \\
 $v_{\text{stiction}}$ & 0.025 & 0.002 & 0.17~m/s & stiction floor \\
 $\alpha_{\text{mom}}$ & 0.7 & 0 & --- & momentum coefficient \\
 $\rho$ & 0.075 & 0.105 ($1.4\times$) & 5.4~km & formation ring radius \\
-$\varepsilon_{\text{raw}}$ & $10^{-3}$ & $10^{-3}$ & --- & on-structure raw thr. (s$^{-2}$) \\
-$\varepsilon_{\text{dim}}$ & 0.025 & 0.025 & --- & on-structure curv.-norm. thr. (m$^2$) \\
-$g_\perp$ & 1.0 & 1.0 & --- & $s_1$-descent gain (m$^2$) \\
-$s_{\text{trim}}$ & 0.05 & 0.3 & --- & attraction-dominance thr. (s$^{-1}$) \\
-$s_{\text{capture}}$ & unset & unset & --- & optional early-park thr. (s$^{-1}$) \\
-$g_{\text{capture}}$ & 0.15 & 0.15 & --- & terminal gradient-mag. thr. (s$^{-1}$m$^{-1}$) \\
-$r_{\text{band}}$ & 0.05 & 0.05 & --- & eigenframe-resolution thr. (s$^{-1}$) \\
+$\varepsilon_{\text{raw}}$ & $10^{-3}$ & $10^{-3}$ & --- & on-structure raw thr. \\
+$\varepsilon_{\text{dim}}$ & 0.025 & 0.025 & --- & on-structure curv.-norm. thr. \\
+$g_\perp$ & 1.0 & 1.0 & --- & $s_1$-descent gain \\
+$s_{\text{trim}}$ & 0.05 & 0.3 & --- & attraction-dominance thr. \\
+$s_{\text{capture}}$ & unset & unset & --- & optional early-park thr. \\
+$g_{\text{capture}}$ & 0.15 & 0.15 & --- & terminal gradient-mag. thr. \\
+$r_{\text{band}}$ & 0.05 & 0.05 & --- & eigenframe-resolution thr. \\
 \hline
 \end{tabular}
 \end{table}
@@ -1542,12 +1546,12 @@ Noise robustness is evaluated over a two-dimensional noise grid from
 one consistent initial condition, a formation straddling the separatrix
 at $(0, 0.35)$, so the success rate measures noise robustness rather
 than basin geometry. The grid spans $\sigma_{uv} \in \{0,\,
-0.001,\, 0.005,\, 0.01,\, 0.02,\, 0.05,\, 0.1\}$ m/s, with the top
+0.001,\, 0.005,\, 0.01,\, 0.02,\, 0.05,\, 0.1\}$, with the top
 level doubled and re-swept, up to three times ($\sigma_{uv} = 0.8$),
 targeting a worst-cell success rate below 10\% so the failure cliff is
 bracketed (the $D$ tracker reaches that level; the $s_1$ tracker's
 random-walk floor does not), and $\sigma_p \in
-\{0,\, 0.005,\, 0.01,\, 0.02,\, 0.05\}$ m, at 10\,000 trials per cell of
+\{0,\, 0.005,\, 0.01,\, 0.02,\, 0.05\}$, at 10\,000 trials per cell of
 at most 500 steps each. Every trial draws an independent initial
 heading, testing the isotropy prediction of Lemma~\ref{lem:gains}.
 Task success is reaching the terminal target (centroid
@@ -1590,7 +1594,10 @@ $|y| \leq 0.60$, because the terminal descent of (\ref{eq:oecs_law})
 approaches the saddle along the same saturated gradient that holds it
 and can overshoot $y = 0.5$ by a few centimetres before the restoring
 term catches it; at the $D$ tracker's own $0.52$ box those runs are
-scored as domain exits while still converging. The step budget, start,
+scored as domain exits while still converging (30 of the 54 trials
+scored as $\sigma_p = 0.005$ failures under the $0.52$ box exit at
+$y \in [0.520, 0.529]$, a hair past it, and are recovered by the wider
+box alone). The step budget, start,
 contact radius, and collapse guard are identical between the two sweeps.
 
 The prediction under test is the location of the failure cliff, which
@@ -1747,8 +1754,8 @@ percent through $\sigma_{uv} = 0.2$, the unbiased-random-walk floor
 that only decays at the extreme extension $\sigma_{uv} = 0.8$.
 Straddle retention, the failure metric of \cite{9}, decays cleanly with
 no such floor (1.000 at zero noise, 0.589 at $\sigma_{uv} = 0.005$,
-0.389 at 0.01). Tracking error (mean $|x_c|$) rises from 0.002~m at
-zero noise to 0.088~m at the cliff and saturates near 0.27~m. Binning
+0.389 at 0.01). Tracking error (mean $|x_c|$) rises from 0.002 at
+zero noise to 0.088 at the cliff and saturates near 0.27. Binning
 the 40\,000 trials at $\sigma_{uv} \leq 0.01$, $\sigma_p = 0$ by
 initial-heading quartile gives 75.9--77.1\% success per quartile,
 confirming the isotropy of Lemma~\ref{lem:gains}.
@@ -1767,7 +1774,13 @@ the gyre-center start, whose
 ride takes the south branch at $\mathbf{p}^*_2$, arrival holds near
 40\% from zero noise through $\sigma_{uv} = 0.01$ and drops sharply
 between $\sigma_{uv} = 0.01$ and $0.02$, one grid step later than the
-straddling start's own cliff in Table~\ref{tab:mc_success}(a). The
+straddling start's own cliff in Table~\ref{tab:mc_success}(a). At zero
+noise the only stochastic input is the initial heading, so this 40\% is
+outcome isotropy, not estimator isotropy: Lemma~\ref{lem:gains} predicts
+that the estimator's own errors are heading-independent, which holds
+and is confirmed above, but off-structure the initial heading alone
+decides which branch the descent reaches first, and heading is not
+uniform across the two outcomes it produces here. The
 strain-region start feeds the bottom wall, whose flow leads away from
 $\mathbf{p}^*_1$, and arrives only through the direct path: 24.1\% at
 exactly zero noise, near zero under any perturbation.
@@ -1880,16 +1893,19 @@ success.
 The mechanism is the one-time flow read that seeds
 $\mathbf{t}_{\text{ref}}$
 on the first tracking step. At this start the differential flow signal
-across the six sample points is small (span $\approx 0.12$~m/s),
-comparable to $\sigma_{uv}$ in the 0.001--0.003 range, so the sign it
-resolves is decided by noise well before the transverse channel's own
-tolerance is approached. Because the decision is made once and then
-carried forward by continuity, a perturbation large enough to flip it
-does not merely degrade the run, it commits the whole ride to the
-opposite branch; and because the flow at $(0, 0.35)$ points down the
-separatrix by a margin that noise of this size reverses systematically
-rather than symmetrically, the flip is near-total above the threshold
-rather than an even split.
+across the six sample points is small (span $\approx 0.12$), comparable
+to $\sigma_{uv}$ in the 0.001--0.003 range, so the sign it resolves is
+decided by noise well before the transverse channel's own tolerance is
+approached. Against peak flow, $\pi A \approx 0.314$, $\sigma_{uv} =
+0.002$ is a modest 0.6\%; against this 0.12 differential span, the
+denominator the tangent decision actually consumes, the same noise is
+1.7\%, which is the reading that explains the seed's fragility. Because
+the decision is made once and then carried forward by continuity, a
+perturbation large enough to flip it does not merely degrade the run, it
+commits the whole ride to the opposite branch. The noise is comparable
+to that 1.7\%-scale signal, so above the threshold nearly every draw
+crosses it in the same direction rather than half reversing and half
+not: the flip is near-total, not an even split.
 
 Table~\ref{tab:mc_success}(b) shows the same collapse along the
 $\sigma_p$ axis at $\sigma_{uv} = 0$ (100.0\% at $\sigma_p = 0$, 1.3\%
@@ -2206,7 +2222,15 @@ would need its own noise sweep to verify. That is future work, alongside
 the hardware validation above.
 
 All results are from simulation; hardware validation on the Decabot
-testbed is planned as a follow-on study. The double-gyre noise sweeps
+testbed is planned as a follow-on study. Throughout, robot motion is
+commanded by the control law, not advected by the sampled flow
+(Section~\ref{sec:problem_statement}). For the Decabot testbed this is
+exact rather than approximate: the robots are not immersed in anything,
+and the field is encoded and read rather than physically experienced
+\cite{33}. On the ocean field it is an extrapolation: the commanded
+speed cap is far above realized ocean currents at this operating point,
+but the assumption itself is untested against real advection and is a
+scope boundary for that experiment, not a validated one. The double-gyre noise sweeps
 use the static field ($\varepsilon = 0$). A spot check at
 $\varepsilon = 0.1$, $\omega_{dg} = 2\pi/10$ runs the $D$ tracker down
 the oscillating trench at zero noise: the instantaneous trench swings
@@ -2292,20 +2316,23 @@ one-time flow-seeded tangent sign rather than the estimator's gradient
 accuracy. On
 real Santa Barbara Channel currents the $D$ tracker followed a coherent
 ridge for 28 hours to a consistent landfall reproduced by 84 of 100
-nearby starts, and the $s_1$ tracker converged to and held a stable
-local trench loop through the same 28-h record, within 1.4~km of
-offline ground truth. Every capability rests on the same premise: a
-team that can sense second-order structure locally does not need the
-map.
+nearby starts, and the $s_1$ tracker, started on that same ridge, rode
+the same network structure for 28 hours from the objective strain term
+alone. Every capability rests on the same premise: a team that can
+sense second-order structure locally does not need a precomputed FTLE
+field.
 
-Four extensions are direct. A time-derivative correction term,
+Five extensions are direct. A time-derivative correction term,
 analyzed against the analytic $\varepsilon > 0$ double gyre, would
 extend the stability results to time-varying fields with a quantified
 bound. Online formation reshaping would protect the conditioning of
 $\boldsymbol{\Phi}$. Hardware deployment on the Decabot testbed would
-close the loop on physical robots. And extension to three dimensions
-raises the estimation stakes: ten coefficients per component, so ten
-robots, or a reduced-order estimator.
+close the loop on physical robots and test the no-advection assumption
+directly. Extension to three dimensions raises the estimation stakes:
+ten coefficients per component, so ten robots, or a reduced-order
+estimator. And targets other than critical points, transient attracting
+profiles, eddy cores, and other non-critical-point structures, are a
+natural next object for the same estimator and a separate paper.
 
 \appendices
 
