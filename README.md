@@ -22,10 +22,10 @@ Multirobot_Testbed/
 │   ├── robots_4/                       # 4-robot hardware experiment data
 │   └── Deep_Learning/                  # MATLAB sensor calibration
 ├── Paper_Writing/
-│   ├── Vector Field Paper/             # Main paper (canonical: Paper_Draft_5A.tex)
-│   ├── Separatrix_and_OW_Paper/        # Separatrix / Okubo-Weiss paper (Paper_Draft_2A.tex)
+│   ├── T-Mech Paper/                   # Main paper (canonical: Paper_Draft_5A.tex)
+│   ├── Separatrix_and_OW_Paper/        # Separatrix / Okubo-Weiss paper (canonical: Draft_5c.tex)
 │   └── Master's Thesis/
-└── docs/                               # Notation reference, architecture/control/hardware notes
+└── docs/                               # Notation reference
 ```
 
 ---
@@ -115,14 +115,15 @@ allrunplotter
 **Simulation validation:**
 - 8 fields, 1000 Monte Carlo trials per field, 100% convergence
 
-### Separatrix / Okubo-Weiss Paper (Paper_Draft_2A.tex, active draft)
+### Separatrix / Okubo-Weiss Paper (Draft_5c.tex, active draft)
 
 - Six-robot formation (regular pentagon plus center robot) estimates the field
   Jacobian and traverses the separatrix / Okubo-Weiss trench network using only local
   measurements.
-- Body complete (18 pages); target venue IEEE Transactions on Robotics (T-RO).
-- Verified symbolically, in Monte Carlo, and in closed-loop simulation, and validated
-  on a real ocean HFR field. See the repo-root `plan.md` for the working tracker.
+- Body complete (20 pages); target venue IEEE Transactions on Robotics (T-RO).
+- Verified symbolically, in Monte Carlo (10,000 trials/cell), and in closed-loop
+  simulation, and validated on a real ocean HFR field. See the repo-root `plan.md`
+  for the working tracker.
 
 ---
 
@@ -158,7 +159,7 @@ where r = p* - p_c is the radial vector to the estimated critical point, r_d is 
 **Separatrix / Okubo-Weiss navigation:**
 - Distributed separatrix and Okubo-Weiss trench tracking with a six-robot formation
 - Christopher Waight, Christopher A. Kitts
-- Status: Draft complete (Paper_Draft_2A.tex), T-RO target
+- Status: Draft complete (Draft_5c.tex), T-RO target
 
 ---
 
@@ -177,8 +178,6 @@ where r = p* - p_c is the radial vector to the estimated critical point, r_d is 
 
 - `CLAUDE.md` -- style rules, notation hard rules, file map, and workflow for AI assistants
 - `docs/notation.md` -- full symbol reference (field, estimation, control, dynamics, SAS)
-- `docs/architecture.md`, `docs/control.md`, `docs/hardware.md`, `docs/troubleshooting.md`
-  -- placeholder stubs, not yet written
 
 ---
 

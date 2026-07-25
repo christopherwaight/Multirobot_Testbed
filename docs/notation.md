@@ -1,7 +1,7 @@
 # Notation and Terminology
 
-Symbols used in Paper_Draft_4A.tex (vector field paper) and the associated notebooks.
-Use these exactly. Do not introduce alternative notation.
+Symbols used in Paper_Draft_5A.tex (vector field paper, T-Mech) and the associated
+notebooks. Use these exactly. Do not introduce alternative notation.
 
 The two hard rules (the alpha collision and bold p vs scalar p) live inline in
 CLAUDE.md because they are anti-error directives, not lookups. This file is the full
