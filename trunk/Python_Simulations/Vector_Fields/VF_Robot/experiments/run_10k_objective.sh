@@ -16,7 +16,11 @@ set -u  # not -e: a failed sweep should not abort the ones after it
 cd "$(dirname "$0")/.." || exit 1
 
 TRIALS=10000
-WORKERS=8
+# 6, not 8. This is an 8 GB machine: two 10,000-trial runs were killed by
+# memory pressure (swap at 5.8 of 7.2 GB, ~60 MB free). The parent no longer
+# accumulates trial rows, but each worker still batches its own results, so
+# leaving headroom matters more here than the last 25 percent of throughput.
+WORKERS=6
 LOG_DIR="experiments/outputs/mc_oecs_traverse/logs_10k_objective"
 mkdir -p "$LOG_DIR"
 
