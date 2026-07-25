@@ -151,7 +151,14 @@ def load_checkpoint(n_trials):
     if not os.path.exists(CKPT_PATH):
         return summary
 
-    counts, sums = {}, {}
+    # Deduplicate on (cell, seed). Two sweeps writing the same checkpoint
+    # concurrently (which happened on 2026-07-25, when a stale run was left
+    # alive alongside its replacement) append the same trials twice. Trials
+    # are deterministic in the seed, so the duplicates are identical and the
+    # data is still correct, but a cell would then hold 20,000 rows and be
+    # rejected by the exactly-n_trials rule below. Keying on the seed makes
+    # the loader idempotent, so a duplicated cell counts once.
+    counts, sums, seen = {}, {}, set()
     with open(CKPT_PATH) as f:
         for line in f:
             line = line.strip()
@@ -166,6 +173,11 @@ def load_checkpoint(n_trials):
                 vals = [float(parts[_IDX[c]]) for c in _SUMMARY_COLS]
             except ValueError:
                 continue
+            trial_key = (parts[_IDX["sigma_uv"]], parts[_IDX["sigma_p"]],
+                         parts[_IDX["seed"]])
+            if trial_key in seen:
+                continue
+            seen.add(trial_key)
             counts[key] = counts.get(key, 0) + 1
             acc = sums.setdefault(key, [0.0] * len(_SUMMARY_COLS))
             for i, v in enumerate(vals):
@@ -189,7 +201,10 @@ def write_trials_from_checkpoint(path, header, n_trials):
 
     Never holds more than one cell's rows in memory.
     """
-    counts = {}
+    # Same (cell, seed) dedup as load_checkpoint: a concurrently written
+    # checkpoint can hold each trial twice, and the output must carry one
+    # copy of each.
+    counts, seen = {}, set()
     with open(CKPT_PATH) as f:
         for line in f:
             parts = line.strip().split(",")
@@ -200,10 +215,15 @@ def write_trials_from_checkpoint(path, header, n_trials):
                        float(parts[_IDX["sigma_p"]]))
             except ValueError:
                 continue
+            trial_key = (parts[_IDX["sigma_uv"]], parts[_IDX["sigma_p"]],
+                         parts[_IDX["seed"]])
+            if trial_key in seen:
+                continue
+            seen.add(trial_key)
             counts[key] = counts.get(key, 0) + 1
     keep = {k for k, n in counts.items() if n == n_trials}
 
-    written = 0
+    written, emitted = 0, set()
     with open(path, "w") as out, open(CKPT_PATH) as f:
         out.write(header)
         out.write(",".join(TRIAL_COLS) + "\n")
@@ -216,7 +236,10 @@ def write_trials_from_checkpoint(path, header, n_trials):
                        float(parts[_IDX["sigma_p"]]))
             except ValueError:
                 continue
-            if key in keep:
+            trial_key = (parts[_IDX["sigma_uv"]], parts[_IDX["sigma_p"]],
+                         parts[_IDX["seed"]])
+            if key in keep and trial_key not in emitted:
+                emitted.add(trial_key)
                 out.write(line if line.endswith("\n") else line + "\n")
                 written += 1
     return written
