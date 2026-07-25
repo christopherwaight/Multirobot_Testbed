@@ -5,7 +5,53 @@ Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex (NOT 2A/4A/5A/5b; those
 are superseded). If a session is cut off, read this file top to bottom and
 resume at the most recent HANDOFF.
 
-## HANDOFF 2026-07-25: Test Plan + Results rewrite -- COMPLETE (commit f614c33)
+## HANDOFF 2026-07-25: Referee-report revision -- COMPLETE (commits bef8c8e..c4e2702)
+
+Executed AGENT_WORKORDER_draft5c.md (derived from referee_report_draft5c.html)
+end to end, all five tiers. Full detail, per-task log, judgment calls, and
+AUTHOR-flagged items are in Paper_Writing/Separatrix_and_OW_Paper/
+REVISION_5c_PROGRESS.md -- read that file, not this summary, before touching
+the paper again.
+
+**What changed:** M5 (largest cut) removed all D-tracker terminal-capture
+machinery -- Theorem 1, Theorem 2's part (iii), all of former Section VII-B
+(Park versus Traverse) including Fig 10 and eq (39), the D_capture parameter,
+and a separate dead s_capture mechanism for the s1 tracker (unset in both
+operating points, traced through all 5 of its usage sites). The s1 tracker's
+own terminal test (eq 30) is untouched and is now the paper's only terminal
+behavior. Conclusion rewritten to state the post-cut claim explicitly: D
+traverses, s1 traverses and can certify a terminal core, because s1's
+minimum is a first derivative of the fit where D's needs a Hessian sign the
+estimator cannot deliver reliably. Fixed the two blocking defects: Section
+VIII's ocean claim contradicted VI-D (now consistent, all three of VI-D's
+guardrail phrases survive verbatim); stripped SI units from double-gyre
+quantities that the paper declares non-dimensional. Ocean sections (V-C,
+VI-C, VI-D) reframed as demonstrations rather than validation, with a new
+6-row assumptions table (Section VII-A) replacing an unsupported comparison
+to Michini/Kularatne, every cell checked against the actual PDFs.
+
+**Author override:** Figure 3 (three-layer architecture) was KEPT against
+the work order's own recommendation to cut it -- explicit instruction.
+
+**Where it landed:** 19 pages (compiled from a true 20-page baseline; the
+work order's "18.5 pp" was a word-count estimate, not a real pdflatex
+count), not the work order's 16.2 pp target. Per explicit instruction
+mid-session, completing every action item took priority over the exact page
+count once the corrected baseline made 16.2 unreachable with Fig 3 kept.
+Two open AUTHOR items: (1) T38, merging Figs 8+9 into one two-panel ocean
+figure, needs new plotting code (separate scripts, different datasets) --
+not done; (2) a kappa(Phi)-monitoring sentence in Failure Modes was
+corrected to say "not implemented" after finding no evidence it's actually
+logged -- flag if that's wrong. Full item-by-item disposition in
+REVISION_5c_PROGRESS.md.
+
+Compiled clean, zero undefined references, zero multiply-defined labels,
+all 10 figures resolve. A hardcoded-section-reference audit (prompted by
+deleting Section II-B, which shifted every later II-subsection up one
+letter) found and fixed 3 stale `Section~\mbox{...}` prose references that
+a compile-clean log would not have caught on its own.
+
+## HANDOFF 2026-07-25 (earlier): Test Plan + Results rewrite -- COMPLETE (commit f614c33)
 
 Sections V-D and VI rewritten against the current controllers. Section IV
 was already current and was not touched.
