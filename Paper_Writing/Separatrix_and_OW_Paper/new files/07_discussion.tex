@@ -1,0 +1,55 @@
+% ============================================================
+% DROP-IN REPLACEMENT for Draft_5c.tex lines 2069-2120
+% (\subsection{Objectivity Tradeoffs} and \subsection{Failure Modes},
+%  i.e. everything from "\subsection{Objectivity Tradeoffs}" up to but
+%  NOT including "\subsection{Limitations}")
+%
+% Keeps labels : sec:objectivity_tradeoff, sec:failure_modes
+% ============================================================
+
+\subsection{Objectivity Tradeoffs}
+\label{sec:objectivity_tradeoff}
+
+Table~\ref{tab:budget} places both surrogates on the same noise rung, so
+the choice between them is not one of accuracy. It is which channels
+carry constants. Everything derived from $\hat{D}$ carries the observer
+term $O(\mathrm{Ro})$, and $\hat{\mathbf{H}}_D$ carries the
+unmodelled-derivative floor $e$ as well; $\hat{s}_1$ carries neither and
+is exposed instead at $1/r$, which belongs to the strain field rather
+than to the sensing. The rotating-frame gaps, 0.025 against 1.219, are
+the first of those constants made visible: it contains no $\nu$, no
+$\tilde{\rho}$, and no formation geometry, so no estimator improvement
+removes it.
+
+The double gyre is a favorable case for that comparison and a
+misleading one for its cost. Objectivity buys no extra reach there,
+since the two trenches coincide exactly, and the identically vanishing
+shear keeps $r$ away from zero, so the $1/r$ exposure the generic ocean
+field loads is barely tested. What the double gyre does expose is
+rate. The $D$ tracker
+normalizes by a curvature and holds $a_\perp = 1$ along the whole
+structure; the $s_1$ tracker takes $a_\perp = g_\perp\kappa_\perp$ from
+the field, and at the operating point of Table~\ref{tab:params} that
+puts the outer half of the structure past the discrete stability
+threshold (Table~\ref{tab:bandwidth}). Both consume the same fit, so the
+choice is one function call rather than a new estimator or formation.
+
+\subsection{Failure Modes}
+\label{sec:failure_modes}
+
+Three behaviors fall outside Section~\mbox{IV-D}. The fit is
+ill-conditioned whenever the six sampling points drift toward a common
+conic (Proposition~\ref{prop:conic}); monitoring
+$\kappa(\boldsymbol{\Phi})$ and adding a shape-maintenance term is the
+direct mitigation, not implemented here. Noise can chatter the $D$
+tracker across
+the band boundary (\ref{eq:flow_band}), which costs only along-trench
+speed since both branches of (\ref{eq:tau}) share the transverse
+dynamics (\ref{eq:n_dynamics}). And the strain eigenframe is fragile
+where $\mathbf{S}$ approaches isotropy, the $1/r$ column of
+Table~\ref{tab:budget}. Tangent selection (\ref{eq:tangent_select}) is
+the defense once the ride is underway, comparing gradient alignment
+rather than eigenvector identity; the residual risk of a wrong branch at
+a crossing under heavy noise is damped but not excluded by the latch on
+(\ref{eq:capture_test}), and the generic ocean field exercises the whole
+mechanism.
