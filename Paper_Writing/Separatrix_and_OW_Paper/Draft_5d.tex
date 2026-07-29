@@ -101,9 +101,10 @@ curvature each policy consumes \cite{15,26}.
 Some environments are better modeled by vector fields. These models
 assign both a magnitude and a direction to each point. The critical
 points of that vector field often mark the features a mission cares
-about, for example, in ocean currents and other geophysical flows. A
-sink, for instance, can flag an area of high probability for search
-and rescue, while a spewing vortex can point to a below-surface leak.
+about, for example, in ocean currents and other geophysical flows: a
+sink can flag an area of high probability for search and rescue
+\cite{39}, while a spewing vortex can point to a below-surface leak
+\cite{40}.
 In \cite{14}, a three-robot cluster estimated the location and type of
 an isolated critical point from a linear fit of simultaneous local
 velocity measurements, recovering the feature from instantaneous data
@@ -160,8 +161,8 @@ $s_1$ tracker, an objective controller built from the strain
 eigenframe whose design follows from the structural result that no
 quadratic velocity fit can certify $s_1$-trench curvature. On the
 double gyre it captures reliably at a terminal core rather than
-continuing past it, resolving both the attracting/repelling eigenvector
-swap and the network crossing itself from objective quantities alone,
+continuing past it, resolving both the attracting/repelling isotropic
+point and the network crossing itself from objective quantities alone,
 and on a field without a stationary point close enough to trigger that
 capture it instead traverses the ridge network the strain term itself
 resolves. Fourth, it validates both trackers under a fully specified
@@ -339,21 +340,22 @@ The velocity gradient decomposes into symmetric and antisymmetric
 parts, $\mathbf{J} = \mathbf{S} + \mathbf{W}$, with rate-of-strain
 tensor $\mathbf{S} = (\mathbf{J} + \mathbf{J}^\top)/2$ and spin tensor
 $\mathbf{W} = (\mathbf{J} - \mathbf{J}^\top)/2$, which carries the
-vorticity. Under a time-dependent change of observer $\mathbf{p}' =
-\mathbf{Q}(t)\mathbf{p} + \mathbf{b}(t)$, the frame's own rotation
-enters the velocity gradient as the antisymmetric term
-$\dot{\mathbf{Q}}\mathbf{Q}^\top$, so it lands entirely in the spin
-part ($\omega' = \omega + 2\Omega$, with $\Omega$ defined by
+vorticity. Consider a time-dependent change of observer
+$\mathbf{p}' = \mathbf{Q}(t)\mathbf{p} + \mathbf{b}(t)$, with rotating
+frame $\mathbf{Q}(t)$. For the special case
+$\mathbf{p}' = \mathbf{Q}(t)\mathbf{p}$, the convention used in the
+rotating-frame experiment of Section~\mbox{V-D}, write
 $\dot{\mathbf{Q}}\mathbf{Q}^\top = \Omega\left[\begin{smallmatrix} 0 &
--1 \\ 1 & 0 \end{smallmatrix}\right]$ for the transformation
-$\mathbf{p}' = \mathbf{Q}(t)\mathbf{p}$, the convention of the
-rotating-frame experiment in Section~\mbox{V-D}), while the strain part
-transforms cleanly, $\mathbf{S}' =
-\mathbf{Q}\mathbf{S}\mathbf{Q}^\top$. The eigenvalues $s_1 \leq s_2$ of
-$\mathbf{S}$ are therefore frame-invariant, its eigenvectors
-$\mathbf{e}_1, \mathbf{e}_2$ co-rotate with the frame, and quantities
-built from them are objective. Material behavior, which cannot depend
-on the observer, can be predicted from them in any frame \cite{16,17}.
+-1 \\ 1 & 0 \end{smallmatrix}\right]$, so $\Omega$ is the frame's own
+angular rate. The frame's rotation enters the velocity gradient only
+through this antisymmetric term, so it lands entirely in the spin
+part, $\omega' = \omega + 2\Omega$, while the strain part transforms
+cleanly, $\mathbf{S}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^\top$. The
+eigenvalues $s_1 \leq s_2$ of $\mathbf{S}$ are therefore
+frame-invariant, its eigenvectors $\mathbf{e}_1, \mathbf{e}_2$
+co-rotate with the frame, and quantities built from them are
+objective. Material behavior, which cannot depend on the observer, can
+be predicted from them in any frame \cite{16,17}.
 
 The two surrogates of this paper are the two halves of this splitting.
 For any symmetric $\mathbf{S}$ and antisymmetric $\mathbf{W}$ the cross
@@ -468,13 +470,13 @@ of the separatrix on \emph{both} halves, with no sign change and no
 ridge to cross. What alternates by segment is the \emph{material}
 identity of its tangent, the stretching eigenvector $\mathbf{e}_2$ above
 and the compression eigenvector $\mathbf{e}_1$ below, swapping at the
-origin, where the $D$ crest is also an isotropic point of $\mathbf{S}$
+origin, the isotropic point of $\mathbf{S}$ where the $D$ crest sits
 and $\mathbf{e}_1, \mathbf{e}_2$ are simultaneously undefined. An
 objective tracker that keys its transverse channel to the trench of
 $s_1$ rather than to a named eigenvector needs no ridge detector and no
-special handling at the swap. The same law holds the same scalar trench
-on both halves, and the crossing itself is a genuine two-dimensional
-minimum of $s_1$.
+special handling at the isotropic point. The same law holds the same
+scalar trench on both halves, and the crossing itself is a genuine
+two-dimensional minimum of $s_1$.
 
 \begin{figure}[!t]
     \centering
@@ -505,7 +507,7 @@ centroid onto the trench of $D$ and travel it, in the direction of the
 ambient flow, through the saddle points where trench segments cross.
 
 \emph{Problem 2 (objective network traversal).} Drive the centroid onto
-the trench of $s_1$ and travel it, through the eigenvector swap where the
+the trench of $s_1$ and travel it, through the isotropic point where the
 attracting and repelling segments meet, to a terminal attracting core
 where the trench bottoms out, using only objective quantities throughout.
 
@@ -672,27 +674,7 @@ position, the model reports the same curvature everywhere in the
 footprint, and unlike the gradient it does not sharpen as the cluster
 contracts onto the target.
 
-The two quantities also differ in what the truncation costs them. Every
-term of $\nabla D(\mathbf{p}_c)$ pairs a second derivative of the field
-with a first derivative, so the quadratic model retains all of the field
-data the true gradient depends on. The Hessian does not have that
-property. Written in derivatives of the true field, its $(1,1)$ entry
-expands as
-\begin{equation}
-\begin{split}
-    D_{xx} = {}&2(u_{xx} v_{xy} - u_{xy} v_{xx}) \\
-        &+ u_{xxx} v_y + u_x v_{xxy}
-        - u_{xxy} v_x - u_y v_{xxx},
-\end{split}
-    \label{eq:Dxx_true}
-\end{equation}
-whose first pair is what (\ref{eq:hess_det}) recovers as $2(\hat{a}_5
-\hat{b}_4 - \hat{a}_4 \hat{b}_5)$. The four third-order terms have no
-counterpart among the twelve fitted coefficients. They are set to zero by
-construction, not made small by a good fit. With the
-estimated flow at the centroid, $\hat{\mathbf{v}}_0 = (\hat{a}_1,
-\hat{b}_1)$, (\ref{eq:J_hat})--(\ref{eq:hess_det}) supply every quantity
-the $D$ tracker consumes.
+
 
 \subsection{Closed-Form Recovery of $s_1$ and the Strain Eigenframe}
 \label{sec:s1_estimation}
@@ -1722,7 +1704,7 @@ From the same six starts used for the $D$ tracker's own traverse
 (Fig.~\ref{fig:sep_trajectories}), spanning both gyre halves, the
 origin, and points off the structure entirely, the $s_1$ tracker reaches
 the trench in 0 to 46 steps, longest from the farthest off-structure
-start, and rides it through the eigenvector swap at the origin with no
+start, and rides it through the isotropic point at the origin with no
 dedicated crossing behavior. Over the sweep of $r_{\text{band}}$ from
 0.05 to 0, the degenerate-frame
 guard never fires once, so the
@@ -1749,8 +1731,8 @@ what it finds.
     \centering
     \includegraphics[width=0.34\textwidth]{figures/traverse_vs_logic_c.png}
     \caption{$s_1$ tracker versus $D$ tracker, six matched starts,
-    noise-free. Both traverse the same network through the eigenvector
-    swap at the origin. The $s_1$ tracker captures at the saddle its
+    noise-free. Both traverse the same network through the isotropic
+    point at the origin. The $s_1$ tracker captures at the saddle its
     tangent orientation resolves toward, while the $D$ tracker
     continues onto the crossing wall trench past every saddle it
     reaches.}
@@ -1763,7 +1745,7 @@ Section~\mbox{V-D}. Fig.~\ref{fig:oecs_objectivity} shows the
 outcome. The $s_1$ tracker's two runs are the same material path. Final
 gap 0.025, mean gap 0.014 over the common steps, with mean distance to
 the true trench network of 0.000 (inertial) and 0.005 (rotating). Both
-runs traverse the same eigenvector swap and capture at the same bottom
+runs traverse the same isotropic point and capture at the same bottom
 saddle. The $D$ tracker's two runs are not. The rotating observer's $D'$
 landscape (\ref{eq:D_not_objective}) and swirl-contaminated flow
 measurement carry the team off the separatrix entirely, to a mean
@@ -1999,6 +1981,28 @@ thereafter carries orientation forward by continuity, which is
 covariant. A rule that instead resolved (\ref{eq:tangent_select}) by
 alignment with the flow at each step would inherit the observer
 dependence at every step rather than once.
+
+The two quantities also differ in what the truncation costs them. Every
+term of $\nabla D(\mathbf{p}_c)$ pairs a second derivative of the field
+with a first derivative, so the quadratic model retains all of the field
+data the true gradient depends on. The Hessian does not have that
+property. Written in derivatives of the true field, its $(1,1)$ entry
+expands as
+\begin{equation}
+\begin{split}
+    D_{xx} = {}&2(u_{xx} v_{xy} - u_{xy} v_{xx}) \\
+        &+ u_{xxx} v_y + u_x v_{xxy}
+        - u_{xxy} v_x - u_y v_{xxx},
+\end{split}
+    \label{eq:Dxx_true}
+\end{equation}
+whose first pair is what (\ref{eq:hess_det}) recovers as $2(\hat{a}_5
+\hat{b}_4 - \hat{a}_4 \hat{b}_5)$. The four third-order terms have no
+counterpart among the twelve fitted coefficients. They are set to zero by
+construction, not made small by a good fit. With the
+estimated flow at the centroid, $\hat{\mathbf{v}}_0 = (\hat{a}_1,
+\hat{b}_1)$, (\ref{eq:J_hat})--(\ref{eq:hess_det}) supply every quantity
+the $D$ tracker consumes.
 
 \subsection{Implications}
 \label{sec:prior_comparison}
@@ -2513,6 +2517,16 @@ vol. 11, no. 1, p. 2525, 2020.
 \bibitem{38} T. Liddy and T.-F. Lu, "Obstacle avoidance using complex
 vector fields," in \textit{Proc. Australasian Conf. Robotics and
 Automation (ACRA)}, 2008.
+
+\bibitem{39} M. Mateus, R. Canelas, L. Pinto, and N. Vaz, "When
+tragedy strikes: Potential contributions from ocean observation to
+search and rescue operations after drowning accidents," \textit{Front.
+Mar. Sci.}, vol. 7, art. 55, 2020.
+
+\bibitem{40} P. Keramea, K. Spanoudaki, G. Zodiatis, G. Gikas, and
+G. Sylaios, "Oil spill modeling: A critical review on current trends,
+downscaling, and applications," \textit{J. Mar. Sci. Eng.}, vol. 9,
+no. 2, art. 181, 2021.
 
 \end{thebibliography}
 
