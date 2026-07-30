@@ -77,7 +77,7 @@ Estimation, Cluster Space Control
 \section{Introduction}
 \label{sec:intro}
 
-\IEEEPARstart{M}{ultirobot} systems provide redundancy against
+\IEEEPARstart{M}{ultirobot} systems (MRS) provide redundancy against
 individual failures, widen the area a team can cover, and spread
 sensing across space rather than concentrating it at a single
 platform. These systems now operate across domains from warehousing
@@ -85,7 +85,7 @@ to search and rescue \cite{1}. Equipped with field sensors, such
 teams form mobile sensor networks that turn spatial spread into
 simultaneous measurements at separated points.
 
-Survey-oriented navigation use this ability to sweep a region exhaustively and identifying features only
+Survey-oriented navigation MRS use this ability to sweep a region exhaustively and identifying features only
 afterward. Adaptive navigation (AN) techniques instead use
 measurements in real time to drive the network toward or along
 features of interest, locating local features quickly and following
@@ -692,7 +692,11 @@ coefficients give as
 with $\mu = 0$ for incompressible flow. The strain eigenvalues are
 $s_{1,2} = \mu \mp r$ with $r = \sqrt{s_n^2 + s_s^2}$, and the
 eigenframe $(\mathbf{e}_1, \mathbf{e}_2)$ is that of the symmetric
-matrix $\hat{\mathbf{S}}$ assembled from the same coefficients. Under
+matrix $\hat{\mathbf{S}}$ assembled from the same coefficients. Every
+quantity in this subsection is read from the fit. Hats are written where
+an estimate is contrasted with its clean value, as in
+Section~\ref{sec:sensitivity}, and suppressed on $\mu$, $s_n$, $s_s$,
+$r$, and the eigenvectors elsewhere. Under
 the quadratic model, $\mu$, $s_n$, and $s_s$ are affine functions of
 position, so the gradient of $\hat{s}_1$ is exact for the fitted field.
 \begin{equation}
@@ -976,20 +980,37 @@ downstream.
 
 Because $\hat{D}$ is an exact quadratic surface, the Newton step
 $-\hat{\mathbf{H}}_{D,0}^{-1}\hat{\mathbf{g}}_0$ moves in one stroke to
-its stationary point. Two properties prevent us from issuing it as a
-velocity command. Its magnitude grows without bound as
-$\hat{\mathbf{H}}_{D,0}$ approaches singularity, and the stationary point
-it seeks is the crest of the trench rather than a point on the
-separatrix. We bound the first with the saturation
+its stationary point. Two properties prevent us from issuing it directly
+as a velocity command. The first is dimensional. Under the local
+quadratic model $\hat{\mathbf{g}}_0 \approx \hat{\mathbf{H}}_{D,0}
+\mathbf{r}$, dividing the gradient projection by the curvature cancels
+that curvature and leaves $\mathbf{w}_k^\top \mathbf{r}$, a displacement,
+so commanding the step as a velocity asks the cluster to close the whole
+remaining distance in one unit of time. That demand exceeds the available
+speed at any appreciable distance from the structure, and it diverges as
+$\hat{\mathbf{H}}_{D,0}$ approaches singularity. The second property is
+geometric. The stationary point the step seeks is the crest of the trench
+rather than a point on the separatrix.
+
+We bound the first with the hyperbolic saturation
 \begin{equation}
     \mathrm{sat}(c) = c_{\max} \tanh\!\left(\frac{c}{c_{\max}}\right),
     \label{eq:sat}
 \end{equation}
-and address the second by treating the two eigendirections separately.
+chosen over a hard clip for its behavior in the two limits. For $|c| \gg
+c_{\max}$ the command is a bounded transit at the fixed speed $c_{\max}$,
+set neither by the distance to the structure nor by the conditioning of
+$\hat{\mathbf{H}}_{D,0}$. For $|c| \ll c_{\max}$ the saturation is
+transparent, $\mathrm{sat}(c) \to c$, and the command is the unmodified
+Newton step, which retains its terminal convergence rate instead of
+decaying at a tuned proportional gain. One parameter therefore fixes both
+the transit speed far from the structure and the width of the terminal
+boundary layer near it, and no per-eigendirection gains are needed.
 
-Across the trench, the Newton component is what we want, and we keep it.
-Along the trench, we keep its magnitude and take its direction from the
-ambient flow.
+We address the second property by treating the two eigendirections
+separately. Across the trench, the Newton component is what we want, and
+we keep it. Along the trench, we keep its magnitude and take its
+direction from the ambient flow.
 
 The along-trench command changes character once the cluster reaches the
 separatrix. Away from it, the along-trench gradient supplies a descent
@@ -1031,14 +1052,12 @@ and the velocity command is
 This control law decouples transverse and tangential motion. The
 $\mathbf{w}_2$ term is unaffected by (\ref{eq:tau}) and is therefore the
 same command on and off the band. It snaps the centroid onto the trench
-floor, and recovers the exact Newton component, with its superlinear
-local convergence, once the argument falls inside the boundary layer.
-The $\mathbf{w}_1$ term carries the centroid along the structure at the
+floor, and inside the boundary layer of (\ref{eq:sat}) it is the exact
+Newton component, with its superlinear local convergence. The
+$\mathbf{w}_1$ term carries the centroid along the structure at the
 curvature-normalized rate off the band and at the flow speed on it.
 Since $\tau \geq 0$ in both cases, the tangential motion is never
-directed against the ambient flow. The single parameter $c_{\max}$ sets
-the cruise speed far from the structure and the width of the terminal
-boundary layer near it.
+directed against the ambient flow.
 
 
 
@@ -1166,71 +1185,48 @@ kinematic integrator
 \end{equation}
 $\boldsymbol{\delta}$ the right-hand side of the active law,
 (\ref{eq:d_law}) or (\ref{eq:oecs_law}), and $k > 0$ the navigation
-gain. This abstracts the layers beneath, whose dynamics settle in
-roughly 0.3~s against transit times of tens of seconds \cite{14}.
-Estimates are taken exact, so hats are dropped; proofs are in
-Appendix~\ref{app:proofs}.
+gain. The layers beneath settle in roughly 0.3~s against transit times
+of tens of seconds \cite{14}. Estimates are taken exact, so hats are
+dropped, and proofs are in Appendix~\ref{app:proofs}.
 
-\begin{assumption}[Trench and flow structure]
-\label{ass:trench}
-Let $\Sigma$ be the tracked surrogate, $D$ or $s_1$. On a tube $T_w =
-\{|n| \leq w\}$ about a segment $\Gamma$, in arclength coordinates
-$(\ell, n)$ along and across it,
+Let $\Sigma$ be the tracked surrogate, $D$ or $s_1$, in arclength
+coordinates $(\ell, n)$ along and across a trench segment $\Gamma$ on a
+tube $T_w = \{|n| \leq w\}$, where
 \begin{equation}
     \Sigma(\ell, n) = h(\ell)
         + \tfrac{1}{2}\kappa_\perp(\ell)\,n^2,
     \qquad 0 < \underline{\kappa} \leq \kappa_\perp(\ell),
     \label{eq:normal_form}
 \end{equation}
-with vanishing cross terms. The curve $\Gamma$ is invariant under the
-flow, with $\lVert\mathbf{v}\rVert \geq f_{\min} > 0$ outside balls of
-radius $r_0$ around the flow saddles, and $|h'(\ell)| \geq m_h > 0$
-wherever the band test fails on $\Gamma$.
-\end{assumption}
+with vanishing cross terms. We take $\Gamma$ invariant under the flow,
+with $\lVert\mathbf{v}\rVert \geq f_{\min} > 0$ outside balls of radius
+$r_0$ around the flow saddles, and $|h'(\ell)| \geq m_h > 0$ wherever
+the band test fails on $\Gamma$. The transverse gradient $\kappa_\perp
+n$ vanishes on $\Gamma$ and nowhere else in the tube, so the problem
+splits, regulate $n$ to zero and transport along $\ell$.
 
-The transverse gradient $\kappa_\perp n$ vanishes on $\Gamma$ and
-nowhere else in the tube, so the problem splits into two parts, regulate
-$n$ to zero, transport along $\ell$.
-
-The two controllers are the same machine with one number changed. Both
-command the transverse law
+Both controllers command the same transverse law
 \begin{equation}
     \dot{n} = -c_{\max}\tanh\!\left(
         \frac{a_\perp\,n}{c_{\max}}\right),
     \label{eq:n_dynamics}
 \end{equation}
-and differ only in $a_\perp$. The $D$ tracker normalizes by the
-estimated curvature, giving the Newton argument $-\kappa_\perp
-n/\kappa_\perp = -n$. The $s_1$ tracker has no usable curvature
-(Remark~\ref{rem:s1hess}) and substitutes the fixed gain $g_\perp$.
-\begin{equation}
-    a_{\perp,D} = 1,
-    \qquad
-    a_{\perp,s_1} = g_\perp\,\kappa_\perp(\ell).
-    \label{eq:transverse_rates}
-\end{equation}
-One rate is fixed by design, the other set by the field.
-
-Two regimes live inside (\ref{eq:n_dynamics}). Far out $\tanh$ saturates
-into a constant approach at $c_{\max}$, close in it is linear and the
-command is proportional, with crossover at $|n| = c_{\max}/a_\perp$.
+and differ only in the transverse rate $a_\perp$. The $D$ tracker
+normalizes by the estimated curvature, giving the Newton argument
+$-\kappa_\perp n/\kappa_\perp = -n$ and a fixed $a_{\perp,D} = 1$. The
+$s_1$ tracker has no usable curvature (Remark~\ref{rem:s1hess}), so its
+rate is set by the field, $a_{\perp,s_1} = g_\perp\,\kappa_\perp(\ell)$.
 With $V = \tfrac{1}{2}n^2$, $\dot{V} = -c_{\max}\,n\tanh(a_\perp
 n/c_{\max}) < 0$ for $n \neq 0$, so $T_w$ is forward invariant, the
-proportional region is entered in finite time, and inside it concavity
-of $\tanh$ gives $\dot{V} \leq -2a_\perp\tanh(1)V$.
-
-Once $n \approx 0$ the tangential command takes over, with $\tau \geq 0$
-in every branch of (\ref{eq:tau}), leaving one-dimensional transport in
-the flow direction. The two phases do not interfere, and the reason is
-visible in the law rather than in the analysis. \emph{The transverse
-command contains no $\tau$}. The tangential mode switch is therefore
-invisible to the regulated variable and cannot move the team across the
-structure, and the $s_1$ tracker's projector enforces the same
-separation explicitly.
+proportional region $|n| < c_{\max}/a_\perp$ is entered in finite time,
+and inside it $\dot{V} \leq -2a_\perp\tanh(1)V$. Neither transverse
+command contains the along-trench rate $\tau$, so the tangential mode
+switch cannot move the team across the structure.
 
 \begin{theorem}[Network traversal]
 \label{thm:separatrix}
-Under Assumption~\ref{ass:trench}, with exact estimates, every
+Under (\ref{eq:normal_form}) and the flow conditions above, with exact
+estimates, every
 trajectory starting in $T_w$ (i) remains in $T_w$ and converges
 exponentially to $\Gamma$, and (ii) traverses $\Gamma$ in the direction
 of the ambient flow, reaching the $r_0$ neighborhood of a flow saddle in
@@ -1238,32 +1234,22 @@ finite time bounded by $L_\Gamma/m$, with $L_\Gamma$ the length of
 $\Gamma$ and $m > 0$ the realized tangential speed.
 \end{theorem}
 
-At a flow saddle $D$ has a local minimum with $\mathbf{H}_D \succ 0$ and
-the degenerate case of (\ref{eq:d_law}) is active. In practice the $D$
-tracker continues past it. The floor $e$ of Section~\mbox{III-D} leaves
-the estimated eigenvalues indefinite and an order of magnitude too small
-there even without noise, so the tracker rides onto the crossing segment
-and repeats (i) and (ii) with $\Gamma$ relabeled. Both behaviors are the
-same theorem on different premises.
-
-Termination carries its own certificate. When the ride flag clears the
-projector becomes the identity and (\ref{eq:oecs_law}) is full gradient
-descent on the surrogate itself,
-\begin{equation}
-    \dot{s}_1 = -c_{\max}\lVert\nabla s_1\rVert
-    \tanh\!\left(\frac{g_\perp\lVert\nabla s_1\rVert}{c_{\max}}\right)
-    \;\leq\; 0,
-    \label{eq:s1_lyapunov}
-\end{equation}
-with equality only at a critical point. Nothing holds the team in place,
-it has arrived. This is the vanishing-gradient test
+The trackers end differently at a saddle. There $D$ has a local minimum
+with $\mathbf{H}_D \succ 0$ and the degenerate case of (\ref{eq:d_law})
+is active, but the floor $e$ of Section~\mbox{III-D} leaves the
+estimated eigenvalues indefinite even without noise, so the $D$ tracker
+rides onto the crossing segment and repeats (i) and (ii) with $\Gamma$
+relabeled. The $s_1$ tracker stops. Once the ride flag clears, the
+projector is the identity, (\ref{eq:oecs_law}) is gradient descent on
+the surrogate itself, and $\dot{s}_1 \leq 0$ with equality only at a
+critical point. That is the vanishing-gradient test
 Section~\mbox{III-D} admits rather than the definiteness test it does
 not.
 
 Estimation error, and any residual cross term $\kappa_\perp'(\ell)\,n$,
 enters the transverse channel as a bounded disturbance $|d| \leq
-\delta$. Then $\dot{V} < 0$ outside an interval, and the structure is
-practically stable with
+\delta$. Then $\dot{V} < 0$ outside an interval and the structure is
+practically stable, with
 \begin{equation}
     \limsup_{t\to\infty}|n(t)| \;\leq\;
     \frac{c_{\max}}{a_\perp}
@@ -1272,11 +1258,18 @@ practically stable with
     \qquad \delta \ll c_{\max},
     \label{eq:iss_bound}
 \end{equation}
-the disturbance divided by the local slope of the restoring law, which
-is why $a_\perp$ matters. Here $\delta$ is the transverse gradient
-error, placed at $\nu/\tilde{\rho}^{\,2}$ by (\ref{eq:error_budget}), so
-tracking error degrades linearly in measurement noise. No control law
-changes that exponent, and only $a_\perp$ scales the result.
+the disturbance divided by the local slope of the restoring law. Here
+$\delta$ is the transverse gradient error, placed at
+$\nu/\tilde{\rho}^{\,2}$ by (\ref{eq:error_budget}), so tracking error
+degrades linearly in measurement noise.
+
+Two bandwidth limits sit underneath this, and both read off $a_\perp$
+alone. Explicit Euler at step $\Delta t$ makes the near-structure map $n
+\mapsto n(1 - \Delta t\,k\,a_\perp)$, monotone below $\Delta t\,k\,
+a_\perp = 1$ and stable below $2$, and the kinematic abstraction
+separately needs $k\,a_\perp\tau_{\mathrm{mom}} \ll 1$. A rate fixed by
+design meets both through the choice of $k$, and a rate set by the field
+does not.
 
 \begin{proposition}[Frame equivariance of the closed loop]
 \label{prop:equivariance}
@@ -1284,7 +1277,7 @@ Let an observer rotate as $\mathbf{p}_Q = \mathbf{Q}(t)\mathbf{p}$ and
 let the $s_1$ tracker run with exact estimates on the correspondingly
 transformed field. Then $\boldsymbol{\delta}_Q =
 \mathbf{Q}\boldsymbol{\delta}$ and $\mathbf{p}_{c,Q}(t) =
-\mathbf{Q}(t)\mathbf{p}_c(t)$ up to the frame-transport term. The
+\mathbf{Q}(t)\mathbf{p}_c(t)$ up to the frame-transport term, so the
 tracker follows the same material path in every frame. The single
 exception is the degenerate guard, reachable only on the first tracking
 step.
@@ -1292,52 +1285,9 @@ step.
 
 Every quantity (\ref{eq:oecs_law}) consumes is invariant or co-rotating,
 the tangent selection (\ref{eq:tangent_select}) included. The $D$
-tracker admits no counterpart. Its surrogate carries the
+tracker admits no counterpart, since its surrogate carries the
 $O(\mathrm{Ro})$ term of Section~\mbox{III-D} into everything its law
 reads.
-
-Two bandwidth limits sit underneath all of this. Explicit Euler at step
-$\Delta t$ makes the near-structure map $n \mapsto n(1 - \Delta t\,k\,
-a_\perp)$, monotone below $\Delta t\,k\,a_\perp = 1$, stable below $2$,
-admitting a limit cycle above it. The kinematic abstraction separately
-needs $k\,a_\perp\tau_{\mathrm{mom}} \ll 1$, since a proportional region
-narrower than the plant can follow is not a proportional region. Both
-read off $a_\perp$ alone, and at the operating point of
-Table~\ref{tab:params} they bind for one tracker only.
-
-\begin{table}[!t]
-\centering
-\caption{Discrete-time and actuator conditions at the double-gyre
-operating point of Table~\ref{tab:params} ($\Delta t = 0.1$, $k = 3.0$,
-$\tau_{\mathrm{mom}} = 0.28$, $g_\perp = 1.0$). For the $s_1$ tracker
-$\kappa_\perp$ is the local transverse curvature of the structure,
-quoted as recovered by the fit and as computed analytically at the same
-point (Section~\mbox{VI-B-3}).}
-\label{tab:bandwidth}
-\footnotesize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lcccl@{}}
-\hline
- & $a_\perp$ & $\Delta t\,k\,a_\perp$ &
- $k\,a_\perp\tau_{\mathrm{mom}}$ & \\
-\hline
-$D$ tracker & $1.0$ & $0.30$ & $0.84$ & monotone \\
-$s_1$, fitted $\kappa_\perp = 4.0$ & $4.0$ & $1.20$ & $3.4$ & oscillatory \\
-$s_1$, analytic $\kappa_\perp = 6.9$ & $6.9$ & $2.07$ & $5.8$ & limit cycle \\
-\hline
-\end{tabular}
-\end{table}
-
-Two consequences follow. The $s_1$ tracker's larger zero-noise tracking
-error is more likely a discretization effect than an estimation one,
-since (\ref{eq:iss_bound}) predicts the opposite ranking: a larger
-$a_\perp$ gives a \emph{tighter} ultimate bound under equal disturbance,
-and only a limit cycle explains a larger error where that bound cannot.
-And the loop is stable at the fitted curvature but not at the true one,
-so the estimator's underestimate of $\kappa_\perp$ is carrying the
-margin. Halving $\Delta t$ separates the two in one run, shrinking a
-limit cycle and leaving an estimation error untouched, with the $D$
-tracker indifferent either way at $\Delta t\,k\,a_\perp = 0.3$.
 
 \section{Simulation Program}
 \label{sec:methods}
@@ -1958,6 +1908,29 @@ error of $\mathbf{e}_2$ is $4.5^\circ$, against $44^\circ$ for
 $\nabla\hat{s}_1$ and $41^\circ$ for the $\hat{\mathbf{H}}_D$
 eigenvector ($2\times 10^4$ draws per level).
 
+\begin{table}[!t]
+\centering
+\caption{Discrete-time and actuator conditions of Section~\mbox{IV-D} at
+the double-gyre operating point of Table~\ref{tab:params} ($\Delta t =
+0.1$, $k = 3.0$, $\tau_{\mathrm{mom}} = 0.28$, $g_\perp = 1.0$). For the
+$s_1$ tracker $\kappa_\perp$ is the local transverse curvature of the
+structure, quoted as recovered by the fit and as computed analytically at
+the same point.}
+\label{tab:bandwidth}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcccl@{}}
+\hline
+ & $a_\perp$ & $\Delta t\,k\,a_\perp$ &
+ $k\,a_\perp\tau_{\mathrm{mom}}$ & \\
+\hline
+$D$ tracker & $1.0$ & $0.30$ & $0.84$ & monotone \\
+$s_1$, fitted $\kappa_\perp = 4.0$ & $4.0$ & $1.20$ & $3.4$ & oscillatory \\
+$s_1$, analytic $\kappa_\perp = 6.9$ & $6.9$ & $2.07$ & $5.8$ & limit cycle \\
+\hline
+\end{tabular}
+\end{table}
+
 \subsection{Ocean HFR: Both Trackers from a Shared Start}
 \label{sec:results_ocean}
 
@@ -2337,7 +2310,7 @@ natural next object for the same estimator and a separate paper.
 \label{app:proofs}
 
 \begin{IEEEproof}[Proof of Theorem~\ref{thm:separatrix}]
-Work in the coordinates $(\ell, n)$ of Assumption~\ref{ass:trench} on the
+Work in the coordinates $(\ell, n)$ of (\ref{eq:normal_form}) on the
 tube $T_w$.
 
 \textit{Step 1: transverse convergence, giving (i).} The transverse term
