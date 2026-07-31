@@ -12,24 +12,36 @@ Primitive 10 (the TRAP-core-seeker) instead; per the paper plan the
 traverser replaces the core-seeker as Controller 2, so this script
 regenerates fig:oecs_objectivity with the traverser's own path.
 
-IMPORTANT CAVEAT unique to the traverser (not present for Primitive 10):
-Primitive 10's ride mode consults the ambient flow only ONCE, to seed the
-initial tangent sign; thereafter it never looks at the flow again, so it is
-frame-objective in the strong sense throughout. Primitive 11's TRACK mode
-consults the flow at EVERY step to SELECT which eigenvector is the tangent
-(the fix for the trench-network-crossing problem documented in
-pentagon_primitives.py). The rotating-frame flow gains a solid-body swirl
-term (v' = Q v + omega_rot * perp(x')), which is a Galilean-invariant but
-NOT frame-objective input. This script is the empirical test of whether
-that per-step flow dependence degrades the objectivity result in practice,
-or whether (as expected) the swirl is small enough relative to the
-double-gyre's own strong flow structure that the tangent selection still
-resolves correctly and the pulled-back path still matches the inertial one.
+What this verifies: Primitive 11 selects TRACK's tangent as whichever of
+e1, e2 has the LARGER |grad s1 . e_i|, using no flow at all; continuity with
+the previous tangent fixes only the residual sign. The ambient flow enters
+the primitive in exactly one place, the CROSS fallback, reachable only on
+the first tracking step if the eigenframe is degenerate there with no
+tangent yet. So the closed loop is frame-objective past that single instant,
+which is what Proposition (frame equivariance) claims and what the gaps
+measured here confirm.
 
-Paper traceability: produces
-  Paper_Writing/Separatrix_and_OW_Paper/figures/traverse_objectivity.png
-and the summary CSV
-  experiments/outputs/oecs/traverse_objectivity.csv
+An earlier design did select TRACK's tangent by best alignment with the
+ambient flow at every step, matching Logic C's own flow-projection test.
+That design was rejected: in a rotating frame the added solid-body swirl
+term (v' = Q v + omega_rot * perp(x')) does not vanish at a
+trench-network crossing the way the true flow does, so it biased branch
+selection a full trench-length from the crossing at Omega = 0.2. Do not
+reintroduce it. See the objectivity note on Primitive 11 in
+src/control/pentagon_primitives.py, which names this script as its
+closed-loop verification.
+
+Paper traceability: writes both outputs into experiments/outputs/oecs/,
+  traverse_objectivity.png  and  traverse_objectivity.csv
+
+The paper copy is installed by hand as
+  Paper_Writing/Separatrix_and_OW_Paper/figures/objectivity_traverser.png
+which is fig:oecs_objectivity in Draft_5d.tex. That copy is NOT automatic.
+Until 2026-07-30 the paper instead embedded figures/oecs_objectivity.png,
+the Primitive 10 core-seeker output, whose path parks at the upper saddle
+and reports final gap 0.018, while the prose and caption quoted this
+script's 0.025 / 0.014 / 0.000 / 0.005. Check the md5 of the installed
+figure against outputs/oecs/traverse_objectivity.png after regenerating.
 
 Run:
   cd trunk/Python_Simulations/Vector_Fields/VF_Robot
@@ -46,6 +58,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 from src.robot.pentagon_cluster import PentagonCluster
 from src.fields.field_types import AnalyticalField
@@ -178,49 +191,83 @@ def main():
         for j in range(nx):
             GU[i, j], GV[i, j] = double_gyre_static(GX[i, j], GY[i, j])
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5.5))
+    # Drawn at the size it is printed (one IEEE column, ~3.45 in) so nothing is
+    # scaled down in the PDF.  Panel titles and a suptitle are deliberately
+    # absent: the paper's caption carries the controller names and both gap
+    # values, and duplicating them here wasted the vertical space that made the
+    # trajectories unreadable.  Panels are labelled (a)/(b) for the caption.
+    plt.rcParams.update({'font.size': 7, 'axes.labelsize': 7,
+                         'xtick.labelsize': 6, 'ytick.labelsize': 6,
+                         'legend.fontsize': 6})
+    # Height is chosen so the equal-aspect axes fill the canvas: each panel is
+    # ~1.41 in wide and the domain is 2.3 x 1.5, so the axes are ~0.92 in tall,
+    # leaving the rest for the x label and the two-row legend.  Getting this
+    # wrong leaves a band of dead space that bbox_inches='tight' cannot reclaim,
+    # since the gap is interior to the figure.
+    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.55))
     panels = [
-        ('Objective separatrix traverser (Primitive 11)',
-         'trav_inertial', 'trav_rotating', 'tab:blue', 'tab:orange',
-         f"final gap {trav_final_gap:.3f}"),
-        ('Logic C (det(J)-based, not objective)',
-         'logicc_inertial', 'logicc_rotating', 'tab:green', 'tab:red',
-         f"final gap {lc_final_gap:.3f}"),
+        ('(a)', 'trav_inertial', 'trav_rotating', 'tab:blue', 'tab:orange'),
+        ('(b)', 'logicc_inertial', 'logicc_rotating', 'tab:green', 'tab:red'),
     ]
-    for ax, (title, k_i, k_r, c_i, c_r, gap_txt) in zip(axes, panels):
-        ax.streamplot(GX, GY, GU, GV, color='0.75', density=1.0,
-                      linewidth=0.6, arrowsize=0.7)
-        ax.axvline(0.0, color='magenta', linewidth=1.0, linestyle='--',
+    for ax, (tag, k_i, k_r, c_i, c_r) in zip(axes, panels):
+        ax.streamplot(GX, GY, GU, GV, color='0.55', density=0.7,
+                      linewidth=0.4, arrowsize=0.4)
+        ax.axvline(0.0, color='magenta', linewidth=0.7, linestyle='--',
                    alpha=0.6, label='separatrix')
         for core in [(0.0, 0.5), (0.0, -0.5)]:
-            ax.plot(*core, marker='x', color='k', markersize=10,
-                    markeredgewidth=2)
-        ax.plot(*START, marker='o', color='lime', markersize=9,
-                markeredgecolor='black', zorder=10, label='start')
-        ax.plot(runs[k_i][:, 0], runs[k_i][:, 1], color=c_i, linewidth=2.0,
+            ax.plot(*core, marker='x', color='k', markersize=4,
+                    markeredgewidth=1.0)
+        ax.plot(*START, marker='o', color='lime', markersize=3.5,
+                markeredgecolor='black', markeredgewidth=0.5, zorder=10,
+                label='start')
+        ax.plot(runs[k_i][:, 0], runs[k_i][:, 1], color=c_i, linewidth=1.1,
                 label='inertial frame')
-        ax.plot(runs[k_r][:, 0], runs[k_r][:, 1], color=c_r, linewidth=1.6,
+        ax.plot(runs[k_r][:, 0], runs[k_r][:, 1], color=c_r, linewidth=0.9,
                 linestyle='--',
-                label=f'rotating frame (pulled back), $\\Omega$={OMEGA_ROT}')
-        ax.plot(runs[k_i][-1, 0], runs[k_i][-1, 1], marker='s', color=c_i,
-                markersize=8, markeredgecolor='black', zorder=10)
-        ax.plot(runs[k_r][-1, 0], runs[k_r][-1, 1], marker='s', color=c_r,
-                markersize=8, markeredgecolor='black', zorder=10)
+                label='rotating frame (pulled back)')
+        for k, c in ((k_i, c_i), (k_r, c_r)):
+            ax.plot(runs[k][-1, 0], runs[k][-1, 1], marker='s', color=c,
+                    markersize=3.5, markeredgecolor='black',
+                    markeredgewidth=0.5, zorder=10)
         ax.add_patch(plt.Rectangle((-1, -0.5), 2, 1, fill=False,
-                                   edgecolor='0.4', linewidth=0.8))
-        ax.set_title(f"{title}\n{gap_txt}", fontsize=12)
+                                   edgecolor='0.4', linewidth=0.5))
+        ax.text(0.03, 0.97, tag, transform=ax.transAxes, va='top', ha='left',
+                fontsize=7, fontweight='bold')
         ax.set_xlim(-1.15, 1.15)
         ax.set_ylim(-0.75, 0.75)
         ax.set_aspect('equal')
-        ax.legend(loc='lower left', fontsize=8, framealpha=0.9)
+        ax.set_xlabel('$x$', labelpad=1)
+        ax.set_xticks([-1, 0, 1])
+        ax.set_yticks([-0.5, 0, 0.5])
+        ax.tick_params(length=2, pad=1)
+    axes[0].set_ylabel('$y$', labelpad=1)
 
-    plt.suptitle(
-        "Same physical flow, two observer frames: inertial vs rotating "
-        f"($\\Omega$ = {OMEGA_ROT} rad/s, pulled back to inertial coords)",
-        fontsize=13, fontweight='bold')
-    plt.tight_layout()
+    # One shared legend below both panels.  Per-axes legends sat on top of the
+    # Logic C inertial trajectory where it runs along y = -0.5, and the start
+    # marker clipped the 'inertial frame' label in both panels.  The frame
+    # entries are drawn in neutral grey on purpose: solid-vs-dashed is the
+    # encoding that carries meaning, while the colors only separate the two
+    # controllers, which differ between panels (blue/orange in (a), green/red
+    # in (b)).  A colored legend key would be wrong for one panel or the other.
+    proxies = [
+        Line2D([], [], color='magenta', linestyle='--', linewidth=0.7,
+               alpha=0.6, label='separatrix'),
+        Line2D([], [], color='lime', marker='o', linestyle='none',
+               markersize=3.5, markeredgecolor='black', markeredgewidth=0.5,
+               label='start'),
+        Line2D([], [], color='0.35', linewidth=1.1, label='inertial frame'),
+        Line2D([], [], color='0.35', linewidth=0.9, linestyle='--',
+               label='rotating frame (pulled back)'),
+    ]
+    fig.legend(handles=proxies, loc='lower center', ncol=2, frameon=False,
+               handlelength=1.8, columnspacing=1.0, handletextpad=0.5,
+               labelspacing=0.3, borderaxespad=0.2)
+    fig.subplots_adjust(left=0.11, right=0.99, top=0.97, bottom=0.30,
+                        wspace=0.16)
     fig_path = os.path.join(OUT_DIR, "traverse_objectivity.png")
-    plt.savefig(fig_path, dpi=150, bbox_inches='tight')
+    # No bbox_inches='tight': the layout above is already sized to the printed
+    # width, and letting savefig recrop would rescale the 7 pt type.
+    plt.savefig(fig_path, dpi=400)
 
     print(f"\nFigure written to {fig_path}")
     print(f"Summary written to {csv_path}\n")
