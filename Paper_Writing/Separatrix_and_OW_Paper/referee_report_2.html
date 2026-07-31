@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Referee report 2 (Draft 6a, post-merge): Multirobot Tracking of Separatrices and OECS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --shelf:#EDF2F4;--surface:#FFFFFF;--ink:#0A1E29;--ink2:#3D5866;--ink3:#708895;
+  --rule:#CFDCE2;--rule2:#E3EBEF;--d1:#8FBECD;--d2:#3D8CA8;--d3:#1A5E80;--d4:#08334F;
+  --kelp:#2F6F55;--flag:#9E2A22;--sand:#B08415;
+  --display:'IBM Plex Sans Condensed','Arial Narrow',system-ui,sans-serif;
+  --body:'IBM Plex Serif',Georgia,'Times New Roman',serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:1.5rem}
+body{margin:0;background:var(--shelf);color:var(--ink);font-family:var(--body);font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{display:grid;grid-template-columns:220px minmax(0,1fr);gap:48px;max-width:1180px;margin:0 auto;padding:0 28px 120px}
+nav{position:sticky;top:0;align-self:start;padding:44px 0 0;font-family:var(--display);font-size:13px}
+nav .navlabel{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px;font-weight:600}
+nav a{display:block;padding:5px 0 5px 12px;color:var(--ink2);text-decoration:none;border-left:2px solid var(--rule);line-height:1.3}
+nav a:hover,nav a:focus{color:var(--ink);border-left-color:var(--d3);background:rgba(255,255,255,.55)}
+nav a .n{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-right:7px}
+header{padding:56px 0 34px;border-bottom:3px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--d3);margin:0 0 16px}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(28px,3.6vw,44px);line-height:1.06;letter-spacing:-.015em;margin:0 0 6px;max-width:24ch}
+.subtitle{font-family:var(--display);font-size:17px;color:var(--ink2);margin:0 0 28px;font-weight:400}
+.meta{display:flex;flex-wrap:wrap;gap:0;border-top:1px solid var(--rule);padding-top:18px}
+.meta div{flex:1 1 130px;padding-right:20px}
+.meta dt{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:4px}
+.meta dd{margin:0;font-family:var(--display);font-size:15px;font-weight:500}
+.verdict{background:var(--d4);color:#EAF2F6;padding:28px 30px;margin:34px 0 0;border-radius:2px}
+.verdict h2{font-family:var(--display);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#8FBECD;margin:0 0 12px;font-weight:600}
+.verdict p{margin:0 0 12px;font-size:16px;line-height:1.6}
+.verdict p:last-child{margin-bottom:0}
+.verdict strong{color:#FFF}
+.verdict .rec{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 14px;color:#FFF}
+section{padding-top:52px}
+h2.sec{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:-.01em;margin:0 0 4px;padding-bottom:10px;border-bottom:1px solid var(--ink)}
+h2.sec .num{font-family:var(--mono);font-size:13px;color:var(--d2);margin-right:12px;font-weight:500;vertical-align:2px}
+.lede{color:var(--ink2);margin:14px 0 26px;max-width:66ch}
+.finding{background:var(--surface);border:1px solid var(--rule2);border-left:4px solid var(--d2);padding:20px 24px;margin:0 0 14px;border-radius:2px}
+.finding.blocking{border-left-color:var(--d4)}
+.finding.major{border-left-color:var(--d3)}
+.finding.minor{border-left-color:var(--d2)}
+.finding.note{border-left-color:var(--d1)}
+.finding.good{border-left-color:var(--kelp)}
+.finding.resolved{border-left-color:var(--kelp);background:#F4F9F6;opacity:.74}
+.finding.resolved .fhead h3{text-decoration:line-through;text-decoration-color:var(--rule);color:var(--ink3)}
+.finding.resolved .gauge i{background:var(--rule)}
+.done{border-top:1px dashed var(--rule);padding-top:10px;margin-top:12px}
+.done b{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--kelp);display:block;margin-bottom:4px}
+.fhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.tag{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:2px;color:#fff;background:var(--d2);white-space:nowrap}
+.tag.blocking{background:var(--d4)}
+.tag.major{background:var(--d3)}
+.tag.minor{background:var(--d2)}
+.tag.note{background:var(--d1);color:#08334F}
+.tag.good{background:var(--kelp)}
+.tag.resolved{background:var(--kelp)}
+tr.doner td{opacity:.5}
+tr.doner td:first-child{opacity:1}
+.ok{font-family:var(--mono);font-size:10px;letter-spacing:.08em;font-weight:700;color:#fff;background:var(--kelp);padding:1px 5px;border-radius:2px;white-space:nowrap}
+.part{font-family:var(--mono);font-size:10px;letter-spacing:.08em;font-weight:700;color:#08334F;background:var(--sand);padding:1px 5px;border-radius:2px;white-space:nowrap}
+.fhead h3{font-family:var(--display);font-size:19px;font-weight:600;margin:0;line-height:1.25;flex:1 1 320px}
+.loc{font-family:var(--mono);font-size:11.5px;color:var(--d3);background:#EDF4F7;padding:2px 7px;border-radius:2px;white-space:nowrap}
+.finding p{margin:0 0 10px}
+.finding p:last-child{margin-bottom:0}
+.fix{border-top:1px dashed var(--rule);padding-top:10px;margin-top:12px}
+.fix b{font-family:var(--display);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--kelp);display:block;margin-bottom:4px}
+.gauge{display:inline-flex;gap:2px;align-items:flex-end;height:14px;margin-right:2px}
+.gauge i{width:4px;background:var(--rule);border-radius:1px}
+.gauge i:nth-child(1){height:4px}.gauge i:nth-child(2){height:7px}.gauge i:nth-child(3){height:10px}.gauge i:nth-child(4){height:14px}
+.g1 i:nth-child(-n+1),.g2 i:nth-child(-n+2),.g3 i:nth-child(-n+3),.g4 i:nth-child(-n+4){background:var(--d3)}
+.g4 i{background:var(--d4)}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--rule2);border-radius:2px;margin:0 0 18px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{font-family:var(--display);font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:12px 14px;border-bottom:2px solid var(--rule);white-space:nowrap;font-weight:600;background:#F7FAFB}
+td{padding:12px 14px;border-bottom:1px solid var(--rule2);vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:var(--mono);font-size:12px;color:var(--d3);white-space:nowrap}
+td.num{font-family:var(--mono);font-size:13px;text-align:right;white-space:nowrap}
+.q{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:#F2F7F9;padding:1px 5px;border-radius:2px}
+.arrow{color:var(--kelp);font-weight:600}
+tfoot td{font-family:var(--display);font-weight:600;background:#F7FAFB;border-top:2px solid var(--rule)}
+.ledger{background:var(--surface);border:1px solid var(--rule2);padding:26px;margin:0 0 22px;border-radius:2px}
+.ledger h3{font-family:var(--display);font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin:0 0 18px;font-weight:600}
+.bar{display:flex;height:44px;border-radius:2px;overflow:hidden;margin-bottom:10px;border:1px solid var(--rule)}
+.bar span{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:#fff;overflow:hidden;white-space:nowrap}
+.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:26px}
+.callout{background:#FDF7E6;border-left:4px solid var(--sand);padding:16px 20px;margin:0 0 18px;border-radius:2px;font-size:15px}
+.callout b{font-family:var(--display)}
+.callout.win{background:#EAF3EE;border-left-color:var(--kelp)}
+.footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--rule);font-family:var(--display);font-size:13px;color:var(--ink3)}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;gap:0}nav{position:static;padding:24px 0 0;display:flex;flex-wrap:wrap;gap:4px}nav .navlabel{width:100%}nav a{border-left:none;border-bottom:2px solid var(--rule);padding:4px 10px}}
+@media print{body{background:#fff;font-size:10.5pt}nav{display:none}.wrap{grid-template-columns:1fr;max-width:none}.finding,.tablewrap,.ledger{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav>
+  <div class="navlabel">Contents</div>
+  <a href="#verdict"><span class="n">00</span>Verdict</a>
+  <a href="#strengths"><span class="n">01</span>What works</a>
+  <a href="#arc"><span class="n">02</span>The narrative arc</a>
+  <a href="#front"><span class="n">03</span>The front-loading</a>
+  <a href="#contra"><span class="n">04</span>Contradictions</a>
+  <a href="#dangling"><span class="n">05</span>No lead-in, no follow-up</a>
+  <a href="#redund"><span class="n">06</span>Redundancy, remeasured</a>
+  <a href="#prose"><span class="n">07</span>Sentences to fix</a>
+  <a href="#voice"><span class="n">08</span>Voice, remeasured</a>
+  <a href="#heads"><span class="n">09</span>Headings</a>
+  <a href="#length"><span class="n">10</span>Length vs T-RO</a>
+  <a href="#trim"><span class="n">11</span>Cut ledger</a>
+  <a href="#order"><span class="n">12</span>Order of work</a>
+</nav>
+
+<main>
+
+<header>
+  <p class="eyebrow">Referee report 2 &middot; Draft 6a, post-merge &middot; 2026-07-31</p>
+  <h1>Multirobot Tracking of Separatrices and Objective Eulerian Coherent Structures</h1>
+  <p class="subtitle">Waight and Kitts. One cooperative second-order estimator; a D tracker and an objective s<sub>1</sub> tracker built on it. Second reading, fresh eyes, after Results and Discussion were merged.</p>
+  <dl class="meta">
+    <div><dt>Venue</dt><dd>IEEE T-RO</dd></div>
+    <div><dt>Length</dt><dd>18 pp / 12,432 body words</dd></div>
+    <div><dt>Target</dt><dd>15.5 pp</dd></div>
+    <div><dt>Floats</dt><dd>8 figs, 4 tables</dd></div>
+    <div><dt>Equations</dt><dd>40, of which 18 uncited</dd></div>
+    <div><dt>Recommendation</dt><dd>Minor revision</dd></div>
+  </dl>
+</header>
+
+<div class="verdict" id="verdict">
+  <h2>Summary judgement</h2>
+  <p class="rec">The over-telling is gone. The meander moved to the front.</p>
+  <p>I reviewed the previous version of this manuscript. The single largest problem then was that a four-page Discussion re-narrated three pages of Results, with 232 words repeated verbatim between them. <strong>That is fixed, and fixed properly.</strong> Sections VI and VII are now one section organized by experimental condition, and the strict-verbatim duplication inside it measures <strong>zero</strong> eight-word runs. The recommendation moves from major revision to minor.</p>
+  <p>What the cut exposed is a second problem that was always there and was previously hidden behind the first. <strong>Sections I through V are 8,280 words, 66.6% of the body, and the first number a reader can act on still arrives on page 11 of 18.</strong> Cutting the back of the paper did not move the front of it. A referee reading straight through now spends ten pages on setup for five pages of evidence, and the ratio is more conspicuous than before, not less, because the evidence section no longer pads the second half.</p>
+  <p>The heaviest single block is <strong>Section IV, Adaptive Navigation Controllers, at 2,496 words across pages 7 to 9, 20.1% of the body.</strong> The second is <strong>Section V-D, the Test Plan, at 682 words</strong>, more than half of Section V, which announces Section VI's experiments in Section VI's own terms. Neither is badly written. Both are simply larger than the argument needs.</p>
+  <p>On style: the register question has inverted since the last reading. The merged Results and Discussion is now the section that reads closest to the Introduction (mean sentence 23.2 against the Introduction's 23.0). <strong>The two sections that no longer sound like the rest are Section V and the Conclusion</strong>, both of which run long sentences with no short ones at all. Details and numbers in &sect;08.</p>
+  <p>Five items carried over from the previous report are still open and still need authors rather than editors: <b>the settle-rate evidence</b> behind the sign-inversion finding, <b>O(Ro)</b>, the <b>&tau;</b> collision, the <b>abstract's two-costs claim</b>, and the <b>18 uncited numbered equations</b>. Two of those five have a cheap resolution I had not spotted last time, noted in &sect;05.</p>
+</div>
+
+<!-- ===================== 01 ===================== -->
+<section id="strengths">
+  <h2 class="sec"><span class="num">01</span>What works</h2>
+  <p class="lede">Listed first because &sect;11 is aggressive, and these have to come through it intact. The first item is new since the last reading.</p>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">New</span><h3>The merged section is organized the way the argument is</h3><span class="loc">VI</span></div>
+    <p>Condition-major rather than tracker-major was the right call and it does more than remove duplication. Estimator accuracy, clean runs, noise, rotating observer, measured field, selection rule. Every subsection now puts both trackers under one changed condition and reports what changed, which is exactly the comparison the paper exists to make. The selection rule that closes it was previously buried mid-Discussion on page 17 and is now a named subsection a reader can find in the table of contents.</p>
+    <p>One consequence worth noticing: the paper's structure now matches its own abstract. The abstract promises two surrogates, one estimator, and a priced tradeoff, and the reader meets them in that order with nothing between.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>The splitting identity as the paper's spine</h3><span class="loc">II-C, eq (12)</span></div>
+    <p>Deriving both surrogates as the two terms of one exact identity, then giving each a controller, is what makes this one paper instead of two. Equation (13) isolating the frame artifact entirely in the spin term is the payoff and it lands. The three consequences listed after (12) are the correct three and they organize the rest of the paper exactly as promised.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Minimality, the conic criterion, the pentagon corollary</h3><span class="loc">III-A</span></div>
+    <p>Three results, six lines of proof between them, immediately useful to anyone building a formation. "Any six robots on one circle are singular, a regular hexagon for example, regardless of size or orientation. Moving one robot to the center removes the degeneracy entirely" is the kind of sentence referees remember and cite. See &sect;05 for the one thing wrong with it, which is that the proposition is never referred to again.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Remark 1: an impossibility that dictates a design and then shows up as a number</h3><span class="loc">III-C</span></div>
+    <p>No usable Hessian of s<sub>1</sub> exists under a quadratic fit, for every field and every formation. That forces the gradient channel, which forces a fixed gain, which shows up as 0.0075 against 0.0016 and again as the discrete-stability crossing in Table IV. Theory to design to measurement in three moves, with nothing hand-waved between them. Still the best-argued thread in the paper, and the merge improved it: the measurement and the impossibility are now four paragraphs apart instead of nine pages.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>The rotating-frame experiment, in closed loop</h3><span class="loc">V-D-3, VI-D, Fig 7</span></div>
+    <p>Same physical flow, two observer frames, 0.025 against 1.219. Most objectivity papers stop at the algebra. Running it closed-loop, and justifying &Omega; = 0.2 against both the gyre-core vorticity (20%) and the command authority (&Omega;r &le; 0.10 against kc<sub>max</sub> = 0.12), answers the two obvious objections before they are raised. Reporting both trackers inside one subsection, which the merge made possible, is a clear improvement over filing the D tracker's 1.219 under a heading named for the s<sub>1</sub> tracker.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Equation (37): naming the four terms the model cannot see</h3><span class="loc">III-D</span></div>
+    <p>Writing D<sub>xx</sub> out in true derivatives and then saying the four third-order terms "are set to zero by construction, not made small by a good fit" is unusually honest, and it is load-bearing twice: it explains the Hessian floor and it explains why the D tracker has no terminal test. Keep the sentence verbatim.</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>Table I, assumptions against the nearest prior work</h3><span class="loc">I-A</span></div>
+    <p>Six rows, every cell sourced from the cited papers' own text, and the two rows that are premises rather than details called out as such. Disarming, and it does the positioning work that a head-to-head comparison cannot do here (correctly explained in VI-G).</p>
+  </div>
+
+  <div class="finding good">
+    <div class="fhead"><span class="tag good">Keep</span><h3>The commitments paragraph</h3><span class="loc">VI-C, closing</span></div>
+    <p>"Robustness is set less by the per-cycle accuracy of what a law reads than by how many of its commitments are unrevisable" is still the most valuable sentence in the paper, and it survived the trim with both supporting moves intact: the 0.6% against 1.7% recomputation against the right denominator, and the observation that the near-total flip follows from the noise being comparable to the signal the decision reads. Keeping this as the one epigram, and converting the other three, was the right selection.</p>
+  </div>
+</section>
+
+<!-- ===================== 02 ===================== -->
+<section id="arc">
+  <h2 class="sec"><span class="num">02</span>The narrative arc</h2>
+  <p class="lede">Six items. A1 through A3 are new to this reading. A4 through A6 are carried over and still open.</p>
+
+  <div class="finding blocking">
+    <div class="fhead"><span class="gauge g4"><i></i><i></i><i></i><i></i></span><span class="tag blocking">A1</span><h3>Two thirds of the paper is setup, and the merge did not change that</h3><span class="loc">global</span></div>
+    <p>Sections I through V total 8,280 words against Sections VI and VII's 4,152. That is <b>66.6% of the body before the first result</b>. In page terms the first result is on page 11 of 18, which is where it was on page 11 of 19 last time. The Discussion cut removed a page from the back of the paper and left the front untouched, so the ratio got worse, not better.</p>
+    <p>This is not an argument that the technical sections are wrong. They are the strongest writing in the manuscript and I said so last time. It is an argument that a referee opening this paper reads for ten pages without being shown that any of it works, and that is the meander now.</p>
+    <div class="fix"><b>Fix</b>Ledger items 1, 2 and 3 in &sect;11, which are all in Sections IV, V and the Appendix. Roughly 1,050 words out of the front matter, which brings the setup share to about 60% and the first result to page 9 or 10.</div>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g3"><i></i><i></i><i></i><i></i></span><span class="tag major">A2</span><h3>Section V-D announces Section VI in Section VI's words</h3><span class="loc">V-D, 682 w</span></div>
+    <p>The Test Plan is 682 words, more than half of Section V's 1,268. It states the six clean starts, the noise grid, the success criterion, the straddle-retention metric, the exit box, the rotating-frame protocol, the ocean protocol, and the acquisition sweep. Section VI then consumes all eight, and in four cases restates the protocol before reporting the number.</p>
+    <p>The specific overlaps I can still measure: the acquisition sweep (grid, &sigma;<sub>p</sub> levels, trials per cell, start offset) is stated in V-D-5 and again in VI-C; the exit box is stated in V-D-2 and again in VI-C's footnote; the 0.0005 resolution spacing is in V-D-2, Fig. 8's caption, and VI-C.</p>
+    <div class="fix"><b>Fix</b>Fold V-D-1, V-D-2 and V-D-5 into the paragraphs of VI that consume them. Keep V-D-3 and V-D-4, which state protocol a reader genuinely needs before the result, and which are short. This is the same recommendation I made last time and it is now the largest single item left.</div>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g3"><i></i><i></i><i></i><i></i></span><span class="tag major">A3</span><h3>The same experiment is billed two different ways</h3><span class="loc">V-D-5 vs VI-A</span></div>
+    <p>V-D-5 files the estimator-accuracy sweep under "Supporting checks", one of three checks that "sit alongside the four families". Section VI then opens with it, as subsection A, ahead of every closed-loop result. A reader who took V-D at its word arrives at VI expecting clean runs and gets 302 words of open-loop validation instead.</p>
+    <p>There is a second oddity underneath. VI-A contains no discussion at all. It is pure validation of Section III-D's predictions, and it sits five pages downstream of the predictions it validates. In a section titled Results <em>and Discussion</em>, the lead subsection discusses nothing.</p>
+    <div class="fix"><b>Two options, and I prefer the first.</b> (1) Move VI-A's first two paragraphs into III-D, next to the error budget and the gain ladder they confirm, and let Section VI open on the clean runs. That removes a subsection, kills the billing mismatch, and puts each prediction next to its check. Cost: Section III grows by about 200 words while Section VI loses 300. (2) Leave it, and rewrite V-D-5 so the estimator sweep is billed as the first result rather than as a supporting check. Cheaper, but it leaves a discussion-free subsection at the head of a discussion section.</div>
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g3"><i></i><i></i><i></i><i></i></span><span class="tag major">A4</span><h3>The sign-inversion finding still rests on a figure caption</h3><span class="loc">VI-C, Fig 8 &middot; carried over</span></div>
+    <p>VI-C: "Runs on either side of the transition settle at a saddle with comparable reliability and differ in which one." Figure 8's two panels plot far-saddle success and straddle retention. Neither shows a settle rate. The claim appears in the caption's closing clause and in the sentence next to it, and nowhere else in the paper.</p>
+    <p><b>New this reading.</b> The evidence exists, or existed. The review of Draft 5c cites "Table II(b) against Table II(c)" and quotes the number directly: far-saddle success 0.0% at &sigma;<sub>uv</sub> = 0.005 while <b>90.9% of those same runs settle cleanly at <em>a</em> saddle</b>. That column was in the manuscript two drafts ago and came out during the trimming. It is the single most informative number in the noise sweep, because it is what converts a 0.0% into a diagnosis.</p>
+    <div class="fix"><b>Fix</b>Restore the settle rate as a third column of Table II, or give it inline in VI-C with the same provenance the rest of the sweep has. Do not leave a caption as the sole source for the paper's most quotable finding. Confirm the 90.9% against the current trial records before it goes back in; it is quoted here from a review of an earlier draft, not measured from this one.</div>
+  </div>
+
+  <div class="finding minor">
+    <div class="fhead"><span class="gauge g2"><i></i><i></i><i></i><i></i></span><span class="tag minor">A5</span><h3>Limitations and Future Work sit inside Results and Discussion</h3><span class="loc">VI-G, VI-H</span></div>
+    <p>Together 681 words, 5.5% of the body, as subsections G and H of a section titled Results and Discussion. None of the seven T-RO and Transactions comparators in &sect;10 does this; where they carry limitations at all it is inside the conclusion or inside the results paragraph that earns it.</p>
+    <p>I raise it and then leave it. The argument for the current arrangement is real: the limitations here are mostly conditions on results that the same section just reported, and splitting them off would mean naming those results twice. If it stays, VI-G's first paragraph should stop opening on the general claim about trenches versus level sets, which is a Section II observation arriving fifteen pages late.</p>
+  </div>
+
+  <div class="finding minor">
+    <div class="fhead"><span class="gauge g2"><i></i><i></i><i></i><i></i></span><span class="tag minor">A6</span><h3>The abstract runs 310 words and rounds a number the body resolves</h3><span class="loc">abstract</span></div>
+    <p>310 words against an IEEE norm of 150 to 250. It still carries the units housekeeping sentence ("Double-gyre quantities are reported in the field's non-dimensional world units throughout") which belongs in Section II-D, where the identical statement already appears.</p>
+    <p>It also says the D tracker's cliff is at &sigma;<sub>uv</sub> &asymp; 0.01 and the s<sub>1</sub> tracker's at &asymp; 0.002. The body resolves the first to 0.0079, and makes a point of it, because 0.0079 against the estimator's 0.0075 is a 5% agreement and the whole "the estimator sets the ceiling" argument turns on it. Rounding to 0.01 in the abstract throws that away and reads as a different number.</p>
+    <div class="fix"><b>Fix</b>Drop the units sentence, drop one of the two failure-cliff numbers, and quote the surviving one as 0.0079. About 90 words, and the abstract lands near 220.</div>
+  </div>
+</section>
+
+<!-- ===================== 03 ===================== -->
+<section id="front">
+  <h2 class="sec"><span class="num">03</span>Where the front-loading actually sits</h2>
+  <p class="lede">A1 says two thirds of the paper is setup. This is the breakdown, so the cut can be aimed rather than sprayed.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Section</th><th class="mono">Pages</th><th class="num">Words</th><th class="num">Share</th><th>Read</th></tr></thead>
+    <tbody>
+      <tr><td>I Intro + Related Work</td><td class="mono">1&ndash;2</td><td class="num">1,428</td><td class="num">11.5%</td><td><b>Do not cut.</b> Leanest prose in the paper and the most confident. Table I is adjacent and compensates.</td></tr>
+      <tr><td>II Problem Formulation</td><td class="mono">3&ndash;4</td><td class="num">1,369</td><td class="num">11.0%</td><td>On norm. II-D (the double-gyre example, 465 w) is the longest subsection and every line of it is used later.</td></tr>
+      <tr><td>III Estimation</td><td class="mono">4&ndash;6</td><td class="num">1,719</td><td class="num">13.8%</td><td>Correctly sized. III-D alone is 1,010 w and is the theory VI-A validates; see A3.</td></tr>
+      <tr><td>IV Controllers</td><td class="mono">7&ndash;9</td><td class="num">2,496</td><td class="num"><b>20.1%</b></td><td><b>The heaviest block in the paper.</b> Three pages before any evidence. IV-B (746 w) and IV-C (752 w) each spend roughly a third of their length motivating a design choice the equation then states.</td></tr>
+      <tr><td>V Simulation Program</td><td class="mono">10&ndash;11</td><td class="num">1,268</td><td class="num">10.2%</td><td><b>Over.</b> V-D is 682 w of it, and most of that is Section VI's material stated early. See A2.</td></tr>
+      <tr><td>VI Results and Discussion</td><td class="mono">11&ndash;16</td><td class="num">3,793</td><td class="num">30.5%</td><td><b>Now correctly sized</b> for a paper with four experiment families and twelve floats. Was 46.0% across two sections.</td></tr>
+      <tr><td>VII Conclusion</td><td class="mono">16</td><td class="num">359</td><td class="num">2.9%</td><td>Right length. See &sect;08 on its internal rhythm.</td></tr>
+      <tr><td>App A Cluster Space Variables</td><td class="mono">16&ndash;17</td><td class="num">1,597</td><td class="num">&mdash;</td><td>Twelve numbered equations of standard cluster-space kinematics, all cited to [37],[38], deriving nothing the controllers use. <b>Cut.</b></td></tr>
+    </tbody>
+    <tfoot><tr><td>Sections I&ndash;V</td><td class="mono">1&ndash;11</td><td class="num">8,280</td><td class="num">66.6%</td><td>Setup, before the first result</td></tr></tfoot>
+  </table>
+  </div>
+
+  <div class="callout">
+    <b>Method.</b> Word counts are body prose measured from the source with float environments, display equations, proof environments and the bibliography excluded, so they are not comparable line for line with the counts in the previous report, which included float captions and table bodies. Shares are against the 12,432 words of Sections I to VII. Page ranges are read from the compiled PDF.
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g3"><i></i><i></i><i></i><i></i></span><span class="tag major">F1</span><h3>Section IV motivates more than it needs to</h3><span class="loc">IV-B, IV-C</span></div>
+    <p>Both controller subsections follow the same pattern: name the quantity, explain at length why the obvious approach fails, then state the law. The explanations are correct and they are longer than the laws. IV-B spends 260 words on why the raw Newton step cannot be issued as a velocity command (dimensional, then geometric) before (25) appears; IV-C spends 180 on why naming an eigenvector will not work before (24) appears.</p>
+    <p>The dimensional argument is worth its space, because it is the reason the saturation is a design choice rather than a clip. The geometric one is worth two sentences, not six. The eigenvector-naming argument is already made in II-C ("direction fields with no globally consistent sign, undefined at isotropic points") and is being made a second time.</p>
+    <div class="fix"><b>Fix</b>About 400 words across the two subsections, taken from the motivating passages rather than the derivations. Keep every equation and every guard. Ledger item 3.</div>
+  </div>
+</section>
+
+<!-- ===================== 04 ===================== -->
+<section id="contra">
+  <h2 class="sec"><span class="num">04</span>Contradictions and self-undercuts</h2>
+  <p class="lede">Four of the eight from the previous reading are closed by the merge. Two remain, and one is new.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">#</th><th>What collides</th><th class="mono">Where</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">K1</td><td><b>The abstract charges objectivity with two costs; the body charges one.</b> Abstract: "a measurable cost in convergence rate and in noise tolerance at a single decision point." VI-D attributes only the rate: "objectivity is free at the estimator and paid at the controller, in the Newton normalization Remark 1 forbids." VI-C says the noise fragility "has nothing to do with estimator accuracy" and VI-G lists four redesigns that would remove it, so it is a property of the current tangent-seed convention rather than of objectivity.</td><td class="mono">abstract vs VI-C, VI-D, VI-G</td><td>Carried over, unresolved. Keep the rate cost in the abstract and describe the seed fragility as a property of the seed convention. That is what the body says and it is the more interesting claim, since it generalizes to any law with an unrevisable commitment.</td></tr>
+      <tr><td class="mono">K2</td><td><b>New.</b> IV-C states "This is the first cost of objectivity" when introducing the fixed gain g<sub>&perp;</sub>. Nothing in the paper ever names a second. VI-D's accounting paragraph settles on one cost, priced as the five-fold tracking-error gap, and the seed fragility is explicitly excluded from being a cost of objectivity by K1's own resolution.</td><td class="mono">IV-C, l.1171</td><td>Delete "first". It is a promissory note the paper does not redeem, and it is the same two-costs framing as K1 appearing a second time, seven pages earlier.</td></tr>
+      <tr><td class="mono">K3</td><td>V-D opens "Four experiment families validate the trackers, alongside three supporting checks." Section VI reports six subsections of results, and one of the three supporting checks (estimator accuracy) leads it. The arithmetic is right and the billing is not.</td><td class="mono">V-D vs VI</td><td>Resolved automatically by A3 option 1. If A3 option 2 is taken instead, reword V-D's opener.</td></tr>
+      <tr class="doner"><td class="mono">C1 <span class="ok">CLOSED</span></td><td>"network reach" as a D-tracker property.</td><td class="mono">IV opener</td><td>Phrase gone. IV now reads "the s<sub>1</sub> tracker uses the strain term alone, for its frame invariance," and the reason clause attaches only to the choice that needs one.</td></tr>
+      <tr class="doner"><td class="mono">C2 <span class="ok">CLOSED</span></td><td>Problem 2 demanded a terminal core the ocean run never reaches.</td><td class="mono">II-E, VI-E</td><td>Problem 2 now conditions on reachability, and VI-E states plainly that the reachability condition does not engage. The defence reads as confirmation rather than rescue.</td></tr>
+      <tr class="doner"><td class="mono">C3 <span class="ok">CLOSED</span></td><td>"captures reliably" against 0.0% far-saddle success.</td><td class="mono">I, Table II</td><td>The phrase appears nowhere in the paper. The only surviving statement of the behaviour is VI-C's, written against the table rather than ahead of it.</td></tr>
+      <tr class="doner"><td class="mono">C4 <span class="ok">CLOSED</span></td><td>"The two trackers behave the same," then "The trackers part only at the end."</td><td class="mono">VI-B</td><td>Both statements now sit in the same subsection, four paragraphs apart, and the first is qualified "until the terminal step". The merge made this one self-correcting.</td></tr>
+      <tr class="doner"><td class="mono">C6, C8 <span class="ok">CLOSED</span></td><td>Adjacent headings where the same tracker won and lost; II-B titled for a parameter it then discards.</td><td class="mono">headings</td><td>Both closed by the heading pass. Nothing in the current table of contents announces a conclusion.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ===================== 05 ===================== -->
+<section id="dangling">
+  <h2 class="sec"><span class="num">05</span>Introduced with no lead-in, or no follow-up</h2>
+  <p class="lede">Things a referee stops on because they arrive from nowhere, or arrive and are never used again. Two are new, and one of them has a cheaper fix than I gave last time.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Item</th><th class="mono">Where</th><th>Problem</th></tr></thead>
+    <tbody>
+      <tr><td><b>Proposition 1 (Minimality)</b> <span class="part">NEW</span></td><td class="mono">III-A</td><td><b>Never referenced by number, anywhere.</b> Six robots being minimal is contribution one of four in the Introduction and a clause in the abstract, and the proposition that establishes it is cited exactly zero times after it is stated. Every other numbered result in the paper is invoked at least once (Prop. 2 once, Prop. 3 twice, Prop. 4 twice, Thm. 1 once, Cor. 1 once, Rem. 1 eight times). Cite it from the Introduction's contribution list, or from II-E where six robots first appear, or from the Conclusion, which states the claim in words while pointing at nothing.</td></tr>
+      <tr><td><b>Rossby number, O(Ro)</b></td><td class="mono">III-D, IV-D, VI-D</td><td><b>Used three times, defined nowhere.</b> Carried over. The word Rossby still does not appear in the paper, and no value is given at either operating point, so a reader cannot tell whether the observer term is a rounding error or the dominant one. <b>Cheaper fix than I proposed last time:</b> the objectivity experiment already fixes &Omega; = 0.2 and the gyre-core vorticity it is 20% of, so the ratio is already in the manuscript in words. Define Ro once in II-C where the frame transformation is introduced, and give its value for the &Omega; = 0.2 run in one clause. Two sentences, not a subsection.</td></tr>
+      <tr><td><b>&tau;, twice</b></td><td class="mono">IV-A eq (22), IV-B eq (27)</td><td>Carried over. Actuator time constant and along-trench speed, same symbol. &tau;<sub>mom</sub> then appears in V-B and in Table IV for the first meaning while bare &tau; is still the second. Rename the along-trench speed (v<sub>&parallel;</sub> or &sigma;<sub>&parallel;</sub>); it touches (27), (28) and the Theorem 1 proof, which is why it keeps getting deferred, but the collision is inside two adjacent sections and a referee will read it as an error.</td></tr>
+      <tr><td><b>&Sigma; (the tracked surrogate)</b></td><td class="mono">IV-D</td><td>Introduced for the normal form and never used again. Harmless, but it is one more symbol in a paper carrying many. Substitute D or s<sub>1</sub> in words.</td></tr>
+      <tr><td><b>18 uncited numbered equations</b></td><td class="mono">global</td><td>Of 40 numbered display equations, 18 are never referenced: the basis vector (14), the Jacobian eigenvalues (9), the analytic gradient and Hessian (11), the affine Jacobian (17), the strain parts (20), D<sub>xx</sub> (37), the progress rate (33), and all eleven appendix equations. Unnumber them. Eleven of the eighteen disappear with the appendix, which makes ledger item 2 do double duty.</td></tr>
+      <tr><td><b>29 dead labels</b> <span class="part">PARTIAL</span></td><td class="mono">global</td><td>Was 40 of 104, then 30 of 106, now <b>29 of 102</b>. Eleven are appendix equations and go with the appendix. Six are section anchors never pointed at (<span class="q">sec:intro</span>, <span class="q">sec:separatrix</span>, <span class="q">sec:s1_estimation</span>, <span class="q">sec:sep_controller</span>, <span class="q">sec:oecs_controller</span>, <span class="q">sec:future</span>), plus two created by the merge (<span class="q">sec:disc_ocean</span>, whose only pointer was a forward reference the merge correctly deleted, and <span class="q">sec:selection</span>). Harmless anchors now that no section reference is hand-typed. Delete or leave.</td></tr>
+      <tr class="doner"><td><b>The &epsilon; = 0.1 spot check</b> <span class="ok">DONE</span></td><td class="mono">VI-B</td><td>Promoted out of Limitations into Clean Runs, with its numbers intact (&plusmn;0.116 swing at 62% of the speed cap, mean offset 0.006, max 0.015, no derivative term). It now reads as the result it is rather than as a caveat, and it is the paper's only time-varying double-gyre evidence.</td></tr>
+      <tr class="doner"><td><b>The basin / watershed map</b> <span class="ok">DONE</span></td><td class="mono">VI-B</td><td>200 words and six percentages down to one sentence carrying the two that agree (47.4% grid, 47.1% random). The subscripted-percentage notation and the 40-word coincidence disclaimer are gone.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ===================== 06 ===================== -->
+<section id="redund">
+  <h2 class="sec"><span class="num">06</span>Redundancy, remeasured</h2>
+
+  <div class="callout win">
+    <b>The double-telling is gone.</b> Runs of eight or more consecutive identical words <b>inside Section VI: zero.</b> The previous reading measured 232 such words between Sections VI and VII, in fourteen runs, the longest 32 words. Every one of those pairs is now a single telling. Two eight-word runs remain between Section VI and the Conclusion, which is what a conclusion is for, and both are short.
+  </div>
+
+  <p style="margin:0 0 18px;color:var(--ink2)">What is left is upstream, and it is the same class of problem one section earlier. Section V states protocol that Section VI restates before using. Measured the same way, three overlaps survive.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">Loc</th><th>Repeated material</th><th class="num">Words</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">V-D-5 &rarr; VI-C</td><td>The acquisition sweep protocol: same &sigma;<sub>uv</sub> grid, &sigma;<sub>p</sub> &isin; {0, 0.01}, 1000 trials per cell, two clean-run starts 2.7&rho; off the structure. Stated as a plan, then as a report.</td><td class="num">40</td></tr>
+      <tr><td class="mono">V-D-2 &rarr; VI-C fn</td><td>The widened exit box, |y| &le; 0.60 against 0.52, and its justification.</td><td class="num">30</td></tr>
+      <tr><td class="mono">V-D-2, Fig 8, VI-C</td><td>The 0.0005 resolution spacing and the 10,000 trials per cell, stated three times.</td><td class="num">25</td></tr>
+      <tr><td class="mono">III-D &rarr; VI-A</td><td>Not verbatim, but structural: III-D predicts the gain ladder, the effective noise level, the s<sub>1</sub> bias and the floor e; VI-A confirms each in the same order five pages later. See A3.</td><td class="num">&mdash;</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <b>One rule fixes the rest of it,</b> and it is the same rule that fixed the Discussion. A protocol detail belongs where the number that consumes it is reported, unless a reader cannot understand the experiment without it in advance. By that test V-D-3 (the rotating-frame construction, which a reader needs before the 1.219 means anything) and V-D-4 (the ocean protocol) stay. V-D-1, V-D-2 and V-D-5 do not.
+  </div>
+</section>
+
+<!-- ===================== 07 ===================== -->
+<section id="prose">
+  <h2 class="sec"><span class="num">07</span>Sentences that do not parse, or say the wrong thing</h2>
+  <p class="lede">Ten of twelve from the previous reading are fixed. Five survive or are new. The paper now contains no comma splices, no "And"-initial sentences, and no hand-typed section cross-references.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">Loc</th><th>As written</th><th>Problem and fix</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">III-A, l.586</td><td>"The estimator fits the unconstrained model deliberately. <b>The refusal to presuppose that motivates the rest of the method is extended here to the constitutive assumption about the field.</b>"</td><td><b>Garden path, and it is the same sentence flagged last time, split rather than repaired.</b> "The refusal to presuppose that motivates" reads as "presuppose that [which] motivates" for four words before the reader recovers. Rewrite: "The same refusal to presuppose, which motivates the rest of the method, is extended here to the constitutive assumption about the field." One comma pair does it.</td></tr>
+      <tr><td class="mono">III-A, l.589</td><td>"...and the sixth robot buys the same independence from <b>a constitutive assumption about the field</b>, exactness over every planar quadratic field rather than only over an incompressible subclass."</td><td><b>Immediate repetition.</b> "Constitutive assumption about the field" appears twice in four lines, in consecutive sentences, meaning the same thing. Cut the second occurrence: "and the sixth robot buys exactly that, exactness over every planar quadratic field rather than only over an incompressible subclass."</td></tr>
+      <tr><td class="mono">IV-B, l.1016</td><td>"Two properties prevent <b>us</b> from issuing it directly as a velocity command."</td><td><b>The last first person in Section IV</b>, which the previous pass took from twelve to one. "Two properties prevent it from being issued directly as a velocity command."</td></tr>
+      <tr><td class="mono">II-B, l.325 and l.335</td><td>"and <b>we</b> write D(p) = det(J(p)) throughout"; "For the incompressible flows considered here Q = &minus;D exactly, so <b>we</b> work with D."</td><td>The only two remaining first-person instances in the paper. Both are one-word fixes ("and D(p) = det(J(p)) is written throughout"; "so the paper works with D"). Worth doing only because there are exactly two left; a paper with two is odder than a paper with twenty.</td></tr>
+      <tr><td class="mono">VI-C, l.1836</td><td>"<b>Four</b> further readings sit alongside it."</td><td>Counted openers are a liability under revision. This one is currently right (position-noise scaling, the beyond-cliff floor, acquisition, heading isotropy) but it was wrong for one draft, and the same construction appears at V-D ("Four experiment families... three supporting checks", see K3) and VI-G ("Four unimplemented alternatives", "Three further conditions"). Consider dropping the counts where the list is not itself the point.</td></tr>
+      <tr><td class="mono">VI-A, l.1602</td><td>"...while noise costs them 24&deg; by &sigma;<sub>uv</sub> = 0.003 and 39&deg; at <b>the closed-loop failure cliff below</b>..."</td><td><b>Forward reference to a quantity not yet defined.</b> The cliff is defined two subsections later. Either name it ("at &sigma;<sub>uv</sub> &asymp; 0.0079") or drop the clause; the number is what the reader needs, not the pointer. This is a side effect of promoting VI-A ahead of the closed-loop results and is another argument for A3 option 1.</td></tr>
+      <tr class="doner"><td class="mono">VII &sect; l.2374 <span class="ok">DONE</span></td><td>The 100-word Conclusion sentence.</td><td>Broken at "because". The claim ends at "objective gradient" and the justification starts "That test is available because...".</td></tr>
+      <tr class="doner"><td class="mono">VI-C <span class="ok">DONE</span></td><td>The 60-word exit-box parenthesis with "a hair past".</td><td>Moved to a footnote, colloquialism removed. The footnote now points at V-D rather than restating it.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ===================== 08 ===================== -->
+<section id="voice">
+  <h2 class="sec"><span class="num">08</span>Voice: the drift has moved</h2>
+  <p class="lede">You asked whether the document changes register, and whether the later sections can be brought into the voice of the Introduction and the first four sections. Measured again, the answer has inverted since the last reading.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Marker</th><th class="num">I</th><th class="num">II</th><th class="num">III</th><th class="num">IV</th><th class="num">V</th><th class="num">VI</th><th class="num">VII</th></tr></thead>
+    <tbody>
+      <tr><td>mean sentence length</td><td class="num">23.0</td><td class="num">20.1</td><td class="num">21.8</td><td class="num">19.8</td><td class="num"><b>25.9</b></td><td class="num">23.2</td><td class="num"><b>27.6</b></td></tr>
+      <tr><td>sentences of 6 words or fewer</td><td class="num">4</td><td class="num">8</td><td class="num">3</td><td class="num">12</td><td class="num"><b>0</b></td><td class="num">9</td><td class="num"><b>0</b></td></tr>
+      <tr><td>"we" / "our"</td><td class="num">0</td><td class="num">2</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr><td>sentences opening "And"</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr><td>comma splices</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout win">
+    <b>Section VI now reads as the same hand as Section I.</b> Mean sentence 23.2 against 23.0, with a comparable proportion of short declaratives. The previous reading measured the Discussion at 20.0 with eleven sentences of six words or fewer, three "And" openers, two comma splices and four epigram closers, and called it audibly a different author. That is no longer true. Reducing the epigrams from four to one and dropping the verdict vocabulary did the work.
+  </div>
+
+  <div class="finding major">
+    <div class="fhead"><span class="gauge g3"><i></i><i></i><i></i><i></i></span><span class="tag major">V1</span><h3>Section V is the outlier now</h3><span class="loc">V</span></div>
+    <p>Mean sentence 25.9, the longest of any technical section, and <b>zero</b> sentences of six words or fewer across 49 sentences. Sections I through IV all break their long sentences with short ones; Section V never does. The effect is a wall of qualified specification, which is why V-D in particular is hard to move through even though it is shorter than three other subsections.</p>
+    <p>Two representative sentences, both from V-D-2: the success criterion runs 47 words with three parenthetical qualifications, and the exit-box sentence runs 38 with a semicolon splice of two unrelated protocol facts. Neither is wrong. Both would read as the Introduction's author if broken in two.</p>
+    <div class="fix"><b>Fix</b>Break the six longest sentences in Section V, and let the protocol lists carry one short declarative each. This is a register fix, not a length fix, and it is largely moot for V-D-1, V-D-2 and V-D-5 if A2 is taken, since those paragraphs move into Section VI and get rewritten anyway.</div>
+  </div>
+
+  <div class="finding minor">
+    <div class="fhead"><span class="gauge g2"><i></i><i></i><i></i><i></i></span><span class="tag minor">V2</span><h3>The Conclusion runs 27.6 words a sentence with nothing short</h3><span class="loc">VII</span></div>
+    <p>Thirteen sentences, mean 27.6, longest still 62 words after the 100-word sentence was split. Zero short sentences. Against the Introduction's 23.0 this is the widest register gap left in the paper, and it falls on the last page a referee reads.</p>
+    <p>The content is right. The paper ends on the selection rule, and the FTLE claim that used to close it is gone. It is the rhythm that does not match: four consecutive sentences beginning with a noun phrase and running past thirty words, then a three-sentence close that finally breaks. Break two of the four.</p>
+  </div>
+
+  <div class="finding note">
+    <div class="fhead"><span class="tag note">V3</span><h3>What the register actually is, for whoever does the pass</h3><span class="loc">reference</span></div>
+    <p>Sections I to IV share a specific pattern worth naming, since the fix in V1 and V2 is to reproduce it. A long sentence that carries the technical content, followed by a short one that states what it means. "The four third-order terms, the size of D<sub>xx</sub> itself, have no counterpart among the twelve fitted coefficients. They are set to zero by construction, not made small by a good fit." Or: "The D tracker's rotating-frame run does not degrade. It leaves the structure."</p>
+    <p>The long-short pair is the voice. Section V has the long halves and none of the short ones; the Conclusion has the same problem across a whole page. No new material is needed to fix either, only breaks.</p>
+  </div>
+</section>
+
+<!-- ===================== 09 ===================== -->
+<section id="heads">
+  <h2 class="sec"><span class="num">09</span>Headings</h2>
+  <div class="callout win"><b>The heading register is now consistent throughout.</b> Every heading in the paper is a plain noun phrase. No colons, no glosses, and nothing that announces its own conclusion before the evidence. All ten items from the previous report are applied and the six new subsection headings created by the merge follow the same rule.</div>
+
+  <p class="lede">One item left, and it is parallelism rather than register.</p>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">Loc</th><th>Current</th><th>Proposed</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">VI-B</td><td>Clean Runs</td><td>Behavior on a Clean Field</td></tr>
+      <tr><td class="mono">VI-C</td><td>Behavior Under Noise</td><td>(unchanged)</td></tr>
+      <tr><td class="mono">VI-D</td><td>Behavior Under a Rotating Observer</td><td>(unchanged)</td></tr>
+      <tr><td class="mono">VI-E</td><td>Behavior on a Measured Field</td><td>(unchanged)</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p style="margin:0 0 18px;color:var(--ink2)">Three of the four conditions are named "Behavior Under/On X" and the fourth is not, which makes the set read as three parallel experiments plus a preamble rather than four conditions. The paper's own selection rule, in VI-F, enumerates them as four conditions. Two words fixes it, and the table of contents then shows the argument's shape directly: one estimator check, four conditions, one rule, the limits.</p>
+</section>
+
+<!-- ===================== 10 ===================== -->
+<section id="length">
+  <h2 class="sec"><span class="num">10</span>Length: where this sits against T-RO practice</h2>
+  <p class="lede">Hard facts first: T-RO regular papers may not exceed 20 formatted pages, and mandatory overlength charges apply from page 12. At 18 pages you pay on six.</p>
+
+  <div class="callout">
+    <b>Restated and extended.</b> I pulled section structures for seven comparators from the local reference corpus, three of them new since the previous report. <b>Not one carries a standalone Discussion section.</b> Where interpretation happens it happens inside the results, adjacent to the number being interpreted. The merge has brought this paper into line with all seven.
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Comparator</th><th class="mono">Venue</th><th>Structure</th></tr></thead>
+    <tbody>
+      <tr><td>Yao, Garcia de Marina, Lin, Cao, Singularity-Free Guiding Vector Field</td><td class="mono">T-RO 2021</td><td>I Intro, II Guiding Vector Fields, III Desired Paths, IV Extended Dynamics and Convergence, V High-Dimensional Construction, VI Experiments with an Autonomous Aircraft, VII (comparison to trajectory tracking), VIII Conclusion. <b>No Discussion.</b></td></tr>
+      <tr><td>Matveev et al., Non-Gradient Based Tracking of Environmental Field Isolines</td><td class="mono">IEEE TAC</td><td>I Intro, II System Description and Problem Setup, III Characterizing Quantities, IV Assumptions and Necessary Conditions, V Convergence, VI Particular Scenarios, VII Simulation and Tests, Conclusion, then <b>four proof appendices</b>. No Discussion.</td></tr>
+      <tr><td>Gon&ccedil;alves, McLaughlin, Pereira, Precise Landing Using Vector Fields</td><td class="mono">RA-L 2020</td><td>I Intro, II Landing of Aerial Vehicles, III Mathematical Development, IV Experiments, V Conclusion. No Discussion.</td></tr>
+      <tr><td>Li, Farrell, Pang, Arrieta, Moth-Inspired Chemical Plume Tracing</td><td class="mono">T-RO 2006</td><td>I Intro, II Mission Profile, III Architecture, IV Behaviors, V In-Water Results, VI Conclusion. No Discussion.</td></tr>
+      <tr><td>Bri&ntilde;&oacute;n-Arranz, Renzaglia, Schenato, Multirobot Symmetric Formations</td><td class="mono">T-RO 2019</td><td>I Intro, II Problem Formulation, III&ndash;VI technical, VII Conclusion, Appendix. No Discussion.</td></tr>
+      <tr><td>Michini, Rastgoftar, Hsieh, Jayasuriya, Collaborative Tracking of Manifolds</td><td class="mono">ACC 2014</td><td>I Intro, II Problem Formulation, III Methodology, IV&ndash;V Simulation Results, VI Conclusions. No Discussion.</td></tr>
+      <tr><td>Kularatne and Hsieh, Tracking Attracting Manifolds in Flows</td><td class="mono">Auton. Robots 2017</td><td>Intro, background, controller, simulation and experiment, conclusion. No Discussion.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <b>Two structural readings from the comparator set, beyond the Discussion point.</b> First, <b>the appendices that exist in this literature hold proofs</b>, not standard material. Matveev carries four proof appendices; Bri&ntilde;&oacute;n-Arranz carries one. This paper's Appendix A holds twelve equations of cluster-space kinematics fully cited to [37],[38] and derives nothing the controllers use, which is the opposite arrangement. Second, <b>none of the seven spends 66% of its body before its first result.</b> Yao reaches experiments at section VI of VIII but the preceding sections carry the convergence theorems that are the contribution; here the theory-to-evidence ratio is similar while the theory is spread over five sections rather than concentrated.
+  </div>
+
+  <p style="margin:0 0 18px;color:var(--ink2)"><b>The diagnosis in one line, updated: the Discussion is no longer the problem, and the front matter now is.</b> The previous reading measured a Discussion 67% longer than its Results. That ratio is gone. What replaces it is a setup-to-evidence ratio of 2:1 by word count and 10:5 by page count.</p>
+
+  <div class="callout">
+    <b>Honesty about the norm column.</b> There is no published corpus statistic for T-RO section-length percentages, so any such column is a referee's working expectation rather than a measurement. The structural comparison above <em>is</em> measured, from the corpus, and so are every word count, page range, sentence statistic and duplication figure in this report.
+  </div>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section id="trim">
+  <h2 class="sec"><span class="num">11</span>Cut ledger: 18 pages to about 15.7</h2>
+  <p class="lede">Roughly 2,300 words out, about 60 back in. Nothing in &sect;01 is touched, and nothing in Section VI is cut except Limitations.</p>
+
+  <div class="ledger">
+    <h3>Where the pages come from</h3>
+    <div class="bar">
+      <span style="width:26%;background:#08334F">Appendix A</span>
+      <span style="width:20%;background:#175778">Section IV trim</span>
+      <span style="width:17%;background:#1A5E80">V-D fold</span>
+      <span style="width:11%;background:#2E7C9C">Equations</span>
+      <span style="width:10%;background:#3D8CA8">Limitations</span>
+      <span style="width:9%;background:#5DA2B8">Abstract</span>
+      <span style="width:7%;background:#8FBECD">Line level</span>
+    </div>
+    <div class="scale"><span>0 pages freed</span><span>2.3</span></div>
+  </div>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">#</th><th>Cut</th><th class="mono">Where</th><th class="num">Words</th><th class="num">Pages</th><th>Risk</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">1</td><td><b>Delete Appendix A.</b> Twelve numbered equations of standard cluster-space kinematics, all cited to [37],[38], plus a paragraph disclaiming symbol reuse. It derives nothing the controllers use and its own last paragraph says the Jacobian "follows in the normal way." Takes eleven uncited equations and eleven dead labels with it, and removes the p/q/&beta;/J symbol collision the appendix currently apologizes for.</td><td class="mono">App A</td><td class="num">1,597</td><td class="num">0.6</td><td>Low</td></tr>
+      <tr><td class="mono">2</td><td><b>Trim Section IV's motivating passages</b> (F1). The geometric half of the Newton-step argument to two sentences; the eigenvector-naming argument to a pointer at II-C, which already makes it. Every equation and every guard stays.</td><td class="mono">IV-B, IV-C</td><td class="num">400</td><td class="num">0.45</td><td>Med. It is the paper's derivational core and the prose there is good; cut the second telling, not the first.</td></tr>
+      <tr><td class="mono">3</td><td><b>Fold V-D-1, V-D-2, V-D-5</b> into the Section VI paragraphs that use them (A2). Keep V-D-3 and V-D-4 as short protocol notes. Removes the three surviving duplications in &sect;06.</td><td class="mono">V-D</td><td class="num">350</td><td class="num">0.35</td><td>Low</td></tr>
+      <tr><td class="mono">4</td><td><b>Unnumber the 18 never-referenced display equations.</b> Seven in the body, eleven in the appendix, so items 1 and 4 overlap. Renumbers everything after each one, which is why it goes last.</td><td class="mono">global</td><td class="num">0</td><td class="num">0.25</td><td>Low</td></tr>
+      <tr><td class="mono">5</td><td><b>Limitations 575 &rarr; 420.</b> The four unimplemented seed alternatives to two sentences naming them; the opening generality about trenches versus level sets to one clause, since Section II already establishes it.</td><td class="mono">VI-G</td><td class="num">155</td><td class="num">0.2</td><td>Low</td></tr>
+      <tr><td class="mono">6</td><td><b>Abstract 310 &rarr; about 220</b> (A6). Drop the units sentence, drop one failure-cliff number, quote the survivor as 0.0079.</td><td class="mono">abstract</td><td class="num">90</td><td class="num">0.1</td><td>Low</td></tr>
+      <tr><td class="mono">7</td><td><b>Line level:</b> the six items of &sect;07, the &Sigma; symbol, the counted openers.</td><td class="mono">global</td><td class="num">120</td><td class="num">0.15</td><td>Low</td></tr>
+      <tr><td class="mono">&minus;</td><td><b>Spend:</b> restore the settle rate behind the sign-inversion finding (A4), define O(Ro) and give its value (&sect;05), cite Proposition 1 once.</td><td class="mono">VI-C, II-C</td><td class="num">+60</td><td class="num">&minus;0.1</td><td>Buy it</td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="3">Net</td><td class="num">~2,650</td><td class="num">~2.0</td><td>lands near 16.0 pp</td></tr></tfoot>
+  </table>
+  </div>
+
+  <div class="callout">
+    <b>On the last half page.</b> Items 1 through 7 land near 16.0, not 15.5. The remaining half page is not available without cutting something in &sect;01 or thinning Section III, and I would not do either. 16 pages for a paper carrying two controllers, a minimality proof, a stability theorem, four experiment families and twelve floats is defensible at T-RO; 18 with a standard-material appendix is the part that reads as long. If 15.5 is a hard target, the honest source is Section II-D (465 words of double-gyre analytics, of which the closed forms for &nabla;D and H<sub>D</sub> are never referenced again), not any of the items above.
+  </div>
+</section>
+
+<!-- ===================== 12 ===================== -->
+<section id="order">
+  <h2 class="sec"><span class="num">12</span>Order of work</h2>
+
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th class="mono">Step</th><th>Work</th><th>Why here</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">1</td><td>The three defects that are wrong on their own terms: <b>O(Ro)</b> undefined, <b>&tau;</b> meaning two things, and the <b>Proposition 1</b> citation.</td><td>Each is an error regardless of every decision below, and two of the three are two-sentence fixes.</td></tr>
+      <tr><td class="mono">2</td><td><b>Decide A4</b>, the settle-rate evidence, and A3, whether VI-A moves into III-D.</td><td>Both are content decisions only the authors can make, and A3 changes what Section VI looks like, so everything downstream depends on it.</td></tr>
+      <tr><td class="mono">3</td><td>Ledger 1 and 3: the appendix, and the V-D fold.</td><td>Biggest page win, mechanical, and the fold is the last of the double-telling.</td></tr>
+      <tr><td class="mono">4</td><td>Ledger 2 and 5: Section IV's motivating passages, Limitations.</td><td>Prose work, so do it after the structural moves rather than polishing paragraphs that are about to move.</td></tr>
+      <tr><td class="mono">5</td><td>The voice pass: Section V's six long sentences, the Conclusion's four (&sect;08 V1, V2), the two remaining "we" in II and the one in IV.</td><td>Do it once the sections have stopped moving. Largely moot for V-D if step 3 was taken.</td></tr>
+      <tr><td class="mono">6</td><td>Abstract, K1 and K2, the heading parallelism.</td><td>Last, because the abstract should describe the paper that exists at the end rather than the one that existed at the start.</td></tr>
+      <tr><td class="mono">7</td><td>Unnumber the uncited equations.</td><td>Genuinely last. It renumbers every equation after each one and there is no reason to do that twice.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <b>One thing not on the list.</b> I have not recommended touching Fig. 2 (the control architecture), the Introduction, Table I, the merged section's organization, or any of &sect;01. The Introduction remains the leanest section in the paper at 11.5% and the most confident writing in it, and the merged Section VI is now the second-best-structured thing in the manuscript after the splitting identity itself.
+  </div>
+</section>
+
+<div class="footer">
+  Referee report 2 on Draft_6a.tex, compiled at 18 pages, read after Sections VI and VII were merged. Word counts, page ranges, sentence statistics, duplication runs, label and equation audits, and register markers are measured from the source and the compiled PDF. Comparator structures are from the local reference corpus. The 90.9% settle rate in A4 is quoted from a review of Draft 5c and has not been re-measured against the current trial records.
+</div>
+
+</main>
+</div>
+
+</body>
+</html>
