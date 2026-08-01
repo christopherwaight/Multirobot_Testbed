@@ -57,9 +57,7 @@ $\sigma_{uv} \approx 0.002$. At zero noise their tracking errors are
 0.0016 and 0.0075. On Santa Barbara Channel radar currents, the
 determinant tracker follows a coherent ridge for 28 hours to a consistent
 landfall, and the strain tracker, started on that same ridge, rides the
-same network structure from the objective strain term alone. Double-gyre
-quantities are reported in the field's non-dimensional world units
-throughout.
+same network structure from the objective strain term alone.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -950,32 +948,21 @@ the $s_1$ tracker uses the strain term alone, for its frame invariance.
 Both trackers run inside the layered architecture established in prior
 cluster space control studies \cite{9,4,3,37}, shown in
 Fig.~\ref{fig:control_architecture}. An adaptive navigation layer reads
-the field and issues a desired centroid velocity $\dot{\mathbf{p}}_c$, a
-cluster controller layer converts cluster level commands into robot level
-commands, and a robot controller layer converts those into actuation.
-Each presents a fixed interface to the one above, so replacing the $D$
-tracker with the $s_1$ tracker changes only the top layer.
+the field and issues a desired centroid velocity $\dot{\mathbf{p}}_c$,
+holding the feature estimator of Section~\ref{sec:estimation}, whichever
+tracker's control law is active, and a formation controller. A cluster
+controller layer maps that command to individual robot velocities through
+the inverse kinematic Jacobian, and maps robot positions back into
+cluster variables for feedback \cite{37,38}. A robot controller layer
+turns those velocities into actuation. Each layer presents a fixed
+interface to the one above, so replacing the $D$ tracker with the $s_1$
+tracker changes only the adaptive navigation layer, which is also the
+only layer that reads the field.
 
-The adaptive navigation layer is the only one that reads the field, and
-it holds three blocks. A feature estimator takes the six synchronous
-position and velocity-field measurements, sensed through a channel
-separate from robot actuation (Section~\ref{sec:problem_statement}), and returns the
-estimates of Section~\ref{sec:estimation}. A navigation controller applies
-whichever tracker's control law is active and returns
-$\dot{\mathbf{p}}_c$. A formation controller holds the cluster shape at
-its nominal value. This layer is where the two trackers of this paper
-differ from each other.
-
-The cluster controller layer holds the formation rigid while executing
-the centroid command, mapping cluster level velocities to robot
-velocities through the inverse kinematic Jacobian and robot positions
-back into cluster variables for feedback \cite{37,38}. The cluster here
-is the pentagon-plus-center formation of Corollary~\ref{cor:pentagon}.
-The centroid and heading follow the command from above, and every other
-cluster variable is a shape term regulated to its nominal value.
-
-The robot controller layer turns velocity commands into actuation. In
-this simulation each robot is an omnidirectional point mass with a
+The cluster is the pentagon-plus-center formation of
+Corollary~\ref{cor:pentagon}, its centroid and heading following the
+command from above and every other cluster variable regulated to its
+nominal shape value. Each robot is an omnidirectional point mass with a
 first-order response,
 \begin{equation}
     \dot{\mathbf{v}}_i(t) = \frac{1}{\tau}\left(
@@ -2181,63 +2168,6 @@ orientation against a trusted external reference, the $D$ tracker
 tolerates the noisier sensor. Where it cannot, only the $s_1$ tracker
 returns the same material curve. Both read the same fit, so a team that
 carries the estimator carries both.
-
-\appendices
-
-\section{Cluster Space Variables for the Six-Robot Formation}
-\label{app:cluster_vars}
-
-The cluster controller of Section~\ref{sec:arch} acts on a twelve-element
-cluster pose, three variables locating and orienting the formation and
-nine describing its shape. Robots are grouped into three pairs,
-$\{1,2\}$, $\{3,4\}$, and $\{5,6\}$, whose midpoints $\mathbf{m}_A$,
-$\mathbf{m}_B$, $\mathbf{m}_C$ (components $m_{\bullet x}$,
-$m_{\bullet y}$) form a triangle in the side-angle-side form standard
-in cluster space work \cite{37,38}. With $\mathbf{p}_i = (x_i, y_i)$
-the position of robot $i$, the forward position kinematics are
-\begin{align}
-    x_c &= \frac{1}{6}\sum_{i=1}^{6} x_i,
-    \label{eq:ck_xc}\\
-    y_c &= \frac{1}{6}\sum_{i=1}^{6} y_i,
-    \label{eq:ck_yc}\\
-    \theta_c &= \operatorname{atan2}
-    \left(m_{Ay} - m_{By},\; m_{Ax} - m_{Bx}\right),
-    \label{eq:ck_thetac}\\
-    p_1 &= \lVert \mathbf{m}_B - \mathbf{m}_A \rVert,
-    \label{eq:ck_p}\\
-    q_1 &= \lVert \mathbf{m}_C - \mathbf{m}_B \rVert,
-    \label{eq:ck_q}\\
-    \beta_1 &= \arccos\!\left(
-    \frac{p_1^2 + q_1^2 - r_1^2}{2\,p_1 q_1}\right),
-    \quad r_1 = \lVert \mathbf{m}_A - \mathbf{m}_C \rVert,
-    \label{eq:ck_beta}\\
-    L_2 &= \lVert \mathbf{p}_2 - \mathbf{p}_1 \rVert,
-    \label{eq:ck_L2}\\
-    \theta_2 &= \operatorname{atan2}(y_2 - y_1,\; x_2 - x_1),
-    \label{eq:ck_th2}\\
-    L_3 &= \lVert \mathbf{p}_4 - \mathbf{p}_3 \rVert,
-    \label{eq:ck_L3}\\
-    \theta_3 &= \operatorname{atan2}(y_4 - y_3,\; x_4 - x_3),
-    \label{eq:ck_th3}\\
-    L_4 &= \lVert \mathbf{p}_6 - \mathbf{p}_5 \rVert,
-    \label{eq:ck_L4}\\
-    \theta_4 &= \operatorname{atan2}(y_6 - y_5,\; x_6 - x_5).
-    \label{eq:ck_th4}
-\end{align}
-These symbols are local to the cluster controller layer, and some are
-spelled like symbols used elsewhere for unrelated quantities: $p$ and
-$q$ as expansion orders in (\ref{eq:error_budget}), $\beta$ as the ride
-flag in (\ref{eq:oecs_law}), and the Jacobian below, which is not the
-flow velocity gradient $\mathbf{J}$ of (\ref{eq:jacobian}). The layered
-architecture of Section~\ref{sec:arch} keeps them apart, since each layer
-holds its own state and only $\mathbf{p}_c$ and $\dot{\mathbf{p}}_c$
-cross the boundary, but the reuse still warrants care.
-
-The inverse kinematics can be found geometrically, and the Jacobian and
-inverse Jacobian follow in the normal way \cite{37}, giving the
-$12 \times 12$ matrices that map robot velocities into cluster
-velocities for feedback and cluster velocities into robot velocities
-for command.
 
 \begin{thebibliography}{99}
 \bibitem{1} J. Cortés and M. Egerstedt, ``Coordinated control of multi-robot
