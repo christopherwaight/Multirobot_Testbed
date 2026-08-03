@@ -60,12 +60,12 @@ def _panel(ax, xs, success, straddle, xlabel, title, xlim):
             linewidth=1.6, label="Far-saddle success", zorder=3)
     ax.plot(xs, straddle, marker="s", markersize=4, color="0.5",
             linewidth=1.3, linestyle="--", label="Straddle retention", zorder=2)
-    ax.set_xlabel(xlabel, fontsize=10)
-    ax.set_ylabel("Rate (%)", fontsize=10)
+    ax.set_xlabel(xlabel, fontsize=8)
+    ax.set_ylabel("Rate (%)", fontsize=8)
     ax.set_xlim(*xlim)
     ax.set_ylim(-3, 103)
-    ax.tick_params(labelsize=9)
-    ax.set_title(title, fontsize=9.5)
+    ax.tick_params(labelsize=7)
+    ax.set_title(title, fontsize=8)
 
 
 def main():
@@ -92,20 +92,16 @@ def main():
     straddle_p = [float(r["success_straddle"]) * 100 for r in flip_p] + \
         [float(anchor_p["success_straddle"]) * 100]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.45, 4.0))
 
     _panel(ax1, xs_uv, success_uv, straddle_uv, r"$\sigma_{uv}$ (m/s)",
           "(a) vs. measurement noise, $\\sigma_p = 0$", (0.0008, 0.0082))
-    ax1.legend(loc="upper right", fontsize=8, frameon=False)
+    ax1.legend(loc="upper right", fontsize=7, frameon=False)
 
     _panel(ax2, xs_p, success_p, straddle_p, r"$\sigma_p$ (m)",
           "(b) vs. position noise, $\\sigma_{uv} = 0$", (0.0002, 0.0052))
 
-    fig.suptitle(
-        "Tangent-sign flip: far-saddle success and straddle retention, "
-        "10,000 trials/cell",
-        fontsize=10.5)
-    fig.tight_layout(rect=[0, 0, 1, 0.94])
+    fig.tight_layout()
 
     os.makedirs(FIG_DIR, exist_ok=True)
     out_path = os.path.join(FIG_DIR, "flip_resolution.png")

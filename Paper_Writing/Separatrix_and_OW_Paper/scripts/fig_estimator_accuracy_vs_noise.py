@@ -17,8 +17,10 @@ Panels:
   (a) median relative error of D, grad D and H_D versus sensor noise at rho = 0.075
   (b) mean angle between the fitted and true principal eigenvector of H_D versus
       sensor noise, against the 45 deg value for a uniformly random axis
-  (c) median relative error versus formation radius at sigma_uv = 0.01, with the
-      noise-free truncation floors dotted
+
+The radius sweep at sigma_uv = 0.01, with the noise-free truncation floors, is
+still computed and written to the sidecar. It was panel (c) until the figure was
+cut to one column; the prose now cites the range rather than a plot.
 
 Canonical output: figures/estimator_accuracy_vs_noise.png
 """
@@ -162,7 +164,7 @@ def main(args):
     # ---------------------------- plot ----------------------------
     plt.rcParams.update({"font.size": 8, "axes.labelsize": 8,
                          "legend.fontsize": 7, "axes.titlesize": 8})
-    fig, ax = plt.subplots(1, 3, figsize=(7.16, 2.25))
+    fig, ax = plt.subplots(2, 1, figsize=(3.45, 3.9), sharex=True)
     sv = p["sigma_uv_vals"]
     cliff = p["closed_loop_50pct_sigma_uv"]
     style = {"D": ("#1f77b4", "o", r"$\hat{D}$"),
@@ -173,9 +175,8 @@ def main(args):
         ax[0].loglog(sv, noise[k], color=c, marker=m, ms=3, lw=1.2, label=lab)
     ax[0].axhline(1.0, ls="--", c="0.4", lw=0.9)
     ax[0].axvline(cliff, ls="-.", c="0.4", lw=0.9)
-    ax[0].text(1.05, 1.15, "error = signal", transform=ax[0].get_yaxis_transform(),
-               ha="right", va="bottom", fontsize=6, color="0.35")
-    ax[0].set_xlabel(r"$\sigma_{uv}$")
+    ax[0].text(0.02, 1.15, "error = signal", transform=ax[0].get_yaxis_transform(),
+               ha="left", va="bottom", fontsize=6, color="0.35")
     ax[0].set_ylabel("median relative error")
     ax[0].set_title("(a) accuracy vs sensor noise")
     ax[0].legend(frameon=False, loc="lower right")
@@ -196,16 +197,6 @@ def main(args):
     ax[1].set_title("(b) eigendirection vs sensor noise")
     ax[1].set_ylim(0, 50)
     ax[1].grid(alpha=0.25, which="both", lw=0.4)
-
-    for k, (c, m, lab) in style.items():
-        ax[2].loglog(p["rho_vals"], rad[k], color=c, marker=m, ms=3, lw=1.2, label=lab)
-        ax[2].loglog(p["rho_vals"], floor[k], color=c, ls=":", lw=1.0)
-    ax[2].axhline(1.0, ls="--", c="0.4", lw=0.9)
-    ax[2].axvline(p["rho_nominal"], ls="-.", c="0.4", lw=0.9)
-    ax[2].set_xlabel(r"formation radius $\rho$")
-    ax[2].set_ylabel("median relative error")
-    ax[2].set_title(rf"(c) accuracy vs radius, $\sigma_{{uv}} = {srad}$")
-    ax[2].grid(alpha=0.25, which="both", lw=0.4)
 
     fig.tight_layout()
     out = args.out
