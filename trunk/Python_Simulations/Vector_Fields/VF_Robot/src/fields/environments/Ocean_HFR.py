@@ -14,6 +14,29 @@ Both use an affine coordinate map: cluster world coordinates in
 (center_lat, center_lon). The cluster simulates in world coords;
 this module converts to lat/lon internally for the NetCDF lookup.
 
+Coordinate map, isotropic_map (default true):
+  The latitude half-extent is roi_half_deg, so one world unit is
+  roi_half_deg/world_half degrees of latitude, 51.4 km at 34.2N. With
+  isotropic_map true the longitude scale is divided by cos(center_lat), so
+  one world unit is the same 51.4 km east as it is north and the world
+  frame is a uniform dilation of the local tangent plane. That makes the
+  map a similarity: field vector directions, det(J), the rate-of-strain
+  eigenframe and every zero set are the physical ones up to one positive
+  constant.
+
+  With isotropic_map false the same degree scale is applied to both axes
+  (the pre-2026-08-03 behavior). One world unit is then 51.4 km north but
+  only 42.5 km east, the map is not a similarity, and both the sampled
+  vector directions and the strain eigenframe are skewed relative to the
+  physical ones. Kept only to reproduce pre-fix runs; do not use for new
+  work. See experiments/ocean_map_similarity_check.py for the measurement
+  of what that costs.
+
+  Latitude uses _R_LAT_M and longitude _R_LAT_M*cos(center_lat), the same
+  constant-secant tangent plane experiments/_ftle_common.py uses for the
+  FTLE reference, so the controller frame and the evaluation frame agree
+  by construction.
+
 Time handling:
   enable_time_interp: false -> load only files[0]; field.t is ignored.
   enable_time_interp: true  -> load all matching files; field.t is used to
@@ -39,8 +62,13 @@ _FILL     = -32767.0
 # Default affine-map parameters (overridden by YAML config).
 _DEFAULT_CENTER_LAT = 34.2
 _DEFAULT_CENTER_LON = -120.4
-_DEFAULT_ROI_HALF   = 0.3    # degrees
+_DEFAULT_ROI_HALF   = 0.3    # degrees of LATITUDE (longitude half-extent is
+                             # derived, see world_scales)
 _DEFAULT_WORLD_HALF = 0.65   # matches runner.py vector-field plot bounds
+_DEFAULT_ISOTROPIC  = True   # square map; false reproduces pre-fix runs
+
+# Local tangent-plane constants. Same values as experiments/_ftle_common.py.
+_R_LAT_M = 111320.0          # metres per degree of latitude
 
 # Per-config-name dataset cache.
 # Keyed by the "cache_key" value in each YAML (or a fallback derived from the
@@ -160,6 +188,53 @@ def _load_dataset(cfg):
 
 
 # ---------------------------------------------------------------------------
+# Coordinate map (single source of truth)
+# ---------------------------------------------------------------------------
+
+def world_scales(cfg):
+    """
+    Degrees per world unit on each axis, from a field config dict.
+
+    This is the one place the world <-> lat/lon map is defined.
+    experiments/_coords_common.py delegates here rather than repeating it,
+    so a change cannot land on the field evaluator without also landing on
+    the plotting and scoring code.
+
+    Args:
+        cfg: field config dict (from config/fields/<name>.yaml), or None.
+
+    Returns:
+        (center_lat, center_lon, scale_lat, scale_lon), where
+        lat = center_lat + y*scale_lat and lon = center_lon + x*scale_lon.
+    """
+    cfg = cfg or {}
+    center_lat = cfg.get("center_lat",   _DEFAULT_CENTER_LAT)
+    center_lon = cfg.get("center_lon",   _DEFAULT_CENTER_LON)
+    roi_half   = cfg.get("roi_half_deg", _DEFAULT_ROI_HALF)
+    world_half = cfg.get("world_half",   _DEFAULT_WORLD_HALF)
+
+    scale_lat = roi_half / world_half
+    if cfg.get("isotropic_map", _DEFAULT_ISOTROPIC):
+        scale_lon = scale_lat / np.cos(np.radians(center_lat))
+    else:
+        scale_lon = scale_lat
+    return center_lat, center_lon, scale_lat, scale_lon
+
+
+def world_unit_km(cfg):
+    """
+    Physical size of one world unit, (km_north, km_east).
+
+    Equal on both axes when isotropic_map is on. Used by the paper's
+    parameter table and by any script reporting world quantities in km.
+    """
+    center_lat, _, scale_lat, scale_lon = world_scales(cfg)
+    km_lat = _R_LAT_M / 1000.0
+    km_lon = km_lat * float(np.cos(np.radians(center_lat)))
+    return scale_lat * km_lat, scale_lon * km_lon
+
+
+# ---------------------------------------------------------------------------
 # Shared evaluation kernel
 # ---------------------------------------------------------------------------
 
@@ -174,14 +249,9 @@ def _evaluate(x, y, t, config):
     key = _cache_key(cfg)
     ds  = _DATASET_CACHE[key]
 
-    center_lat = cfg.get("center_lat",   _DEFAULT_CENTER_LAT)
-    center_lon = cfg.get("center_lon",   _DEFAULT_CENTER_LON)
-    roi_half   = cfg.get("roi_half_deg", _DEFAULT_ROI_HALF)
-    world_half = cfg.get("world_half",   _DEFAULT_WORLD_HALF)
-
-    scale = roi_half / world_half
-    lat_q = center_lat + y * scale
-    lon_q = center_lon + x * scale
+    center_lat, center_lon, scale_lat, scale_lon = world_scales(cfg)
+    lat_q = center_lat + y * scale_lat
+    lon_q = center_lon + x * scale_lon
     pt    = np.array([[lat_q, lon_q]])
 
     if not ds["enable_time_interp"] or len(ds["t_frames"]) == 1:

@@ -1,0 +1,57 @@
+\documentclass[lettersize,journal]{IEEEtran}
+
+\usepackage{amsmath,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{cite}
+
+\begin{document}
+\title{Supplemental Material: Adaptive Navigation of Multirobot Systems to Critical Points in 2D Vector Fields}
+\author{Christopher Waight and Christopher A. Kitts,~\IEEEmembership{Senior Member,~IEEE}}
+
+\maketitle
+
+\begin{abstract}
+This supplemental material provides extended experimental details and derivations for the accompanying letter. We present the exactness of the distributed estimator in time-varying affine flows, followed by quantitative performance comparisons of baseline primitives, and comprehensive analyses of the time-varying field experiments (translating vortex and pulsing sink) that demonstrate the applicability of this method to dynamic robotic environments.
+\end{abstract}
+
+\section{Estimator Exactness in Time-Varying Affine Flows}
+For a planar flow that is affine at each instant, $\mathbf{v}(\mathbf{p}, t) = \mathbf{J}(t)(\mathbf{p} - \mathbf{p}^*(t))$, the true spatial gradient at time $t$ is exactly $\mathbf{J}(t)$. Because the multirobot cluster samples the field simultaneously across spatially distributed positions, the instantaneous differencing operation introduces no temporal aliasing. Thus, in the absence of sensor noise, the estimated Jacobian $\mathbf{\hat{J}}$ precisely equals $\mathbf{J}(t)$ at every instant regardless of the rate of variation in the flow.
+
+\section{Quantitative Primitive Comparison}
+% To be populated with Experiment A results
+
+\section{Time-Varying Experiments}
+In this section, we provide the detailed simulation setup and visual trajectories for the proposed control algorithm operating in dynamic vector fields, utilizing mechanics common in oceanographic modeling (such as those employed by Hsieh et al.).
+
+\subsection{Wobbling Vortex}
+To simulate a vortex with a time-varying drifting center, the critical point is prescribed to orbit the origin with a given radius and frequency ($\epsilon = 0.15$, $\omega=0.628$). Figure~\ref{fig:wobbling_vortex} demonstrates the algorithm successfully recovering the instantaneous critical point and tracking the translating center.
+
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=\columnwidth]{ral_wobbling_vortex_convergence.png}
+\caption{Trajectory of a three-robot cluster successfully tracking a wobbling vortex. The estimated critical point continuously updates as the vortex center drifts.}
+\label{fig:wobbling_vortex}
+\end{figure}
+
+\subsection{Time-Dependent Double Gyre}
+To model complex, large-scale environmental phenomena, we evaluate the cluster in the time-dependent double gyre environment (using the standard Shadden formulation). In this field, the separatrices and saddles translate periodically over time. Figure~\ref{fig:dynamic_gyre} shows the cluster successfully converging to and tracking the moving saddle.
+
+\begin{figure}[hbt!]
+\centering
+\includegraphics[width=\columnwidth]{ral_dynamic_double_gyre_convergence.png}
+\caption{Convergence of the cluster to a moving saddle point in a time-dependent double gyre flow.}
+\label{fig:dynamic_gyre}
+\end{figure}
+
+\section{Classification and Morphing Fields}
+% To be populated with Experiment C results
+
+\end{document}
