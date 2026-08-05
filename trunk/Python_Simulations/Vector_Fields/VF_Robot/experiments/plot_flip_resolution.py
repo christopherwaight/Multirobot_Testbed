@@ -94,11 +94,11 @@ def main():
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.45, 4.0))
 
-    _panel(ax1, xs_uv, success_uv, straddle_uv, r"$\sigma_{uv}$ (m/s)",
+    _panel(ax1, xs_uv, success_uv, straddle_uv, r"$\sigma_{uv}$",
           "(a) vs. measurement noise, $\\sigma_p = 0$", (0.0008, 0.0082))
     ax1.legend(loc="upper right", fontsize=7, frameon=False)
 
-    _panel(ax2, xs_p, success_p, straddle_p, r"$\sigma_p$ (m)",
+    _panel(ax2, xs_p, success_p, straddle_p, r"$\sigma_p$",
           "(b) vs. position noise, $\\sigma_{uv} = 0$", (0.0002, 0.0052))
 
     fig.tight_layout()

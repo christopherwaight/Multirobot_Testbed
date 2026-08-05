@@ -481,7 +481,8 @@ def _det_hessian(theta_u, theta_v):
     return np.array([[D_xx, D_xy], [D_xy, D_yy]])
 
 
-def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
+def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025,
+                            guard='sign'):
     """
     Logic C: flow-projected-on-trench selector for vector fields.
 
@@ -498,6 +499,42 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
         v_max:    per-direction saturation speed (m/s)
         eps_raw:  raw det(J) threshold for the FLOW band
         eps_dim:  dimensionless det(J)/||H_det||_F threshold for FLOW band
+        guard:    'sign' (default, unchanged from every published number).
+                  'transverse' is an EXPERIMENTAL, NOT WORKING alternative
+                  -- see revision/items.yaml B1 before touching it again.
+                  The degenerate-frame guard below tests lam[0]*lam[1] >= 0,
+                  i.e. whether the fitted H_det is indefinite -- a genuine
+                  saddle of det(J) has one positive and one negative
+                  eigenvalue. On the double-gyre benchmark the TRUE H_det is
+                  positive definite over the outer half of each separatrix
+                  segment (|y| > 0.25), so this guard's hypothesis and
+                  Theorem 1's exact-estimate hypothesis are mutually
+                  exclusive there; the law only traverses because the
+                  FITTED H_det is traceless (a finite-radius truncation
+                  artifact, Section sensitivity) and therefore artificially
+                  indefinite. 'transverse' attempted to replace the sign
+                  test with a test on which eigenvector is transverse to the
+                  trench (larger |grad(D) . w|, independent of eigenvalue
+                  sign) so the law's hypothesis would hold everywhere on the
+                  benchmark rather than only where truncation fakes
+                  indefiniteness. Checked against the clean six-start
+                  benchmark 2026-08-04: 0 of 6 traverse under 'transverse',
+                  against 6 of 6 under 'sign' with the closest-approach
+                  values matching the published 0.0003-0.0194 range exactly.
+                  Fixing the magnitude-vs-sign bug in the restoring term
+                  (r_perp) did not resolve it, meaning at least one more
+                  sign/role assumption elsewhere in this function (likely
+                  the tangent-side v_neg sign-stabilization or the SLIDE/
+                  ATTRACT split) still implicitly depends on i_pos carrying
+                  the positive eigenvalue. This needs a fuller re-derivation
+                  than a same-session patch. Resolution adopted instead:
+                  keep this guard exactly as published, and qualify Theorem
+                  1's statement in the text (state it for the class of
+                  fields where Sigma is concave along Gamma, note the double
+                  gyre is not in that class for D over |y| > 0.25, and
+                  reframe Section disc_clean's traversal as "what the fitted
+                  law does" rather than "what Theorem 1 predicts") -- v1's
+                  own documented fallback for exactly this outcome.
 
     Returns:
         (vx_c, vy_c): centroid velocity command
@@ -532,11 +569,37 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
                 'lam1': float(lam_d[0]), 'lam2': float(lam_d[1]),
             })
 
+    def _roles(lam, V):
+        """
+        Identify which eigenvector of H_det is transverse to the trench and
+        which is tangent. 'sign' (default): transverse = the eigenvalue of
+        each sign, so callers use lam[i]'s own sign to distinguish them, and
+        this function reports None to signal "use the old sign-based path."
+        'transverse': grad(D) is normal to the D=0 level set wherever it is
+        nonzero, so identify transverse as the eigenvector with the LARGER
+        |grad(D) . w|, independent of eigenvalue sign -- consistent with the
+        benchmark's true geometry (H_det positive definite over the outer
+        half of each segment) rather than relying on the fitted Hessian's
+        truncation-induced indefiniteness. Degenerate only when the two
+        alignments are both negligible (grad(D) itself vanishes) or the
+        eigenframe is isotropic (lam[0] == lam[1]).
+        """
+        if guard == 'sign':
+            return None
+        proj = np.array([abs(float(grad_det @ V[:, 0])), abs(float(grad_det @ V[:, 1]))])
+        if np.max(proj) < eps or abs(lam[0] - lam[1]) < eps:
+            return 'degenerate'
+        i_trans = 0 if proj[0] > proj[1] else 1
+        i_tan = 1 - i_trans
+        return i_tan, i_trans
+
     if on_raw or on_dim:
         # FLOW step: follow local field along trench, snap perp to trench.
         f = np.array([theta_u[0], theta_v[0]])
         lam, V = np.linalg.eigh(H_det)
-        if lam[0] * lam[1] >= -eps or np.min(np.abs(lam)) < eps:
+        roles = _roles(lam, V)
+        if roles == 'degenerate' or (roles is None and (
+                lam[0] * lam[1] >= -eps or np.min(np.abs(lam)) < eps)):
             # Degenerate H_det: plain saturated flow step.
             _log('FLOW_DRIFT')
             n = np.linalg.norm(f)
@@ -544,12 +607,23 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
                 return 0.0, 0.0
             scale = v_max * np.tanh(n / v_max) / n
             return float(f[0] * scale), float(f[1] * scale)
-        i_neg = 0 if lam[0] < lam[1] else 1
-        i_pos = 1 - i_neg
+        if roles is None:
+            i_neg = 0 if lam[0] < lam[1] else 1
+            i_pos = 1 - i_neg
+            lam_pos_restore = lam[i_pos]  # always positive: 'sign' guard
+                                          # already required lam[0]*lam[1]<0
+        else:
+            i_neg, i_pos = roles  # tangent, transverse
+            # Transverse identification is by grad(D) alignment, not sign,
+            # so lam[i_pos] can be negative here even though the transverse
+            # channel must always restore TOWARD the trench, never away from
+            # it. Use the magnitude, exactly as the s1 tracker's sign-free
+            # transverse channel does (Section sep_controller / eq. vpar).
+            lam_pos_restore = abs(lam[i_pos])
         v_neg = V[:, i_neg]
         v_pos = V[:, i_pos]
         c_along = float(f @ v_neg)
-        r_perp  = float(grad_det @ v_pos) / lam[i_pos]
+        r_perp  = float(grad_det @ v_pos) / lam_pos_restore
         c_perp  = -r_perp
         s_along = v_max * np.tanh(c_along / v_max)
         s_perp  = v_max * np.tanh(c_perp  / v_max)
@@ -559,8 +633,9 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
 
     # -- A/B selector ------------------------------------------------------
     lam, V = np.linalg.eigh(H_det)
+    roles = _roles(lam, V)
 
-    if lam[0] * lam[1] >= -eps:
+    if roles == 'degenerate' or (roles is None and lam[0] * lam[1] >= -eps):
         # Not a saddle of det(J): fall back to Logic A.
         _log('ATTRACT_FALLBACK')
         c0 = -(V[:, 0] @ grad_det) / (lam[0] if abs(lam[0]) > eps else eps)
@@ -569,7 +644,10 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025):
                  v_max * np.tanh(c1 / v_max) * V[:, 1])
         return float(delta[0]), float(delta[1])
 
-    i_neg = 0 if lam[0] < lam[1] else 1
+    if roles is None:
+        i_neg = 0 if lam[0] < lam[1] else 1
+    else:
+        i_neg = roles[0]  # tangent
     v_neg = V[:, i_neg]
 
     # Sign-stabilize v_neg so it points in the direction of decreasing det(J).
@@ -1224,8 +1302,13 @@ def oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
 # -----------------------------------------------------------------------
 
 
+GAMMA2 = 8.0 / np.sqrt(10.0)  # eq:gain_ladder noise gain on the mixed a4/b4-style coefficient
+
+
 def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
-                         r_band=0.05, g_capture=0.15, s_capture=None):
+                         r_band=0.05, g_capture=0.15, s_capture=None,
+                         override_seed=None, override_argmax=None,
+                         margin_gate=False, sigma_eff=None, rho=None):
     """
     Objective separatrix traverser (Primitive 11).
 
@@ -1335,6 +1418,33 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
         s_capture:  optional core-park threshold on s1 (PARK); None = rely
                     on CAPTURE at network minima and ride to the domain edge
                     otherwise
+        override_seed:    diagnostic only, default None (no effect on any
+                    existing call site). If given a (2,) array, replaces
+                    `flow` -- the CROSS-branch tangent seed -- with this
+                    value for this step only, e.g. the noise-free analytic
+                    flow, to isolate the seed channel's noise contribution
+                    from the argmax channel's (Draft_6a sec:disc_noise,
+                    the "supplying one channel at a time from noise-free
+                    values" clean-channel-injection experiment).
+        override_argmax:  diagnostic only, default None. If given a
+                    (grad_s1, e1, e2) tuple, replaces the fitted TRACK
+                    discriminator inputs with these values for this step
+                    only, e.g. the noise-free analytic ones, isolating the
+                    argmax channel's noise contribution from the seed's.
+        margin_gate:  default False, no effect on any existing call site.
+                    If True (with sigma_eff and rho given), TRACK holds
+                    the previous cycle's tangent identity rather than
+                    re-resolving argmax(|grad_s1.e1|, |grad_s1.e2|)
+                    whenever the two are closer than gamma_2*sigma_eff/rho^2
+                    (eq:gain_ladder's noise gain on the discriminating
+                    coefficient) -- the noise floor the tangent hop of
+                    Section disc_noise crosses. Requires a previous
+                    tangent to hold; falls through to ordinary argmax
+                    otherwise (ACQUIRE/CROSS/first TRACK step).
+        sigma_eff:  measurement-noise standard deviation feeding the
+                    margin threshold above (only used if margin_gate).
+        rho:        formation ring radius feeding the margin threshold
+                    above (only used if margin_gate).
 
     Returns:
         (vx_c, vy_c): centroid velocity command
@@ -1347,17 +1457,22 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
     s1, grad_s1, e1, e2, r = _strain_quantities(theta_u, theta_v)
     flow = np.array([theta_u[0], theta_v[0]])
 
+    if override_seed is not None:
+        flow = np.asarray(override_seed, dtype=float)
+    if override_argmax is not None:
+        grad_s1, e1, e2 = override_argmax
+
     banded = getattr(cluster, '_oecs_banded', False)
     if s1 < -s_trim and not banded:
         banded = True
         cluster._oecs_banded = True
 
-    def _log(mode):
+    def _log(mode, **extra):
         diag = getattr(cluster, 'diagnostics', None)
         if diag is not None:
-            diag.append({
-                'mode': mode, 's1': float(s1), 'r': float(r),
-            })
+            entry = {'mode': mode, 's1': float(s1), 'r': float(r)}
+            entry.update(extra)
+            diag.append(entry)
 
     def _descend_s1():
         # Vector saturation, NOT per-component (see Primitive 10's
@@ -1510,9 +1625,17 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
     # as it always did; the direction itself no longer depends on it.
     d1 = abs(float(grad_s1 @ e1))
     d2 = abs(float(grad_s1 @ e2))
-    t_raw = e1 if d1 > d2 else e2
-    sign_ref = prev_hat if prev_hat is not None else flow
-    t_hat = t_raw if float(t_raw @ sign_ref) >= 0 else -t_raw
+    margin_held = False
+    if (margin_gate and sigma_eff is not None and rho is not None
+            and prev_hat is not None):
+        threshold = GAMMA2 * sigma_eff / rho**2
+        if abs(d1 - d2) < threshold:
+            t_hat = prev_hat
+            margin_held = True
+    if not margin_held:
+        t_raw = e1 if d1 > d2 else e2
+        sign_ref = prev_hat if prev_hat is not None else flow
+        t_hat = t_raw if float(t_raw @ sign_ref) >= 0 else -t_raw
 
     # Transverse: descend s1 along the component of grad s1 orthogonal to
     # the tangent, not along a fixed eigenvector.  s1 is a genuine
@@ -1530,6 +1653,6 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
     step_tan = v_max * np.tanh(1.0) * t_hat
 
     cluster._oecs_prev_tangent = t_hat
-    _log('TRACK')
+    _log('TRACK', tangent_id=('e1' if d1 > d2 else 'e2'))
     delta = step_perp + step_tan
     return float(delta[0]), float(delta[1])
