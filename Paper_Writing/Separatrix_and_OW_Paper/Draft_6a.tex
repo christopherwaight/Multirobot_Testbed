@@ -9,6 +9,7 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}{Proposition}
 \newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
 \newtheorem{remark}{Remark}
 \hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
@@ -951,19 +952,23 @@ $c_{\max}\tanh(c/c_{\max})$, so the commanded centroid speed never
 exceeds $\sqrt{2}\,k\,c_{\max}$. The primitive command is amplified by a
 fixed navigation gain $k$ so that steady commands clear the stiction
 floor. Parameters are fixed across every experiment unless noted:
-double gyre, $c_{\max} = 0.04$ ($3.4$~m/s), $k = 3.0$,
+double gyre, $c_{\max} = 0.04$, $k = 3.0$,
 $v_{\text{max,robot}} = 0.3$, $v_{\text{stiction}} = 0.025$,
 $\alpha_{\text{mom}} = 0.7$, $\rho = 0.075$, $\varepsilon_{\text{raw}} =
 10^{-3}$, $\varepsilon_{\text{dim}} = 0.025$, $g_\perp = 1.0$,
 $s_{\mathrm{trim}} = 0.05$, $g_{\text{capture}} = 0.15$, $r_{\text{band}}
 = 0.05$; ocean, the same except $k = 1.8$, $v_{\text{stiction}} =
 0.002$, $\alpha_{\text{mom}} = 0$, $\rho = 0.105$ ($1.4\times$, $5.4$~km),
-and $s_{\mathrm{trim}} = 0.3$. The $3.4$~m/s figure for $c_{\max}$ is the
-per-channel saturation at the ocean's world scale, not the commanded
-cap: with $k = 1.8$, the actual bound on commanded centroid speed is
-$\sqrt{2}\,k\,c_{\max} \approx 8.7$~m/s, about 17~knots, an artifact of
-the gain choice that never binds at the realized speeds
-(under 1~m/s). The double-gyre
+and $s_{\mathrm{trim}} = 0.3$. The double-gyre column is
+non-dimensional. Converting the ocean column through the unit block of
+Section~\ref{sec:ocean_sim}, $c_{\max} = 0.04$ is $0.34$~m/s of
+per-channel saturation and, with $k = 1.8$ and the two channels
+orthogonal, the bound on commanded centroid speed is
+$\sqrt{2}\,k\,c_{\max} = 0.87$~m/s, about $1.7$~knots. That cap is not
+slack. The $D$ tracker's realized centroid speed touches it exactly
+($0.87$~m/s peak against a $0.71$~m/s mean) and the $s_1$ tracker holds
+$0.77$~m/s, $89\%$ of it, for the whole record
+(Section~\ref{sec:disc_ocean}). The double-gyre
 core wells have depth $s_1 = -\pi^2 A \approx -0.987$, well past
 $-4s_{\mathrm{trim}}$ for the values in the table.
 
@@ -1226,7 +1231,18 @@ tube $T_w = \{|n| \leq w\}$, where
     \qquad 0 < \underline{\kappa} \leq \kappa_\perp(\ell),
     \label{eq:normal_form}
 \end{equation}
-with vanishing cross terms. $\Gamma$ is taken invariant under the flow,
+with vanishing cross terms. The lower bound $\underline{\kappa} > 0$ is
+a real restriction on where $\Gamma$ may run, and it is the $s_1$
+tracker that pays it. For $\Sigma = s_1$ on the double gyre,
+(\ref{eq:s1_analytic_main}) gives $\kappa_{\perp} = \pi^4 A
+\lvert\cos \pi y_f\rvert$ along the separatrix, which is zero at
+$y = 0$, the isotropic point of $\mathbf{S}$ (Table~\ref{tab:bandwidth}
+prints $a_{\perp,s_1} = 0$ there). For $\Sigma = D$ the same segment
+carries $\kappa_\perp = 2\pi^6 A^2$, constant and positive, so the $D$
+law is unaffected. Accordingly $\Gamma$ is taken to omit a ball
+$B_\epsilon$ of radius $\epsilon$ about each isotropic point of
+$\mathbf{S}$, and Lemma~\ref{lem:transit} covers the omitted arcs.
+$\Gamma$ is taken invariant under the flow,
 with $\lVert\mathbf{v}\rVert \geq f_{\min} > 0$ outside balls of radius
 $r_0$ around the flow saddles, and $|h'(\ell)| \geq m_h > 0$ wherever
 the band test fails on $\Gamma$. The transverse gradient $\kappa_\perp
@@ -1356,6 +1372,60 @@ $\Gamma$, so it displaces the equilibrium of
 displacement between the fitted trench and the field's, and it is
 independent of $k$ and of the saturation.
 
+Neither (\ref{eq:n_dynamics}) nor (\ref{eq:iss_bound}) survives at an
+isotropic point, where $a_{\perp,s_1} = g_\perp\kappa_\perp$ vanishes and
+(\ref{eq:iss_bound}) divides by it. The excluded arcs are covered
+separately, and what carries the cluster across them is the ride.
+
+\begin{lemma}[Isotropic transit]
+\label{lem:transit}
+Let $\mathbf{p}^\circ$ be an isotropic point of $\mathbf{S}$ on the
+tracked network and $B_\epsilon$ the ball of radius $\epsilon$ about it
+excluded from $\Gamma$. Suppose the $s_1$ tracker enters $B_\epsilon$
+with $|n| \leq n_0$, its ride flag latched, under the same bounded
+disturbance $|d| \leq \delta$. Then it leaves $B_\epsilon$ within
+transit time
+\begin{equation}
+    T_\epsilon \;\leq\; \frac{2\epsilon}{k\,c_{\max}\tanh(1)},
+    \label{eq:transit_time}
+\end{equation}
+and throughout the transit
+\begin{equation}
+    |n(t)| \;\leq\; n_0 + \delta\,T_\epsilon
+    \;=\; n_0 + \frac{2\epsilon\,\delta}{k\,c_{\max}\tanh(1)}
+    \;=\; n_0 + O(\epsilon).
+    \label{eq:transit_growth}
+\end{equation}
+\end{lemma}
+
+\begin{IEEEproof}
+The tangential channel of (\ref{eq:oecs_law}) is
+$\beta c_{\max}\tanh(1)\mathbf{t}$ with $\beta = 1$ and
+$\lVert\mathbf{t}\rVert = 1$, and it contains no curvature, so it is
+unchanged as $\kappa_\perp \to 0$. The kinematic model
+(\ref{eq:kinematic_model}) then realizes position rate
+$k\,c_{\max}\tanh(1)$ along $\Gamma$, and a chord of $B_\epsilon$ has
+length at most $2\epsilon$, giving (\ref{eq:transit_time}).
+For the transverse channel, (\ref{eq:n_dynamics}) holds for every
+$a_\perp \geq 0$, and since $\tanh$ is odd and increasing,
+$n\tanh(a_\perp n/c_{\max}) \geq 0$, so the restoring term is
+non-positive in $\tfrac{d}{dt}\tfrac{1}{2}n^2$ at every $a_\perp$,
+degenerating to no contribution at $a_\perp = 0$ rather than changing
+sign. Hence $\tfrac{d}{dt}|n| \leq \delta$ inside $B_\epsilon$, and
+integrating over $T_\epsilon$ gives (\ref{eq:transit_growth}).
+\end{IEEEproof}
+
+The isotropic point removes the transverse restoring force, but it
+removes the transverse gradient with it, so nothing steers the cluster
+off the structure while it crosses and the ride carries it through at
+constant speed. Transit is $O(\epsilon)$ and the error it admits is
+$O(\epsilon)$ with it, so a trajectory leaving $B_\epsilon$ re-enters
+Theorem~\ref{thm:separatrix}'s hypotheses with an initial condition
+still inside $T_w$ for $\epsilon$ small enough, and the exponential
+argument resumes on the next segment. At $\delta = 0$ the bound
+conserves $|n|$ exactly, which is the noise-free crossing
+Section~\ref{sec:disc_clean} reports at the origin.
+
 A bandwidth limit sits underneath this, and the actuator changes it.
 Explicit Euler on (\ref{eq:kinematic_model}) alone would make the
 near-structure map $n \mapsto n(1 - \Delta t\,k\,a_\perp)$, monotone
@@ -1428,13 +1498,28 @@ step. That same first step carries a second, implicit hypothesis: the
 one-time seed $\mathbf{t}_{\text{ref}} = \hat{\mathbf{v}}_0$ at first
 contact is itself frame-dependent, and unlike the guard it is always
 consulted, so the bounded-residue claim additionally requires the seed's
-resolved sign to agree across frames,
+resolved sign to agree across frames. What the frame adds to the seed is
+the transport velocity $\dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}$, and
+what decides the sign is the projection on
+$\mathbf{t}_{\text{raw}}$, so the condition is a comparison of
+projections,
 \begin{equation}
-    \Omega\,\lVert\mathbf{p}_{\text{seed}}\rVert \;<\; \lvert\hat{\mathbf{v}}_0^\top\mathbf{t}_{\text{raw}}\rvert,
+    \lvert(\dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}_{\text{seed}})^\top
+    \mathbf{t}_{\text{raw}}\rvert
+    \;<\; \lvert\hat{\mathbf{v}}_0^\top\mathbf{t}_{\text{raw}}\rvert,
     \label{eq:seed_cond}
 \end{equation}
 at the seed point $\mathbf{p}_{\text{seed}}$; if it fails the two paths
-are not close, they commit to opposite branches.
+are not close, they commit to opposite branches. Bounding the left side
+by $\Omega\lVert\mathbf{p}_{\text{seed}}\rVert$ gives the sufficient
+corollary
+\begin{equation}
+    \Omega\,\lVert\mathbf{p}_{\text{seed}}\rVert
+    \;<\; \lvert\hat{\mathbf{v}}_0^\top\mathbf{t}_{\text{raw}}\rvert,
+    \label{eq:seed_cond_suff}
+\end{equation}
+which is the version a team can check without resolving the tangent
+first.
 \end{proposition}
 
 \begin{IEEEproof}
@@ -1461,13 +1546,27 @@ measured flow, carrying
 $\dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}_Q$ with no inertial
 counterpart, and is reachable only on the first tracking step, before
 continuity takes over. The same first step is where
-(\ref{eq:seed_cond}) is tested: at the objectivity experiment's start
-$(0.05, 0.40)$ with $\Omega = 0.2$, $\Omega\lVert\mathbf{p}_{\text{seed}}\rVert
-= 0.081$ against $\lvert\hat{\mathbf{v}}_0^\top\mathbf{t}_{\text{raw}}\rvert
-= 0.107$, a margin of $1.3\times$. The sign survives here, but not
-comfortably; solving (\ref{eq:seed_cond}) for the critical rate at this
-point gives $\Omega \approx 0.265$, so a $33\%$ faster carousel would
-flip the seed at this exact start.
+(\ref{eq:seed_cond}) is tested. At the objectivity experiment's start
+$(0.05, 0.40)$ with $\Omega = 0.2$ the shear strain vanishes
+identically, so the eigenvectors are the coordinate axes and the argmax
+of (\ref{eq:tangent_select}) returns $\mathbf{t}_{\text{raw}} =
+\hat{\mathbf{e}}_y$ ($\lvert\nabla s_1 \cdot \hat{\mathbf{e}}_y\rvert =
+0.946$ against $0.461$ for $\hat{\mathbf{e}}_x$), giving
+$\lvert\hat{\mathbf{v}}_0^\top\mathbf{t}_{\text{raw}}\rvert = 0.096$.
+The transport velocity is
+$\dot{\mathbf{Q}}\mathbf{Q}^\top\mathbf{p}_{\text{seed}} = \Omega(-y,
+x)^\top = (-0.080, 0.010)^\top$, nearly orthogonal to
+$\mathbf{t}_{\text{raw}}$, so the left side of (\ref{eq:seed_cond}) is
+$0.010$ and the margin is $9.6\times$; the critical rate is
+$\Omega \approx 1.92$, an order of magnitude above the rate run. The
+sufficient form (\ref{eq:seed_cond_suff}) is much more conservative at
+the same point, $\Omega\lVert\mathbf{p}_{\text{seed}}\rVert = 0.081$
+against the same $0.096$, a margin of $1.19\times$ and a critical rate
+of $\Omega \approx 0.238$. The gap between the two is geometric rather
+than numerical. The sharp margin depends on where the rotation center
+sits relative to the seed, growing as the seed's position vector aligns
+with $\mathbf{t}_{\text{raw}}$, as it nearly does here, and collapsing
+onto (\ref{eq:seed_cond_suff}) when the two are orthogonal.
 \end{IEEEproof}
 
 The $D$ tracker admits no counterpart, since its surrogate carries the
@@ -1522,10 +1621,23 @@ against prior work on this record; no controlled head-to-head against
 inside the field evaluator. World coordinates on $[-0.65, 0.65]^2$ map
 affinely onto a region centered on
 $(34.2^{\circ}\mathrm{N}, -120.4^{\circ}\mathrm{W})$ spanning
-$\pm 0.300^{\circ}$ of latitude and $\pm 0.363^{\circ}$ of longitude, so one world
-unit is $51.4$~km on both axes, and one simulated
-step represents $600$~s of field time. The $168$-step trial spans the
-full record. The FTLE fields used for evaluation are computed from
+$\pm 0.300^{\circ}$ of latitude and $\pm 0.363^{\circ}$ of longitude. The
+$168$-step trial spans the full record.
+
+Every physical number reported for this field comes from one unit block.
+The length unit is $L_w = 51.4$~km on both axes. The time unit is
+$6000$~s. The control period is $\Delta t = 0.1$ time units, so one
+simulated step advances the field by $600$~s and the $168$-step trial
+covers the $28$-h record. The two together fix the derived units: one
+world unit of velocity is $L_w/6000\,\mathrm{s} = 8.56$~m/s, and one
+world unit of strain rate, vorticity, or any other Jacobian entry is
+$1/6000\,\mathrm{s} = 1.67 \times 10^{-4}$~s$^{-1}$. The saturation
+$c_{\max} = 0.04$ is therefore $0.34$~m/s and the commanded-speed cap
+$\sqrt{2}\,k\,c_{\max}$ is $0.87$~m/s. Because
+$\alpha_{\text{mom}} = 0$ here, the discrete bound of
+Section~\ref{sec:stability} is the tighter $\Delta t\,k\,a_\perp < 2$,
+which at $\Delta t = 0.1$ and $k = 1.8$ admits transverse rates up to
+$a_\perp = 11.1$ in these units. The FTLE fields used for evaluation are computed from
 subwindows of this same record, at two horizons. The 24-h field of
 Fig.~\ref{fig:ocean_ftle} integrates the first 25 frames, 08:00 GMT
 May 16 to 08:00 GMT May 17. The four-anchor persistence check
@@ -1550,8 +1662,10 @@ than under four. At one control cycle per ten minutes any vessel time
 constant is negligible, so $\alpha_{\text{mom}} = 0$, and the stiction
 floor drops to $0.002$, a motor-friction floor with no vessel-scale
 analogue. The navigation gain $k = 1.8$ follows the ridge branch that
-makes landfall on the middle island, at a realized mean speed near
-$0.5$~m/s, well inside the commanded cap. No noise level is estimated
+makes landfall on the middle island, at realized mean speeds of
+$0.71$~m/s for the $D$ tracker and $0.77$~m/s for the $s_1$ tracker
+against the $0.87$~m/s cap, so the cap is close to binding throughout
+and the $D$ tracker reaches it. No noise level is estimated
 for this field. The exactly-determined six-robot fit leaves no residual
 to estimate $\sigma_{uv}$ from, and quantifying the uncertainty in
 actual ocean data and its impact on the proposed tracking strategy is,
@@ -2153,9 +2267,14 @@ $(34.41^{\circ}\mathrm{N}, -120.39^{\circ}\mathrm{W})$, at the operating
 point given above. The $s_1$ tracker's depth condition
 latched at the very first step and stayed latched for the entire
 168-step run, so the ride, not gradient descent on an unlatched field, is
-what the record reports; its realized speed stays within
-0.772--0.775~m/s of the pinned constant $k\,c_{\max}\tanh(1)$, consistent
-with $\beta = 1$ throughout. Over the 28~h trial both descend through
+what the record reports. Its tangential channel holds the pinned
+constant $k\,c_{\max}\tanh(1) = 0.470$~m/s identically, consistent with
+$\beta = 1$ throughout, and the transverse channel runs saturated at
+$k\,c_{\max} = 0.617$~m/s on 98.8\% of steps, the two being orthogonal
+by construction in (\ref{eq:oecs_law}). The realized centroid speed is
+their resultant, 0.772~m/s mean and 0.775~m/s peak, or 89\% of the
+$\sqrt{2}\,k\,c_{\max}$ cap, so this run spends the record near the
+edge of its authority rather than inside it. Over the 28~h trial both descend through
 the channel entrance and track the same ridge through the bifurcation,
 their paths overlapping for nearly the entire record, and they separate
 only in the final stretch, where the $D$ tracker continues to landfall on
@@ -2315,8 +2434,11 @@ tracker instead followed a frame artifact, with a gap of 1.219.
 The estimator, not the control law, sets the $D$ tracker's noise
 ceiling: its failure cliff falls within $5\%$ of the point where the
 estimator's gradient stops being reliable. The $s_1$ tracker's ceiling
-is set earlier, by the reliability of its one-time flow-seeded tangent
-sign.
+is set earlier, and by its law rather than by its estimator. It is set
+by the eigenvector comparison that selects the tangent axis, which
+weighs a coefficient whose true value is zero on the structure against
+one that vanishes where the ride ends. The flow-seeded sign survives
+that comparison intact and is laundered through it.
 
 On real Santa Barbara Channel currents, both trackers followed the same
 dominant ridge for 28 hours. The $D$ tracker reached a landfall
