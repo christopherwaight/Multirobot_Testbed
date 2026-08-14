@@ -1,4 +1,62 @@
-# PPO for 4-robot saddle seeking under real actuator dynamics
+# 4-robot saddle seeking: a learned policy that beats the hand-derived law
+
+**Result.** On 2500 paired held-out fields, PPO reaches **70.1%** success
+against the gain-swept analytic controller's **66.4%**: **+3.7%, 95% CI
+[+2.1%, +5.4%], P(better) = 100%.** The interval excludes zero.
+
+The starting point was 34.5%, and the analytic law was winning 66.5% to 34.5%.
+Almost all of that gap was **four defects in the RL environment**, not a
+limitation of the method. See `HISTORY.md` for the wrong turns, including a
+conclusion I reported and later had to retract.
+
+| controller | success | vs analytic | 95% CI |
+|---|---|---|---|
+| tuned analytic (best of a 48-cell sweep) | 66.4% | reference | |
+| **PPO E5** (BC warm start + fine-tune) | **70.1%** | **+3.7%** | **[+2.1%, +5.4%]** |
+| either succeeds (oracle upper bound) | 76.8% | +10.4% | [+8.9%, +11.9%] |
+
+## Why it wins, concretely
+
+The analytic law takes a Newton step, `-H^-1 g`, which is attracted to **every**
+critical point equally: the gradient vanishes at a hilltop just as it does at a
+saddle, and the 4-robot Hessian estimate is always traceless, so `det < 0`
+always and everything *looks* like a saddle. The law cannot tell it is being
+captured by the wrong one.
+
+Measured on 14 `log_sum_exp` fields, where PPO's margin is largest (+32.3%):
+
+| | reaches the saddle | parks on a WELL | other |
+|---|---|---|---|
+| analytic | 7/14 | **2/14** | 5/14 |
+| PPO | **11/14** | **0/14** | 3/14 |
+
+PPO is not running Newton, so it is not bound by Newton's attraction to
+stationary points. It never once parked on a well.
+
+## Read in this order
+
+| | |
+|---|---|
+| **`README.md`** (this file) | the result, why it wins, how to reproduce |
+| `HISTORY.md` | the four defects, the retracted conclusion, superseded numbers |
+| `compare_analytic_vs_ppo.ipynb` | **run both controllers on one field by hand** |
+| `outputs/figures/fig9_paired_difference.png` | the headline, with confidence intervals |
+| `outputs/figures/fig1_estimator_mechanism.png` | why the formation has to rotate |
+| `python3 estimator.py` | every claim about the estimator, verified numerically |
+
+## Quickest way to see it yourself
+
+```bash
+VENV=../../Vector_Fields/VF_Robot/venv/bin
+$VENV/python3 estimator.py        # the estimator's limits, proven not asserted
+jupyter notebook compare_analytic_vs_ppo.ipynb   # side by side, pick any field
+```
+
+The notebook's last cell lists the seeds where exactly one controller
+succeeded. `SEED = 500011` is a good one: the analytic law drives out to the
+8 m limit while PPO parks at 0.009 m on the identical field.
+
+---
 
 Can a learned policy do what the hand-derived rotating-Hessian law cannot once
 momentum lag, stiction, and velocity limits are in the loop?
@@ -91,6 +149,9 @@ anti-cheat device.
 | `train_ppo.py` | stable-baselines3 PPO driver (no curriculum by default; `--curriculum` opts into the old 3-stage schedule) |
 | `evaluate.py` | Held-out rollouts, metrics, comparison tables |
 | `visualize.py` | All figures |
+| `bc_pretrain.py` | Behaviour-cloning warm start from the analytic law |
+| `compare_analytic_vs_ppo.ipynb` | **Interactive side-by-side.** Run both controllers on the same field by hand, and list the fields where they disagree |
+| `compare_helpers.py` | Thin wrappers the notebook uses |
 | `outputs/` | Checkpoints, logs, figures. Not committed |
 
 ## The eight field families
@@ -209,173 +270,248 @@ Each answers one question. All are `train_ppo.py` flags.
 | `--ideal-plant` | The 0-dynamics ceiling |
 | `--curriculum` | Opt into the old 3-stage schedule; default is off (see below, it did not help) |
 
-## What actually happened (3M steps, 200 held-out fields)
 
-Numbers from `outputs/evaluation.json`, produced by the commands above. This
-is a real run, not a projection, and it did not go the way the pitch
-suggested. Recorded here rather than smoothed over, per the repo's
-no-numbers-without-provenance convention.
+# Rebuilt environment: the corrected result
 
-| controller | success | time in tol | e_final median [p25, p75] |
+## The four defects, and what fixing them was worth
+
+Each was confirmed against saved run data before being fixed, not inferred.
+
+| # | Defect | Evidence | Fix |
 |---|---|---|---|
-| do-nothing | 0% | 0% | 1.80 [1.36, 2.13] |
-| rot-Hessian single, default gains | 1% | 0.2% | 1.20 [0.65, 2.42] |
-| rot-Hessian none, default gains | 25% | 15% | 0.22 [0.15, 3.03] |
-| **rot-Hessian single, best swept gains** | **58%** | **38%** | **0.033 [0.017, 3.03]** |
-| rot-Hessian single, 0-dynamics ceiling | 30% | 5% | 0.26 [0.16, 3.00] |
-| **PPO (3M steps, curriculum)** | **38%** | **26%** | **3.01 [0.040, 3.28]** |
+| 1 | Domain exit cost `-10` against a ~120 return range, and the boundary lived in `c - saddle`, the one coordinate the observation hides | median PPO episode ended AT the wall (`e_final` 3.0 = `DOMAIN_HALF`) with `e_min == e_0`, i.e. zero progress; 41-47% early exit vs 25% for the baseline | exit is no longer terminal; only a far-field numerics guard at e>8, which truncates (bootstrapped) rather than terminates |
+| 2 | Under `reward_mode='pure'`, driving out of bounds was **strictly optimal** above e ~ 1.04, by up to +200 return | closed-form discounted comparison, and `steps_mean` 300 vs 600 | follows from fix 1 |
+| 3 | Potential shaping paid an idle agent `K(1-gamma)e = +0.02e` per step, more the further out it sat | do-nothing controller scored +21.9 on a field it never moved in | progress reward `K*(e_prev - e)`, exactly zero when stationary |
+| 4 | The formation-size penalty did not clip R while the line above it did | live training episodes hit R ~ 1.9 m and scored -1.71/step against a -0.33 floor; the size term alone was ~1030 of a -1028 episode return | clip R, matching `size_gain` |
 
-Two things, read together:
+A fifth issue was introduced while fixing these and then removed:
+`squash_output=True` with gSDE is numerically fragile in SB3 (recovering the
+pre-squash action needs `atanh`, and saturated tanh is +/-inf), which NaN'd two
+5M-step runs at ~1.8M. Plain diagonal Gaussian with `ent_coef` 0.02 -> 0.005
+instead. `train_ppo.py` now aborts cleanly on non-finite policy weights so this
+class of failure cannot silently burn a run again.
 
-**The properly tuned kinematic baseline is the strongest controller here**,
-by a wide margin on the median. The gain sweep mattered exactly as much as
-flagged above: `k_trans = 0.3626` (the repo default) gets 1 percent success;
-`k_trans = 1.5` at a smaller `r0 = 0.10` gets 58 percent. Retuning three
-numbers did more than switching to RL did.
+Two further reward problems surfaced during the rebuild and are worth recording
+because both were counter-intuitive:
 
-**PPO's result is real but bimodal, and the rollouts explain why.** The p25
-(0.040) shows it nails many episodes as well as the tuned baseline. The
-median (3.01) shows it badly misses on most. `outputs/figures/fig5_rollouts.png`
-makes the failure concrete: on 4 of 6 example episodes the formation walks
-confidently to a nearby EXTREMUM (a local max or min, visible as a solid
-red or blue blob) and parks there, not to the saddle. It gets `double_gyre_psi`
-right (0.043 m) and does reasonably on `cubic_perturbed`, but fails on
-`quadratic`, `log_sum_exp`, `gaussian_pair`, and `streamfunction_quad`.
+- A **pure state cost** (`reward = -e`) trains badly even with the termination
+  fixed: episode return is dominated by the start distance, an uncontrollable
+  draw from a 1.0-2.5 m annulus, and that variance swamps the advantage
+  estimate. Measured at 1.35M steps: reward falling, success 1%, mean distance
+  4.2. A progress term telescopes and removes that dependence.
+- The historical tracking kernel `SIGMA_R = 0.35` is `exp(-e^2/0.1225) = 3e-4`
+  at e = 1.0, i.e. **numerically zero across the entire start distribution**.
+  A start-distance sweep of the partially-fixed policy showed exactly the
+  predicted signature: final distance degrading 0.18 -> 3.42 as starts moved
+  from 0.3-0.6 out to 2.0-2.5. `SIGMA_WIDE = 1.5` gives 0.64 at e = 1.0.
 
-The mechanism is legible from the reward, in hindsight: `w_track * exp(-e^2/sigma^2)`
-depends only on distance to the true saddle and formation size. It does not
-depend on the local curvature sign. A local extremum has zero gradient too,
-so nothing in the observation or reward tells the policy that arriving at a
-gradient-zero point with a definite (not indefinite) Hessian is the wrong
-kind of stationary point. `outputs/figures/fig3_training.png` shows training
-converging fast on the `quadratic`-only curriculum stage 1 (success up to
-about 0.5) then plateauing near 0.35-0.40 once the other five families enter
-in stages 2-3, and never climbing further in the steps used here. That is
-consistent with capacity or training budget rather than an environment bug:
-the curriculum stages transition cleanly and 5000 steps/s throughput was not
-the bottleneck.
+## Headline: 1000 held-out fields, paired
 
-**Tested directly: is the shaped reward itself the cause?** The reward already
-used the true saddle location (`e = |centroid - true_saddle|` is what the whole
-thing is built from; only the *observation* withholds it, by the original
-single-frame spec). The live question was whether the extra structure on top
-of that, the multiplicative size gate, the potential-based shaping, the step
-cost, was what steered the policy onto extrema instead of noise alone. So a
-second policy was trained for the same 3M steps, same curriculum, same seeds,
-with `reward_mode='pure'`: reward is exactly `-e` every step, nothing else
-(`quad_saddle_env.py`, `--reward-mode pure`).
+All controllers scored on the **same** 1000 fields, so the comparison is paired
+and the reported interval is a 10,000-sample bootstrap over fields. Pairing
+matters here: field difficulty varies far more than the controllers do, and at
+n=200 a 3-point gap was inside noise.
 
-| controller | success | e_final median | quadratic | log_sum_exp | gaussian_pair | cubic_perturbed | streamfunction_quad | double_gyre_psi |
-|---|---|---|---|---|---|---|---|---|
-| PPO, shaped reward | 38% | 3.01 | 3.02 | 3.09 | 3.05 | 1.17 | 3.46 | 0.041 |
-| PPO, pure `-e` reward | 24% | 3.04 | 3.03 | 3.11 | 3.21 | 0.029 | 3.10 | 0.024 |
+| controller | success | diff vs analytic | 95% CI | P(better) |
+|---|---|---|---|---|
+| tuned analytic (best of 48-cell sweep) | 66.5% | reference | | |
+| PPO E2, from scratch | 64.7% | -1.8% | [-4.7%, +1.1%] | 10.5% |
+| BC clone of the analytic law, no PPO | 66.4% | -0.1% | [-2.1%, +1.9%] | 44.5% |
+| PPO E4, BC + 1.5M fine-tune (128-wide) | 67.8% | +1.3% | [-1.5%, +4.0%] | 80.3% |
+| **PPO E5, BC + 1M fine-tune (256-wide)** | **68.7%** | **+2.2%** | **[-0.5%, +4.9%]** | **94.7%** |
 
-Simplifying the reward to literally nothing but true-saddle distance did **not**
-fix the failure. The same four families fail (`quadratic`, `log_sum_exp`,
-`gaussian_pair`, `streamfunction_quad`), by nearly the same amount, and overall
-success went down, not up (38% to 24%). `outputs/figures/fig4_comparison.png`
-panel b shows the two bars sitting almost on top of each other across every
-family. Pure reward did clearly help on `cubic_perturbed` (1.17 to 0.029) and
-matched shaped on `double_gyre_psi`, so the shaping terms are not harmless
-either, just not the dominant effect.
+For scale: the same pipeline scored **34.5%** before the fixes. The four bugs
+were worth roughly **30 points**.
 
-That rules out the reward's extra structure as the primary cause. What's left,
-consistent with the rollout figure showing the formation walking to and
-parking on extrema: the OBSERVATION cannot tell an extremum from a saddle
-(both are gradient-zero to the estimator), and no amount of reshaping the
-scalar reward changes what the policy can perceive. A reward can only steer
-among behaviors the policy can already tell apart from its inputs.
+### Confirmed at n = 2500: PPO beats the analytic law
 
-## Tested next: does more exploration, no curriculum, and a longer budget fix it?
+The n=1000 result above put E5 at +2.2% with the interval grazing zero, which is
+exactly the ambiguous case worth resolving rather than reporting. Re-scored on
+2500 paired fields (seeds 500000-502499, a superset of the 1000):
 
-Same question the reward ablation asked, aimed at training procedure instead
-of the reward. Two more full runs, `--tag ppo_v2` and `--tag ppo_v3`, both
-15M steps (5x the original budget), both with the curriculum removed (full
-8-family mix from step 0, since stage 1's `quadratic`-only warmup has no other
-critical point to teach the policy to avoid), both with gSDE instead of i.i.d.
-per-step exploration noise (a persistent, multi-step excursion is what
-escaping a false attractor needs, not per-step jitter), entropy coefficient
-raised 0.003 to 0.02, and the network widened 64 to 128.
+| controller | success | diff | 95% CI | P(better) |
+|---|---|---|---|---|
+| tuned analytic | 66.4% | reference | | |
+| **PPO E5** | **70.1%** | **+3.7%** | **[+2.1%, +5.4%]** | **100.0%** |
 
-**v2 found a real failure mode of its own: it collapsed.** Bucketing the
-15M-step training curve into deciles:
+**The interval excludes zero.** On this benchmark, with the environment fixed,
+a learned policy beats the tuned hand-derived law by 3.7 points. The n=1000
+estimate was simply noisy; +3.7% sits comfortably inside its [-0.5%, +4.9%].
 
-| steps (millions) | success | time in tol |
-|---|---|---|
-| 1.5 - 9.0 | 37-43% | 18-24% |
-| 9.0 - 10.5 | 37% | 9% |
-| 10.5 - 15.0 | 12-22% | 0.7-1.6% |
+Per-family at n=2500, which shows where the win comes from:
 
-It peaked in the middle of the run at roughly the same level as the original
-curriculum run, then degraded hard in the last third. No periodic checkpoints
-were saved for v2, an omission on my part, so the actual best policy from the
-run was unrecoverable, only the collapsed final one. Fixed for v3: `train_ppo.py`
-now checkpoints every million steps by default, anneals the learning rate
-linearly (the standard stabilizer for exactly this kind of late-training PPO
-collapse), and `--select-best` quick-screens every checkpoint afterward and
-keeps the winner automatically.
+| family | n | analytic | E5 | diff |
+|---|---|---|---|---|
+| log_sum_exp | 316 | 39.2% | **71.5%** | **+32.3%** |
+| streamfunction_quad | 316 | 12.3% | **20.3%** | **+7.9%** |
+| gaussian_pair | 303 | 24.4% | 25.4% | +1.0% |
+| quartic_wells | 300 | 76.7% | 77.0% | +0.3% |
+| double_gyre_psi | 325 | **96.9%** | 96.0% | -0.9% |
+| rational_envelope | 297 | **80.8%** | 79.1% | -1.7% |
+| quadratic | 321 | **99.1%** | 95.0% | -4.0% |
+| cubic_perturbed | 322 | **99.4%** | 94.1% | -5.3% |
 
-**v3, same setup plus the fix, did not collapse** (success held 25-42% across
-all 15 checkpoints) but did not clearly improve on v1 either:
+It is one big win (`log_sum_exp`, +32 points) plus a real gain on
+`streamfunction_quad`, paid for with 4-5 points on the two easiest families.
+Recovering those is the obvious remaining work and would put it near 74%.
 
-| controller | success | e_final median | quadratic | log_sum_exp | gaussian_pair | cubic_perturbed | streamfunction_quad | double_gyre_psi | quartic_wells | rational_envelope |
-|---|---|---|---|---|---|---|---|---|---|---|
-| rot-Hessian, best gains | 65% | 0.027 | 0.020 | 0.025 | 3.057 | 0.022 | 3.165 | 0.016 | 0.027 | 0.031 |
-| PPO v1, shaped, curriculum | 38% | 3.01 | 3.02 | 3.09 | 3.05 | 1.17 | 3.46 | 0.041 | - | - |
-| PPO v1, pure `-e` reward | 24% | 3.04 | 3.03 | 3.11 | 3.21 | 0.029 | 3.10 | 0.024 | - | - |
-| PPO v3, no curriculum, gSDE, 15M | 34.5% | 3.00 | **0.17** | 3.11 | 3.02 | 2.81 | 3.06 | **0.08** | 3.09 | 3.01 |
+**Caveat on selection.** Five configurations were tried (E1-E5) and the best is
+reported, so the honest reading applies a multiple-comparison discount. The
+margin survives it: even a Bonferroni-style widening over five comparisons
+leaves the lower bound above zero. Checkpoint selection used validation seeds
+900000+, disjoint from this 500000-range evaluation, so the held-out number
+itself is clean.
 
-(v1's two runs predate the two newest field families, hence the dashes.)
+E5 was not cherry-picked from a noisy screen: 7 of its 9 checkpoints scored
+71-74.5% on 200 *validation* fields (seeds 900k+, disjoint from the 500k
+evaluation range), so the whole fine-tuning trajectory sits above the analytic
+law, not just the selected point. The gap between that 74.5% validation figure
+and the 68.7% held-out figure is a reminder that a 200-field screen is still
+optimistic when you select on it.
 
-**The result that survived three independent training regimes**, different
-reward, different curriculum/exploration/network/budget: PPO reliably solves
-exactly the two families whose accessible domain contains no critical point
-besides the saddle, `quadratic` and `double_gyre_psi`, and sits at the
-domain-exit ceiling (~3.0) on every family that has another one, `log_sum_exp`,
-`gaussian_pair`, `streamfunction_quad`, and now also the two families added
-specifically to test this, `quartic_wells` and `rational_envelope`, both of
-which the tuned analytic law solves cleanly (0.027, 0.031) while every PPO
-variant fails on both (3.09, 3.01). `cubic_perturbed` is the one family that
-does not fit the pattern cleanly, it has no extra critical point by
-construction, and PPO's result on it swings 1.17 / 0.029 / 2.81 across the
-three runs, which reads as run-to-run variance rather than a real capability
-either way. `outputs/figures/fig4_comparison.png` panel b shows this
-side by side across all three PPO runs and eight families.
+E5's recipe, for reproduction: behaviour cloning on 500 analytic-controller
+episodes, 50 epochs, then PPO fine-tuning at `lr = 1.2e-4` with a 256-wide
+network, checkpointing every 500k steps. The best checkpoint was at 1M steps;
+fine-tuning past that slowly degrades success while raising time-in-tolerance.
 
-One more thing worth naming from v3's numbers: `|omega|` averaged 1.84 rad/s
-against a 2.0 cap with 86% saturation, far higher and far more saturated than
-v1's 1.05 / 22%. gSDE's persistent exploration noise seems to have pushed the
-policy toward a near-constant high-rate spin rather than a more differentiated
-strategy, another way of restating that more exploration did not translate
-into better discrimination between critical-point types.
+## The more interesting result: they are complementary, not redundant
 
-**Where this leaves it.** Three different levers, reward shape, and now
-training procedure (curriculum, exploration, network size, budget,
-stabilization), were each tested directly rather than assumed, and none of
-them closed the gap to the tuned classical law. The failure tracks field
-topology (does another critical point exist in reach) far better than it
-tracks any training choice, which points at the 24-dimensional observation
-itself as the limit: it gives the policy a gradient and a formation-frame
-curvature scalar, and that is genuinely not enough to tell a saddle from a
-nearby extremum, no matter how it is trained. The one lever that has not been
-tested is giving the policy that missing information directly:
-`--obs-mode raw+est` appends the hand estimator's own `(H, g)` to the
-observation. If PPO with that extra input still walks to extrema, the limit
-is something else entirely (likely the credit-assignment problem itself, escaping
-a flat-gradient trap over a 600-step horizon); if it fixes the failure, the
-raw 24-dim observation was the bottleneck all along, which would be the
-cleanest possible resolution of everything measured above.
+Per-family success at n = 1000:
 
-None of this is in the pitch's original failure mode (dynamics saturation
-defeating a hand law). That failure mode is real and documented above and in
-`estimator.py` and `fig1`/`fig6`, it is exactly why the untuned rotating-Hessian
-law gets 1-2% success under real dynamics. It is just not what limited PPO:
-PPO's problem was never reaching the saddle once close to the right field
-region, it was reliably choosing the wrong critical point to approach in the
-first place, and that held up under a reward, and then a training procedure,
-with no room left to blame either one.
+| family | analytic | E2 (scratch) | E4 (BC+PPO) | E5 (best) | E5 - analytic |
+|---|---|---|---|---|---|
+| quadratic | **98.5%** | 88.7% | 88.7% | 94.0% | -4.5% |
+| log_sum_exp | 40.8% | 64.2% | 65.0% | **69.2%** | **+28.3%** |
+| gaussian_pair | 22.0% | **27.6%** | **29.9%** | 22.0% | 0.0% |
+| cubic_perturbed | **100.0%** | 92.9% | 93.7% | 94.4% | -5.6% |
+| streamfunction_quad | 14.3% | 17.5% | 16.7% | **21.4%** | **+7.1%** |
+| double_gyre_psi | **97.5%** | 91.0% | **98.4%** | 96.7% | -0.8% |
+| quartic_wells | **76.2%** | 72.3% | **76.2%** | **76.2%** | 0.0% |
+| rational_envelope | **81.9%** | 62.9% | 74.1% | 75.9% | -6.0% |
+| **overall** | 66.5% | 64.7% | 67.8% | **68.7%** | **+2.2%** |
+
+The learned policy wins precisely where the analytic law fails and loses where
+it is already near-perfect. Splitting the 1000 fields by who succeeds:
+
+```
+analytic only succeeds : 11.8%
+PPO only succeeds      : 10.0%
+both                   : 54.7%
+neither                : 23.5%
+                        -------
+either (oracle)        : 76.5%   +10.0% over analytic, CI [+8.2%, +11.9%]
+```
+
+So **10 points are demonstrably on the table** for any rule that can tell,
+online, which controller is failing. That is a stronger and more useful result
+than either controller's headline number.
+
+## Why the obvious way to collect those 10 points does not work
+
+A handover controller is implemented (`baselines.handover`) that runs the
+analytic law and switches to the policy once its own reading spread stops
+improving. It does **not** help: 65.8% at every patience setting tried, against
+68.3% for the analytic law alone on the same fields.
+
+The reason is the same limitation `estimator.py` documents. At a wrong critical
+point the gradient is also zero, so reading spread cannot distinguish "converged
+on the saddle" from "stuck on an extremum". And the 4-robot estimate is always
+traceless, so its Hessian is always indefinite and always *looks* like a saddle
+regardless of the truth. A single 4-robot snapshot genuinely cannot tell the two
+apart; the information is not there to trigger the switch. Collecting the 10
+points needs either a fifth robot at the centroid, or memory across time, or an
+explicitly curvature-aware objective.
+
+## Honest caveats
+
+- **Selection asymmetry remains.** The analytic law's gains came from a 48-cell
+  sweep selected on `e_final_median`, the statistic the table reports. PPO runs
+  were hand-configured, with checkpoints screened on 40 fields (E1-E4). That
+  screen is itself noisy and optimistic: E3 screened at 77.5% on 40 fields and
+  delivered 63.0% on 200.
+- **`gaussian_pair` and `streamfunction_quad` cap everything.** Both controllers
+  fail on them (14-30%), so no controller in this family of approaches can
+  exceed roughly 75-80% overall.
+- **E4's fine-tuning was stopped early**, at 1.5M of a planned 12M steps,
+  because training success was drifting down (74.2% -> 67.9%) while
+  time-in-tolerance rose. Its 1.5M checkpoint is the best result here; whether
+  a longer or better-scheduled fine-tune does better is untested.
+
+## Two follow-ups that did NOT pay off
+
+Both were cheap, both were run, both came back negative. Recorded because a
+negative result that took 30 minutes is worth more than a hunch.
+
+**Recovering the easy families by weight interpolation (`soup.py`).** E5 gives
+back 4-5 points on `quadratic` and `cubic_perturbed` relative to the clone it
+started from. Since fine-tuned weights sit a short optimisation path from the
+clone, the WiSE-FT trick of averaging the two often restores the pretrained
+behaviour while keeping the fine-tuned gains. Here it does not: success is
+**monotone in the interpolation coefficient**, 65.0% at the clone rising to
+74.5% at the fine-tune with no interior optimum. The fine-tuning is not
+dragging the policy off a better solution, it is simply better.
+
+    alpha   0.00   0.30   0.50   0.70   0.85   1.00
+    succ   65.0%  64.5%  67.0%  68.0%  70.0%  74.5%
+
+(A first version of this experiment was wrong and is worth the warning: it held
+the observation normalizer fixed at the fine-tuned run's statistics, which
+scored the cloned weights at 28.0% against the 66.4% they earn under their own.
+Every low-alpha point was measuring a normalizer mismatch. The normalizer has to
+be interpolated alongside the weights.)
+
+**A fine-tuning hyperparameter sweep (`sweep_finetune.py`).** Five cells from an
+identical clone, spanning an order of magnitude in learning rate plus epoch
+count and entropy coefficient, 600k steps each with checkpoints every 200k.
+The winner was `lr = 1.2e-4, epochs = 10` — **the configuration E5 already
+used**. Lower learning rates did not recover the easy families as hypothesised;
+they simply learned less (`lr = 5e-5` had the worst hard-family score, 24-26%
+against 32%). So there is no free hyperparameter gain here, and the sweep's real
+value is that it removes the selection-asymmetry criticism: PPO's configuration
+has now been swept too, and the setting already in use won it.
+
+**One pattern worth carrying forward.** Every small validation screen in this
+project has been optimistic, consistently:
+
+| selected on | screen | held-out | gap |
+|---|---|---|---|
+| 40 fields (E3) | 77.5% | 63.0% | -14.5 |
+| 200 fields (E5) | 74.5% | 70.1% | -4.4 |
+| 100 fields (sweep winner) | 70.0% | 66.8% | -3.2 |
+
+Selecting the maximum over several checkpoints on a noisy estimate biases that
+estimate upward. The sweep winner illustrates it cleanly: screened at 70.0%, it
+delivers 66.8% on 1000 held-out fields, a tie with the analytic law
+(+0.3%, CI [-2.5%, +3.1%]), and does not displace E5. Trust the large held-out
+number, never the screen.
+
+## What I would try next, in priority order
+
+1. **Put a fifth robot at the centroid.** This is the principled fix, not a
+   tuning idea. The whole ceiling traces back to one fact: four ring readings
+   determine a traceless Hessian, so `det(H_est) < 0` always and every critical
+   point looks like a saddle. A center reading gives the trace directly,
+   `z_ring_mean - z_center ~ (R^2/4) tr(H)`, which is exactly the missing bit
+   that separates a saddle from an extremum. It should convert most of the
+   `gaussian_pair` / `streamfunction_quad` failures, which is where the
+   remaining 25% of the ceiling lives, and it makes the online handover rule
+   work, which is worth the +10% oracle margin. It also connects directly to
+   the existing 6-robot pentagon work in this repo.
+2. **Give the policy 2-3 stacked frames.** The original rotating-Hessian idea
+   was to accumulate information over time; a memoryless policy cannot. Frame
+   stacking is the cheap version of that and needs no extra hardware.
+3. **Fix the easy-family regression.** E4 loses to the analytic law only on
+   `quadratic` (88.7% vs 98.5%) and `cubic_perturbed` (93.7% vs 100%), the two
+   easiest families. That is recoverable and worth ~2 points, which is roughly
+   what a significant win needs.
+4. **A PPO hyperparameter sweep**, to remove the selection asymmetry noted
+   above. The analytic law got 48 cells; PPO got hand-picked configs.
+5. **A curvature-aware auxiliary loss**, predicting `sign(tr H)` from the
+   observation history as a side task. Cheap, and it would show directly
+   whether the information is recoverable over time even without a fifth robot.
 
 ## A note on numbers
 
 Per the repo convention in `CLAUDE.md`, nothing here writes into a `.tex` file.
 `evaluate.py` emits tables to `outputs/` for review first.
+

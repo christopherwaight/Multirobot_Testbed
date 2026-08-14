@@ -350,8 +350,14 @@ def fig_comparison(path=os.path.join(OUT_DIR, "evaluation.json")):
     fams = [f for f in sf.FAMILY_NAMES
             if any(f in runs[k]["per_family"] for k in labels)]
     x = np.arange(len(fams))
-    show = [k for k in labels if ("PPO" in k or "0-dyn" in k
-                                  or "single (default)" in _short(k))][:3]
+    # The comparison that matters is the best analytic law against the best
+    # policies. Ordering by whatever happens to sort first pulled in the
+    # default-gain and 0-dynamics comparators instead, which are already
+    # covered in panel a.
+    best_analytic = [k for k in labels if "BEST gains" in k][:1]
+    ppo_runs = sorted([k for k in labels if "PPO" in k],
+                      key=lambda k: runs[k]["summary"]["e_final_median"])[:3]
+    show = best_analytic + ppo_runs
     w = 0.8 / max(len(show), 1)
     for i, k in enumerate(show):
         vals = [runs[k]["per_family"].get(f, {}).get("e_final_median", np.nan)
@@ -371,6 +377,103 @@ def fig_comparison(path=os.path.join(OUT_DIR, "evaluation.json")):
                  fontsize=12, fontweight="bold", y=1.02)
     fig.tight_layout()
     return _save(fig, "fig4_comparison.png")
+
+
+# --------------------------------------------------------------------------
+# 4b. Paired difference against the analytic law
+# --------------------------------------------------------------------------
+
+def fig_paired(path=os.path.join(OUT_DIR, "evaluation.json"), n_boot=10000):
+    """Forest plot of per-field success difference vs the analytic baseline.
+
+    Every controller is scored on identical fields, so the meaningful quantity
+    is the paired difference, not two independent rates.  Field difficulty
+    dominates the variance here; pairing removes it.
+    """
+    data = _load(path)
+    if not data:
+        print(f"  skipping paired plot, no {path}")
+        return None
+    runs = data["runs"]
+    ref_key = next((k for k in runs if "BEST gains" in k), None)
+    if ref_key is None or "per_episode" not in runs[ref_key]:
+        print("  skipping paired plot, no per-episode data")
+        return None
+    _style()
+    rng = np.random.default_rng(0)
+
+    # Align on SEED, not array position.  Runs were scored at different n
+    # (1000 vs 2500), and index-aligning would silently drop every run whose
+    # length differs from the reference.  Each comparison then uses whatever
+    # fields the two runs actually share.
+    ref_pe = runs[ref_key]["per_episode"]
+    ref_map = dict(zip(ref_pe["seed"], ref_pe["success"]))
+
+    def paired(v):
+        pe = v["per_episode"]
+        common = [(ref_map[s], ok) for s, ok in zip(pe["seed"], pe["success"])
+                  if s in ref_map]
+        if not common:
+            return None, None
+        a = np.array([c[0] for c in common], float)
+        b = np.array([c[1] for c in common], float)
+        return a, b
+
+    rows, n_used = [], 0
+    for k, v in runs.items():
+        if k == ref_key or "per_episode" not in v:
+            continue
+        a, s = paired(v)
+        if a is None:
+            continue
+        n_used = max(n_used, len(a))
+        d = s - a
+        idx = rng.integers(0, len(d), size=(n_boot, len(d)))
+        boot = d[idx].mean(axis=1)
+        rows.append((f"{k}  (n={len(d)})", d.mean(),
+                     *np.percentile(boot, [2.5, 97.5]),
+                     (boot > 0).mean(), s.mean()))
+    if not rows:
+        return None
+    # oracle: either controller succeeds, the upper bound on any switching rule
+    best_key = max((k for k in runs if k != ref_key and "per_episode" in runs[k]),
+                   key=lambda k: np.mean(runs[k]["per_episode"]["success"]))
+    a, s_best = paired(runs[best_key])
+    orc = np.maximum(a, s_best) - a
+    idx = rng.integers(0, len(orc), size=(n_boot, len(orc)))
+    bo = orc[idx].mean(axis=1)
+    rows.append(("ORACLE: either succeeds (upper bound)", orc.mean(),
+                 *np.percentile(bo, [2.5, 97.5]), (bo > 0).mean(),
+                 np.maximum(a, s_best).mean()))
+    ref = np.zeros(n_used)  # only used for the title's field count
+
+    rows.sort(key=lambda r: r[1])
+    fig, ax = plt.subplots(figsize=(11.5, 0.62 * len(rows) + 2.6))
+    for i, (k, mu, lo, hi, p, succ) in enumerate(rows):
+        oracle = k.startswith("ORACLE")
+        col = C[2] if oracle else (C[0] if mu > 0 else C[1])
+        ax.plot([lo, hi], [i, i], color=col, linewidth=6, alpha=0.35,
+                solid_capstyle="round")
+        ax.plot([mu], [i], marker="o", markersize=10, color=col,
+                markeredgecolor=SURFACE, markeredgewidth=1.5)
+        ax.text(hi + 0.004, i, f"{succ:.1%}   P(better)={p:.0%}",
+                va="center", fontsize=8.5, color=INK2)
+    ax.axvline(0, color=INK, linestyle=":", linewidth=1.4)
+    ax.xaxis.set_major_formatter(
+        matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:+.0%}"))
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels([_short(r[0]) for r in rows], fontsize=9)
+    ax.set_xlabel("paired difference in success rate vs the tuned analytic law "
+                  "(positive = better)")
+    ax.grid(axis="y", visible=False)
+    n = len(ref)
+    ax.set_title(f"Marker is the mean paired difference, bar is the 95% "
+                 f"bootstrap CI over {n} fields.\n"
+                 f"A bar crossing the dotted line is a tie.", loc="left")
+    fig.suptitle(f"Head-to-head against the analytic law, {n} paired held-out fields",
+                 fontsize=12, fontweight="bold")
+    fig.tight_layout()
+    return _save(fig, "fig9_paired_difference.png")
 
 
 # --------------------------------------------------------------------------

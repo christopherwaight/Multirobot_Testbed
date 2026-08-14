@@ -93,6 +93,59 @@ def rotating_hessian(mode="single", k_trans=0.3626, k_rot=1.0, r0=0.15,
     return controller
 
 
+def handover(primary, fallback, patience=120, tol=0.30):
+    """Run `primary`; hand over to `fallback` once it has clearly stalled.
+
+    Motivation, measured on 1000 paired fields: the tuned analytic law and a
+    from-scratch PPO policy score 66.5% and 64.7%, a statistical tie, but they
+    are COMPLEMENTARY rather than redundant.  The analytic law alone succeeds
+    on 11.8% of fields, the policy alone on 10.0%, and either-succeeds is
+    76.5%.  So ~10 points sit on the table for any rule that can tell, online,
+    which one is failing.
+
+    The stall test uses only quantities a controller legitimately has: the
+    spread of its own four readings as a proxy for local gradient, and whether
+    the formation has stopped making progress.  It never looks at the true
+    saddle.  Concretely: track the best (smallest) reading-spread seen so far;
+    if `patience` steps pass with no improvement and the cluster is not already
+    close to converged, switch permanently to `fallback`.
+
+    Args:
+        primary:  controller to start with
+        fallback: controller to hand over to
+        patience: steps without improvement before switching
+        tol:      spread below which the primary is considered to be working,
+                  which suppresses handover
+    """
+    state = {}
+
+    def controller(env):
+        if state.get("switched"):
+            return fallback(env)
+        if not state:
+            state.update(best=np.inf, since=0, switched=False)
+
+        xy = env._robot_xy()
+        z = env._readings(xy)
+        spread = float(np.linalg.norm(z - z.mean()))
+        # Scale-free progress signal: reading spread shrinks as the cluster
+        # approaches any critical point, so a flat spread means "stuck".
+        if spread < state["best"] * 0.98:
+            state["best"] = spread
+            state["since"] = 0
+        else:
+            state["since"] += 1
+
+        if state["since"] > patience and spread > tol * state["best"]:
+            state["switched"] = True
+            return fallback(env)
+        return primary(env)
+
+    controller.label = f"handover({getattr(primary,'label','?')} -> " \
+                       f"{getattr(fallback,'label','?')})"
+    return controller
+
+
 def zero_controller():
     """Do nothing. Sanity floor for the metrics."""
     def controller(env):

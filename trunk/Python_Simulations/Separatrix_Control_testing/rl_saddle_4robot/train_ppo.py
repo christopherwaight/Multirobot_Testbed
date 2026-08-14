@@ -95,9 +95,9 @@ def _linear_schedule(initial_value, final_ratio=0.1):
     return schedule
 
 
-def _ppo_kwargs(ent_coef=0.005, use_sde=True, sde_freq=8, net_width=128,
+def _ppo_kwargs(ent_coef=0.005, use_sde=False, sde_freq=8, net_width=128,
                n_steps=1024, batch_size=512, lr_anneal=True,
-               learning_rate=3e-4, squash=True):
+               learning_rate=3e-4, squash=False):
     """PPO hyperparameters.
 
     Two defaults changed after measuring the v3 run's action statistics.  Its
@@ -112,9 +112,24 @@ def _ppo_kwargs(ent_coef=0.005, use_sde=True, sde_freq=8, net_width=128,
     default is 0.0) then actively pays for a large log_std, which under
     clipping is the same as paying for bang-bang.
 
-    Fix: squash_output=True puts a tanh on the output so the distribution and
-    the environment agree on the action bounds (supported with gSDE), and
-    ent_coef drops to 0.005.
+    Fix, after one false start.  The first attempt was squash_output=True,
+    which puts a tanh on the output so the distribution and the environment
+    agree on the bounds.  It is only supported alongside gSDE, and that
+    combination is numerically fragile: recovering the pre-squash Gaussian
+    action in evaluate_actions goes through atanh, and once tanh saturates to
+    exactly +/-1 in float32 that is +/-inf, which NaNs the gradient and poisons
+    every weight.  Both 5M-step runs using it died at ~1.8M steps with
+    `Expected parameter loc ... to satisfy the constraint Real()`.  The earlier
+    v3 run used gSDE WITHOUT squash and never crashed, which isolates squash as
+    the cause.
+
+    So: plain diagonal Gaussian with clipping (SB3's default and what the
+    working runs used), gSDE off, and the saturation addressed through
+    ent_coef alone, 0.02 -> 0.005.  That is the knob that was actually
+    mis-set; measured saturation was 22% under v1's plain Gaussian versus 91%
+    once gSDE was added, so gSDE was the larger driver and dropping it is a fix
+    rather than a compromise.  --sde and --squash remain available for
+    experiments.
     """
     return dict(
         policy="MlpPolicy",
@@ -183,11 +198,25 @@ class ProgressCallback(BaseCallback):
         self.n_roll = 0
         self.t0 = time.time()
         self._next_ckpt = ckpt_every
+        self._abort = False
 
     def _on_step(self):
-        return True
+        # Returning False is what actually stops SB3; _on_rollout_end's return
+        # value is ignored, so the NaN check below sets a flag and this reads it.
+        return not self._abort
 
     def _on_rollout_end(self):
+        # Cheap insurance.  A NaN in the policy weights otherwise surfaces as an
+        # opaque torch distribution error on the NEXT update, after the run has
+        # already thrown away however long it had been training.  Stopping here
+        # keeps the last good checkpoint and says plainly what happened.
+        import torch as _th
+        if any(not _th.isfinite(p).all() for p in self.model.policy.parameters()):
+            print("    ABORT: non-finite policy parameters. Stopping so the "
+                  "last checkpoint survives. Check action-distribution config.")
+            self._abort = True
+            return
+
         self.n_roll += 1
         buf = self.model.ep_info_buffer
         if not buf:
@@ -277,7 +306,7 @@ def train(total_timesteps, n_envs, seed, env_kwargs, curriculum=False,
 # Checkpoint selection
 # --------------------------------------------------------------------------
 
-def pick_best_checkpoint(tag, n_eval=40, seed0=900_000):
+def pick_best_checkpoint(tag, n_eval=40, seed0=900_000, env_kwargs=None):
     """Quick screen over every checkpoint saved during training, plus the
     final model, and copy the winner to '{tag}_best.{zip,vecnormalize.pkl}'.
 
@@ -311,7 +340,11 @@ def pick_best_checkpoint(tag, n_eval=40, seed0=900_000):
             continue
         model, mean, var, clip = load_policy(ckpt, vec)
         ctl = policy_controller(model, mean, var, clip)
-        env = QuadSaddleEnv(seed=seed0)
+        # env_kwargs must match how the checkpoint was TRAINED.  Defaulting to
+        # a bare QuadSaddleEnv() silently builds a 24-dim 'raw' observation and
+        # then fails on any 'raw+est' checkpoint with a (24,) vs (30,)
+        # broadcast error, after training has already finished.
+        env = QuadSaddleEnv(seed=seed0, **(env_kwargs or {}))
         rows = [run_episode(env, ctl, seed0 + i) for i in range(n_eval)]
         env.close()
         s = summarize(rows)
@@ -346,10 +379,11 @@ def main():
                    help="single process, easier to debug")
     # exploration / capacity, see module docstring for the reasoning
     p.add_argument("--ent-coef", type=float, default=0.005)
-    p.add_argument("--no-squash", action="store_true",
-                   help="disable tanh-squashed actions (see _ppo_kwargs)")
-    p.add_argument("--no-sde", action="store_true",
-                   help="disable gSDE, fall back to i.i.d. per-step noise")
+    p.add_argument("--squash", action="store_true",
+                   help="tanh-squashed actions; requires --sde and is "
+                        "numerically fragile, see _ppo_kwargs")
+    p.add_argument("--sde", action="store_true",
+                   help="enable gSDE state-dependent exploration (default off)")
     p.add_argument("--sde-freq", type=int, default=8)
     p.add_argument("--net-width", type=int, default=128)
     p.add_argument("--n-steps", type=int, default=1024)
@@ -377,11 +411,11 @@ def main():
                       ideal_plant=args.ideal_plant, sigma_z=args.sigma_z,
                       rot_penalty=args.rot_penalty, reward_mode=args.reward_mode,
                       families=args.families)
-    ppo_kwargs = _ppo_kwargs(ent_coef=args.ent_coef, use_sde=not args.no_sde,
+    ppo_kwargs = _ppo_kwargs(ent_coef=args.ent_coef, use_sde=args.sde,
                              sde_freq=args.sde_freq, net_width=args.net_width,
                              n_steps=args.n_steps, batch_size=args.batch_size,
                              lr_anneal=not args.no_lr_anneal,
-                             squash=not args.no_squash)
+                             squash=args.squash)
 
     print("=" * 78)
     print(f"PPO  tag={args.tag}  {args.timesteps:,} steps  {args.envs} envs")
@@ -405,7 +439,7 @@ def main():
           f"({args.timesteps/max(dt,1e-9):.0f} steps/s)")
 
     if args.select_best:
-        pick_best_checkpoint(args.tag)
+        pick_best_checkpoint(args.tag, env_kwargs=env_kwargs)
     return 0
 
 

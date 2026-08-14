@@ -83,7 +83,8 @@ PENALTY      = 10.0            # NaN / degenerate formation
 # old Gaussian numerically zero (3e-4) beyond e = 1.0 while starts are drawn
 # from e in [1.0, 2.5], i.e. the task reward was flat over the entire initial
 # state distribution.  These terms are informative at every range instead.
-E_REF        = 1.0             # distance normalizer, keeps -e/E_REF order 1
+SIGMA_WIDE   = 1.5             # tracking kernel width, covers the start annulus
+K_PROG       = 2.0             # progress-reward gain
 W_R_METRIC   = 0.30            # weight on formation size
 BONUS        = 1.0             # paid exactly when the success gate is satisfied
 
@@ -138,8 +139,10 @@ class QuadSaddleEnv(gym.Env):
                  t_max=T_MAX, reward_mode="shaped", seed=None):
         super().__init__()
 
-        if obs_mode not in ("raw", "raw+est"):
-            raise ValueError(f"obs_mode must be 'raw' or 'raw+est', got {obs_mode!r}")
+        if obs_mode not in ("raw", "raw+est", "raw+est+c"):
+            raise ValueError(
+                f"obs_mode must be 'raw', 'raw+est' or 'raw+est+c', "
+                f"got {obs_mode!r}")
         if action_mode not in ("full", "no_rot", "fixed_size"):
             raise ValueError(f"bad action_mode {action_mode!r}")
         if reward_mode not in ("shaped", "pure", "metric"):
@@ -162,7 +165,8 @@ class QuadSaddleEnv(gym.Env):
         # fixed means one policy architecture works for every ablation.
         self.action_space = spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
 
-        n_obs = 24 + (6 if obs_mode == "raw+est" else 0)
+        n_obs = 24 + (6 if obs_mode.startswith("raw+est") else 0) \
+                   + (3 if obs_mode == "raw+est+c" else 0)
         self.observation_space = spaces.Box(-np.inf, np.inf, shape=(n_obs,),
                                             dtype=np.float32)
 
@@ -273,7 +277,7 @@ class QuadSaddleEnv(gym.Env):
             vc,                                 # 2  centroid velocity
         ])
 
-        if self.obs_mode == "raw+est":
+        if self.obs_mode.startswith("raw+est"):
             # Split into direction and log-magnitude, the same treatment every
             # other channel gets.  Appending g and H raw made them the widest
             # dynamic-range entries in the vector, so they spent much of their
@@ -294,6 +298,33 @@ class QuadSaddleEnv(gym.Env):
                 hhat,                              # 2  curvature orientation
                 [np.log(max(m, 1e-12))],           # 1  curvature scale, -> -inf
                                                    #    at the blind spot
+            ])
+
+        if self.obs_mode == "raw+est+c":
+            # A FIFTH robot at the centroid. This is a hardware change, not a
+            # free algorithmic one, and it is included to test whether the
+            # information it adds is what actually caps performance.
+            #
+            # For four ring points at radius R spaced 90 degrees apart,
+            # sum_i r_i r_i^T = 2 R^2 I, so for a local quadratic
+            #     mean(z_ring) - z_centre = R^2 tr(H) / 4.
+            # That inverts to give the trace exactly (verified to machine
+            # precision at every formation angle, estimator.py section 6), and
+            # the trace is precisely what four robots cannot see: their fit is
+            # always traceless, so det(H_est) < 0 always and every critical
+            # point looks like a saddle. With the trace restored, det carries a
+            # sign and saddle-vs-extremum becomes decidable.
+            zc = float(self.fld.phi(c[0], c[1]))
+            if self.sigma_z > 0.0:
+                zc += float(self._rng.normal(0.0, self.sigma_z))
+            tr = 4.0 * (float(z.mean()) - zc) / max(R * R, 1e-12)
+            H_full = H + 0.5 * tr * np.eye(2)
+            det = float(np.linalg.det(H_full))
+            obs = np.concatenate([
+                obs,
+                [np.sign(tr)],                        # 1  curvature sign
+                [np.log(max(abs(tr), 1e-12))],        # 1  curvature scale
+                [np.sign(det)],                       # 1  saddle (-) vs extremum (+)
             ])
 
         obs = np.nan_to_num(obs, nan=0.0, posinf=0.0,
@@ -367,8 +398,11 @@ class QuadSaddleEnv(gym.Env):
         # -- failure modes ------------------------------------------------
         if not np.all(np.isfinite(xy)):
             self._last_obs = np.zeros(self.observation_space.shape, np.float32)
+            # Report the last finite distance rather than omitting 'e'.  Without
+            # it baselines.run_episode records e_final = nan and np.median
+            # propagates that silently through the whole summary.
             return (self._last_obs, -PENALTY, True, False,
-                    self._info(outcome="nan"))
+                    self._info(outcome="nan", e=self._prev_e))
 
         c = xy.mean(axis=0)
         e = float(np.linalg.norm(c - self.fld.saddle))
@@ -406,21 +440,46 @@ class QuadSaddleEnv(gym.Env):
         in_tol_now = (e < E_TOL) and (R < R_TARGET)
 
         if self.reward_mode == "metric":
-            # Dense everywhere, and identical to the success metric by
-            # construction.  Episodes are fixed-length now, so there is no
-            # incentive to end early and a constant offset changes nothing.
+            # Three terms, each doing one job.
             #
-            # The BONUS term exists because the old reward and the metric
-            # disagreed about formation size: success gates on R < R_TARGET
-            # (a cliff), while the old size_gain was a gentle 23% ramp with no
-            # feature at the gate, and reward_mode='pure' had no size term at
-            # all.  Measured consequence for 'pure': 16.7% of steps sat at
-            # e < 0.15 but only 0.5% counted as in-tolerance, because the
-            # formation was too big.  Two-thirds of its near-misses were thrown
-            # away on a criterion its reward never mentioned.
-            reward = (-e / E_REF
-                      - W_R_METRIC * (R - R_MIN) / (R_MAX - R_MIN)
+            # 1. Progress, K*(e_prev - e).  Immediate credit for the step just
+            #    taken, and it telescopes, so the episode return does not
+            #    depend on where the episode happened to start.  That last
+            #    property is why a pure state cost (-e, the first version of
+            #    this mode) failed: its return is dominated by the start
+            #    distance, an uncontrollable draw from a 1.0-2.5 annulus, and
+            #    that variance swamps the advantage estimate.  Measured at
+            #    1.35M steps: reward falling, success 1%, mean distance ~4.2.
+            #
+            # 2. A tracking well wide enough to be felt from the start annulus.
+            #    The historical 'shaped' mode used SIGMA_R = 0.35, which is
+            #    exp(-e^2/0.1225) = 3e-4 at e = 1.0, i.e. numerically zero over
+            #    the ENTIRE initial state distribution.  SIGMA_WIDE = 1.5 gives
+            #    0.64 at e = 1.0 and 0.06 at e = 2.5: a real gradient at range.
+            #    Confirmed by a start-distance sweep of the Stage 0 policy,
+            #    where final distance degraded 0.18 -> 3.42 as starts moved out.
+            #
+            # 3. BONUS on the success gate itself, so reward and metric agree.
+            #    'pure' spent 16.7% of steps at e < 0.15 but scored 0.5%
+            #    in-tolerance, because it had no size term while success gates
+            #    on R < R_TARGET.
+            # R is CLIPPED in the size penalty.  The actual ring radius is not
+            # bounded above by the action (the action sets the shape setpoint;
+            # the P-servo plus momentum can overshoot it badly), and an
+            # unclipped penalty is therefore unbounded below.  Measured in a
+            # live training loop before this clip: episodes reaching R ~ 1.9 m
+            # scored -1.71/step against a hand-computed floor of -0.33/step,
+            # i.e. the size term alone was contributing about -1030 of a -1028
+            # episode return and drowning every other signal. The clip matches
+            # what size_gain on the line above already does.
+            R_c = float(np.clip(R, R_MIN, R_MAX))
+            track = W_TRACK * np.exp(-(e * e) / (SIGMA_WIDE * SIGMA_WIDE))
+            size_gain = 1.0 + W_SIZE * (R_MAX - R_c) / (R_MAX - R_MIN)
+            reward = (K_PROG * (self._prev_e - e)
+                      + track * size_gain
                       + BONUS * float(in_tol_now)
+                      - W_R_METRIC * (R_c - R_MIN) / (R_MAX - R_MIN)
+                      - C_STEP
                       - self.rot_penalty * abs(om))
             self._prev_e = e
         elif self.reward_mode == "pure":

@@ -106,6 +106,56 @@ def evaluate_controller(controller, n_eval, plant="full", families=None,
     return rows, logs
 
 
+def _per_episode(rows):
+    """Per-episode outcomes, kept so runs can be compared PAIRED.
+
+    Every controller is scored on the same seed list, hence the same fields, so
+    the natural comparison is per-field differences rather than two independent
+    rates.  Pairing removes the between-field variance, which dominates here:
+    field difficulty varies far more than the controllers do.
+    """
+    return dict(seed=[r["seed"] for r in rows],
+                success=[bool(r["success"]) for r in rows],
+                e_final=[float(r["e_final"]) for r in rows],
+                family=[r["family"] for r in rows])
+
+
+def paired_report(payload, ref_key=None, n_boot=10000, seed=0):
+    """Paired bootstrap of each policy against the best analytic baseline."""
+    runs = payload["runs"]
+    if ref_key is None:
+        ref_key = next((k for k in runs if "BEST gains" in k), None)
+    if ref_key is None or "per_episode" not in runs[ref_key]:
+        return
+    ref = runs[ref_key]["per_episode"]
+    ref_s = np.asarray(ref["success"], float)
+    rng = np.random.default_rng(seed)
+
+    print()
+    print("=" * 112)
+    print(f"PAIRED COMPARISON against: {ref_key}")
+    print(f"  same {len(ref_s)} fields for every controller; "
+          f"{n_boot:,} bootstrap resamples over fields")
+    print("=" * 112)
+    print(f"  {'controller':44s}{'succ':>8s}{'diff':>9s}"
+          f"{'95% CI on diff':>22s}{'P(better)':>11s}")
+    print("  " + "-" * 94)
+    for k, v in runs.items():
+        if k == ref_key or "per_episode" not in v:
+            continue
+        s = np.asarray(v["per_episode"]["success"], float)
+        if len(s) != len(ref_s):
+            continue
+        d = s - ref_s
+        idx = rng.integers(0, len(d), size=(n_boot, len(d)))
+        boot = d[idx].mean(axis=1)
+        lo, hi = np.percentile(boot, [2.5, 97.5])
+        print(f"  {k[:44]:44s}{s.mean():8.1%}{d.mean():+9.1%}"
+              f"{f'[{lo:+.1%}, {hi:+.1%}]':>22s}{(boot > 0).mean():11.1%}")
+    print()
+    print("  A CI excluding 0 means the difference is not sampling noise.")
+
+
 def per_family(rows):
     out = {}
     for fam in sf.FAMILY_NAMES:
@@ -134,6 +184,11 @@ def main():
                         "it) but kept in sync for episode_log completeness")
     p.add_argument("--skip-policy", action="store_true",
                    help="baselines only, for when no checkpoint exists yet")
+    p.add_argument("--only-best", action="store_true",
+                   help="score only the best-swept analytic law and the "
+                        "policy, skipping the floor/default/ideal comparators. "
+                        "For large --n-eval runs where only the head-to-head "
+                        "matters and the others are already established.")
     args = p.parse_args()
 
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -153,11 +208,12 @@ def main():
         best_gains = bj.get("sweep_best")
 
     runs = []
-    runs.append(("do-nothing (floor)", zero_controller(), "full", {}))
-    runs.append(("rot-hessian single, default gains",
-                 rotating_hessian(mode="single"), "full", {}))
-    runs.append(("rot-hessian none, default gains",
-                 rotating_hessian(mode="none"), "full", {}))
+    if not args.only_best:
+        runs.append(("do-nothing (floor)", zero_controller(), "full", {}))
+        runs.append(("rot-hessian single, default gains",
+                     rotating_hessian(mode="single"), "full", {}))
+        runs.append(("rot-hessian none, default gains",
+                     rotating_hessian(mode="none"), "full", {}))
     if best_gains:
         runs.append((
             f"rot-hessian single, BEST gains "
@@ -167,15 +223,17 @@ def main():
                              k_trans=best_gains["k_trans"], r0=best_gains["r0"],
                              max_omega=min(2.0, 0.3 / best_gains["r0"])),
             "full", {}))
-    runs.append(("rot-hessian single, 0-dynamics ceiling",
-                 rotating_hessian(mode="single"), "ideal", {}))
+    if not args.only_best:
+        runs.append(("rot-hessian single, 0-dynamics ceiling",
+                     rotating_hessian(mode="single"), "ideal", {}))
 
     for label, ctl, plant, kw in runs:
         rows, logs = evaluate_controller(ctl, args.n_eval, plant=plant,
                                          keep_logs=args.keep_logs, **kw)
         s = summarize(rows)
         payload["runs"][label] = dict(summary=s, per_family=per_family(rows),
-                                      plant=plant)
+                                      plant=plant,
+                                      per_episode=_per_episode(rows))
         logs_out[label] = logs
         _print_summary(label, s)
 
@@ -193,7 +251,8 @@ def main():
             s = summarize(rows)
             payload["runs"][args.tag] = dict(summary=s,
                                              per_family=per_family(rows),
-                                             plant="full")
+                                             plant="full",
+                                             per_episode=_per_episode(rows))
             logs_out[args.tag] = logs
             print()
             _print_summary(args.tag, s)
@@ -212,6 +271,8 @@ def main():
             v = d["per_family"].get(f)
             cells += f"{v['e_final_median']:12.3f}" if v else f"{'-':>12s}"
         print(f"  {label[:46]:46s}{cells}")
+
+    paired_report(payload)
 
     with open(args.out, "w") as f:
         json.dump(payload, f, indent=2)

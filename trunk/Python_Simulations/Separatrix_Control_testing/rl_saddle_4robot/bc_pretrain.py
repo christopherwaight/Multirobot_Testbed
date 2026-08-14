@@ -120,7 +120,7 @@ def clone(model, obs, act, epochs=30, batch_size=512, lr=1e-3, verbose=True):
             loss.backward()
             torch.nn.utils.clip_grad_norm_(policy.parameters(), 0.5)
             opt.step()
-            tot += float(loss) * len(idx)
+            tot += float(loss.detach()) * len(idx)
         if verbose and ((ep + 1) % 5 == 0 or ep == 0):
             print(f"    epoch {ep+1:3d}/{epochs}  mse {tot/n:.5f}")
     policy.eval()
@@ -197,12 +197,22 @@ def main():
                    default="metric")
     p.add_argument("--bc-only", action="store_true",
                    help="clone and stop, skip PPO fine-tuning")
+    p.add_argument("--lr", type=float, default=3e-4,
+                   help="PPO learning rate. Lower values preserve more of the "
+                        "cloned behaviour during fine-tuning; the 5M run at "
+                        "3e-4 regressed on log_sum_exp (0.032 -> 1.235) "
+                        "relative to the same config trained from scratch, "
+                        "i.e. fine-tuning was unlearning part of the clone.")
+    p.add_argument("--net-width", type=int, default=128)
+    p.add_argument("--ckpt-every", type=int, default=1_000_000)
     args = p.parse_args()
 
     env_kwargs = dict(obs_mode=args.obs_mode, reward_mode=args.reward_mode)
+    ppo_kwargs = T._ppo_kwargs(learning_rate=args.lr, net_width=args.net_width)
     bc_warm_start(tag=args.tag, n_episodes=args.episodes, epochs=args.epochs,
                   timesteps=0 if args.bc_only else args.timesteps,
-                  n_envs=args.envs, seed=args.seed, env_kwargs=env_kwargs)
+                  n_envs=args.envs, seed=args.seed, env_kwargs=env_kwargs,
+                  ppo_kwargs=ppo_kwargs, ckpt_every=args.ckpt_every)
     return 0
 
 

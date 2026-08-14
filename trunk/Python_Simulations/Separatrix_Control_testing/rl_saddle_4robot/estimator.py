@@ -296,6 +296,52 @@ def main():
         print(f"  {R:8.2f} {lo:11.3f} {hi:11.3f} {hi/lo:8.2f}")
     print("\n  Both bounds scale as 1/R, so the usable band is only 3.6x wide")
     print("  at every size, and shrinking the formation shifts it upward.")
+
+    print()
+    print("=" * 74)
+    print("6. A FIFTH ROBOT AT THE CENTROID RECOVERS THE TRACE, EXACTLY")
+    print("=" * 74)
+    print("  For four ring points at radius R spaced 90 degrees apart,")
+    print("  sum_i r_i r_i^T = 2 R^2 I, so for a local quadratic")
+    print()
+    print("      mean(z_ring) - z_centre = R^2 tr(H) / 4")
+    print()
+    print("  which inverts to tr(H) = 4 (mean(z_ring) - z_centre) / R^2.")
+    print("  Adding that back to the deviatoric part the 4-robot fit already")
+    print("  recovers gives the FULL Hessian, so det(H) carries a sign and")
+    print("  saddle-vs-extremum becomes decidable.  With four robots alone")
+    print("  det(H_est) = -(a^2 + b^2) < 0 always: every critical point looks")
+    print("  like a saddle, which is why the online handover rule in")
+    print("  baselines.handover cannot work.")
+    print()
+    print(f"  {'formation':>10s}{'tr true':>10s}{'tr est':>9s}"
+          f"{'det true':>10s}{'verdict':>22s}")
+    print("  " + "-" * 62)
+    cases = [(np.array([[3., 0.], [0., -1.]]), "saddle"),
+             (np.array([[2., 1.5], [1.5, -0.5]]), "saddle"),
+             (np.array([[1., 0.], [0., 2.]]), "EXTREMUM")]
+    for td in (10.0, 35.0, 80.0):
+        for Ht, truth in cases:
+            def phi_c(x, y, H=Ht):
+                r = np.array([x, y])
+                return 0.5 * r @ H @ r
+            c = np.array([0.4, -0.3])
+            Rr = 0.15
+            xy = square_positions(c, Rr, np.deg2rad(td))
+            z = np.array([phi_c(p[0], p[1]) for p in xy])
+            tr_est = 4.0 * (z.mean() - phi_c(c[0], c[1])) / Rr ** 2
+            Hd, _ = plane_fit_estimate(xy, z)
+            Hfull = Hd + 0.5 * tr_est * np.eye(2)
+            got = "saddle" if np.linalg.det(Hfull) < 0 else "EXTREMUM"
+            ok = "ok" if got == truth else "WRONG"
+            print(f"  {td:10.0f}{np.trace(Ht):10.4f}{tr_est:9.4f}"
+                  f"{np.linalg.det(Ht):10.4f}{got + ' ' + ok:>22s}")
+    print()
+    print("  Trace is exact at every formation angle, and the saddle/extremum")
+    print("  verdict is correct in all nine cases.  Note the recovered det has")
+    print("  the right SIGN but not the right magnitude, because the deviatoric")
+    print("  part still carries the cos(2 theta) attenuation from section 3.")
+    print("  Sign is what the controller needs.")
     print("  Near convergence the servo wants a small omega, which falls in")
     print("  the dead zone.  That is the endgame failure the notebook's law")
     print("  cannot express, and the reason the size knob matters.")
