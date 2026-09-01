@@ -1,0 +1,55 @@
+Writing in the Kitts voice
+Two reference texts. Keep both open.
+
+* [4] Kitts, McDonald, Neumann, "Adaptive Navigation Control Primitives for Multirobot Clusters," IEEE Access vol. 6, 2018. The taxonomy paper. Use it for structure, abstract shape, self-limitation language, and the future-work close.
+* [25] McDonald, Condino, Neumann, Kitts, "Navigation of Scalar Fronts With Multirobot Clusters in Simulation and Experiment," IEEE Systems Journal vol. 14 no. 3, 2020. The student-authored version of the same voice, with the phenomenon-first opening and the state machine. Use it for application framing.
+
+A. Opening moves
+Rule 1. Define a capability as a process, not a problem. [4] opens by defining adaptive navigation as the process of modifying a vehicle's direction or motion path based on measurements taken while moving. No assumptions block, no "consider a system," no problem statement. Definition of a thing a system does.
+Rule 2. Set up by contrast with the conventional approach. Both papers do this in the first two sentences of the introduction. Conventional navigation gives you waypoints and a prescribed trajectory. Adaptive navigation does not. State the old way, then state yours as the negation of it. This is a reliable one-sentence intro generator.
+Rule 3. When the phenomenon is unfamiliar, lead with the phenomenon. [25] opens on what an environmental front physically is before anything about robots. Use this when the reader may not already care about the feature you are chasing. For vector field critical points, this is the correct opening.
+Rule 4. Name the operational gap explicitly. [25] states that front characterization is challenging, usually performed manually, limited to localized characterization, and dependent on assumptions about front structure. One sentence, three failure modes of current practice. This is the sentence that converts a technique into a mission.
+B. Motivation
+Rule 5. Catalog applications, and make each one physical. Every paper in the lab's output has this paragraph. Not "this has many applications." Instead: maxima are hot spots and pollutant sources; minima are sinks and marine anoxic zones; contours bound the extent of a field or define a safety perimeter; saddle points are low-energy passages; ridges are resource divides and paths of maximum service availability on departure; trenches are accumulators and paths of minimum exposure on approach.
+Note the structure. Every mathematical feature gets mapped to a physical thing and to an operational use of that thing. Do this for eddy centers, convergence zones, and stagnation points.
+Rule 6. Domains are "land, sea, air, and space." This exact phrase recurs across [46], [7], and others. It is house boilerplate. Use it.
+Rule 7. Justify multirobot on sensing grounds, not on control grounds. The standing argument, stated cleanly in [25]: single-vehicle approaches require costly lateral movement to sense local gradients, which causes delays and is detrimental in time-varying fields. Multivehicle approaches share simultaneously collected, spatially distributed measurements, and additionally accommodate vehicle failures and adapt formation size and shape to the spatial frequencies in the field.
+Three benefits in one sentence: no dithering, failure tolerance, spatial tuning. Reuse the structure.
+C. Architecture
+Rule 8. Describe the stack from the bottom up, in four named layers. Robot control layer, cluster space control layer, adaptive navigation layer, state control layer. [25] describes them right to left in Fig. 2 with the data passed between them. Always include the figure. Always say what each layer consumes and what it emits.
+Rule 9. Put a state machine on top and treat it as a contribution. [5] and [25] both foreground it. The state layer sequences navigation modes based on sensed information and mission parameters, handles hysteresis, and responds to conditions like losing track of the feature. This is the single most legible systems-engineering element in the lab's writing.
+Rule 10. Cluster space gets described the same way every time. An operational space control approach in which the multirobot formation is represented as a virtualized full degree-of-freedom articulating mechanism. Cluster-level parameters are the cluster position, the cluster shape, and the relative orientation of robots with respect to the cluster. Then the Jacobian forward map, the inverse Jacobian for compensation commands, and a footnote noting that full dynamic control is possible via a Jacobian transpose transform, see reference X.
+That footnote is a recurring tic. It appears verbatim in both [4] and [5].
+Rule 11. Cite stability, do not derive it. [4] handles Lyapunov stability in one sentence: it has been characterized for arbitrary cluster space command trajectories, with or without collision avoidance options, reference [43]. The lab does not put stability proofs in the body. If you have one, consider an appendix.
+D. Claims and honesty
+Rule 12. Claim novelty on the demonstration, not on the theory. The standard formulation: to our knowledge the first experimental demonstration of X. [5] uses it. [25] uses "to our knowledge, this is the first comprehensive, adaptive multirobot front-following control strategy proposed for general front structures."
+Notice what is being claimed. Not optimality, not convergence. Firstness of a working demonstration, with the qualifiers "to our knowledge" and "for general structures" doing the load-bearing hedging.
+Rule 13. Concede minimality before a reviewer can weaponize it. This is the most distinctive move in the whole corpus. From [5]:
+the control primitives have been designed using a minimal number of robots, instantaneous information, and reactive bang-bang control laws. Without question, performance and robustness can be improved with additional robots, temporal filtering, and more sophisticated controllers. The simple approach used here, however, serves as an implemented baseline.
+And from [4]'s conclusion: the controllers are admittedly simple, reactive, and minimal in size; even in their current form, however, they are capable of demonstrating a comprehensive suite of critical behaviors.
+The template is: concede the weakness in specific technical terms, then pivot on "however," then reframe the simplicity as the point. Never concede vaguely. "Admittedly simple, reactive, and minimal" names three exact things.
+Rule 14. State the scope limits of your own framework unprompted. [46] says outright that the cluster space approach is centralized, requires global state, is intractable for suitably large clusters, and impractical without reliable high-bandwidth communication. Then narrows the claim to small groups in limited workspaces with ample bandwidth. He gives away the objection and keeps the territory that remains.
+Rule 15. Comparisons are descriptive, never adversarial. The corpus never says another method is worse. It says what a method did, under what conditions, verified how, and then what remains. [7] on Biyik and Arcak: describes the dithering leader approach, notes it was verified via simulation but not hardware-in-the-loop, moves on. The critique is carried entirely by "but not hardware-in-the-loop." Let the verification level do the work.
+E. Register and vocabulary
+Rule 16. Write from the operator's chair. Recurring nouns: supervisory operator, real-time pilot, mission parameters, mission phases, navigation mode, setpoint, figures of merit, degenerate cluster, reinforcement, keep-out region. Cluster size is described as "a specifiable mission attribute" that "the operator may select." The human is always in the architecture.
+Rule 17. Express design choices as explicit tradeoffs with named quantities. From [6]: selecting cluster size trades spatial resolution, gradient and differential signal amplification, noise suppression, and breadth of field exploration for a given number of robots. From [48]: OptiTrack over Pozyx, justified on coverage area, point tracking accuracy, multipoint rigid body support, roughly 10 cm versus millimeter-level performance, and magnetic disturbance from conduit, rebar, and steel structural elements.
+Never say "we chose X." Say what was traded and against what.
+Rule 18. Use "we" and be programmatic. "Our own prior work in this field has matured to experimentally verifying and validating such capabilities through field demonstrations." "This work presents results of a continuing program." "Our current focus." The paper is a status report on an ongoing lab program, not a self-contained artifact.
+Rule 19. Enumerate with a), b), c) inside prose sentences. [4] and [6] both do this in future work. It is a mission-briefing habit and it reads as him.
+Rule 20. Terminology is fixed. Do not synonym-swap. Cluster, primitive, formation baseline, differential measurement, feature of interest, setpoint, compensation command. Use each term the same way every time. The lab writes for reuse across papers.
+F. Closing
+Rule 21. Never end on a result. End on a program. The closing structure in [4]: summarize what was demonstrated, restate the architecture's unifying role, concede the minimality once more, then list ongoing and future work as an a) b) c) d) enumeration ending in "and so on."
+The final sentence of [4] is a good template: ongoing and future research activities are targeted to mature these controllers, to verify and validate them experimentally and in field applications, and to extend the techniques to three-dimensional fields and vector fields.
+Note that this last clause is describing your dissertation. He wrote your future work in 2018.
+Rule 22. "Ongoing and future work" is the fixed phrase. Not "future directions," not "limitations and future work." It appears in [4], [7], and [6].
+Quick self-check before you send him a draft
+
+* Does the first paragraph define a capability by contrast with the conventional approach?
+* Is there an application catalog mapping each mathematical feature to a physical thing and an operational use?
+* Is there a layered architecture figure with a state layer on top?
+* Have you conceded minimality in specific technical terms with a "however" pivot?
+* Is your novelty claim about a demonstration rather than a theorem?
+* Is every comparison descriptive, with verification level carrying the critique?
+* Does the paper close on the program rather than the result?
+
+Two things to watch, given your drafts specifically. First, you derive stability where he cites it, so if you keep the derivation, move it to an appendix and put a one-sentence citation in the body. Second, your instinct is to lead with the estimator's mathematical properties, and his is to lead with what the system does in the world. On the vector field papers, "locates and holds station on the center of an eddy" is the sentence he wants before any sentence containing the word Jacobian.
