@@ -325,7 +325,7 @@ The testbed used for validation is SCU's Robotic Systems Laboratory Decabot test
     \label{fig:fullbed}
     \end{figure}
 
-The experimental platform used three omnidirectional Decabot rovers operating within a 1.6~m $\times$ 1.6~m workspace. Each Decabot features three omnidirectional wheels providing holonomic motion capability and a downward-facing TCS34725 RGB color sensor enclosed in a light-shrouded housing to minimize external lighting effects. The robots' RGB sensors are calibrated to map raw color measurements to vector field values using neural network models trained on printed color palettes, with hue representing direction and saturation representing magnitude. Calibration achieved hue RMSE of 0.17 radians (9.7$^\circ$, R$^2$=0.991) and saturation RMSE of 4.4\% (R$^2$=0.951) across the operational range (see Fig.~\ref{fig:HuePredictions}). These errors improve on those reported in earlier testbed studies \cite{22}; all robots were recalibrated after receiving preventive maintenance and servicing. Full details of the sensor calibration process are provided in~\cite{22}. Each robot localizes its position using an eight-camera OptiTrack Motion Capture System with sub-centimeter accuracy.
+The experimental platform used three omnidirectional Decabot rovers operating within a 1.6~m $\times$ 1.6~m workspace. Each Decabot features three omnidirectional wheels providing holonomic motion capability and a downward-facing TCS34725 RGB color sensor enclosed in a light-shrouded housing to minimize external lighting effects. The robots' RGB sensors are calibrated against a printed palette spanning hue $0$ to $2\pi$ and saturation $0$ to $1$ at 24 intervals in each dimension. Each robot records raw RGB and clear-channel counts over every palette cell. The readings are normalized and stored as a four-dimensional feature vector $(R,G,B,K)$. Two feedforward networks, each with two hyperbolic-tangent hidden layers, are trained to recover the target hue and saturation from this vector. The saturation network has a single output, while the hue network outputs the sine and cosine of hue to respect its circularity. Training pools data across robots so that a single model transfers to an uncalibrated unit without per-robot tuning. Calibration achieved hue RMSE of 0.17 radians (9.7$^\circ$, R$^2$=0.991) and saturation RMSE of 4.4\% (R$^2$=0.951) across the operational range (see Fig.~\ref{fig:HuePredictions}). The encoding and calibration palette follows~\cite{22}. All robots were calibrated after receiving preventive maintenance and servicing for this study.
 
 \begin{figure}[!t]
     \centering
@@ -585,6 +585,15 @@ The inverse Jacobian maps shape parameter velocities to robot velocities:
 \end{equation}
 
 where $\mathbf{J}_c^{-1}$ is a $6 \times 6$ matrix containing partial derivatives $\frac{\partial x_i}{\partial \xi_j}$ and $\frac{\partial y_i}{\partial \xi_j}$ for robot positions and shape parameters $\xi_j \in \{x_c, y_c, \theta_c, p, \beta, q\}$. This matrix is computed analytically by taking partial derivatives of the inverse kinematics equations (\ref{eq:29}) with respect to each shape parameter. The explicit forms of the equations are omitted from this paper for brevity.
+
+
+\section*{Disclosure of Conflicts of Interest}
+
+C. A. Kitts serves as an Associate Editor of the \textit{IEEE Systems Journal}. He has been excluded from all editorial handling and peer review of this article, including the assignment of an Associate Editor and the selection of reviewers, and has been designated a non-preferred Associate Editor in the submission system.
+
+C. Waight and C. A. Kitts are co-inventors on a provisional patent application filed through Santa Clara University covering the method described in this article. Santa Clara University holds any rights arising from that application.
+
+The authors declare no other financial or non-financial competing interests.
 
 
 \balance
