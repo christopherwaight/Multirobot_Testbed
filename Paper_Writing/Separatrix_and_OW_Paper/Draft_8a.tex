@@ -237,10 +237,11 @@ situ, unlike the separate literature that builds an artificial vector
 field as a synthetic guidance signal for single-robot path following
 \cite{33} or obstacle avoidance \cite{34}.
 
-\section{Problem Formulation}
+\section{Second Order Field Estimation}
 \label{sec:detj_field}
+\label{sec:estimation}
 
-\subsection{Vector Fields and Local Polynomial Models}
+\subsection{Local Vector Field Polynomials}
 
 A planar vector field assigns a velocity vector $\mathbf{v}(\mathbf{p}) =
 (u(\mathbf{p}), v(\mathbf{p}))$ to each position $\mathbf{p} = (x, y)$ in its
@@ -287,6 +288,153 @@ noise perturbs each measurement, and truncation bias arises because the
 discarded cubic terms are not zero over a footprint of finite size, so
 the fit absorbs part of them into the retained coefficients.
 
+With robot positions $\mathbf{p}_i = (x_i, y_i)$ measured from the
+centroid, define the quadratic basis vector
+\begin{equation}
+    \boldsymbol{\phi}(\mathbf{p}) =
+    \bigl[\,1, \; x, \; y, \; xy, \;
+    \tfrac{1}{2}x^2, \; \tfrac{1}{2}y^2\,\bigr]^\top,
+\end{equation}
+whose entries are the terms of
+(\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}) in the same order, so
+the recovered coefficients estimate the Taylor derivatives directly with
+no rescaling. Stacking the six robots' basis vectors row-wise gives
+the $6 \times 6$ formation matrix $\boldsymbol{\Phi}$, and the coefficient
+estimates $\hat{\boldsymbol{\theta}}_u = [\hat{a}_1, \ldots,
+\hat{a}_6]^\top$ and $\hat{\boldsymbol{\theta}}_v = [\hat{b}_1, \ldots,
+\hat{b}_6]^\top$ solve
+\begin{equation}
+    \boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_u = \mathbf{m}_u, \qquad
+    \boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_v = \mathbf{m}_v,
+    \label{eq:solve}
+\end{equation}
+where $\mathbf{m}_u = [u_1, \ldots, u_6]^\top$ and
+$\mathbf{m}_v = [v_1, \ldots, v_6]^\top$ collect the measurements, $u_i$
+and $v_i$ being the field components sampled by robot $i$. One matrix
+factorization serves both components. If the field is exactly quadratic
+over the formation footprint, the $\mathcal{O}(\|\mathbf{p}\|^3)$
+remainder vanishes identically, and noise-free measurements give
+$\hat{\boldsymbol{\theta}}_u = \boldsymbol{\theta}_u$ and
+$\hat{\boldsymbol{\theta}}_v = \boldsymbol{\theta}_v$ for any nonsingular
+$\boldsymbol{\Phi}$. Neither condition holds exactly in practice.
+
+\subsection{Minimality}
+\label{prop:minimality}
+
+Each robot contributes one equation per component to (\ref{eq:solve}),
+and each system has six unknowns, so fewer than six robots leave the
+solution set a positive-dimensional affine subspace. Any method
+returning a single answer from five is supplying a structural prior
+rather than reading one from the data. Incompressibility is such a
+prior, removing three coefficients, and the estimator declines it.
+Horizontal surface currents are not divergence free, and the divergence
+is nonzero over the measured ocean field used here, so imposing
+$\operatorname{tr}(\mathbf{J}) = 0$ would bias every recovered
+coefficient, not only the three it eliminates.
+
+Six robots suffice exactly when $\boldsymbol{\Phi}$ is nonsingular, which
+fails only when they lie on a common conic \cite{4}. A ring alone is
+degenerate at any size; the pentagon-plus-center formation used
+throughout is not, and it is the configuration \cite{6} derived for
+scalar Hessian estimation.
+
+\subsection{Estimator Sensitivity}
+\label{sec:sensitivity}
+
+Write the fit (\ref{eq:solve}) as $\mathbf{A}\hat{\boldsymbol{\theta}} =
+\mathbf{m}$, where the $6 \times 6$ matrix $\mathbf{A}$ stacks the basis
+vectors $\boldsymbol{\phi}(\mathbf{p}_i)$ row-wise. Everything the
+estimator does is fixed by $\mathbf{A}$, built from the robot positions
+relative to the centroid and from nothing else, not the field, the
+noise, or the mission. Formation geometry acts before any measurement is
+taken. Rank decides whether the fit has an answer; conditioning decides
+what it costs. Drift toward the conic degeneracy degrades the estimate
+continuously rather than failing at a threshold, and moving the center
+robot out to $0.99\rho$ raises $\operatorname{cond}(\mathbf{A})$ from
+$8.3$ to $564$, inflating every noise gain by that factor. Formation
+error reaches the estimate only here.
+
+The fit is linear in the measurements, so the noise gains are the row
+norms of $\mathbf{A}^{-1}$, geometry again rather than field. For the
+pentagon-plus-center formation, a coefficient of derivative order $q$
+has standard deviation
+\begin{equation}
+    \sigma_{\theta_q} = \gamma_q\,
+    \frac{\sigma_{\mathrm{eff}}}{\rho^{\,q}},
+    \qquad
+    \gamma_0 = 1, \;\;
+    \gamma_1 = \tfrac{2}{\sqrt{10}}, \;\;
+    \gamma_2 = \tfrac{8}{\sqrt{10}},
+    \label{eq:gain_ladder}
+\end{equation}
+with $\gamma_2 = 4/\sqrt{10}$ for the mixed coefficient, and ring
+symmetry makes the constants independent of heading. Only the $\gamma_q$
+are formation specific; the exponent $-q$ is not. Curvature pays
+$\rho^{-2}$ where the gradient pays $\rho^{-1}$, which makes cluster
+size a mission attribute rather than a tuning knob.
+
+Two noise channels feed $\sigma_{\mathrm{eff}}$. Measurement noise is
+additive on what each robot reads,
+\begin{equation}
+    u_i^m = u(\mathbf{p}_i) + \eta_i^u, \quad
+    v_i^m = v(\mathbf{p}_i) + \eta_i^v,
+    \quad \eta \sim \mathcal{N}(0, \sigma_{uv}^2),
+    \label{eq:meas_noise}
+\end{equation}
+independent across robots, components, and cycles. Position noise
+perturbs where the sample is taken while the fit uses the nominal
+position,
+\begin{equation}
+    (u_i^m, v_i^m) = \mathbf{v}(\mathbf{p}_i + \boldsymbol{\xi}_i), \quad
+    \boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0}, \sigma_p^2 \mathbf{I}).
+    \label{eq:pos_noise}
+\end{equation}
+The second is not a relabeling of the first. A displaced robot commits
+the error $\mathbf{J}\boldsymbol{\xi}_i$, which vanishes in uniform
+flow, grows with the local gradient, and correlates the two components
+wherever $\nabla u \cdot \nabla v \neq 0$. Averaging per-component
+variances gives one effective level
+\begin{equation}
+    \sigma_{\mathrm{eff}}^2 = \sigma_{uv}^2
+        + \tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\,\sigma_p^2 ,
+    \label{eq:sigma_eff}
+\end{equation}
+which the gain ladder uses as an approximation, exact only when the two
+gradients have equal norm.
+
+Three consequences follow. Every term of the determinant pairs one
+$\hat{a}$ with one $\hat{b}$, so under (\ref{eq:meas_noise}) the
+independence of the components leaves $\hat{D}$, $\nabla\hat{D}$, and
+$\hat{\mathbf{H}}_D$ unbiased at every noise level. The strain
+eigenvalue does not inherit this, because it subtracts a norm and the
+norm is convex: $\hat{s}_1$ is biased low, so a trench always reads
+deeper than it is, and worst where the strain degenerates. Radius cannot
+be chosen for noise alone, since truncation pulls the other way, order
+$q$ carrying relative noise error $\nu/\tilde{\rho}^q$ against a
+truncation bias $\tilde{\rho}^{\,p+1-q}$ from the discarded order
+$p+1$,
+\begin{equation}
+    E_q(\tilde{\rho}) = c\,\frac{\nu}{\tilde{\rho}^{\,q}}
+        + d\,\tilde{\rho}^{\,p+1-q},
+    \label{eq:error_budget}
+\end{equation}
+minimized at $\tilde{\rho}^* \propto \nu^{1/(p+1)}$. The optimum differs
+between $\hat{D}$ and $\nabla\hat{D}$, so no single radius suits both.
+
+Scaling past six robots makes the fit least squares, and the return is
+uneven. Robots added to one ring drive the first-order gain down as
+$\sqrt{2/N}$ without limit, while the second-order gain falls only
+toward a floor of $2$, reaching $2.14$ at twenty. The cause is rank once
+more: on a single ring $x^2 + y^2 = \rho^2$ identically, so the ring
+constrains that combination alone. Curvature is bought with radial
+diversity rather than robot count, and twenty-one robots on two rings
+reach $1.42$ where twenty-one on one ring reach $2.14$.
+
+\subsection{Polynomial Surrogates}
+\label{sec:surrogates}
+\label{sec:strain_field}
+\label{sec:problem_statement}
+
 The first-order coefficients are the centroid values of the entries of the
 field Jacobian
 \begin{equation}
@@ -298,9 +446,9 @@ field Jacobian
 \end{equation}
 so that $\mathbf{J}_0 = \mathbf{J}(\mathbf{p}_c)$ has entries $a_2$,
 $a_3$, $b_2$, $b_3$, and we write $D(\mathbf{p}) =
-\det(\mathbf{J}(\mathbf{p}))$ throughout.
-
-\subsection{The Determinant Surrogate $D$}
+\det(\mathbf{J}(\mathbf{p}))$ throughout. Both surrogates this paper
+tracks are read off $\mathbf{J}$, the first from its determinant and the
+second from the eigenvalues of its symmetric part.
 
 The Okubo-Weiss parameter \cite{28,29}, built from the normal strain,
 shear strain, and vorticity
@@ -327,9 +475,6 @@ and the zero level set of $D$ is the Okubo-Weiss boundary between the
 two regimes. The more negative $D$ is, the stronger the local
 hyperbolicity, so trenches (valley lines) of $D$ inside strain regions
 mark the loci of strongest instantaneous attraction and repulsion.
-
-\subsection{The Strain-Eigenvalue Surrogate $s_1$}
-\label{sec:strain_field}
 
 The Cauchy--Stokes decomposition splits the velocity gradient into
 symmetric and antisymmetric
@@ -409,6 +554,125 @@ One caution accompanies the eigenstructure. $\mathbf{e}_1,
 undefined at isotropic points of $\mathbf{S}$ ($s_1 = s_2$), so the
 primitive must orient its tangent by continuity rather than by any
 pointwise rule.
+
+Both surrogates and their derivatives follow from the fitted
+coefficients in closed form, with no numerical differencing at any
+stage. The estimated Jacobian at the centroid is assembled from the
+linear coefficients,
+\begin{equation}
+    \hat{\mathbf{J}}_0 =
+    \begin{bmatrix}
+        \hat{a}_2 & \hat{a}_3 \\ \hat{b}_2 & \hat{b}_3
+    \end{bmatrix},
+    \qquad
+    \hat{D}_0 = \hat{a}_2 \hat{b}_3 - \hat{a}_3 \hat{b}_2.
+    \label{eq:J_hat}
+\end{equation}
+Away from the centroid the fitted model makes every Jacobian entry affine
+in position,
+\begin{equation}
+    \hat{\mathbf{J}}(\mathbf{p}) = \hat{\mathbf{J}}_0 +
+    \begin{bmatrix}
+        \hat{a}_5 x + \hat{a}_4 y &
+        \hat{a}_4 x + \hat{a}_6 y \\
+        \hat{b}_5 x + \hat{b}_4 y &
+        \hat{b}_4 x + \hat{b}_6 y
+    \end{bmatrix},
+\end{equation}
+so $\hat{D}(\mathbf{p}) = \det(\hat{\mathbf{J}}(\mathbf{p}))$ is an exactly
+quadratic polynomial in position over the footprint. Differentiating
+it and evaluating at the centroid $\mathbf{p} = \mathbf{0}$ gives the
+gradient and Hessian there as polynomials in the fitted coefficients.
+\begin{equation}
+    \hat{\mathbf{g}}_0 =
+    \begin{bmatrix}
+        \hat{a}_5 \hat{b}_3 + \hat{a}_2 \hat{b}_4
+            - \hat{a}_4 \hat{b}_2 - \hat{a}_3 \hat{b}_5 \\
+        \hat{a}_4 \hat{b}_3 + \hat{a}_2 \hat{b}_6
+            - \hat{a}_6 \hat{b}_2 - \hat{a}_3 \hat{b}_4
+    \end{bmatrix},
+    \label{eq:grad_det}
+\end{equation}
+\begin{equation}
+    \hat{\mathbf{H}}_{D,0} =
+    \begin{bmatrix}
+        2(\hat{a}_5 \hat{b}_4 - \hat{a}_4 \hat{b}_5) &
+        \hat{a}_5 \hat{b}_6 - \hat{a}_6 \hat{b}_5 \\
+        \hat{a}_5 \hat{b}_6 - \hat{a}_6 \hat{b}_5 &
+        2(\hat{a}_4 \hat{b}_6 - \hat{a}_6 \hat{b}_4)
+    \end{bmatrix}.
+    \label{eq:hess_det}
+\end{equation}
+Because $\hat{D}$ is quadratic, $\hat{\mathbf{H}}_{D,0}$ is independent of
+position, the model reports the same curvature everywhere in the
+footprint, and unlike the gradient it does not sharpen as the cluster
+contracts onto the target. With the estimated flow at the centroid,
+$\hat{\mathbf{v}}_0 = (\hat{a}_1, \hat{b}_1)$,
+(\ref{eq:J_hat})--(\ref{eq:hess_det}) supply every quantity the $D$
+tracker consumes.
+
+The same fit supplies the objective strain quantities. Write $\mu$,
+$s_n$, and $s_s$ for the
+mean, deviatoric normal, and shear strain, which the fitted first-order
+coefficients give as
+\begin{equation}
+    \mu = \frac{\hat{a}_2 + \hat{b}_3}{2}, \quad
+    s_n = \frac{\hat{a}_2 - \hat{b}_3}{2}, \quad
+    s_s = \frac{\hat{a}_3 + \hat{b}_2}{2},
+\end{equation}
+with $\mu = 0$ for incompressible flow.
+Together with the vorticity $\omega$, these three scalars reconstruct
+the full Jacobian on four fixed basis matrices,
+\begin{equation}
+    \mathbf{J} = \mu\mathbf{I} + s_n\mathbf{N} + s_s\boldsymbol{\Sigma}
+        + \frac{\omega}{2}\mathbf{R},
+    \label{eq:four_matrix}
+\end{equation}
+with
+$\mathbf{I} = \left[\begin{smallmatrix}1&0\\0&1\end{smallmatrix}\right]$,
+$\mathbf{N} = \left[\begin{smallmatrix}1&0\\0&-1\end{smallmatrix}\right]$,
+$\boldsymbol{\Sigma} = \left[\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right]$,
+and $\mathbf{R} = \left[\begin{smallmatrix}0&-1\\1&0\end{smallmatrix}\right]$.
+The term $\mu\mathbf{I}$ is the isotropic (dilation) part of $\mathbf{J}$,
+$s_n\mathbf{N} + s_s\boldsymbol{\Sigma}$ is the deviatoric, trace-free
+part of $\mathbf{S}$, and $(\omega/2)\mathbf{R} = \mathbf{W}$ recovers
+the spin tensor of Section~\ref{sec:strain_field}. The strain eigenvalues are
+$s_{1,2} = \mu \mp r$ with $r = \sqrt{s_n^2 + s_s^2}$, and the
+eigenframe $(\mathbf{e}_1, \mathbf{e}_2)$ is that of the symmetric
+matrix $\hat{\mathbf{S}}$ assembled from the same coefficients. Every
+quantity in this subsection is read from the fit. Hats are written where
+an estimate is contrasted with its clean value, and suppressed on $\mu$, $s_n$, $s_s$,
+$r$, and the eigenvectors elsewhere. Under
+the quadratic model, $\mu$, $s_n$, and $s_s$ are affine functions of
+position, so the gradient of $\hat{s}_1$ is exact for the fitted field.
+\begin{equation}
+    \nabla \hat{s}_1 = \nabla\mu
+    - \frac{s_n\,\nabla s_n + s_s\,\nabla s_s}{r},
+    \label{eq:grad_s1}
+\end{equation}
+with $\nabla\mu$, $\nabla s_n$, $\nabla s_s$ read directly off the
+second-order coefficients (for example $\nabla s_n = \tfrac{1}{2}
+(\hat{a}_5 - \hat{b}_4,\; \hat{a}_4 - \hat{b}_6)^\top$).
+
+\begin{remark}[No usable Hessian of $s_1$ exists under a quadratic fit]
+\label{rem:s1hess}
+A Newton step on $(\nabla \hat{s}_1,
+\hat{\mathbf{H}}_{s_1})$ is impossible in principle, not merely
+inaccurate. Under the quadratic model the map $\mathbf{p} \mapsto (s_n,
+s_s)$ is affine, so $\hat{s}_1 = \mu - \|(s_n, s_s)\|$ is concave and its
+Hessian is negative semidefinite \emph{for every field and every
+formation}. The positive transverse curvature of an $s_1$ trench lives
+in third derivatives of the velocity field, outside the span of any
+quadratic fit. The gradient
+(\ref{eq:grad_s1}) is unaffected. Its transverse component recovers the
+trench-restoring signal with the correct sign. Gradient descent still
+converges on this provably concave fitted surface because the fit is
+recomputed at the new centroid every control cycle: (\ref{eq:grad_s1})
+is the exact gradient of \emph{that} cycle's fitted field at the
+cluster's current position, so each step descends a locally valid
+quadratic even though no single fit is a valid model of $s_1$ over any
+larger neighborhood.
+\end{remark}
 
 \subsection{The Double-Gyre Example}
 \label{sec:dg_example}
@@ -511,388 +775,9 @@ special handling at the isotropic point.
     \label{fig:trench_cross}
 \end{figure}
 
-\subsection{Problem Statement}
-\label{sec:problem_statement}
-
-Consider six robots at positions $\mathbf{p}_i$, the minimum cluster
-Proposition~\ref{prop:minimality} establishes for this recovery, each
-measuring the local flow $(u_i, v_i) = \mathbf{v}(\mathbf{p}_i)$ at the
-common sampling instant, with no map, forecast, or prior field model and
-no trajectory integration. The measured flow is a sampled datum, not a
-current that advects the platform. Robot motion is commanded by the
-control law, not advected by the sampled flow. Using only the current
-synchronous samples at each control cycle, the cluster must generate a
-centroid velocity command $\dot{\mathbf{p}}_c$ that solves one of two
-problems, one per term of (\ref{eq:splitting}).
-
-\emph{Problem 1 (separatrix network traversal).} Drive the cluster
-centroid onto the trench of $D$ and travel it, in the direction of the
-ambient flow, through the saddle points where trench segments cross.
-
-\emph{Problem 2 (objective network traversal).} Drive the centroid onto
-the trench of $s_1$ and travel it, in the direction the ambient flow
-sets at first contact, through the isotropic point where the
-attracting and repelling OECS meet, and detect and hold at a terminal
-attracting core where one is reachable, using objective quantities
-throughout apart from that one-time seed.
-
-\section{Cooperative Second-Order Estimation}
-\label{sec:estimation}
-
-\subsection{Quadratic Fit from Six Simultaneous Measurements}
-
-With robot positions $\mathbf{p}_i = (x_i, y_i)$ again measured from the
-centroid, define the quadratic basis vector
-\begin{equation}
-    \boldsymbol{\phi}(\mathbf{p}) =
-    \bigl[\,1, \; x, \; y, \; xy, \;
-    \tfrac{1}{2}x^2, \; \tfrac{1}{2}y^2\,\bigr]^\top,
-\end{equation}
-whose entries are the terms of
-(\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}) in the same order, so
-the recovered coefficients estimate the Taylor derivatives directly with
-no rescaling. Stacking the six robots' basis vectors row-wise gives
-the $6 \times 6$ formation matrix $\boldsymbol{\Phi}$, and the coefficient
-estimates $\hat{\boldsymbol{\theta}}_u = [\hat{a}_1, \ldots,
-\hat{a}_6]^\top$ and $\hat{\boldsymbol{\theta}}_v = [\hat{b}_1, \ldots,
-\hat{b}_6]^\top$ solve
-\begin{equation}
-    \boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_u = \mathbf{m}_u, \qquad
-    \boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_v = \mathbf{m}_v,
-    \label{eq:solve}
-\end{equation}
-where $\mathbf{m}_u = [u_1, \ldots, u_6]^\top$ and
-$\mathbf{m}_v = [v_1, \ldots, v_6]^\top$ collect the measurements, $u_i$
-and $v_i$ being the field components sampled by robot $i$. One matrix
-factorization serves both components. If the field is exactly quadratic
-over the formation footprint, the $\mathcal{O}(\|\mathbf{p}\|^3)$
-remainder vanishes identically, and noise-free measurements give
-$\hat{\boldsymbol{\theta}}_u = \boldsymbol{\theta}_u$ and
-$\hat{\boldsymbol{\theta}}_v = \boldsymbol{\theta}_v$ for any nonsingular
-$\boldsymbol{\Phi}$. Neither condition holds exactly in practice.
-
-\begin{proposition}[Minimality]
-\label{prop:minimality}
-A synchronous sample from fewer than six robots leaves the
-unconstrained quadratic model unidentifiable.
-\end{proposition}
-
-\begin{IEEEproof}
-Each robot contributes one equation per component to (\ref{eq:solve}),
-and each system has six unknowns, so fewer than six robots leave the
-solution set a positive-dimensional affine subspace.
-\end{IEEEproof}
-
-Any method returning a single answer from five robots is therefore
-supplying a structural prior rather than reading one from the data. Such
-a prior is available. Imposing exact incompressibility ties $a_2 + b_3 =
-0$ together with its two first derivatives, removing three coefficients,
-so five robots then supply ten equations for nine unknowns. The
-estimator fits the unconstrained model deliberately, and the choice
-trades one robot against model fidelity on a measured field. Horizontal
-surface currents are not divergence free, and the divergence is nonzero
-over the measured ocean field used in this paper, so a five-robot
-estimator imposing $\operatorname{tr}(\mathbf{J}) = 0$ would bias every
-recovered coefficient there, not only the three it eliminates. A
-divergence-constrained five-robot variant remains available where
-incompressibility is defensible; the sixth robot buys exactness over
-every planar quadratic field rather than only over an incompressible
-subclass.
-
-Six robots suffice exactly when $\boldsymbol{\Phi}$ is nonsingular, and
-the singular formations admit a clean geometric description.
-
-\begin{remark}[Formation nonsingularity]
-\label{rem:conic}
-$\boldsymbol{\Phi}$ is singular exactly when the six sampling points lie
-on a common conic, including degenerate ones such as line pairs, since a
-null vector $\mathbf{c}$ is the coefficient vector of a quadratic
-vanishing at all six. Six robots on a circle, a regular hexagon among
-them, are therefore singular at any size or orientation. Moving one to
-the center removes it: a conic vanishing at five points of a circle is a
-multiple of that circle, and a circle does not pass through its own
-center. The pentagon-plus-center formation used throughout is
-nonsingular for that reason, and drift toward a common conic is the
-conditioning limit, a degenerate cluster in the sense of \cite{4}.
-\end{remark}
-
-This is the configuration \cite{6} derived for scalar Hessian
-estimation. Solving (\ref{eq:solve}) at the measured positions costs one
-$6 \times 6$ factorization per cycle, reused for
-both components, and stays exact under any deformation short of the
-conic degeneracy, with formation error entering only through the
-conditioning of $\boldsymbol{\Phi}$.
-
-\subsection{Closed-Form Recovery of $D$, $\nabla D$, and $\mathbf{H}_D$}
-
-The estimated Jacobian at the centroid is assembled from the linear
-coefficients,
-\begin{equation}
-    \hat{\mathbf{J}}_0 =
-    \begin{bmatrix}
-        \hat{a}_2 & \hat{a}_3 \\ \hat{b}_2 & \hat{b}_3
-    \end{bmatrix},
-    \qquad
-    \hat{D}_0 = \hat{a}_2 \hat{b}_3 - \hat{a}_3 \hat{b}_2.
-    \label{eq:J_hat}
-\end{equation}
-Away from the centroid the fitted model makes every Jacobian entry affine
-in position,
-\begin{equation}
-    \hat{\mathbf{J}}(\mathbf{p}) = \hat{\mathbf{J}}_0 +
-    \begin{bmatrix}
-        \hat{a}_5 x + \hat{a}_4 y &
-        \hat{a}_4 x + \hat{a}_6 y \\
-        \hat{b}_5 x + \hat{b}_4 y &
-        \hat{b}_4 x + \hat{b}_6 y
-    \end{bmatrix},
-\end{equation}
-so $\hat{D}(\mathbf{p}) = \det(\hat{\mathbf{J}}(\mathbf{p}))$ is an exactly
-quadratic polynomial in position over the footprint. Differentiating
-it and evaluating at the centroid $\mathbf{p} = \mathbf{0}$ gives the
-gradient and Hessian there as polynomials in the fitted coefficients.
-\begin{equation}
-    \hat{\mathbf{g}}_0 =
-    \begin{bmatrix}
-        \hat{a}_5 \hat{b}_3 + \hat{a}_2 \hat{b}_4
-            - \hat{a}_4 \hat{b}_2 - \hat{a}_3 \hat{b}_5 \\
-        \hat{a}_4 \hat{b}_3 + \hat{a}_2 \hat{b}_6
-            - \hat{a}_6 \hat{b}_2 - \hat{a}_3 \hat{b}_4
-    \end{bmatrix},
-    \label{eq:grad_det}
-\end{equation}
-\begin{equation}
-    \hat{\mathbf{H}}_{D,0} =
-    \begin{bmatrix}
-        2(\hat{a}_5 \hat{b}_4 - \hat{a}_4 \hat{b}_5) &
-        \hat{a}_5 \hat{b}_6 - \hat{a}_6 \hat{b}_5 \\
-        \hat{a}_5 \hat{b}_6 - \hat{a}_6 \hat{b}_5 &
-        2(\hat{a}_4 \hat{b}_6 - \hat{a}_6 \hat{b}_4)
-    \end{bmatrix}.
-    \label{eq:hess_det}
-\end{equation}
-Because $\hat{D}$ is quadratic, $\hat{\mathbf{H}}_{D,0}$ is independent of
-position, the model reports the same curvature everywhere in the
-footprint, and unlike the gradient it does not sharpen as the cluster
-contracts onto the target. With the estimated flow at the centroid,
-$\hat{\mathbf{v}}_0 = (\hat{a}_1, \hat{b}_1)$,
-(\ref{eq:J_hat})--(\ref{eq:hess_det}) supply every quantity the $D$
-tracker consumes.
-
-\subsection{Closed-Form Recovery of $s_1$ and the Strain Eigenframe}
-
-The same fit supplies the objective strain quantities. Write $\mu$,
-$s_n$, and $s_s$ for the
-mean, deviatoric normal, and shear strain, which the fitted first-order
-coefficients give as
-\begin{equation}
-    \mu = \frac{\hat{a}_2 + \hat{b}_3}{2}, \quad
-    s_n = \frac{\hat{a}_2 - \hat{b}_3}{2}, \quad
-    s_s = \frac{\hat{a}_3 + \hat{b}_2}{2},
-\end{equation}
-with $\mu = 0$ for incompressible flow.
-Together with the vorticity $\omega$, these three scalars reconstruct
-the full Jacobian on four fixed basis matrices,
-\begin{equation}
-    \mathbf{J} = \mu\mathbf{I} + s_n\mathbf{N} + s_s\boldsymbol{\Sigma}
-        + \frac{\omega}{2}\mathbf{R},
-    \label{eq:four_matrix}
-\end{equation}
-with
-$\mathbf{I} = \left[\begin{smallmatrix}1&0\\0&1\end{smallmatrix}\right]$,
-$\mathbf{N} = \left[\begin{smallmatrix}1&0\\0&-1\end{smallmatrix}\right]$,
-$\boldsymbol{\Sigma} = \left[\begin{smallmatrix}0&1\\1&0\end{smallmatrix}\right]$,
-and $\mathbf{R} = \left[\begin{smallmatrix}0&-1\\1&0\end{smallmatrix}\right]$.
-The term $\mu\mathbf{I}$ is the isotropic (dilation) part of $\mathbf{J}$,
-$s_n\mathbf{N} + s_s\boldsymbol{\Sigma}$ is the deviatoric, trace-free
-part of $\mathbf{S}$, and $(\omega/2)\mathbf{R} = \mathbf{W}$ recovers
-the spin tensor of Section~\ref{sec:strain_field}. The strain eigenvalues are
-$s_{1,2} = \mu \mp r$ with $r = \sqrt{s_n^2 + s_s^2}$, and the
-eigenframe $(\mathbf{e}_1, \mathbf{e}_2)$ is that of the symmetric
-matrix $\hat{\mathbf{S}}$ assembled from the same coefficients. Every
-quantity in this subsection is read from the fit. Hats are written where
-an estimate is contrasted with its clean value, and suppressed on $\mu$, $s_n$, $s_s$,
-$r$, and the eigenvectors elsewhere. Under
-the quadratic model, $\mu$, $s_n$, and $s_s$ are affine functions of
-position, so the gradient of $\hat{s}_1$ is exact for the fitted field.
-\begin{equation}
-    \nabla \hat{s}_1 = \nabla\mu
-    - \frac{s_n\,\nabla s_n + s_s\,\nabla s_s}{r},
-    \label{eq:grad_s1}
-\end{equation}
-with $\nabla\mu$, $\nabla s_n$, $\nabla s_s$ read directly off the
-second-order coefficients (for example $\nabla s_n = \tfrac{1}{2}
-(\hat{a}_5 - \hat{b}_4,\; \hat{a}_4 - \hat{b}_6)^\top$).
-
-\begin{remark}[No usable Hessian of $s_1$ exists under a quadratic fit]
-\label{rem:s1hess}
-A Newton step on $(\nabla \hat{s}_1,
-\hat{\mathbf{H}}_{s_1})$ is impossible in principle, not merely
-inaccurate. Under the quadratic model the map $\mathbf{p} \mapsto (s_n,
-s_s)$ is affine, so $\hat{s}_1 = \mu - \|(s_n, s_s)\|$ is concave and its
-Hessian is negative semidefinite \emph{for every field and every
-formation}. The positive transverse curvature of an $s_1$ trench lives
-in third derivatives of the velocity field, outside the span of any
-quadratic fit. The gradient
-(\ref{eq:grad_s1}) is unaffected. Its transverse component recovers the
-trench-restoring signal with the correct sign. Gradient descent still
-converges on this provably concave fitted surface because the fit is
-recomputed at the new centroid every control cycle: (\ref{eq:grad_s1})
-is the exact gradient of \emph{that} cycle's fitted field at the
-cluster's current position, so each step descends a locally valid
-quadratic even though no single fit is a valid model of $s_1$ over any
-larger neighborhood.
-\end{remark}
-
-\subsection{Estimator Sensitivity}
-\label{sec:sensitivity}
-
-Two noise channels perturb the samples. The first is measurement noise,
-additive and Gaussian on the field components each robot reads:
-\begin{equation}
-    u_i^m = u(\mathbf{p}_i) + \eta_i^u, \quad
-    v_i^m = v(\mathbf{p}_i) + \eta_i^v,
-    \quad \eta \sim \mathcal{N}(0, \sigma_{uv}^2),
-    \label{eq:meas_noise}
-\end{equation}
-where $\eta_i^u$ and $\eta_i^v$ are independent across robots,
-components, and control cycles, following the sensor model of \cite{17}.
-The second is position noise, which perturbs where each robot samples
-rather than what it reads:
-\begin{equation}
-    (u_i^m, v_i^m) = \mathbf{v}(\mathbf{p}_i + \boldsymbol{\xi}_i), \quad
-    \boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0}, \sigma_p^2 \mathbf{I}),
-    \label{eq:pos_noise}
-\end{equation}
-while the fit (\ref{eq:solve}) uses the nominal positions
-$\mathbf{p}_i$. To first order, a displaced robot commits a reading
-error $\mathbf{J}\boldsymbol{\xi}_i$, of variance
-$\lVert\nabla u\rVert^2\sigma_p^2$ on the first component and
-$\lVert\nabla v\rVert^2\sigma_p^2$ on the second. Averaging the two gives
-a single effective level,
-\begin{equation}
-    \sigma_{\mathrm{eff}}^2 = \sigma_{uv}^2
-        + \tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\,\sigma_p^2 ,
-    \label{eq:sigma_eff}
-\end{equation}
-exact when the two gradients have equal norm and a mean otherwise.
-
-The fit is linear in the measurements. Solving (\ref{eq:solve}) gives
-$\hat{\boldsymbol{\theta}} = \boldsymbol{\theta}^0 +
-\boldsymbol{\Phi}^{-1}\boldsymbol{\eta}$ exactly, where
-$\boldsymbol{\theta}^0$ denotes the coefficients the same fit returns on
-clean measurements, so the noise gains are the row norms of
-$\boldsymbol{\Phi}^{-1}$. For the pentagon-plus-center formation, a
-coefficient of derivative order $q$ has standard deviation
-\begin{equation}
-    \sigma_{\theta_q} = \gamma_q\,
-    \frac{\sigma_{\mathrm{eff}}}{\rho^{\,q}},
-    \qquad
-    \gamma_0 = 1, \;\;
-    \gamma_1 = \tfrac{2}{\sqrt{10}}, \;\;
-    \gamma_2 = \tfrac{8}{\sqrt{10}},
-    \label{eq:gain_ladder}
-\end{equation}
-where $\gamma_2 = 4/\sqrt{10}$ for the mixed coefficient. These
-constants follow from the symmetry of the ring: each entry of
-$\boldsymbol{\Phi}^\top\boldsymbol{\Phi}$ is a ring sum of a monomial of
-degree at most four, the odd sums vanish, and the even sums are
-constants independent of ring phase. As a result the linear block
-separates from the rest, its two rows are orthogonal with equal norm,
-and the gradient covariance is
-$\tfrac{4}{10}\sigma_{\mathrm{eff}}^2\rho^{-2}\mathbf{I}$, isotropic at
-every heading. Only the constants $\gamma_q$ are specific to this
-formation; the exponent is not. The cluster size $\rho$ is a
-specifiable mission attribute, and (\ref{eq:gain_ladder}) is one half
-of what selecting it trades.
-
-The determinant is bilinear in the fitted coefficients, which fixes the
-behavior of every quantity the $D$ tracker consumes.
-
-\begin{proposition}[Noise adds no bias to the $D$ family]
-\label{prop:unbiased}
-Under (\ref{eq:meas_noise}), $\mathbb{E}[\hat{D}] = \hat{D}^{0}$,
-$\mathbb{E}[\nabla\hat{D}] = \nabla\hat{D}^{0}$, and
-$\mathbb{E}[\hat{\mathbf{H}}_D] = \hat{\mathbf{H}}_D^{0}$ at every noise
-level, where the superscript denotes the same estimator evaluated on
-clean measurements.
-\end{proposition}
-
-\begin{IEEEproof}
-Every term of (\ref{eq:J_hat}), (\ref{eq:grad_det}), and
-(\ref{eq:hess_det}) pairs one $\hat{a}$ with one $\hat{b}$. The fit is
-linear, so each factor is its clean value plus a zero-mean perturbation,
-and since $\boldsymbol{\eta}^u$ is independent of
-$\boldsymbol{\eta}^v$, the expectation of each product is the product of
-the clean values.
-\end{IEEEproof}
-
-The strain eigenvalue behaves like neither the fit nor the determinant.
-The mean strain
-$\mu$ is a linear function of the coefficients and inherits the
-preceding result. The eigenvalue $s_1 = \mu - r$, however, subtracts the
-norm $r = \lVert(s_n, s_s)\rVert$, and the norm is convex, so $\hat{r}$
-is biased upward and $\hat{s}_1$ biased downward. The isotropy above
-makes $(\hat{s}_n, \hat{s}_s)$ an isotropic Gaussian about its clean
-value with per-component standard deviation $\sigma_r =
-\gamma_1\sigma_{\mathrm{eff}}/(\sqrt{2}\rho)$. Consequently $\hat{r}$ is
-Rice distributed, and the bias takes the closed form
-\begin{equation}
-    \mathbb{E}[\hat{s}_1] - s_1 =
-    \begin{cases}
-        -\sqrt{\pi/2}\;\sigma_r, & r = 0, \\[2pt]
-        -\sigma_r^2 / (2r), & r \gg \sigma_r .
-    \end{cases}
-    \label{eq:s1_bias}
-\end{equation}
-The sign is fixed, so a trench always reads deeper than it is, and the
-error grows as the strain degenerates. The eigenframe divides by the
-same magnitude the norm subtracts, giving an angular error of scale
-$\sigma_r/(2r)$. In the limiting case $r = 0$ the recovered frame is
-uniformly distributed.
-
-The two channels stop being interchangeable above first order in
-$\sigma_p$, where a single displacement moves both components at robot
-$i$ and correlates their errors at $\sigma_p^2\,\nabla u \cdot \nabla v$.
-The independence Proposition~\ref{prop:unbiased} rests on then fails and
-the determinant family acquires a bias that measurement noise does not
-produce.
-
-Truncation pulls against noise in the choice of radius, which is the
-other half of the cluster-size trade. With $\nu =
-\sigma_{\mathrm{eff}}/U$ and $\tilde{\rho} = \rho/L$ for velocity and
-length scales $U$ and $L$, a quantity of order $q$ carries relative noise
-error $\nu/\tilde{\rho}^{\,q}$ against a relative truncation bias
-$\tilde{\rho}^{\,p+1-q}$ from the discarded order $p+1$,
-\begin{equation}
-    E_q(\tilde{\rho}) = c\,\frac{\nu}{\tilde{\rho}^{\,q}}
-        + d\,\tilde{\rho}^{\,p+1-q},
-    \label{eq:error_budget}
-\end{equation}
-minimized at $\tilde{\rho}^* \propto \nu^{1/(p+1)}$, a cube root here.
-The optimum differs between $\hat{D}$ and $\nabla\hat{D}$, so no single
-radius suits both, and the linear-in-radius truncation term reproduces
-the bound \cite{6} proves for symmetric formations on a scalar field.
-One property of those formations does not carry over. The ring sums that
-make the noise gains independent of formation orientation annihilate
-every angular harmonic except multiples of the robot count, and the
-discarded cubic remainder reaches the fifth harmonic against the
-second-order rows of $\boldsymbol{\Phi}^{-1}$. The truncation bias on a
-second-order coefficient is therefore orientation dependent with period
-$72^\circ$, vanishing at the two ring phases that make the formation
-mirror symmetric about the structure. It does not vanish on the structure
-itself, which is what gives it a closed-loop cost.
-
-Two quantities sit outside (\ref{eq:error_budget}) because they need
-derivatives the model does not carry. Every term of $\nabla D$ pairs a
-second derivative with a first, so the quadratic model retains all of it.
-$\mathbf{H}_D$ does not, since $D_{xx}$ adds four third-order products,
-$u_{xxx}v_y + u_x v_{xxy} - u_{xxy}v_x - u_y v_{xxx}$, to the pair
-$2(u_{xx}v_{xy} - u_{xy}v_{xx})$ that (\ref{eq:hess_det}) recovers. The
-four are set to zero by construction rather than made small by a good
-fit, so they contribute a floor $e_H$ that no radius, sensor, or geometry
-reduces. It falls on the eigenvalues of $\hat{\mathbf{H}}_D$, not on its
-eigendirections, which noise removes separately.
+This gives two surrogate models for the separatrix. Both have companion
+features in the quadratic fit, making this a matter of navigating a
+scalar field invariant rather than navigating a vector field.
 
 \section{Adaptive Navigation Primitives}
 \label{sec:controllers}
