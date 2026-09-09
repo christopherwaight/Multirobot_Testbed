@@ -46,35 +46,32 @@ Objective Eulerian Coherent Structures}
 \maketitle
 
 \begin{abstract}
-Adaptive navigation is the process of modifying a robot's motion in
+Adaptive navigation is the process of modifying a robot's or a system of robot's motion in
 real time based on measurements taken while moving. This paper applies
 that process to the boundaries that organize short-term transport in a
 flow, the strain-dominated curves across which water masses separate
-and along which floating material collects. Existing robotic trackers
-of such structures either commit to the structure's identity before
+and the curve along which floating material collects. Existing robotic trackers
+of such structures either commit to the structure's identity and pre-straddles them before
 tracking begins or accumulate an estimate over a finite integration
-horizon. We present a six-robot cluster that does neither, locating
-separating boundaries and holding station on attracting ones from the
-instantaneous local flow measured simultaneously across the formation.
+horizon. We present a six-robot cluster locates these
+separating boundaries and navigates to and along them from the
+instantaneous local flow measured simultaneously across the formation without requiring an integration horizon nor pre-straddling.
 A cooperative estimator recovers the local quadratic field model from
 one synchronous sample, six robots being the minimum for the
 unconstrained model. That fit supplies two surrogates, the Jacobian
 determinant, which traces separatrices but shifts under a rotating
 observer, and the smaller rate-of-strain eigenvalue, which is objective
 and recovers the identical material curve in any frame. We develop an
-adaptive navigation primitive for each and characterize the tradeoff
-between objectivity and noise tolerance. To our knowledge this is the
+adaptive navigation primitive for both surrogates and characterize the tradeoff in terms of objectivity and noise tolerance. To our knowledge this is the
 first demonstration of multirobot tracking of an objective Eulerian
 coherent structure from instantaneous measurements alone. Monte Carlo
 sweeps show the determinant tracker withstands about four to five times
-more measurement noise, failing where the estimator gradient stops
-being informative. A rotating-frame trial reverses the ranking: the
+more measurement noise than the rate-of-strain eigenvalue. A rotating-frame trial shows how the
 strain tracker holds the same material path in both frames while the
 determinant tracker departs the structure. On Santa Barbara Channel
-radar currents both primitives follow the same dominant transport
-corridor for nearly the full record, separating only near landfall.
-Together these results yield an operational rule for selecting between
-the two surrogates by observing platform and mission.
+radar currents, both primitives follow the same dominant transport
+corridor with slightly different trajectories.
+
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -85,20 +82,17 @@ Estimation, Cluster Space Control
 
 \section{Introduction}
 
-\IEEEPARstart{M}{ultirobot} systems offer redundancy, increased
+\IEEEPARstart{M}{ultirobot} systems (MRS) offer redundancy, increased
 throughput, and cooperative behaviors a single vehicle cannot produce,
 and they now operate across land, sea, air, and space \cite{1}.
-Navigating an unknown field is one such behavior. In adaptive
-navigation (AN), a vehicle modifies its direction and path in real time
-from measurements taken while moving \cite{2}. Rather than covering a region with a prescribed survey trajectory, a
-cluster collects spatially distributed readings at one instant, fits a
-local model of the landscape, and steers on its features. A single vehicle must translate to sense a
+ In adaptive
+navigation (AN), a vehicle or group of vehicles modifies the direction and path travelled in real time
+from measurements taken while moving \cite{2}. A single vehicle must translate to sense a
 gradient, which costs time and misleads in a time-varying field,
 whereas a cluster samples simultaneously, tolerates vehicle failures,
 and adapts its size and shape to the spatial frequencies present
-\cite{2,3}. Cluster size is a specifiable mission attribute, trading
-spatial resolution and noise suppression against breadth of exploration
-\cite{4}.
+\cite{2,3}. An MRS, on the other hand, can collect spatially distributed readings at one instant, fit a
+local model of the landscape, and steer on its features. \cite{4}
 
 AN in scalar fields is well developed. Each
 robot contributes one scalar measurement to a policy that reaches and
@@ -109,72 +103,49 @@ established cooperative gradient climbing with a formation of mobile
 sensors \cite{5}. Bri\~{n}\'{o}n-Arranz, Renzaglia, and Schenato
 extended it to the Hessian, five robots on a ring plus one at the
 center recovering both in closed form \cite{4}. McDonald, Kitts, and
-Neumann developed and experimentally verified the ridge, trench, and
-saddle primitives \cite{2,3,6}.
+Neumann developed and experimentally verified extrema seeking, ridge and trench following, 
+saddle seeking and front tracking using an indoor testbed \cite{2,3,6}.
 
-A vector field carries features of its own. Critical points are
-the isolated members, sinks and sources that mark convergence zones and
-subsurface leaks \cite{7}, and in \cite{8} a three-robot cluster
+Some environments are better modelled as vector fields, which contain features without scalar field equivalents. Critical points, such as sinks, sources, and spewing vortices can be used to model convergence zones and
+subsurface leaks \cite{7}.  In \cite{8} a three-robot cluster
 estimated the location and type of one from a linear fit of
-simultaneous local velocity measurements. The scalar primitives above
-read a single signal channel. A coupled two-component field doubles the
-estimation problem to twelve unknowns.
+simultaneous local velocity measurements and used this estimate to adaptively navigate towards and around them. 
 
-The extended features of a coastal flow govern how material moves
-through it. Floating material does not spread evenly, but collects along or separates across
-the coherent structures of the flow: rotation-dominated cores that
-retain whatever enters them, and strain-dominated boundaries across
-which neighboring parcels are pulled apart. A separatrix is a transport
-barrier, the curve a plume will not cross and the line along which a
-coastal sensor array is best deployed \cite{9,10,11}. Its saddle points
-are the stagnation points where two barriers cross, deciding the
-corridor a drifter follows. An attracting objective Eulerian
-coherent structure (OECS) is an accumulator, the curve on which debris,
-larvae, and search objects collect \cite{12}. Coordinated multi-vehicle sampling of dynamic ocean features is an
-active area of marine robotics \cite{13,14,15}. Knowing where these curves lie is the
-difference between searching a corridor and searching a basin.
 
-These structures are found today by one of two routes. Haller and Yuan
-formalized the Lagrangian coherent structure (LCS) as the
-generalization of stable and unstable manifolds to arbitrary time
-dependence \cite{9}. It is computed as a ridge of the finite-time
-Lyapunov exponent field \cite{11}. Objectivity, the Lagrangian/Eulerian tradeoff, sparse-trajectory gradient recovery, and the strain-spin decomposition are adjacent active directions \cite{16,17,18,19,20}. The
-instantaneous criteria are the computable alternative: Okubo and Weiss
-partition a planar flow from the local velocity gradient alone
-\cite{21,22}, generalized to three dimensions \cite{23}, refined for
-oceanographic use \cite{24}, and applied at scale in mesoscale eddy
-censuses \cite{25}. Both routes characterize the structure offline from a reconstructed
-field, depend on an integration horizon that delays estimates, and
-assume the structure's identity before tracking begins.
 
-The nearest robotic work tracks a structure directly with a formation
-and inherits that gap. Michini et al. bracket a presumed stable or
+Beyond critical points, vector fields have curves that are useful for navigation. For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulate or separate \cite{12}. Mapping these exact curves allows teams to strategically deploy resources in highly targeted search areas \cite{13,14,15}. Without adaptive navigation, a large scale team must sample a much larger basin to determine where these structures lie to compute their location. \cite{9,10,11}.
+
+
+Coherent structures are typically identified through two primary methods. The first relies on Lagrangian coherent structures (LCS) \cite{9}, typically computed as ridges in the finite-time Lyapunov exponent field \cite{11}, with ongoing research addressing the Lagrangian/Eulerian tradeoff and sparse-trajectory gradient recovery \cite{16,17,18,19,20}. The second method uses instantaneous Eulerian criteria, such as the Okubo-Weiss parameter, to partition flows based solely on the local velocity gradient \cite{21,22}. This instantaneous approach has been generalized to three dimensions \cite{23} and successfully applied to large-scale oceanographic eddy censuses \cite{24,25}. However, both of these methods characterize these structures offline using a reconstructed field, which are not well suited for real-time adaptive navigation of a field which evolves in time.  
+
+New work is being done on using AN techniques with MRS in these scenarios. Michini et al. bracket a presumed stable or
 unstable manifold with three robots using only local velocity
 measurements \cite{26}, extended to $N$ robots \cite{27} and validated
-on micro surface vehicles \cite{28,29}. Its robots begin on the
+on micro surface vehicles using a PIM triple inspired approach \cite{28,29}. The robots begin on the
 manifold and are advected by the flow, and the manifold's identity is
 supplied in advance. The saddle point is treated by neither the
 controller nor its analysis, and that work reports veering away from
-the structure near a saddle in both flow-tank and ocean trials. Kularatne
-and Hsieh instead compute the local FTLE field on board, recovering
-type at the cost of a nonzero integration horizon \cite{30}. In none of
-this work does a formation acquire an extended structure it does not
-already occupy.
+the structure near a saddle in both flow-tank and ocean trials. Kularatne and Hsieh do not presume stable or unstable, but rather, they compute the local FTLE field on board, recovering
+type at the cost of a nonzero integration horizon \cite{30}. In both cases, the robotic formation pre-straddles the structure, and does not acquire a structure it does not already occupy.
 
-This paper contributes a) a cooperative second-order estimator that
+This paper contributes a novel approach to the problem. We present  a cooperative second-order estimator that
 recovers the local quadratic model of a two-component field from one
-synchronous sample; b) two AN primitives, the $D$ tracker and the $s_1$
-tracker, that read the two terms of one splitting identity, $D =
-\omega^2/4 - s_1^2$, off the same fit; c) frame-equivariant commands
-for the $s_1$ tracker, with path divergence bounded under a stated rate
-condition; and d) a tradeoff between objectivity and noise tolerance
-located in the estimator rather than either control law.
-For the estimator, six robots are proved minimal and the failing
-formations are exactly those lying on a common conic. Its noise gains
+synchronous sample. Two AN primitives, the $D$ tracker and the $s_1$
+tracker, read the two terms of one splitting identity, $D =
+\omega^2/4 - s_1^2$, off the same estimated model and navigate to the structure and rise along it without the need for pre-straddling and using only current instantaneous measurement. 
+
+For the estimator, six robots are proved minimal. Its noise gains
 are exact and isotropic in formation heading, one scaling rule per
 derivative order, though the truncation bias is not isotropic. Both
 primitives run on a simulated double gyre and on measured Santa Barbara
 Channel radar currents.
+
+
+
+
+# I have proofread everything above this line #
+
+
 
 
 \section{Second Order Field Estimation}
