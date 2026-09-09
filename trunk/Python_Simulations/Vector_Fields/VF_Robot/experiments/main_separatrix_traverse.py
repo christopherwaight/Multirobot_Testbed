@@ -188,8 +188,11 @@ def main():
     Dfield = -(np.pi**4 * A**2 / 2) * (np.cos(2*np.pi*(GX+1))
                                        + np.cos(2*np.pi*(GY+0.5)))
 
-    for ax, title in ((ax_c, "Controller 1: D tracker (Logic C)"),
-                      (ax_t, "Controller 2: objective s1 traverser")):
+    # Titles use the paper's names for the two primitives. The internal
+    # names (Logic C / Primitive 7, Primitive 11) do not appear in the
+    # paper and must not appear in a figure it embeds.
+    for ax, title in ((ax_c, "$D$ tracker"),
+                      (ax_t, "$s_1$ tracker")):
         ax.streamplot(GX, GY, U, Vv, color="0.82", density=1.1, linewidth=0.6,
                       arrowsize=0.7)
         ax.contour(GX, GY, Dfield, levels=[0.0], colors="0.45", linewidths=1.0)
@@ -237,8 +240,8 @@ def main():
               + ",".join(f"{k}:{v/tot_t:.2f}" for k, v in m_t.most_common()))
         print(f"  path gap:   mean={mean_gap:.4f}  max={max_gap:.4f}")
 
-    fig.suptitle("Objective separatrix traverser (Primitive 11) vs Logic C "
-                 "(Primitive 7): path match", fontsize=13, fontweight='bold')
+    # No suptitle: the paper's caption carries the description, and a
+    # title inside the image duplicates it.
     fig.tight_layout()
     out_png = os.path.join(OUT_DIR, "traverse_vs_logic_c.png")
     fig.savefig(out_png, dpi=200, bbox_inches="tight")
