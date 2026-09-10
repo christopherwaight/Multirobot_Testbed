@@ -46,23 +46,24 @@ Objective Eulerian Coherent Structures}
 \maketitle
 
 \begin{abstract}
-Adaptive navigation is the process of modifying a robot's or a system of robot's motion in
+Adaptive navigation is the process of modifying a robot's or a system of robots' motion in
 real time based on measurements taken while moving. This paper applies
 that process to the boundaries that organize short-term transport in a
 flow, the strain-dominated curves across which water masses separate
 and the curve along which floating material collects. Existing robotic trackers
-of such structures either commit to the structure's identity and pre-straddles them before
+of such structures either commit to the structure's identity and pre-straddle it before
 tracking begins or accumulate an estimate over a finite integration
-horizon. We present a six-robot cluster locates these
+horizon. We present a six-robot cluster that locates these
 separating boundaries and navigates to and along them from the
-instantaneous local flow measured simultaneously across the formation without requiring an integration horizon nor pre-straddling.
+instantaneous local flow measured simultaneously across the formation without requiring an integration horizon or pre-straddling.
 A cooperative estimator recovers the local quadratic field model from
 one synchronous sample, six robots being the minimum for the
 unconstrained model. That fit supplies two surrogates, the Jacobian
 determinant, which traces separatrices but shifts under a rotating
 observer, and the smaller rate-of-strain eigenvalue, which is objective
 and recovers the identical material curve in any frame. We develop an
-adaptive navigation primitive for both surrogates and characterize the tradeoff in terms of objectivity and noise tolerance. To our knowledge this is the
+adaptive navigation primitive for each surrogate and characterize the
+tradeoff between objectivity and noise tolerance. To our knowledge this is the
 first demonstration of multirobot tracking of an objective Eulerian
 coherent structure from instantaneous measurements alone. Monte Carlo
 sweeps show the determinant tracker withstands about four to five times
@@ -86,13 +87,13 @@ Estimation, Cluster Space Control
 throughput, and cooperative behaviors a single vehicle cannot produce,
 and they now operate across land, sea, air, and space \cite{1}.
  In adaptive
-navigation (AN), a vehicle or group of vehicles modifies the direction and path travelled in real time
+navigation (AN), a vehicle or group of vehicles modifies its direction and path in real time
 from measurements taken while moving \cite{2}. A single vehicle must translate to sense a
 gradient, which costs time and misleads in a time-varying field,
 whereas a cluster samples simultaneously, tolerates vehicle failures,
 and adapts its size and shape to the spatial frequencies present
 \cite{2,3}. An MRS, on the other hand, can collect spatially distributed readings at one instant, fit a
-local model of the landscape, and steer on its features. \cite{4}
+local model of the landscape, and steer on its features \cite{4}.
 
 AN in scalar fields is well developed. Each
 robot contributes one scalar measurement to a policy that reaches and
@@ -102,26 +103,26 @@ policy consumes \cite{4,5}. \"{O}gren, Fiorelli, and Leonard
 established cooperative gradient climbing with a formation of mobile
 sensors \cite{5}. Bri\~{n}\'{o}n-Arranz, Renzaglia, and Schenato
 extended it to the Hessian, five robots on a ring plus one at the
-center recovering both in closed form \cite{4}. McDonald, Kitts, and
-Neumann developed and experimentally verified extrema seeking, ridge and trench following, 
-saddle seeking and front tracking using an indoor testbed \cite{2,3,6}.
+center recovering both in closed form \cite{4}. Kitts, McDonald, and
+Neumann developed primitives for extrema finding, contour following,
+ridge/trench following, and saddle point station keeping \cite{2}, and
+verified ridge, trench, saddle, and front tracking experimentally on an
+indoor testbed \cite{3,6}.
 
-Some environments are better modelled as vector fields, which contain features without scalar field equivalents. Critical points, such as sinks, sources, and spewing vortices can be used to model convergence zones and
+Some environments are better modeled as vector fields, which contain features without scalar field equivalents. Critical points, such as sinks, sources, and spewing vortices can be used to model convergence zones and
 subsurface leaks \cite{7}.  In \cite{8} a three-robot cluster
 estimated the location and type of one from a linear fit of
 simultaneous local velocity measurements and used this estimate to adaptively navigate towards and around them. 
 
+Beyond critical points, vector fields have curves that are useful for navigation. For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulate or separate \cite{9,10}. Mapping these exact curves allows teams to strategically deploy resources in highly targeted search areas \cite{11,12,13}. Without adaptive navigation, a large scale team must sample a much larger basin to determine where these structures lie.
 
-
-Beyond critical points, vector fields have curves that are useful for navigation. For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulate or separate \cite{12}. Mapping these exact curves allows teams to strategically deploy resources in highly targeted search areas \cite{13,14,15}. Without adaptive navigation, a large scale team must sample a much larger basin to determine where these structures lie to compute their location. \cite{9,10,11}.
-
-
-Coherent structures are typically identified through two primary methods. The first relies on Lagrangian coherent structures (LCS) \cite{9}, typically computed as ridges in the finite-time Lyapunov exponent field \cite{11}, with ongoing research addressing the Lagrangian/Eulerian tradeoff and sparse-trajectory gradient recovery \cite{16,17,18,19,20}. The second method uses instantaneous Eulerian criteria, such as the Okubo-Weiss parameter, to partition flows based solely on the local velocity gradient \cite{21,22}. This instantaneous approach has been generalized to three dimensions \cite{23} and successfully applied to large-scale oceanographic eddy censuses \cite{24,25}. However, both of these methods characterize these structures offline using a reconstructed field, which are not well suited for real-time adaptive navigation of a field which evolves in time.  
+Coherent structures are typically identified through two primary methods. The first relies on Lagrangian coherent structures (LCS) \cite{14}, typically computed as ridges in the finite-time Lyapunov exponent field \cite{15}, with ongoing research addressing the Lagrangian/Eulerian tradeoff and sparse-trajectory gradient recovery \cite{16,17,18,19,20}. The second method uses instantaneous Eulerian criteria, such as the Okubo-Weiss parameter, to partition flows based solely on the local velocity gradient \cite{21,22}. This instantaneous approach has been generalized to three dimensions \cite{23}, refined for oceanographic use \cite{24}, and applied at scale in mesoscale eddy censuses \cite{25}. However, both of these methods characterize these structures offline using a reconstructed field, which is not well suited to real-time adaptive navigation of a field that evolves in time.  
 
 New work is being done on using AN techniques with MRS in these scenarios. Michini et al. bracket a presumed stable or
 unstable manifold with three robots using only local velocity
-measurements \cite{26}, extended to $N$ robots \cite{27} and validated
-on micro surface vehicles using a PIM triple inspired approach \cite{28,29}. The robots begin on the
+measurements \cite{26}, an approach inspired by the PIM triple
+procedure, extended to $N$ robots \cite{27} and validated
+experimentally in gyre-like flows \cite{28,29}. The robots begin on the
 manifold and are advected by the flow, and the manifold's identity is
 supplied in advance. The saddle point is treated by neither the
 controller nor its analysis, and that work reports veering away from
@@ -132,7 +133,7 @@ This paper contributes a novel approach to the problem. We present  a cooperativ
 recovers the local quadratic model of a two-component field from one
 synchronous sample. Two AN primitives, the $D$ tracker and the $s_1$
 tracker, read the two terms of one splitting identity, $D =
-\omega^2/4 - s_1^2$, off the same estimated model and navigate to the structure and rise along it without the need for pre-straddling and using only current instantaneous measurement. 
+\omega^2/4 - s_1^2$, off the same estimated model and navigate to the structure and ride along it without the need for pre-straddling, using only instantaneous measurements. 
 
 For the estimator, six robots are proved minimal. Its noise gains
 are exact and isotropic in formation heading, one scaling rule per
@@ -140,10 +141,7 @@ derivative order, though the truncation bias is not isotropic. Both
 primitives run on a simulated double gyre and on measured Santa Barbara
 Channel radar currents.
 
-
-
-
-# I have proofread everything above this line #
+% ###### I have proofread everything above this line ######
 
 
 
@@ -153,16 +151,13 @@ Channel radar currents.
 \subsection{Local Vector Field Polynomials}
 
 A planar vector field assigns a velocity $\mathbf{v}(\mathbf{p}) =
-(u(\mathbf{p}), v(\mathbf{p}))$ to each position $\mathbf{p} = (x, y)$.
-The critical-point estimator of \cite{8} fits an affine model of each
-component and solves for the point where $\mathbf{v} = \mathbf{0}$. The
-surrogates tracked here are built not from $\mathbf{v}$ but from its
-spatial derivatives through second order, which a planar fit, with
-identically zero second derivatives, cannot supply.
+(u(\mathbf{p}), v(\mathbf{p}))$ to each position in space $\mathbf{p} = (x, y)$.
+The critical point estimator of \cite{8} fits a plane of each
+component of the vector field and solves for the point where $\mathbf{v} = \mathbf{0}$. 
 
-The cluster works from the second-order Taylor expansion about the
-centroid $\mathbf{p}_c$. Coordinates $\mathbf{p} = (x, y)$ are measured
-from the centroid throughout this section, so $\mathbf{p} = \mathbf{0}$.
+In this work, we extend the linear approximation to the second-order Taylor expansion about the
+centroid, $\mathbf{p}_c$. Coordinates are measured
+from the centroid throughout this section, so $\mathbf{p}_c = \mathbf{0}$.
 \begin{align}
     u(\mathbf{p}) &= a_1 + a_2 x + a_3 y
         \nonumber \\
@@ -175,22 +170,16 @@ from the centroid throughout this section, so $\mathbf{p} = \mathbf{0}$.
         + \mathcal{O}(\|\mathbf{p}\|^3).
         \label{eq:quad_model_v}
 \end{align}
-The twelve coefficients are constants. Each coefficient is a derivative of the field at
-the centroid, the one-half factors making the match direct,
-giving $a_1 = u(\mathbf{p}_c)$, $a_2 = \partial u/\partial
+
+The twelve coefficients of this quadratic model are constants and each is a derivative of the field at
+the centroid. The one-half factors cancel the factor of 2 during differentiation.
+This gives $a_1 = u(\mathbf{p}_c)$, $a_2 = \partial u/\partial
 x|_{\mathbf{p}_c}$, $a_4 = \partial^2 u/\partial x \partial
 y|_{\mathbf{p}_c}$, $a_5 = \partial^2 u/\partial x^2|_{\mathbf{p}_c}$,
-and likewise for $b_1, \ldots, b_6$ with $v$ in place of $u$. Where a
-partial derivative of the true field is meant and not a fitted
-coefficient, this paper writes it as a derivative, $u_x$, $u_{xy}$, and
-so on.
+and likewise for $b_1, \ldots, b_6$ with $v$ in place of $u$.
 
-The cluster estimates these coefficients by fitting the quadratic model
-that remains when the $\mathcal{O}(\|\mathbf{p}\|^3)$ remainder is
-discarded, and marks estimates with a hat.
-
-With robot positions $\mathbf{p}_i = (x_i, y_i)$ measured from the
-centroid, define the quadratic basis vector
+To estimate these coefficients with robot positions $\mathbf{p}_i = (x_i,
+y_i)$, we define the quadratic basis vector
 \begin{equation}
     \boldsymbol{\phi}(\mathbf{p}) =
     \bigl[\,1, \; x, \; y, \; xy, \;
@@ -198,7 +187,7 @@ centroid, define the quadratic basis vector
 \end{equation}
 whose entries are the terms of
 (\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}) in order, so
-the recovered coefficients estimate the Taylor derivatives directly with
+the recovered coefficients, which we mark with a hat, estimate the Taylor derivatives directly with
 no rescaling. Stacking the six basis vectors row-wise gives
 the $6 \times 6$ formation matrix $\boldsymbol{\Phi}$, and the coefficient
 estimates $\hat{\boldsymbol{\theta}}_u = [\hat{a}_1, \ldots,
@@ -211,12 +200,7 @@ estimates $\hat{\boldsymbol{\theta}}_u = [\hat{a}_1, \ldots,
 \end{equation}
 where $\mathbf{m}_u = [u_1, \ldots, u_6]^\top$ and
 $\mathbf{m}_v = [v_1, \ldots, v_6]^\top$ collect the measurements, $u_i$
-and $v_i$ being the field components sampled by robot $i$.  If the field is exactly quadratic
-over the formation footprint, the $\mathcal{O}(\|\mathbf{p}\|^3)$
-remainder vanishes identically, and noise-free measurements give
-$\hat{\boldsymbol{\theta}}_u = \boldsymbol{\theta}_u$ and
-$\hat{\boldsymbol{\theta}}_v = \boldsymbol{\theta}_v$ for any nonsingular
-$\boldsymbol{\Phi}$. Neither holds exactly in practice.
+and $v_i$ being the field components sampled by robot $i$. 
 
 \subsection{Minimality}
 \label{sec:minimality}
@@ -226,17 +210,25 @@ quadratic model of a two-component planar field from one synchronous
 sample. Each robot contributes one equation per component to
 (\ref{eq:solve}), and each system has six unknowns, so fewer than six
 robots leave the solution set a positive-dimensional affine subspace.
-Any method returning a single answer from five supplies a structural
-prior, and this estimator does not impose the obvious one: horizontal surface
-currents are not divergence free, so imposing
-$\operatorname{tr}(\mathbf{J}) = 0$ would bias every recovered
-coefficient, not only the three it eliminates.
 
-Six robots suffice exactly when $\boldsymbol{\Phi}$ is nonsingular.
-Nonsingularity is poisedness of the six nodes for bivariate quadratic interpolation, which fails exactly when they lie on a common conic. A conic through all six nodes is a nonzero quadratic vanishing at every sample, so it lies in the null space of $\boldsymbol{\Phi}$. A ring
-alone is degenerate at any size, being a conic by construction. The
-pentagon-plus-center formation used throughout is not, and it is the
-configuration \cite{4} derived for scalar Hessian estimation.
+Any method for approximating the quadratic field using five equations or
+fewer is not providing a unique solution, but a family of solutions.
+Alternately, the technique is using a structural prior, such as imposing
+$\operatorname{tr}(\mathbf{J}) = 0$. We do not impose any priors on the
+field, as horizontal surface currents are not divergence free, so imposing
+$\operatorname{tr}(\mathbf{J}) = 0$ would bias every recovered coefficient.
+
+For this study, we chose the pentagon-plus-center formation and use it
+throughout. It is the configuration \cite{4} derived for scalar Hessian
+estimation, where the odd ring count suppresses third-order truncation
+bias.
+
+However, any formation of six or more robots suffices provided
+$\boldsymbol{\Phi}$ is nonsingular. This nonsingularity fails exactly
+when the robots lie on a common conic; a conic through all six nodes is
+a nonzero quadratic vanishing at every sample, placing it in the null
+space of $\boldsymbol{\Phi}$. For example, a standard ring formation is
+degenerate at any size, being a conic by construction.
 
 \subsection{Estimator Sensitivity}
 \label{sec:sensitivity}
@@ -425,7 +417,7 @@ ridden along $\mathbf{e}_2$, a curve on which $s_1$ is locally most
 negative transversely, so neighboring material is drawn onto it
 \cite{17}. Floating objects have been confirmed at sea to collect onto
 structures extracted this way from instantaneous surface currents
-\cite{12}.
+\cite{10}.
 
 Both trackers consume quantities that follow from the fitted
 coefficients in closed form, without numerical differencing. Each Jacobian entry is affine in position, so $\hat{D}(\mathbf{p})$ is exactly quadratic over the footprint. Its gradient and Hessian at the centroid are polynomials in the coefficients, the Hessian being
@@ -466,7 +458,7 @@ new centroid each cycle, so every step descends a valid quadratic.
 \label{sec:dg_example}
 
 The double-gyre flow used throughout is the steady ($\varepsilon = 0$)
-member of the Shadden family \cite{11}, shifted from the canonical domain
+member of the Shadden family \cite{15}, shifted from the canonical domain
 $[0,2] \times [0,1]$ to $[-1,1] \times [-0.5, 0.5]$ by
 $x_f = x + 1$, $y_f = y + 0.5$, where $(x_f, y_f)$ are field-frame and
 $(x, y)$ world-frame coordinates. Both are non-dimensional throughout the
@@ -482,10 +474,13 @@ $x = 0$, the saddle points are $\mathbf{p}^*_1 = (0, -0.5)$ and
 $\mathbf{p}^*_2 = (0, 0.5)$, and the gyre centers are $(\pm 0.5, 0)$.
 The unsteady member of the same family, used once as a spot check in
 Section~\ref{sec:disc_clean}, carries the standard time-dependent
-perturbation of $x_f$ \cite{11}, which oscillates the separatrix about
+perturbation of $x_f$ \cite{15}, which oscillates the separatrix about
 $x = 0$ and recovers the steady field at $\varepsilon = 0$.
 
-All quantities of interest have closed forms. The Jacobian entries are
+All quantities of interest have closed forms. Where a partial
+derivative of the true field is meant rather than a fitted coefficient,
+it is written in subscript form, $u_x$, $u_{xy}$, and so on. The
+Jacobian entries are
 $u_x = -\pi^2 A \cos\pi x_f \cos\pi y_f = -v_y$ and
 $u_y = \pi^2 A \sin\pi x_f \sin\pi y_f = -v_x$, so the flow is divergence
 free, and
@@ -657,7 +652,7 @@ motions come from the local quadratic surface the estimator gives.
 
 A trench is taken here in the height-ridge sense: a curve on which the
 gradient is orthogonal to a Hessian eigenvector whose eigenvalue is
-positive, so the surface is convex across the curve \cite{36}. The
+positive, so the surface is convex across the curve \cite{35}. The
 derivation works in the eigenbasis of the estimated Hessian. Let
 $\hat{\mathbf{H}}_{D,0}\mathbf{w}_k = \lambda_k \mathbf{w}_k$ with
 $\|\mathbf{w}_k\| = 1$ and $\lambda_1 \leq \lambda_2$, taking
@@ -902,7 +897,7 @@ described with its results below.
 
 The ocean experiment uses hourly surface-current frames for the Santa
 Barbara Channel from the HFRNet U.S.~West~Coast Radial-to-Total Vector
-product \cite{35}, on the $2$~km grid, which is public. The record is the one \cite{26} uses, the same network over the same 28-h window, 29 frames from May 16, 2012 08:00 GMT to May 17, 2012 12:00 GMT, so these results are interpretable against prior work on it. No controlled head-to-head was run, since initialization and advection differ.
+product \cite{36}, on the $2$~km grid, which is public. The record is the one \cite{26} uses, the same network over the same 28-h window, 29 frames from May 16, 2012 08:00 GMT to May 17, 2012 12:00 GMT, so these results are interpretable against prior work on it. No controlled head-to-head was run, since initialization and advection differ.
 Frames are interpolated linearly in time. World
 coordinates on $[-0.65, 0.65]^2$ map affinely onto a region centered on
 $(34.2^{\circ}\mathrm{N}, -120.4^{\circ}\mathrm{W})$.
@@ -1050,7 +1045,7 @@ $\mathbf{p}^*_1$ is 47.4\% over that grid and 47.1\% over $n =
 10{,}000$ random starts and headings. Prior AN primitives
 \cite{2}, \cite{3} report local convergence without such an estimate.
 
-A spot check on the time-varying member of the same family \cite{11}, its separatrix oscillating at $\varepsilon = 0.1$, holds the $D$ tracker on the moving trench to a mean transverse offset of 0.006. The primitive carries no time-derivative term, and no analytic guarantee covers that case.
+A spot check on the time-varying member of the same family \cite{15}, its separatrix oscillating at $\varepsilon = 0.1$, holds the $D$ tracker on the moving trench to a mean transverse offset of 0.006. The primitive carries no time-derivative term, and no analytic guarantee covers that case.
 
 \subsection{Behavior Under Noise}
 \label{sec:disc_noise}
@@ -1196,7 +1191,7 @@ evolving ridge it meets, the branch $k = 1.8$ selects.
 
 Fig.~\ref{fig:ocean_ftle} places both trials against the 24-h forward-time
 FTLE field, computed offline in the style of
-\cite{11}. Both follow the dominant ridge from the channel entrance to the
+\cite{15}. Both follow the dominant ridge from the channel entrance to the
 bifurcation closely. Mean distance from the tracked path to the nearest
 95th-percentile ridge point is 1.8~km for the $D$ tracker and 2.4~km
 for the $s_1$ tracker, against a 2~km grid and a 5.4~km formation
@@ -1344,7 +1339,7 @@ navigation control primitives for multirobot clusters: Extrema finding,
 contour following, ridge/trench following, and saddle point station keeping,''
 \textit{IEEE Access}, vol. 6, pp. 17625--17642, 2018.
 
-\bibitem{3} R. T. McDonald, C. A. Kitts, and M. A. Neumann, ``Navigation of
+\bibitem{3} R. T. McDonald et al., ``Navigation of
 scalar fronts with multirobot clusters in simulation and experiment,''
 \textit{IEEE Syst. J.}, vol. 14, no. 3, pp. 3755--3766, 2020.
 
@@ -1371,33 +1366,33 @@ no. 2, art. 181, 2021.
 \bibitem{8} C. Waight and C. A. Kitts, ``Adaptive navigation of multirobot
 systems to critical points in 2D vector fields,'' submitted for publication.
 
-\bibitem{9} G. Haller and G. Yuan, ``Lagrangian coherent structures and mixing
-in two-dimensional turbulence,'' \textit{Physica D}, vol. 147, no. 3-4,
-pp. 352--370, 2000.
-
-\bibitem{10} T. Peacock and G. Haller, ``Lagrangian coherent structures: The
+\bibitem{9} T. Peacock and G. Haller, ``Lagrangian coherent structures: The
 hidden skeleton of fluid flows,'' \textit{Phys. Today}, vol. 66, no. 2,
 pp. 41--47, 2013.
 
-\bibitem{11} S. C. Shadden, F. Lekien, and J. E. Marsden, ``Definition and
-properties of Lagrangian coherent structures from finite-time Lyapunov
-exponents in two-dimensional aperiodic flows,'' \textit{Physica D}, vol. 212,
-no. 3-4, pp. 271--304, 2005.
-
-\bibitem{12} M. Serra et al., ``Search and rescue at sea aided by hidden flow
+\bibitem{10} M. Serra et al., ``Search and rescue at sea aided by hidden flow
 structures,'' \textit{Nat. Commun.}, vol. 11, no. 1, p. 2525, 2020.
 
-\bibitem{13} J. Das et al., ``Coordinated sampling of dynamic oceanographic
+\bibitem{11} J. Das et al., ``Coordinated sampling of dynamic oceanographic
 features with underwater vehicles and drifters,'' \textit{Int. J. Robot.
 Res.}, vol. 31, no. 5, pp. 626--646, 2012.
 
-\bibitem{14} S. McCammon et al., ``Ocean front detection and tracking using a
+\bibitem{12} S. McCammon et al., ``Ocean front detection and tracking using a
 team of heterogeneous marine vehicles,'' \textit{J. Field Robot.}, vol. 38,
 no. 6, pp. 854--881, 2021.
 
-\bibitem{15} S. R. Ramp et al., ``Preparing to predict: the second autonomous
+\bibitem{13} S. R. Ramp et al., ``Preparing to predict: the second autonomous
 ocean sampling network (AOSN-II) experiment in the Monterey Bay,''
 \textit{Deep-Sea Res. II}, vol. 56, no. 3-5, pp. 68--86, 2009.
+
+\bibitem{14} G. Haller and G. Yuan, ``Lagrangian coherent structures and mixing
+in two-dimensional turbulence,'' \textit{Physica D}, vol. 147, no. 3-4,
+pp. 352--370, 2000.
+
+\bibitem{15} S. C. Shadden, F. Lekien, and J. E. Marsden, ``Definition and
+properties of Lagrangian coherent structures from finite-time Lyapunov
+exponents in two-dimensional aperiodic flows,'' \textit{Physica D}, vol. 212,
+no. 3-4, pp. 271--304, 2005.
 
 \bibitem{16} G. Haller, ``Lagrangian coherent structures,'' \textit{Annu. Rev.
 Fluid Mech.}, vol. 47, pp. 137--162, 2015.
@@ -1409,7 +1404,7 @@ structures,'' \textit{Chaos}, vol. 26, no. 5, p. 053110, 2016.
 exponents in the instantaneous limit and material transport,''
 \textit{Nonlinear Dyn.}, vol. 100, no. 4, pp. 3825--3852, 2020.
 
-\bibitem{19} T. D. Harms, S. T. M. Dawson, and B. J. McKeon, ``Lagrangian
+\bibitem{19} T. D. Harms, S. L. Brunton, and B. J. McKeon, ``Lagrangian
 gradient regression for the detection of coherent structures from sparse
 trajectory data,'' \textit{R. Soc. Open Sci.}, vol. 11, no. 9,
 p. 240586, 2024.
@@ -1462,7 +1457,7 @@ vol. 14, no. 2, pp. 207--218, 2009.
 
 \bibitem{32} T. Adamek, C. A. Kitts, and I. Mas, ``Gradient-based cluster space
 navigation for autonomous surface vessels,'' \textit{IEEE/ASME Trans.
-Mechatronics}, vol. 20, no. 2, pp. 506--518, 2014.
+Mechatronics}, vol. 20, no. 2, pp. 506--518, 2015.
 
 \bibitem{33} S. Tomer et al., ``A low-cost indoor testbed for multirobot
 adaptive navigation research,'' in \textit{Proc. IEEE Aerosp. Conf.},
@@ -1472,15 +1467,16 @@ pp. 1--12, 2018.
 multirobot adaptive navigation in vector field environments,'' in
 \textit{Proc. ASME Int. Des. Eng. Tech. Conf.}, vol. 89251, 2025.
 
-\bibitem{35} NOAA Nat. Centers Environ. Inf., ``Near-real-time surface
-ocean velocities derived from HF-radar stations,'' NCEI Accession
-gov.noaa.nodc:IOOS-HFRadarRTVector.
-
-\bibitem{36} D. Eberly, R. Gardner, B. Morse, S. Pizer, and C.
+\bibitem{35} D. Eberly, R. Gardner, B. Morse, S. Pizer, and C.
 Scharlach, ``Ridges for image analysis,'' \textit{J. Math. Imaging Vis.},
 vol. 4, no. 4, pp. 353--373, 1994.
+
+\bibitem{36} NOAA Nat. Centers Environ. Inf., ``Near-real-time surface
+ocean velocities derived from HF-radar stations,'' NCEI Accession
+gov.noaa.nodc:IOOS-HFRadarRTVector.
 
 \end{thebibliography}
 
 
 \end{document}
+
