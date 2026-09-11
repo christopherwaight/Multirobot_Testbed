@@ -141,10 +141,6 @@ derivative order, though the truncation bias is not isotropic. Both
 primitives run on a simulated double gyre and on measured Santa Barbara
 Channel radar currents.
 
-% ###### I have proofread everything above this line ######
-
-
-
 
 \section{Second Order Field Estimation}
 
@@ -213,9 +209,12 @@ robots leave the solution set a positive-dimensional affine subspace.
 
 Any method for approximating the quadratic field using five equations or
 fewer is not providing a unique solution, but a family of solutions.
-Alternately, the technique is using a structural prior, such as imposing
-$\operatorname{tr}(\mathbf{J}) = 0$. We do not impose any priors on the
-field, as horizontal surface currents are not divergence free, so imposing
+Alternately, the technique is using a structural prior, such as assuming
+divergence-free flow by imposing $\operatorname{tr}(\mathbf{J}) = 0$, where
+$\mathbf{J} = \nabla\mathbf{v}$ is the velocity gradient tensor, whose
+centroid entries are the first-order coefficients $a_2$, $a_3$, $b_2$,
+$b_3$. We do not impose any priors on the field, as horizontal surface
+currents are not divergence free, so imposing
 $\operatorname{tr}(\mathbf{J}) = 0$ would bias every recovered coefficient.
 
 For this study, we chose the pentagon-plus-center formation and use it
@@ -230,45 +229,57 @@ a nonzero quadratic vanishing at every sample, placing it in the null
 space of $\boldsymbol{\Phi}$. For example, a standard ring formation is
 degenerate at any size, being a conic by construction.
 
+
+% ###### I have proofread everything above this line ######
+
 \subsection{Estimator Sensitivity}
 \label{sec:sensitivity}
 
-Everything the estimator does is fixed by the formation matrix
-$\boldsymbol{\Phi}$ of (\ref{eq:solve}), built from the robot positions
-alone, not the field, the noise, or the mission. Rank decides whether the fit has an answer, conditioning its cost. Condition numbers are
-reported on
-the radius-normalized $\boldsymbol{\Phi}$, its columns scaled by
-$\rho^{\,q}$ for a basis element of order $q$, since the raw monomial
-basis carries a $\rho^{-2}$ column scaling that would report a healthy
-formation as a degenerate one. The nominal shape gives
-$\kappa(\boldsymbol{\Phi}) = 8.26$ at every radius.
-
-Conic drift degrades the estimate continuously, with no threshold.
-Moving the center robot out to $0.99\rho$ puts all
-six robots within one percent of a common circle, the degeneracy of
+The estimator's behavior is set by the formation matrix
+$\boldsymbol{\Phi}$ of (\ref{eq:solve}), which is built from the robot
+positions alone and does not depend on the field, the noise, or the
+mission. Its rank determines whether a unique fit exists, and its
+conditioning determines the noise cost of that fit.
+Condition numbers are reported on the radius-normalized
+$\boldsymbol{\Phi}$, its columns scaled by $\rho^{\,q}$ for a basis
+element of order $q$, since the raw monomial basis carries a $\rho^{-2}$
+column scaling that would report a healthy formation as a degenerate
+one. The nominal shape gives $\kappa(\boldsymbol{\Phi}) = 8.26$ at every
+radius. Conic drift degrades the estimate continuously, with no
+threshold. Moving the center robot out to $0.99\rho$ places all six
+robots within $0.6\%$ of a common circle, approaching the degeneracy of
 Section~\ref{sec:minimality}, and raises $\kappa(\boldsymbol{\Phi})$ to
-$564$. The inflation is not uniform, and the pattern matters more than the number: the pure second-order gains rise by about $56$ and the
-constant term by $70$, while the first-order and mixed second-order
-gains are untouched to three digits. Conic drift degrades the curvature
-channels the $D$ tracker reads and leaves the first-order channels the
-$s_1$ tracker rides alone. Formation \emph{shape} error enters the
-conditioning only here; position error takes the separate route below.
+$564$. The inflation is not spread evenly across the derivative orders.
+The pure second-order gains rise by about $56$ and the constant term by
+$70$, while the first-order and mixed second-order gains are untouched
+to three digits. Conic drift is confined to the curvature channels the
+$D$ tracker reads and leaves the first-order channels the $s_1$ tracker
+uses.
 
 The fit is linear in the measurements, so the noise gains are the row
-norms of $\boldsymbol{\Phi}^{-1}$, geometry again. A coefficient of
+norms of $\boldsymbol{\Phi}^{-1}$. A coefficient of
 derivative order $q$ has standard deviation $\gamma_q
 \sigma_{\mathrm{eff}} / \rho^{\,q}$, so curvature scales as $\rho^{-2}$
-where the gradient scales as $\rho^{-1}$. Table~\ref{tab:gain_ladder} gives
-the ladder for the pentagon-plus-center formation. The constants are
-formation specific and the exponent $-q$ is not, and within second
-order the pure and mixed coefficients carry different constants, a
-factor of two apart. One scaling rule holds per derivative order, not
-one gain per order.
+where the gradient scales as $\rho^{-1}$. Table~\ref{tab:gain_ladder}
+gives the ladder for the formation used here. The constants
+$\gamma_q$ are formation specific and the exponent $-q$ is not. Within
+second order the pure and mixed coefficients carry different constants,
+a factor of two apart, so one scaling rule holds per derivative order,
+not one gain per order.
+
+Measurement noise is additive on what each robot reads, $u_i^m = u(\mathbf{p}_i) + \eta_i^u$ and $v_i^m =
+v(\mathbf{p}_i) + \eta_i^v$ with $\eta \sim \mathcal{N}(0,
+\sigma_{uv}^2)$, independent across robots, components, and cycles.
+Under this channel each determinant term pairs one $\hat{a}$ with one
+$\hat{b}$ from independent components, so the cross terms vanish in
+expectation and $\hat{D}$, $\nabla\hat{D}$, and $\hat{\mathbf{H}}_D$ are
+unbiased at all noise levels.
 
 \begin{table}[!t]
-\caption{Noise gains for the pentagon-plus-center formation. The
-constants $\gamma$ are exact and independent of ring radius; the radius
-enters only through $\rho^{-q}$.}
+\caption{Noise gains, tabulated for the formation used here. The
+constants $\gamma$ depend on the formation and are exact and independent
+of ring radius; the $\rho^{-q}$ scaling with derivative order does not
+depend on either.}
 \label{tab:gain_ladder}
 \centering
 \begin{tabular}{llll}
@@ -286,71 +297,54 @@ $a_5$, $a_6$ (pure) & 2 & $8/\sqrt{10} \approx 2.530$ &
 \end{tabular}
 \end{table}
 
-Two noise channels feed $\sigma_{\mathrm{eff}}$. Measurement noise is
-additive on what each robot reads, $u_i^m = u(\mathbf{p}_i) + \eta_i^u$
-and $v_i^m = v(\mathbf{p}_i) + \eta_i^v$ with $\eta \sim
-\mathcal{N}(0, \sigma_{uv}^2)$, independent across robots, components,
-and cycles. Position noise perturbs where the sample is taken while the
-fit uses the nominal position, $(u_i^m, v_i^m) =
-\mathbf{v}(\mathbf{p}_i + \boldsymbol{\xi}_i)$ with
-$\boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0}, \sigma_p^2\mathbf{I})$.
-The second is not a relabeling of the first. A displaced robot commits
-the error $\mathbf{J}\boldsymbol{\xi}_i$, which vanishes in uniform
-flow, grows with the local gradient, and correlates the two components
-wherever $\nabla u \cdot \nabla v \neq 0$. Averaging per-component
-variances gives one effective level
+Position noise perturbs where the sample is taken while the fit uses the
+nominal position, $(u_i^m, v_i^m) = \mathbf{v}(\mathbf{p}_i +
+\boldsymbol{\xi}_i)$ with $\boldsymbol{\xi}_i \sim
+\mathcal{N}(\mathbf{0}, \sigma_p^2\mathbf{I})$, and it cannot be modeled
+as equivalent measurement noise. A displaced robot introduces the
+sampling error $\mathbf{J}\boldsymbol{\xi}_i$, which vanishes in uniform
+flow, grows
+with the local gradient, and correlates the two components wherever
+$\nabla u \cdot \nabla v \neq 0$. That error has per-component variances
+$\lVert\nabla u\rVert^2\sigma_p^2$ and $\lVert\nabla
+v\rVert^2\sigma_p^2$, whose average is
+$\tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\sigma_p^2$, giving one effective
+level
 \begin{equation}
     \sigma_{\mathrm{eff}}^2 = \sigma_{uv}^2
         + \tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\,\sigma_p^2 ,
     \label{eq:sigma_eff}
 \end{equation}
 which the gain ladder uses as an approximation, exact only when the two
-gradients have equal norm.
+gradients have equal norm. The correlation also breaks the independence
+the previous paragraph relies on, leaving $E[\hat{a}_2\hat{b}_3] = a_2
+b_3 + \operatorname{cov}(\hat{a}_2, \hat{b}_3)$ and a determinant bias
+that scales with the local Jacobian. Unbiasedness belongs to the
+measurement channel alone.
 
-The channels differ in what they bias, not only in what they cost.
-Under measurement noise each determinant term pairs one $\hat{a}$ with
-one $\hat{b}$ from independent components, so the cross terms vanish in
-expectation and $\hat{D}$, $\nabla\hat{D}$, and $\hat{\mathbf{H}}_D$
-are unbiased at all noise levels. The correlation above breaks that
-independence, leaving $E[\hat{a}_2\hat{b}_3] = a_2 b_3 +
-\operatorname{cov}(\hat{a}_2, \hat{b}_3)$ and a determinant bias that
-scales with the local Jacobian. Unbiasedness belongs to the measurement
-channel alone.
-
-The strain eigenvalue is biased under either channel, subtracting a
-convex norm. For a noisy two-vector $E\lVert(\hat{s}_n,
-\hat{s}_s)\rVert > \lVert(s_n, s_s)\rVert$, giving
+The strain eigenvalue is biased under either channel, because recovering
+it requires a norm. With $\hat{s}_1 = \mu - \lVert(s_n, s_s) +
+\boldsymbol{\epsilon}\rVert$, where $\boldsymbol{\epsilon}$ is the
+strain-component error and $r = \lVert(s_n, s_s)\rVert$, expanding the
+norm to second order in $\boldsymbol{\epsilon}$ and taking expectations
+cancels the component along $(s_n, s_s)$ and leaves the transverse
+component contributing at order $\sigma_r^2/r$, giving
 \begin{equation}
     E[\hat{s}_1] - s_1 \approx -\frac{\sigma_r^2}{2r}
     \label{eq:s1_bias}
 \end{equation}
 at moderate signal-to-noise, with $\sigma_r$ the strain-component
-standard deviation from the ladder. So $\hat{s}_1$ reads a trench
-deeper than it is, worst where the strain degenerates. That same $1/r$
-sets the resolution floor and returns in Section~\ref{sec:disc_noise}
-as the $s_1$ tracker's exposure.
-
-One error does not fall with noise. Fitting a quadratic to a field with
-nonzero third derivatives leaves the truncation residual
-$e_{\mathbf{H}} = \mathcal{O}(\lVert\mathbf{p}\rVert^3)$, which reaches
-$\hat{\mathbf{H}}_D$ at order $\rho$ after the $\rho^{-2}$ gain. It
-floors the curvature estimate at every noise level, and it is why
-radius cannot be chosen for noise alone: shrinking $\rho$ suppresses
-$e_{\mathbf{H}}$ and amplifies noise.
-
-The formation is a spatial filter whose passband the operator sets
-before deployment. Radius fixes the scale at which the field is
-read, robot count improves precision at the orders the geometry already
-constrains, and radial diversity resolves the higher orders outright.
-Robots added to a single ring drive the first-order gain down as $\sqrt{2/N}$ but leave the second-order gain near a floor of $2$, since $x^2 + y^2 = \rho^2$ identically on a ring and the quadratic basis is rank deficient there for any $N$. The ring-plus-center configurations that avoid this are design guidance, not exercised here.
+standard deviation from the ladder. So $\hat{s}_1$ reads a trench deeper
+than it is, and the error grows without bound as the strain degenerates.
+The tracker is drawn toward the one place its own eigenvector comparison
+is least determined. 
 
 \subsection{Polynomial Surrogates}
 \label{sec:surrogates}
 
-Both surrogates are read off the field Jacobian $\mathbf{J}$, whose
-centroid entries are the first-order coefficients $a_2$, $a_3$, $b_2$,
-$b_3$, the first from its determinant $D = \det \mathbf{J}$ and the
-second from the eigenvalues of its symmetric part. The Okubo-Weiss
+Both surrogates the trackers read are recovered from $\mathbf{J}$, the
+first from its determinant $D = \det \mathbf{J}$ and the second from the
+eigenvalues of its symmetric part. The Okubo-Weiss
 parameter \cite{21,22} satisfies $Q = \tfrac{1}{4} (\nabla \cdot
 \mathbf{v})^2 - D$ under the quarter-normalized convention of
 \cite{24} and $Q = -4D$ under the common unhalved-strain convention, so
@@ -362,10 +356,10 @@ case nearby particles separate at rate $\sqrt{-D}$; in general that
 rate is $\lvert s_1 \rvert = \sqrt{\omega^2/4 - D}$.
 Trenches of $D$ in strain regions mark the strongest instantaneous attraction and repulsion.
 
-The Cauchy--Stokes decomposition splits the velocity gradient into
-$\mathbf{J} = \mathbf{S} + \mathbf{W}$, a symmetric rate-of-strain
-tensor and an antisymmetric spin tensor carrying the vorticity $\omega
-= \partial v/\partial x - \partial u/\partial y$. Under a change of
+The same four coefficients carry the second surrogate, through the
+Cauchy--Stokes decomposition $\mathbf{J} = \mathbf{S} + \mathbf{W}$ into a
+symmetric rate-of-strain tensor and an antisymmetric spin tensor carrying
+the vorticity $\omega = \partial v/\partial x - \partial u/\partial y$. Under a change of
 observer at angular rate $\Omega$, the rotation enters the
 velocity gradient only through an antisymmetric term, landing
 entirely in the spin part, $\omega' = \omega + 2\Omega$, while the
@@ -375,7 +369,8 @@ therefore frame-invariant, its eigenvectors co-rotate, and quantities
 built from them are objective: material behavior, which cannot depend
 on the observer, is predictable from them in any frame \cite{16,17}.
 
-For any two $2 \times 2$ matrices,
+One identity relates the two surrogates, and it follows from the
+decomposition. For any two $2 \times 2$ matrices,
 $\det(\mathbf{A}+\mathbf{B}) = \det\mathbf{A} + \det\mathbf{B} +
 \operatorname{tr}\mathbf{A}\operatorname{tr}\mathbf{B} -
 \operatorname{tr}(\mathbf{A}\mathbf{B})$. Here $\operatorname{tr}
@@ -410,9 +405,10 @@ so on a vorticity-free strain-dominated curve the two transverse
 derivatives vanish together and the trenches are tangent, not merely
 coincident.
 
-The smaller eigenvalue $s_1$ is the local instantaneous contraction
-rate, compressing material along $\mathbf{e}_1$ and stretching it along
-$\mathbf{e}_2$ at rate $-s_1$. An attracting OECS is a trench of $s_1$
+The structure the second tracker rides is defined by the smaller
+eigenvalue $s_1$, the local instantaneous contraction rate, compressing
+material along $\mathbf{e}_1$ and stretching it along $\mathbf{e}_2$ at
+rate $-s_1$. An attracting OECS is a trench of $s_1$
 ridden along $\mathbf{e}_2$, a curve on which $s_1$ is locally most
 negative transversely, so neighboring material is drawn onto it
 \cite{17}. Floating objects have been confirmed at sea to collect onto
@@ -420,7 +416,10 @@ structures extracted this way from instantaneous surface currents
 \cite{10}.
 
 Both trackers consume quantities that follow from the fitted
-coefficients in closed form, without numerical differencing. Each Jacobian entry is affine in position, so $\hat{D}(\mathbf{p})$ is exactly quadratic over the footprint. Its gradient and Hessian at the centroid are polynomials in the coefficients, the Hessian being
+coefficients in closed form, without numerical differencing. Each
+Jacobian entry is affine in position, so $\hat{D}(\mathbf{p})$ is exactly
+quadratic over the footprint. Its gradient and Hessian at the centroid
+are polynomials in the coefficients, the Hessian being
 \begin{equation}
     \hat{\mathbf{H}}_{D,0} =
     \begin{bmatrix}
@@ -432,8 +431,9 @@ coefficients in closed form, without numerical differencing. Each Jacobian entry
     \label{eq:hess_det}
 \end{equation}
 This curvature is constant over the footprint and, unlike the gradient,
-does not sharpen as the cluster contracts. The strain side reads from the same fit through the mean, deviatoric
-normal, and shear strain, $\mu =
+does not sharpen as the cluster contracts. The strain side reads from
+the same fit through the mean, deviatoric normal, and shear strain,
+$\mu =
 (\hat{a}_2 + \hat{b}_3)/2$, $s_n = (\hat{a}_2 - \hat{b}_3)/2$, $s_s =
 (\hat{a}_3 + \hat{b}_2)/2$, with $\mu = 0$ for incompressible flow.
 The strain eigenvalues are $s_{1,2} = \mu \mp r$ with $r = \sqrt{s_n^2
@@ -449,7 +449,8 @@ s_s$ read off the second-order coefficients. No usable Hessian of $s_1$ accompan
 $\mathbf{p} \mapsto (s_n, s_s)$ is affine, so $\hat{s}_1 = \mu -
 \|(s_n, s_s)\|$ is concave and its Hessian negative semidefinite for
 all fields and formations, while an $s_1$ trench's positive transverse curvature lives in third
-derivatives, outside a quadratic fit's span. Both rule out a Newton step. The gradient is unaffected, its transverse
+derivatives, outside a quadratic fit's span. Both rule out the Newton step the $D$ tracker uses
+(Section~\ref{sec:sep_controller}). The gradient is unaffected, its transverse
 component recovering the trench-restoring signal with the correct sign.
 Gradient descent still converges because the fit is recomputed at the
 new centroid each cycle, so every step descends a valid quadratic.
@@ -960,7 +961,7 @@ channels.
 In Fig.~\ref{fig:est_accuracy}(a), $\hat{D}$ stays informative to
 $\sigma_{uv} \approx 0.07$ and $\nabla\hat{D}$ to $\approx 0.0075$, while
 $\hat{\mathbf{H}}_D$ never clears the error-equals-signal line at any
-noise level, bottoming at $0.94$ and held there by $e_{\mathbf{H}}$. In Fig.~\ref{fig:est_accuracy}(b),
+noise level, bottoming at $0.94$ and held there by truncation. In Fig.~\ref{fig:est_accuracy}(b),
 truncation acting alone costs the $\hat{\mathbf{H}}_D$ eigendirections
 $2.2^\circ$, while noise costs them $24^\circ$ by $\sigma_{uv} = 0.003$ and
 $39^\circ$ at the closed-loop failure cliff, against $45^\circ$ for a
@@ -1089,8 +1090,8 @@ Sweeping the formation radius closes the design trade of
 Section~\ref{sec:sensitivity} in the loop, over $\rho \in \{0.0375,
 0.075, 0.105, 0.15\}$ at 400 trials per cell. The zero-noise tracking
 error grows as $\rho^{0.98}$ for the $D$ tracker and $\rho^{0.94}$ for
-the $s_1$ tracker, against the $\mathcal{O}(\rho)$ the truncation floor
-predicts. The noise level at 50\% success grows as $\rho^{2.02}$ and
+the $s_1$ tracker, against the $\mathcal{O}(\rho)$ expected of a
+quadratic fit to a field with nonzero third derivatives. The noise level at 50\% success grows as $\rho^{2.02}$ and
 $\rho^{1.95}$, against the $\rho^2$ of the second-order rung. Both rungs of the ladder therefore hold in closed loop. A first-order-limited law would tolerate noise as $\rho^1$, so both primitives are limited by their second-order channels, even though the $s_1$ tracker rides a first-order tangent. Radius buys robustness and costs accuracy, with no interior optimum
 over this range.
 
@@ -1150,7 +1151,7 @@ holds only up to the frame-transport term that the 0.025 gap measures.
 
 The gain ladder places both surrogates on the same rung,
 so the choice between them is not one of noise gain but of which
-channels carry constants. Everything derived from $\hat{D}$ carries the additive observer term, and $\hat{\mathbf{H}}_D$ the truncation floor $e_{\mathbf{H}}$ as well. The strain eigenvalue carries neither, and is exposed instead at $1/r$, a property of the strain field rather than of the sensing. Objectivity
+channels carry constants. Everything derived from $\hat{D}$ carries the additive observer term, and $\hat{\mathbf{H}}_D$ the truncation floor as well. The strain eigenvalue carries neither, and is exposed instead at $1/r$, a property of the strain field rather than of the sensing. Objectivity
 costs the Newton normalization at the controller and a fitted trench
 further from the true one at the estimator. The tangent the $s_1$
 tracker rides comes from the
