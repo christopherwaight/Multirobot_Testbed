@@ -348,7 +348,8 @@ first from its determinant $D = \det \mathbf{J}$ and the second from the
 eigenvalues of its symmetric part. The Okubo-Weiss
 parameter \cite{21,22} satisfies $Q = \tfrac{1}{4} (\nabla \cdot
 \mathbf{v})^2 - D$ under the quarter-normalized convention of
-\cite{24} and $Q = -4D$ under the common unhalved-strain convention, so
+\cite{24} and $Q = (\nabla \cdot \mathbf{v})^2 - 4D$ under the common
+unhalved-strain convention, so
 $Q \propto D$ either way for the incompressible flows here. Its sign
 fixes the local eigenstructure: where $D < 0$ the
 flow is strain-dominated, where $D > 0$ it is rotation-dominated, and
@@ -660,7 +661,7 @@ downstream. Identifying $\mathbf{w}_2$ with the trench normal is exact
 on the benchmark, where $\mathbf{H}_D$ is diagonal, and an
 approximation in general.
 
-The law below assumes a trench convex across and concave along,
+The primitive below assumes a trench convex across and concave along,
 $\lambda_1 < 0 < \lambda_2$. That is a property of the surface, not the
 estimator, and it fails over the outer half of each separatrix segment
 of the benchmark, where the true $\mathbf{H}_D$ is positive
@@ -689,9 +690,7 @@ one it vanishes, so the flow supplies the speed instead. The test is a shallow-d
         < \varepsilon_{\dim},
 \end{equation}
 a raw threshold on absolute well depth, or a curvature-normalized one measuring depth against the local curvature. The latter carries units of length squared, so the band scales with the landscape rather than the absolute size of $D$. Note that $\mathcal{B}$ is a band around $\{D = 0\}$, not around the
-separatrix. On the benchmark the separatrix carries $D = -\pi^4 A^2$ along
-almost all of its length. It enters the band only at the crest, the case the
-branch is written for. The set
+separatrix. The set
 also contains the Okubo-Weiss boundary, which the cluster can cross
 during acquisition. Triggering the condition there costs nothing, since the
 along-trench speed passes to a flow that advects the cluster off-structure
@@ -717,7 +716,7 @@ and the velocity command is
 \end{equation}
 scaled by the navigation gain $k$ of Section~\ref{sec:robot_model}.
 
-This law decouples travel from trench holding through the eigenbasis.
+This primitive decouples travel from trench holding through the eigenbasis.
 The across-trench term is the Newton component of the fitted quadratic,
 normalized by the transverse curvature $\lambda_2$. It is the same on and off
 the band. The cluster is therefore held to the trench at Newton rate
@@ -729,8 +728,8 @@ along-trench motion never opposes the ambient flow. At a crest the along-trench 
 continues through, so the band test hands the speed to the flow.
 
 When $\hat{\mathbf{H}}_{D,0}$ has eigenvalues of one sign the trench
-frame is undefined, a case a general field will present and the law must
-cover. Off the band it reverts to the signed Newton step
+frame is undefined, a case a general field will present and the primitive
+must cover. Off the band it reverts to the signed Newton step
 $\sum_k \mathrm{sat}(-\mathbf{w}_k^\top\hat{\mathbf{g}}_0/
 \lambda_k)\mathbf{w}_k$, without a stability claim, and on the band to
 the saturated flow alone. This fallback never fires on the benchmark,
@@ -745,7 +744,7 @@ holds when
 \end{equation}
 when the fitted surface stops presenting a trench frame at all. A saddle of $D$ where two trench segments cross is such a point, the terminal analogue of the vanishing-gradient test the $s_1$ tracker uses.
 
-Convergence follows from the trench geometry. In arclength coordinates $(\ell, n)$ along and across the trench, $D = h(\ell) + \tfrac{1}{2}\kappa_\perp n^2$ with $\kappa_\perp = 2\pi^6 A^2 > 0$ along a separatrix segment of the benchmark. The transverse channel of the $D$ law then reduces to $\dot{n} = -k\,\mathrm{sat}(a_\perp n)$, with $a_\perp = \kappa_\perp/\hat{\kappa}_\perp$ the ratio of true transverse curvature to fitted. Taking $V = \tfrac{1}{2}n^2$
+Convergence follows from the trench geometry. In arclength coordinates $(\ell, n)$ along and across the trench, $D = h(\ell) + \tfrac{1}{2}\kappa_\perp n^2$ with $\kappa_\perp = 2\pi^6 A^2 > 0$ along a separatrix segment of the benchmark. The transverse channel of the $D$ tracker then reduces to $\dot{n} = -k\,\mathrm{sat}(a_\perp n)$, with $a_\perp = \kappa_\perp/\hat{\kappa}_\perp$ the ratio of true transverse curvature to fitted. Taking $V = \tfrac{1}{2}n^2$
 gives $\dot{V} < 0$ for $n \neq 0$, so the cluster stays within the tube,
 reaches the proportional region $|n| < c_{\max}/a_\perp$ in finite time,
 and converges exponentially to the trench thereafter. Along the trench,
@@ -807,7 +806,7 @@ where $\mathrm{sat}$ saturates a vector's magnitude and preserves its
 direction, reducing to the scalar saturation on any multiple of a unit
 vector.
 
-This law decouples descent from travel through the projector.
+This primitive decouples descent from travel through the projector.
 With $\beta = 1$, $\mathbf{P}$ removes the along-trench component of the
 gradient, so the cluster descends only across the trench while riding
 along it at cruise speed $c_{\max}\tanh(1)$. With $\beta = 0$ the
@@ -856,7 +855,7 @@ projector set to the identity. Only the first tracking step can reach
 this case, and it is where the ambient flow enters the command.
 
 The transverse argument is the same, with one difference that decides
-where the law can be used. The projector $\mathbf{P}$ at $\beta = 1$
+where the primitive can be used. The projector $\mathbf{P}$ at $\beta = 1$
 removes the along-trench gradient, leaving the same transverse dynamics
 $\dot{n} = -k\,\mathrm{sat}(a_\perp n)$, but with no curvature to
 normalize by, the rate is set by the field, $a_\perp = g_\perp
@@ -999,8 +998,8 @@ These runs test acquisition, traversal, and the terminal step for both primitive
 Both ran noise-free from six matched starts
 (Fig.~\ref{fig:traverse_vs_logic_c}), spanning both gyre halves, the origin, and points up to $2.7\rho$ off the structure, acquiring the network from all six in 0 to 35 steps for the $D$ tracker and 0 to 46 for the $s_1$ tracker. They then ride the same segments in the same direction and cross the isotropic point at the origin. A run
 acquiring above the origin therefore rides an attracting OECS to that
-point and continues onto a repelling one, on the same law and the same
-scalar trench throughout. Neither needs a dedicated rule at the
+point and continues onto a repelling one, on the same primitive and the
+same scalar trench throughout. Neither needs a dedicated rule at the
 crossing: the $s_1$ tracker rides through the origin on ordinary tangent
 selection, and over a sweep of $r_{\text{band}}$ from 0.05 to 0 the
 degenerate-frame guard never fires once.
@@ -1063,7 +1062,7 @@ A spot check on the time-varying member of the same family \cite{15}, its separa
 Both primitives sweep the same two-dimensional noise grid from one
 straddling start, $(0, 0.35)$, at 10\,000 trials per cell from
 independent headings. Success is contact within 0.06 of the far saddle $\mathbf{p}^*_1 = (0, -0.5)$, which a noise-free run from this
-start reaches under either law, without formation collapse; each trial
+start reaches under either primitive, without formation collapse; each trial
 also records straddle retention and tracking error. A trial straddles when the robots fall on both sides of the separatrix,
 and retention requires it never stop once started, the failure
 \cite{26} reports. Holding one target fixed makes a settle at the near saddle a
@@ -1072,8 +1071,8 @@ of the $D$ tracker, whose 50\% crossing sits at
 four to five times the noise level, and the two fail differently.
 
 For the $D$ tracker the cliff and an estimator threshold nearly coincide. Success crosses 50\% at $\sigma_{uv} \approx 0.0079$, within
-5\% of the $\sigma_{uv} \approx 0.0075$ at which $\nabla\hat{D}$ stops
-being informative (Section~\ref{sec:results_est}). The gradient is not the only input exhausted by then. Fig.~\ref{fig:est_accuracy}(b) puts the curvature eigenframe $39^\circ$ from truth at the cliff, against $45^\circ$ for a random axis, and both terms of the $D$ law are built on that frame. Neither threshold belongs to the control law, so the estimator sets the
+6\% of the $\sigma_{uv} \approx 0.0075$ at which $\nabla\hat{D}$ stops
+being informative (Section~\ref{sec:results_est}). The gradient is not the only input exhausted by then. Fig.~\ref{fig:est_accuracy}(b) puts the curvature eigenframe $39^\circ$ from truth at the cliff, against $45^\circ$ for a random axis, and both terms of the $D$ tracker are built on that frame. Neither threshold belongs to the control law, so the estimator sets the
 noise ceiling and the failure decays toward chance.
 
 The $s_1$ tracker crosses 50\% between $\sigma_{uv} = 0.0015$ and 0.002
@@ -1088,15 +1087,15 @@ Section~\ref{sec:sensitivity} in the loop, over $\rho \in \{0.0375,
 error grows as $\rho^{0.98}$ for the $D$ tracker and $\rho^{0.94}$ for
 the $s_1$ tracker, against the $\mathcal{O}(\rho)$ expected of a
 quadratic fit to a field with nonzero third derivatives. The noise level at 50\% success grows as $\rho^{2.02}$ and
-$\rho^{1.95}$, against the $\rho^2$ of the second-order rung. Additionally, both rungs of the ladder hold in closed loop. A first-order-limited law would tolerate noise as $\rho^1$, so both primitives are limited by their second-order channels, even though the $s_1$ tracker rides a first-order tangent. Radius buys robustness and costs accuracy, with no interior optimum
+$\rho^{1.95}$, against the $\rho^2$ of the second-order rung. Additionally, both rungs of the ladder hold in closed loop. A first-order-limited primitive would tolerate noise as $\rho^1$, so both primitives are limited by their second-order channels, even though the $s_1$ tracker rides a first-order tangent. Radius buys robustness and costs accuracy, with no interior optimum
 over this range.
 
-Two results generalize past the sweep. The zero-noise tracking errors, 0.0075 for the $s_1$ tracker against 0.0016 for the $D$ tracker, have a separate cause: both primitives park where their own transverse command vanishes, where the \emph{fitted} trench lies and not the field's, the gap being the orientation-dependent truncation bias. The second is that robustness is set less by the per-cycle accuracy of what a law reads than by how far a decision is carried before it is checked against the world. The $D$ tracker re-signs $\mathbf{w}_1$ against $\hat{\mathbf{v}}_0$ every cycle; the $s_1$ tracker carries the sign in state through $\mathbf{t}_{\text{ref}}$. That reliance is forced rather than chosen,
+Two results generalize past the sweep. The zero-noise tracking errors, 0.0075 for the $s_1$ tracker against 0.0016 for the $D$ tracker, have a separate cause: both primitives park where their own transverse command vanishes, where the \emph{fitted} trench lies and not the field's, the gap being the orientation-dependent truncation bias. The second is that robustness is set less by the per-cycle accuracy of what a tracker reads than by how far a decision is carried before it is checked against the world. The $D$ tracker re-signs $\mathbf{w}_1$ against $\hat{\mathbf{v}}_0$ every cycle; the $s_1$ tracker carries the sign in state through $\mathbf{t}_{\text{ref}}$. That reliance is forced rather than chosen,
 since objectivity rules out the fitted curvature
 (Section~\ref{sec:surrogates}), the measured flow
 (Appendix~\ref{app:equivariance}), and a world axis, leaving the
-law's own prior output. The sign recursion is a consequence of the
-objectivity requirement, not of this particular law.
+primitive's own prior output. The sign recursion is a consequence of the
+objectivity requirement, not of this particular design.
 
 \subsection{Behavior Under a Rotating Observer}
 
@@ -1121,8 +1120,7 @@ rad/s, where the field is $\mathbf{v}'(\mathbf{p}', t) =
 \mathbf{Q}\mathbf{v}(\mathbf{Q}^\top \mathbf{p}') + \Omega\,(-y',
 x')^\top$. At a Rossby number $\mathrm{Ro} =
 \lvert\omega\rvert_{\max}/2\Omega \approx 4.9$ the frame perturbs the
-vorticity scale but not that of $D$, where
-its effect is unbounded. The rate keeps the structure's apparent speed
+vorticity scale. The rate keeps the structure's apparent speed
 at the tracked radius, $\Omega r \leq 0.10$, inside the command
 authority $k\,c_{\max} = 0.12$, the condition the appendix requires.
 Rotating-frame trajectories are pulled back to inertial coordinates and
@@ -1139,7 +1137,7 @@ distance is the run-averaged distance from the centroid to the nearest
 line of the benchmark's trench grid, $x \in \{-1, 0, 1\}$ and
 $y = \pm 0.5$.
 
-The added solid-body vorticity moves the whole $D'$ landscape, and the same rotation contaminates the flow measurement the on-band branch of the along-trench speed reads. Both terms of the $D$ law are steered by a frame artifact rather than by the field. No gain recovers this. The artifact is in the surrogate, and against $D$
+The added solid-body vorticity moves the whole $D'$ landscape, and the same rotation contaminates the flow measurement the on-band branch of the along-trench speed reads. Both terms of the $D$ tracker are steered by a frame artifact rather than by the field. No gain recovers this. The artifact is in the surrogate, and against $D$
 itself it is unbounded at the crest the primitive must cross. The $s_1$ tracker is covered instead by
 Appendix~\ref{app:equivariance}, which exempts one instant and
 holds only up to the frame-transport term that the 0.025 gap measures.
@@ -1252,8 +1250,8 @@ and on it runs outside the premise of
 Section~\ref{sec:sep_controller}. Where the true $\mathbf{H}_D$ is
 positive definite the degenerate-frame fallback should fire and does
 not, because $u_{xx} = u_{yy}$ and $v_{xx} = v_{yy}$ on this field
-leave (\ref{eq:hess_det}) traceless, so the fitted frame stays
-indefinite by a symmetry of the field.
+leave the true (\ref{eq:hess_det}) traceless, and the fitted trace is
+too small to separate the eigenvalue signs.
 
 No controlled head-to-head against the straddle family \cite{26,27,28} or the onboard-FTLE strategy of \cite{30} was run. Running those methods from an off-structure start is outside their stated problems, and their robots are advected while this paper's are not, so one simulator cannot host both.
 All results are simulated. The no-advection premise is exact for the
@@ -1268,7 +1266,7 @@ cluster space layer. Switching surrogates costs one function call.
 
 The experiments give an operational selection rule. With a noisy sensor
 the $D$ tracker withstands four to five times the noise, with its ceiling
-set by the estimator rather than by its own law. Under a rotating observer the
+set by the estimator rather than by its own control law. Under a rotating observer the
 ranking reverses: the $D$ tracker leaves the structure, final
 gap 1.219, while the $s_1$ tracker returns the same material curve in
 both frames, final gap 0.025. On Santa Barbara Channel currents both followed the same transport corridor
@@ -1279,9 +1277,8 @@ choice, not the flow. A cluster that can certify its orientation should carry th
 which tolerates a noisier sensor. One that cannot should carry the $s_1$
 tracker. It alone is objective.
 
-The primitives are admittedly simple, reactive, and minimal in robot
-count; even so, they hold a transport corridor for 28 hours on a measured
-record.
+The primitives allow a cluster of robots to hold a transport corridor for
+28 hours on a measured record.
 
 Ongoing and future work targets a) extending the stability results to
 time-varying fields; b) online formation reshaping, to protect the
