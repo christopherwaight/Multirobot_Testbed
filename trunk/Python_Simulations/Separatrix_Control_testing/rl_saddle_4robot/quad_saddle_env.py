@@ -90,10 +90,66 @@ BONUS        = 1.0             # paid exactly when the success gate is satisfied
 
 R_DEGENERATE = 0.6 * R_MIN     # below this the formation is considered collapsed
 
+# reward_mode='free_shape_snr'.  Measured optima from sweep_r0_noise.py
+# (analytic law, fixed radius, n=100/cell): best r0 is 0.30 at sigma_z = 0 and
+# 0.55 at sigma_z >= 0.02, and r0 = 0.10 (the repo default) is never optimal
+# at any noise level.
+R_OPT_CLEAN  = 0.30
+R_OPT_NOISY  = 0.55
+SIGMA_Z_REF  = 0.02            # noise level at which R_OPT_NOISY applies
+SIGMA_R_OPT  = 0.20            # width of the size-preference kernel
+W_SNR        = 0.5             # weight, scaled by sigma_z/SIGMA_Z_REF
+
+# --------------------------------------------------------------------------
+# SAS free-shape mode (action_mode='sas_full').
+#
+# The historical action space commands ONE scalar of shape: a[3] sets
+# desired_d1 = desired_d2 = 2*r_cmd, with desired_r1 = desired_r2 = 0.5 and
+# desired_phi = pi/2 pinned at reset.  That is a square of varying size, and
+# it is the whole shape authority the policy ever had.  QuadCluster.move()
+# servos all five shape parameters (d1, d2, r1, r2, phi), so the cluster was
+# always capable of more than the environment asked of it.
+#
+# 'sas_full' opens the remaining four.  Bounds below are set from measured
+# conditioning of compute_inverse_jacobian_quad, not guessed: cond grows as
+# 1/sin(phi), giving 11.4 at phi=90deg, 16.3 at 25deg, 27.1 at 15deg, and
+# 405 at 1deg.  PHI_MIN = 20deg holds cond <= ~20.  r1/r2 barely move the
+# conditioning at all (11.4 -> 11.9 across [0.02, 0.95]), so those bounds are
+# set by the estimator instead: a near-collinear robot triple destroys the
+# plane fit, and r near 0 or 1 puts three robots nearly on a line.
+D_MIN, D_MAX   = 0.06, 1.60    # per-diagonal length, metres
+PHI_MIN, PHI_MAX = np.radians(20.0), np.radians(160.0)
+RATIO_MIN, RATIO_MAX = 0.25, 0.75
+COLLINEAR_MIN_AREA = 2.0e-4    # min |triangle area| over robot triples, m^2
+
+# Randomized initial formation (start_shape='random').  The square start was
+# itself an assumption; drawing d1, d2, phi, r1, r2 independently means the
+# policy must recover from kites, slivers and near-lines rather than only
+# from the one geometry the analytic law was designed around.
+INIT_D_MIN, INIT_D_MAX = 0.10, 0.70
+INIT_PHI_MIN, INIT_PHI_MAX = np.radians(35.0), np.radians(145.0)
+INIT_RATIO_MIN, INIT_RATIO_MAX = 0.35, 0.65
+
 # Numerics bound only, well outside the nominal domain (sf.DOMAIN_HALF = 3.0).
 # Truncates rather than terminates, so it carries no reward consequence and SB3
 # bootstraps the value function through it.  See the note in step().
 FAR_FIELD_LIMIT = 8.0
+
+
+def _min_triangle_area(xy):
+    """Smallest |area| over the four robot triples.
+
+    The estimator plane-fits each triple, so this is the quantity that
+    actually bounds its conditioning: it goes to zero exactly when some
+    three robots become collinear, which no ring-radius test detects.
+    """
+    idx = ((0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3))
+    best = np.inf
+    for i, j, k in idx:
+        v1 = xy[j] - xy[i]
+        v2 = xy[k] - xy[i]
+        best = min(best, 0.5 * abs(float(v1[0] * v2[1] - v1[1] * v2[0])))
+    return best
 
 
 class QuadSaddleEnv(gym.Env):
@@ -136,16 +192,18 @@ class QuadSaddleEnv(gym.Env):
 
     def __init__(self, families=None, obs_mode="raw", action_mode="full",
                  ideal_plant=False, sigma_z=0.0, rot_penalty=0.0, r0=None,
-                 t_max=T_MAX, reward_mode="shaped", seed=None):
+                 t_max=T_MAX, reward_mode="shaped", seed=None,
+                 start_shape="square", start_r_range=None):
         super().__init__()
 
         if obs_mode not in ("raw", "raw+est", "raw+est+c"):
             raise ValueError(
                 f"obs_mode must be 'raw', 'raw+est' or 'raw+est+c', "
                 f"got {obs_mode!r}")
-        if action_mode not in ("full", "no_rot", "fixed_size"):
+        if action_mode not in ("full", "no_rot", "fixed_size", "sas_full"):
             raise ValueError(f"bad action_mode {action_mode!r}")
-        if reward_mode not in ("shaped", "pure", "metric"):
+        if reward_mode not in ("shaped", "pure", "metric", "free_shape",
+                               "free_shape_snr"):
             raise ValueError(f"bad reward_mode {reward_mode!r}")
 
         self.families = families
@@ -155,6 +213,18 @@ class QuadSaddleEnv(gym.Env):
         self.sigma_z = float(sigma_z)
         self.rot_penalty = float(rot_penalty)
         self.r0 = r0
+        # 'square' reproduces the historical reset exactly.  'random' draws
+        # d1, d2, phi and the intersection ratios independently, so episodes
+        # begin as kites, rectangles and slivers as well as squares.
+        if start_shape not in ("square", "random"):
+            raise ValueError(f"bad start_shape {start_shape!r}")
+        self.start_shape = start_shape
+        # Start-radius annulus.  None keeps saddle_fields' [1.0, 2.5].  A
+        # (lo, hi) tuple overrides it, which is what the curriculum drives:
+        # ideal Newton flow converges from 100% of starts inside r = 0.5 but
+        # only 42.5% at r = 2.5, so a fixed far annulus trains mostly on
+        # episodes that are unsolvable in principle.
+        self.start_r_range = start_r_range
         self.t_max = int(t_max)
         self.reward_mode = reward_mode
 
@@ -163,7 +233,10 @@ class QuadSaddleEnv(gym.Env):
         # Actions are always 4-dimensional and always in [-1, 1]; the disabled
         # channels in the ablation modes are simply ignored.  Keeping the shape
         # fixed means one policy architecture works for every ablation.
-        self.action_space = spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
+        # 'sas_full' needs seven channels: (vx, vy, omega, d1, d2, phi, ratio).
+        # Every other mode keeps the historical four so old checkpoints load.
+        n_act = 7 if action_mode == "sas_full" else 4
+        self.action_space = spaces.Box(-1.0, 1.0, shape=(n_act,), dtype=np.float32)
 
         n_obs = 24 + (6 if obs_mode.startswith("raw+est") else 0) \
                    + (3 if obs_mode == "raw+est+c" else 0)
@@ -206,6 +279,23 @@ class QuadSaddleEnv(gym.Env):
                 rb.momentum_alpha = 0.0
                 rb.stiction_threshold = 0.0
                 rb.max_velocity = 1e9
+
+    def _place_sas(self, centroid, theta, d1, d2, r1, r2, phi):
+        """Put the formation at an arbitrary SAS pose."""
+        pos = inverse_kinematics_quad(centroid[0], centroid[1], theta,
+                                      d1, d2, r1, r2, phi)
+        for i, rb in enumerate(self.cluster.robots):
+            rb.position = np.array([pos[2 * i], pos[2 * i + 1]], dtype=float)
+            rb.velocity = np.zeros(2, dtype=float)
+        self.cluster.desired_d1 = d1
+        self.cluster.desired_d2 = d2
+        self.cluster.desired_r1 = r1
+        self.cluster.desired_r2 = r2
+        self.cluster.desired_phi = phi
+        self.cluster.prev_theta_c = theta
+        self.cluster.center_history = []
+        self.cluster.robot_history = []
+        self.cluster.velocity_history = []
 
     def _place(self, centroid, theta, radius):
         """Put the square at an exact pose. QuadCluster.reset cannot do this.
@@ -336,6 +426,15 @@ class QuadSaddleEnv(gym.Env):
         xy = self._robot_xy() if xy is None else xy
         return float(np.mean(np.linalg.norm(xy - xy.mean(axis=0), axis=1)))
 
+    def set_start_r_range(self, rng_pair):
+        """Set the start annulus at runtime.
+
+        Exists so a training callback can anneal the curriculum through
+        VecEnv.env_method without rebuilding the workers.  Takes effect on the
+        next reset(); the episode in flight is left alone.
+        """
+        self.start_r_range = (float(rng_pair[0]), float(rng_pair[1]))
+
     def current_obs(self):
         """The observation most recently handed out.
 
@@ -356,10 +455,38 @@ class QuadSaddleEnv(gym.Env):
         self.field = AnalyticalScalarField(self.fld.phi)
         self.cluster.field = self.field
 
-        start = self.fld.sample_start(self._rng)
+        if self.start_r_range is None:
+            start = self.fld.sample_start(self._rng)
+        else:
+            lo, hi = self.start_r_range
+            rr = self._rng.uniform(float(lo), float(hi))
+            aa = self._rng.uniform(0.0, 2.0 * np.pi)
+            start = self.fld.saddle + rr * np.array([np.cos(aa), np.sin(aa)])
+
         theta = self._rng.uniform(0.0, 2.0 * np.pi)
-        radius = self.r0 if self.r0 is not None else self._rng.uniform(0.12, 0.30)
-        self._place(start, theta, radius)
+        if self.start_shape == "random":
+            # Rejection-sample so the drawn pose is not already degenerate for
+            # the estimator; a sliver start would otherwise terminate at t=0
+            # and teach nothing.
+            for _ in range(32):
+                d1 = self._rng.uniform(INIT_D_MIN, INIT_D_MAX)
+                d2 = self._rng.uniform(INIT_D_MIN, INIT_D_MAX)
+                phi = self._rng.uniform(INIT_PHI_MIN, INIT_PHI_MAX)
+                r1 = self._rng.uniform(INIT_RATIO_MIN, INIT_RATIO_MAX)
+                r2 = 1.0 - r1
+                pos = np.asarray(inverse_kinematics_quad(
+                    start[0], start[1], theta, d1, d2, r1, r2, phi),
+                    dtype=float).reshape(4, 2)
+                if _min_triangle_area(pos) >= 2.0 * COLLINEAR_MIN_AREA:
+                    break
+            else:
+                d1 = d2 = 0.4
+                phi = np.pi / 2.0
+                r1 = r2 = 0.5
+            self._place_sas(start, theta, d1, d2, r1, r2, phi)
+        else:
+            radius = self.r0 if self.r0 is not None else self._rng.uniform(0.12, 0.30)
+            self._place(start, theta, radius)
 
         self._t = 0
         self._hold = 0
@@ -381,7 +508,22 @@ class QuadSaddleEnv(gym.Env):
         vy = float(a[1]) * V_MAX_CMD
         om = 0.0 if self.action_mode == "no_rot" else float(a[2]) * OMEGA_MAX
 
-        if self.action_mode != "fixed_size":
+        if self.action_mode == "sas_full":
+            # Seven channels.  Each maps affinely from [-1, 1] onto its own
+            # bound, so the policy can command a rectangle (d1 != d2), a kite
+            # (ratio != 0.5), or a sliver (phi near its floor) independently.
+            def _aff(u, lo, hi):
+                return lo + 0.5 * (float(u) + 1.0) * (hi - lo)
+            self.cluster.desired_d1 = _aff(a[3], D_MIN, D_MAX)
+            self.cluster.desired_d2 = _aff(a[4], D_MIN, D_MAX)
+            self.cluster.desired_phi = _aff(a[5], PHI_MIN, PHI_MAX)
+            # One channel drives both intersection ratios symmetrically
+            # (r2 mirrored), which spans kite shapes without letting the
+            # formation wander into the two independent degenerate corners.
+            ratio = _aff(a[6], RATIO_MIN, RATIO_MAX)
+            self.cluster.desired_r1 = ratio
+            self.cluster.desired_r2 = 1.0 - ratio
+        elif self.action_mode != "fixed_size":
             r_cmd = R_MIN + 0.5 * (float(a[3]) + 1.0) * (R_MAX - R_MIN)
             self.cluster.desired_d1 = 2.0 * r_cmd
             self.cluster.desired_d2 = 2.0 * r_cmd
@@ -436,8 +578,26 @@ class QuadSaddleEnv(gym.Env):
             return (self._observe(xy, v, self._readings(xy)),
                     -PENALTY, True, False, self._info(outcome="collapsed", e=e))
 
+        # Collinearity guard.  R alone does not catch a sliver: four robots
+        # strung along a line can hold a perfectly healthy ring radius while
+        # every plane-fit triple in the estimator becomes singular.  The
+        # estimator, not the kinematics, is what fails first in 'sas_full',
+        # so the formation is policed on its worst triangle area.
+        if self.action_mode == "sas_full":
+            area = _min_triangle_area(xy)
+            if not np.isfinite(area) or area < COLLINEAR_MIN_AREA:
+                return (self._observe(xy, v, self._readings(xy)),
+                        -PENALTY, True, False,
+                        self._info(outcome="collinear", e=e))
+
         # -- reward -------------------------------------------------------
-        in_tol_now = (e < E_TOL) and (R < R_TARGET)
+        if self.reward_mode in ("free_shape", "free_shape_snr"):
+            # Distance only.  The formation may be any shape or size when it
+            # arrives; what is being asked is whether the centroid can find
+            # and hold the saddle, not whether it can also be small.
+            in_tol_now = bool(e < E_TOL)
+        else:
+            in_tol_now = (e < E_TOL) and (R < R_TARGET)
 
         if self.reward_mode == "metric":
             # Three terms, each doing one job.
@@ -479,6 +639,55 @@ class QuadSaddleEnv(gym.Env):
                       + track * size_gain
                       + BONUS * float(in_tol_now)
                       - W_R_METRIC * (R_c - R_MIN) / (R_MAX - R_MIN)
+                      - C_STEP
+                      - self.rot_penalty * abs(om))
+            self._prev_e = e
+        elif self.reward_mode == "free_shape":
+            # Same skeleton as 'metric' with every size term deleted.
+            #
+            # 'metric' pays size_gain = 1 + W_SIZE*(R_MAX - R)/(R_MAX - R_MIN)
+            # multiplicatively on the tracking term AND a separate
+            # -W_R_METRIC*(R - R_MIN)/(R_MAX - R_MIN) penalty, and its success
+            # gate requires R < R_TARGET.  Measured on ten E5 rollouts, the
+            # policy sat below R_TARGET on 99.4% of steps and ended every
+            # episode within 0.03 m of the R_MIN floor: the size channel was
+            # pinned, not controlled.  With shape free, a reward that pays for
+            # shrinking answers the wrong question, so nothing here references
+            # R at all and the gate is distance-only.
+            track = W_TRACK * np.exp(-(e * e) / (SIGMA_WIDE * SIGMA_WIDE))
+            reward = (K_PROG * (self._prev_e - e)
+                      + track
+                      + BONUS * float(in_tol_now)
+                      - C_STEP
+                      - self.rot_penalty * abs(om))
+            self._prev_e = e
+        elif self.reward_mode == "free_shape_snr":
+            # 'free_shape' with the size incentive INVERTED, and only where it
+            # is physically justified.
+            #
+            # The old 'metric' reward paid for SHRINKING, via a multiplicative
+            # size_gain and a -W_R_METRIC penalty, and gated success on
+            # R < R_TARGET.  Measured, that is backwards for noisy sensing:
+            # the estimator is a finite-difference stencil, so a small
+            # formation destroys SNR.  At sigma_z = 0.01 the sign of the
+            # curvature scalar m is correct 56% of the time at R = 0.05
+            # versus 95% at R = 0.35, and that sign sets the Newton step's
+            # direction.  Sweeping a FIXED radius, success at sigma_z = 0.02
+            # runs 0.14 at r0 = 0.10 against 0.76 at r0 = 0.55.
+            #
+            # So the term pays for being NEAR the size that is optimal for the
+            # current noise level rather than for being small, and it is
+            # scaled by sigma_z: with clean readings there is no reason to
+            # prefer any size, and the coefficient vanishes.
+            track = W_TRACK * np.exp(-(e * e) / (SIGMA_WIDE * SIGMA_WIDE))
+            r_opt = R_OPT_CLEAN + (R_OPT_NOISY - R_OPT_CLEAN) * min(
+                1.0, self.sigma_z / SIGMA_Z_REF)
+            size_term = W_SNR * (self.sigma_z / SIGMA_Z_REF) * np.exp(
+                -((R - r_opt) ** 2) / (SIGMA_R_OPT ** 2))
+            reward = (K_PROG * (self._prev_e - e)
+                      + track
+                      + size_term
+                      + BONUS * float(in_tol_now)
                       - C_STEP
                       - self.rot_penalty * abs(om))
             self._prev_e = e
