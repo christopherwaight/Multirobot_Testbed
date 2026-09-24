@@ -226,68 +226,88 @@ when the robots lie on a common conic. For example, a standard ring
 formation is degenerate at any size, since the ring itself is the
 conic.
 
-% ###### I have proofread everything above this line ######
 
 \subsection{Estimator Sensitivity}
 \label{sec:sensitivity}
 
-The estimator's behavior is set by the formation matrix
-$\boldsymbol{\Phi}$ of (\ref{eq:solve}), which is built from the robot
-positions alone and does not depend on the field, the noise, or the
-mission. Its rank determines whether a unique fit exists, and its
-conditioning determines the noise cost of that fit.
-Condition numbers are reported on the radius-normalized
-$\boldsymbol{\Phi}$, each column of order $q$ divided by $\rho^{\,q}$, since the raw quadratic columns shrink as $\rho^{2}$ and would report a healthy formation as a degenerate one. The nominal shape gives $\kappa(\boldsymbol{\Phi}) = 8.26$ at every
-radius. Conic drift degrades the estimate continuously, with no
-threshold. Moving the center robot out to $0.99\rho$ places all six
-robots within $0.6\%$ of a common circle, approaching the degeneracy of
-Section~\ref{sec:minimality}, and raises $\kappa(\boldsymbol{\Phi})$ to
-$564$.
+The accuracy of the estimator is affected by the formation of the
+robots, the noise on each robot's measurements, and the error in each
+robot's position.
 
-Measurement noise is additive on what each robot reads, $u_i^m = u(\mathbf{p}_i) + \eta_i^u$ and $v_i^m =
-v(\mathbf{p}_i) + \eta_i^v$ with $\eta \sim \mathcal{N}(0,
-\sigma_{uv}^2)$, independent across robots, components, and cycles.
-Under this channel each determinant term pairs one $\hat{a}$ with one
-$\hat{b}$ from independent components, so the cross terms vanish in
-expectation and $\hat{D}$, $\nabla\hat{D}$, and $\hat{\mathbf{H}}_D$ are
-unbiased at all noise levels.
+\subsubsection{Formation}
+The rank of the formation matrix $\boldsymbol{\Phi}$ determines whether
+a unique fit exists, and its condition number $\kappa(\boldsymbol{\Phi})$
+indicates how much the fit amplifies noise. Condition numbers are
+reported on the radius-normalized $\boldsymbol{\Phi}$, with each column
+of order $q$ divided by $\rho^{\,q}$. Without this normalization, the
+quadratic columns shrink as $\rho^{2}$ and a healthy formation would
+appear degenerate. The normalized matrix depends only on the formation's
+shape, and the nominal shape gives $\kappa(\boldsymbol{\Phi}) = 8.26$ at
+every radius. The size of the formation instead scales the noise on each
+coefficient by $\rho^{-q}$, so a larger formation suppresses noise most
+in the second-order terms. The condition number grows as the robots
+drift toward a common conic. For example, moving the center robot out
+to $0.99\rho$ places all six robots within $0.6\%$ of a common circle
+and raises $\kappa(\boldsymbol{\Phi})$ to $564$. The fit degrades
+continuously on the way to the degeneracy of
+Section~\ref{sec:minimality}, with no threshold at which it fails.
 
-Position noise perturbs where the sample is taken while the fit uses the
-nominal position, $(u_i^m, v_i^m) = \mathbf{v}(\mathbf{p}_i +
-\boldsymbol{\xi}_i)$ with $\boldsymbol{\xi}_i \sim
-\mathcal{N}(\mathbf{0}, \sigma_p^2\mathbf{I})$, and it cannot be modeled
-as equivalent measurement noise. A displaced robot introduces the
-sampling error $\mathbf{J}\boldsymbol{\xi}_i$, which vanishes in uniform
-flow, grows
-with the local gradient, and correlates the two components wherever
-$\nabla u \cdot \nabla v \neq 0$. That error has per-component variances
-$\lVert\nabla u\rVert^2\sigma_p^2$ and $\lVert\nabla
-v\rVert^2\sigma_p^2$, whose average is
-$\tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\sigma_p^2$, giving one effective
-level
+\subsubsection{Measurement Noise}
+Each robot carries its own sensor, so the measurement noise of one robot
+is independent of the others. Furthermore, the estimator uses only
+instantaneous readings, so each cycle's fit sees only that cycle's
+noise. The noise is modeled as additive on each reading,
+\begin{equation}
+    u_i^m = u(\mathbf{p}_i) + \eta_i^u, \qquad
+    v_i^m = v(\mathbf{p}_i) + \eta_i^v,
+    \label{eq:meas_noise}
+\end{equation}
+with $\eta \sim \mathcal{N}(0, \sigma_{uv}^2)$. The fit is linear in the
+measurements, so the noise reaches the coefficients as
+$\boldsymbol{\Phi}^{-1}\boldsymbol{\eta}^u$ and
+$\boldsymbol{\Phi}^{-1}\boldsymbol{\eta}^v$, where $\boldsymbol{\eta}^u$
+and $\boldsymbol{\eta}^v$ stack the noise of the six robots. Both are
+zero-mean, so the coefficient estimates are unbiased.
+
+\subsubsection{Position Noise}
+A robot with position error
+$\boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0}, \sigma_p^2\mathbf{I})$
+samples the field at $\mathbf{p}_i + \boldsymbol{\xi}_i$, but the fit is
+built from its nominal position $\mathbf{p}_i$. The formation matrix is
+therefore wrong by $\Delta\boldsymbol{\Phi}$, whose row $i$ is
+$\boldsymbol{\phi}(\mathbf{p}_i + \boldsymbol{\xi}_i)^{\top} -
+\boldsymbol{\phi}(\mathbf{p}_i)^{\top}$. Under the quadratic model the
+measurements are
+$\mathbf{m}_u = (\boldsymbol{\Phi} + \Delta\boldsymbol{\Phi})
+\boldsymbol{\theta}_u$, and the fit returns
+\begin{equation}
+    \hat{\boldsymbol{\theta}}_u = \boldsymbol{\theta}_u
+        + \boldsymbol{\Phi}^{-1}\Delta\boldsymbol{\Phi}\,
+          \boldsymbol{\theta}_u ,
+    \label{eq:pos_noise}
+\end{equation}
+and likewise for $\hat{\boldsymbol{\theta}}_v$. To first order, entry
+$i$ of $\Delta\boldsymbol{\Phi}\,\boldsymbol{\theta}_u$ is
+$\nabla u \cdot \boldsymbol{\xi}_i$, the change in $u$ across the
+displacement. This error vanishes in uniform flow and grows with the
+local gradient, so unlike measurement noise it depends on the field.
+Its variance is $\lVert\nabla u\rVert^2\sigma_p^2$ for $u$ and
+$\lVert\nabla v\rVert^2\sigma_p^2$ for $v$, and the two average to
+$\tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\sigma_p^2$. Combining both noise
+sources gives one effective noise level
 \begin{equation}
     \sigma_{\mathrm{eff}}^2 = \sigma_{uv}^2
         + \tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\,\sigma_p^2 ,
     \label{eq:sigma_eff}
 \end{equation}
-which is exact only when the two
-gradients have equal norm. The correlation also breaks the independence
-the unbiasedness argument relies on, leaving a determinant bias
-that scales with the local Jacobian.
+which is exact only when the two gradients have equal norm.
+Additionally, the same $\Delta\boldsymbol{\Phi}$ corrupts both fits, so
+the $u$ and $v$ errors at one robot are correlated, with correlation
+coefficient
+$\nabla u \cdot \nabla v / (\lVert\nabla u\rVert\,\lVert\nabla v\rVert)$.
 
-The strain eigenvalue is biased under either channel, because recovering
-it requires a norm. With $\hat{s}_1 = \mu - \lVert(s_n, s_s) +
-\boldsymbol{\epsilon}\rVert$, where $\boldsymbol{\epsilon}$ is the
-strain-component error and $r = \lVert(s_n, s_s)\rVert$, expanding the
-norm to second order in $\boldsymbol{\epsilon}$ and taking expectations
-cancels the component along $(s_n, s_s)$ and leaves the transverse
-component contributing at order $\sigma_r^2/r$, giving
-\begin{equation}
-    E[\hat{s}_1] - s_1 \approx -\frac{\sigma_r^2}{2r}
-    \label{eq:s1_bias}
-\end{equation}
-at moderate signal-to-noise, with $\sigma_r$ the strain-component
-standard deviation. So $\hat{s}_1$ reads a trench deeper than it is.
+
+% ###### I have proofread everything above this line ######
 
 \subsection{Polynomial Surrogates}
 \label{sec:surrogates}
@@ -404,6 +424,8 @@ derivatives, outside a quadratic fit's span. Both rule out the Newton step the $
 component recovering the trench-restoring signal with the correct sign.
 Gradient descent still converges because the fit is recomputed at the
 new centroid each cycle, so every step descends a valid quadratic.
+
+
 
 \subsection{The Double-Gyre Example}
 \label{sec:dg_example}

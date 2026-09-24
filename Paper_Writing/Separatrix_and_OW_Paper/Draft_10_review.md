@@ -2,21 +2,6 @@
 
 **Paper:** Multirobot Tracking of Separatrices and Objective Eulerian Coherent Structures
 **Against:** `Draft_10.tex` at commit `6b3fabc` (working tree identical to HEAD), 2026-09-23.
-**Replaces:** `reviewer1_feedback.md`, `reviewer2_feedback.md` (both against Draft 8a),
-`Reviewer1_Response.md` (superseded), `reviewer_status.md` (index of those two). They
-were deleted on 2026-09-23 and remain in git history. What survives from them is in
-Part B (reverified closed items) and Part C (standing decisions).
-
-**Method.** Full read of the .tex, all nine figures and their `.meta.json` sidecars.
-Closed forms and most quoted numbers were recomputed in scratch scripts; findings marked
-**[verified]** were recomputed. The `paper-search` server was down, so the "first
-demonstration" claim and the characterizations of cited works are unchecked.
-
-**How to read this file.** Part A is the review. Part B reverifies every item the old
-reviews marked closed. Part C lists what was declined on scope; do not re-raise those.
-Part D is housekeeping. Items fixed in the .tex since the review was written have been
-removed from this file, not marked. Numbers quoted here still need author sign-off
-before entering any .tex.
 
 ---
 
@@ -352,77 +337,3 @@ point (A2.2); the objectivity headline rests on one trial whose figure shows a f
 the text does not name, and the Introduction never motivates it (A2.7); one
 self-contradicted citation claim (A2.3), a units error (A2.4), and two unreferenced
 figures. None needs new theory; most is rewriting.
-
----
-
-# Part B. Reverification of items the old reviews marked closed
-
-Each item was checked against what the Draft 8a reviewer actually asked, not only
-whether new text exists.
-
-| Item | Original complaint (Draft 8a) | Draft 10 now | Verdict |
-|---|---|---|---|
-| E1 / C7 | kappa on mixed normalizations (8.26 and 564 normalized, 688 raw) | II-C states radius-normalized 8.26 and 564; IV-G reports 8.26 | **Closed.** |
-| E3 | Band B called "on the separatrix" but surrounds {D = 0}, including the OW diamond | "The band surrounds {D = 0}, not the separatrix"; both thresholds named; off-structure trigger explained | **Closed.** Residual: "a flow that advects the cluster off-structure" conflicts with the no-advection premise; the command follows the flow, nothing is advected. |
-| E5 | D_hat unbiasedness contradicted by the position-noise model | Scoped to measurement noise; position noise correlates components and biases D_hat | **Closed.** IV-C's "forty-eight conditions" are 8 sigma_uv values x 6 quantities, all measurement noise (`scripts/verify_estimator_bias.json`), so its scope is right. |
-| E6 | Traversal-time bound false near saddles, where both branches of v_par vanish | Bound stated on segments excluding an epsilon neighborhood; transit of it "bounded in the same way as the isotropic point" | **Partly closed.** The isotropic-point bound rests on s1's constant-speed ride (c_max tanh 1). The D tracker has no constant-speed term; both branches of v_par vanish at the saddle, which is the original complaint. The analogy does not transfer. What carries D through is the x30 underestimate of lambda_1 (IV-D). The neighborhood is also said to be "where the terminal test applies," and IV-D shows that test never fires. |
-| E7 | D's flow-sign reference v0^T w1 >= 0 degenerates at every saddle and where flow runs transverse, so the D/s1 asymmetry in IV-E is one of frequency, not kind | Old status mapped this to "sign test specified, terminal condition given." Neither addresses it. IV-E still presents per-cycle re-signing as a clean advantage. | **Reopened.** Draft 10 makes it worse, not better: since the D terminal test cannot fire, the cluster uses the degenerate sign at every saddle it passes, and Fig. 8(b)'s branch flip at p1* is this failure (A2.7). The old Reviewer1_Response rebuttal (the state machine switches before the sign is needed) is false for Draft 10. |
-| E9 | lambda_1 < 0 < lambda_2 premise fails on the outer half; caveat only in Limitations | Caveat at the premise in III-C | **Closed.** Residual: "true H_D" and "the true (hess_det)" name different objects (A2.1). |
-| E12 | e_H used, never defined | Symbol removed | **Closed as asked.** The floor it named is now "truncation," which A2.1 finds misleading. |
-| D terminal test | Section III gave the D tracker no terminal condition | Eq. (d_capture), lambda_1 lambda_2 >= 0, in III-C | **Closed.** |
-| "straddle retention" | Undefined | Defined in IV-E | **Closed.** Residual: never quantified (A2 test plan). |
-| "trench-network distance" | Undefined | Old status said the term "no longer appears." It does, in IV-F, defined two sentences after first use. | **Closed** (it is defined). The old status note was wrong. Move the definition before first use. |
-| R2-2 "four experiment families" | Count wrong | "Five experiment families" | **Closed as asked.** The paper runs about ten experiments (A2 test plan). |
-| R2-2 k = 1.8 branch | Why a static gain selects a branch | States the field is time-varying, so k sets arrival time and hence the branch | **Closed.** |
-
-**Old live items.** C2 is closed ("field and mission" is gone; see A3 for where the
-mismatch moved). C6 is still live in the abstract (A2.7). Figure hygiene is still live
-(Part D).
-
----
-
-# Part C. Standing decisions: declined on scope
-
-Carried over from the deleted `reviewer_status.md`. These are deliberate decisions, not
-oversights. Draft 10 was narrowed to the D / s1 contrast and the controllers that ride
-it. Do not re-raise.
-
-- **A1, the gain ladder table.** Cut on purpose: nothing downstream consumes
-  gamma = 8/sqrt(10), and the noise result is carried by the Monte Carlo sweep. The
-  intro sentence advertising it was removed on 2026-09-23.
-- **E4**, one gain per derivative order. Moot once the ladder was cut.
-- **A3** experiment matrix, **A6** algorithm boxes, **A8** state-machine figure,
-  **A2** parameter table (Draft 10 has Table I regardless).
-- **A5** symmetric s1 runs for the three D-only experiments.
-- **A9** feasibility sentence, **A10** compute cost, **A11** data availability.
-- **Promoting the reachable-set estimate** and **restructuring the abstract around
-  IV-E.**
-- **Reviewer 2 Section 8** (writing grades) in full: its rewrites inserted em-dashes,
-  "Crucially," "Ultimately," and intensifiers, against house style.
-- **The rho sweep** (`rho_sweep_findings.md`, kept in this folder). 25,600 trials; no
-  interior optimum; success rises monotonically with rho; closed-loop exponents 0.98 and
-  0.94 against a predicted 1, 2.02 and 1.95 against a predicted 2. Draft 10 carries a
-  two-sentence summary of it in IV-E. The full result is a gain-ladder result and most
-  likely the seed of the next paper.
-
----
-
-# Part D. Housekeeping
-
-- `revision/ring_phase_open_loop.json` is deleted in the working tree but was not part
-  of the stale-report cleanup. It backs IV-C's ring-phase numbers (slope 4.0 to 9.7,
-  mean 6.83 vs 6.888, the [-0.51, 0.45] eigenpair), and `scripts/ring_phase_open_loop.py`
-  still writes to that path. Restore it or regenerate it.
-- Three result PNGs are modified and uncommitted: `estimator_accuracy_vs_noise`
-  (with its `.meta.json`), `objectivity_traverser`, `traverse_vs_logic_c`.
-- Figs. 4, 7, 8, 9 have no `.meta.json` sidecar. Their generators live in
-  `VF_Robot/experiments/`, outside the pipeline:
-  - Fig. 4 `flip_resolution`: `plot_flip_resolution.py`, reading CSVs from
-    `mc_sweep_flip_resolution.py` and `mc_sweep_flip_resolution_sigma_p.py`. The live
-    CSVs in `experiments/outputs/mc_oecs_traverse/` are untracked; only an older archive
-    is in git.
-  - Fig. 7 `traverse_vs_logic_c`: `main_separatrix_traverse.py`.
-  - Fig. 8 `objectivity_traverser`: `traverse_objectivity_demo.py`.
-  - Fig. 9 `ocean_ftle_trajectory_overlay_2km`: `main_ocean_hfr_2km_ftle_overlay.py`
-    writes `ftle_trajectory_overlay_2km.png` to its own output directory; the paper copy
-    was renamed and copied by hand.
