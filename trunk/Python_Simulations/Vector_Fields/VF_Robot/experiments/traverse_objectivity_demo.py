@@ -200,11 +200,11 @@ def main():
                          'xtick.labelsize': 6, 'ytick.labelsize': 6,
                          'legend.fontsize': 6})
     # Height is chosen so the equal-aspect axes fill the canvas: each panel is
-    # ~1.41 in wide and the domain is 2.3 x 1.5, so the axes are ~0.92 in tall,
-    # leaving the rest for the x label and the two-row legend.  Getting this
+    # ~1.41 in wide and the domain is 2.3 x 1.28, so the axes are ~0.78 in tall,
+    # leaving the rest for the x label and the single-row legend.  Getting this
     # wrong leaves a band of dead space that bbox_inches='tight' cannot reclaim,
     # since the gap is interior to the figure.
-    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.55))
+    fig, axes = plt.subplots(1, 2, figsize=(3.45, 1.34))
     panels = [
         ('(a)', 'trav_inertial', 'trav_rotating', 'tab:blue', 'tab:orange'),
         ('(b)', 'logicc_inertial', 'logicc_rotating', 'tab:green', 'tab:red'),
@@ -234,11 +234,13 @@ def main():
         ax.text(0.03, 0.97, tag, transform=ax.transAxes, va='top', ha='left',
                 fontsize=7, fontweight='bold')
         ax.set_xlim(-1.15, 1.15)
-        ax.set_ylim(-0.75, 0.75)
+        ax.set_ylim(-0.68, 0.60)
         ax.set_aspect('equal')
         ax.set_xlabel('$x$', labelpad=1)
         ax.set_xticks([-1, 0, 1])
         ax.set_yticks([-0.5, 0, 0.5])
+        if ax is not axes[0]:
+            ax.set_yticklabels([])
         ax.tick_params(length=2, pad=1)
     axes[0].set_ylabel('$y$', labelpad=1)
 
@@ -259,15 +261,16 @@ def main():
         Line2D([], [], color='0.35', linewidth=0.9, linestyle='--',
                label='rotating frame (pulled back)'),
     ]
-    fig.legend(handles=proxies, loc='lower center', ncol=2, frameon=False,
-               handlelength=1.8, columnspacing=1.0, handletextpad=0.5,
-               labelspacing=0.3, borderaxespad=0.2)
-    fig.subplots_adjust(left=0.11, right=0.99, top=0.97, bottom=0.30,
-                        wspace=0.16)
+    fig.legend(handles=proxies, loc='lower center', ncol=4, frameon=False,
+               bbox_to_anchor=(0.5, 0.0),
+               handlelength=1.5, columnspacing=0.8, handletextpad=0.35,
+               labelspacing=0.2, borderaxespad=0.1)
+    fig.subplots_adjust(left=0.09, right=0.995, top=0.995, bottom=0.20,
+                        wspace=0.06)
     fig_path = os.path.join(OUT_DIR, "traverse_objectivity.png")
     # No bbox_inches='tight': the layout above is already sized to the printed
     # width, and letting savefig recrop would rescale the 7 pt type.
-    plt.savefig(fig_path, dpi=400)
+    plt.savefig(fig_path, dpi=400, bbox_inches='tight', pad_inches=0.01)
 
     print(f"\nFigure written to {fig_path}")
     print(f"Summary written to {csv_path}\n")
