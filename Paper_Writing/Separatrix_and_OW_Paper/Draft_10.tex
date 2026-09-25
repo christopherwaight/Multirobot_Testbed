@@ -33,15 +33,15 @@
 
 \begin{document}
 
-\title{Multirobot Tracking of Separatrices and
-Objective Eulerian Coherent Structures}
+\title{Second-Order Cooperative Field Estimation for
+Multirobot Tracking of Coherent Flow Structures}
 
 \author{Christopher Waight and Christopher A. Kitts,~\IEEEmembership{Senior Member,~IEEE}
 \thanks{C. Waight is a PhD Candidate in the Robotic Systems Laboratory, Department of Mechanical Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: cwaight@scu.edu)}
 \thanks{C. A. Kitts is Professor and Director of the Robotic Systems Laboratory, Department of Mechanical Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: ckitts@scu.edu)}
 }
 \markboth{IEEE Systems Journal}%
-{Waight and Kitts: Multirobot Tracking of Separatrices and Objective Eulerian Coherent Structures}
+{Waight and Kitts: Second-Order Cooperative Field Estimation for Multirobot Tracking of Coherent Flow Structures}
 
 \maketitle
 
@@ -50,29 +50,25 @@ Adaptive navigation is the process of modifying a robot's or a system of robots'
 real time based on measurements taken while moving. This paper applies
 that process to the boundaries that organize short-term transport in a
 flow, the strain-dominated curves across which water masses separate
-and the curve along which floating material collects. Existing robotic trackers
+and along which floating material collects. Existing robotic trackers
 of such structures either commit to the structure's identity and pre-straddle it before
 tracking begins or accumulate an estimate over a finite integration
-horizon. We present a six-robot cluster that locates these separating
-boundaries and navigates to and along them. It reads only the instantaneous
-local flow, measured simultaneously across the formation. No integration
-horizon and no pre-straddling are required.
-A cooperative estimator recovers the local quadratic field model from
-one synchronous sample, six robots being the minimum for the
-unconstrained model. That fit supplies two surrogates. The Jacobian determinant traces
-separatrices, but shifts under a rotating observer. The smaller
-rate-of-strain eigenvalue is objective, and recovers the identical material
-curve in any frame. We develop an
-adaptive navigation primitive for each surrogate and characterize the
-tradeoff between objectivity and noise tolerance. To our knowledge this is the
-first demonstration of multirobot tracking of an objective Eulerian
-coherent structure from instantaneous measurements alone. Monte Carlo
+horizon. We show that a second-order fit of the local flow removes both
+requirements. A cooperative estimator recovers the local quadratic field
+model from one synchronous sample, six robots being the minimum for the
+unconstrained model. A linear fit gives the velocity gradient at a single
+point. The quadratic fit gives it as a field over the formation, so any
+quantity built from the velocity gradient comes with its own gradient in
+closed form. We build an adaptive navigation primitive on each of two such
+quantities, the Jacobian determinant and the smaller rate-of-strain
+eigenvalue. Each locates a separating boundary and navigates to and along
+it from instantaneous measurements, with no integration horizon and no
+pre-straddling. The choice of surrogate sets a tradeoff. Monte Carlo
 sweeps show the determinant tracker withstands about four to five times
-more measurement noise than the rate-of-strain eigenvalue. A rotating-frame trial shows how the
-strain tracker holds the same material path in both frames while the
-determinant tracker departs the structure. On Santa Barbara Channel
-radar currents, both primitives follow the same dominant transport
-corridor with slightly different trajectories.
+more measurement noise than the strain tracker, while in a rotating-frame trial only the strain
+tracker, which is objective, holds the same material path. On Santa
+Barbara Channel radar currents, both primitives follow the same dominant
+transport corridor.
 
 \end{abstract}
 
@@ -130,17 +126,31 @@ controller nor its analysis, and that work reports veering away from
 the structure near a saddle in both flow-tank and ocean trials. Kularatne and Hsieh do not presume stable or unstable, but rather, they compute the local FTLE field on board, recovering
 type at the cost of a nonzero integration horizon \cite{30}. In both cases, the robotic formation pre-straddles the structure, and does not acquire a structure it does not already occupy.
 
-This paper contributes a novel approach to the problem. We present  a cooperative second-order estimator that
-recovers the local quadratic model of a two-component field from one
-synchronous sample. Two AN primitives, the $D$ tracker and the $s_1$
-tracker, read the two terms of one splitting identity, $D =
-\omega^2/4 - s_1^2$, off the same estimated model and navigate to the structure and ride along it without the need for pre-straddling, using only instantaneous measurements. 
+This paper shows that a second-order fit of the local flow is enough to
+acquire and track such a structure from instantaneous measurements. A
+linear fit, as in \cite{8}, gives the velocity gradient at one point. A
+second-order fit gives it as a field over the formation, so any quantity
+built from it comes with its own gradient in closed form. The contributions are
+\begin{itemize}
+\item a cooperative estimator that recovers the local quadratic model of
+a two-component field from one synchronous sample of six robots, the
+minimum for the unconstrained model, and that fails only when the robots
+lie on a common conic;
+\item two surrogates read in closed form from that fit, the
+velocity-gradient determinant $D$ and the smaller strain eigenvalue
+$s_1$, with the noise behavior of each characterized;
+\item two AN primitives, the $D$ tracker and the $s_1$ tracker, that
+navigate to the structure and ride along it without pre-straddling;
+\item a tradeoff between them, in which the $D$ tracker tolerates more
+measurement noise while the $s_1$ tracker, being objective, holds its
+path under a rotating observer, which matters for a cluster that cannot
+certify its heading.
+\end{itemize}
 
-For the estimator, six robots are proved minimal. Both
-primitives run on a simulated double gyre and on measured Santa Barbara
-Channel radar currents.
+Both primitives run on a simulated double gyre and on measured Santa
+Barbara Channel radar currents.
 
-\section{Second Order Field Estimation}
+\section{Second-Order Field Estimation}
 
 \subsection{Local Vector Field Polynomials}
 
@@ -216,9 +226,10 @@ currents are not divergence free, so imposing
 $\operatorname{tr}(\mathbf{J}) = 0$ would bias every recovered coefficient.
 
 For this study, we chose the pentagon-plus-center formation and use it
-throughout. It is the configuration \cite{4} derived for scalar Hessian
-estimation, where the odd ring count suppresses third-order truncation
-bias.
+throughout. It is the smallest uniform ring plus center on which \cite{4}
+recovers a scalar Hessian exactly for quadratic signals, independent of
+the formation's orientation. The same symmetry makes the noise gains of
+the fit here independent of formation heading.
 
 However, any formation of six or more robots suffices provided
 $\boldsymbol{\Phi}$ is nonsingular. This nonsingularity fails exactly
@@ -242,8 +253,8 @@ reported on the radius-normalized $\boldsymbol{\Phi}$, with each column
 of order $q$ divided by $\rho^{\,q}$. Without this normalization, the
 quadratic columns shrink as $\rho^{2}$ and a healthy formation would
 appear degenerate. The normalized matrix depends only on the formation's
-shape, and the nominal shape gives $\kappa(\boldsymbol{\Phi}) = 8.26$ at
-every radius. The size of the formation instead scales the noise on each
+shape, and the pentagon-plus-center formation gives
+$\kappa(\boldsymbol{\Phi}) = 8.26$ at every radius. The size of the formation instead scales the noise on each
 coefficient by $\rho^{-q}$, so a larger formation suppresses noise most
 in the second-order terms. The condition number grows as the robots
 drift toward a common conic. For example, moving the center robot out
@@ -309,199 +320,215 @@ $\nabla u \cdot \nabla v / (\lVert\nabla u\rVert\,\lVert\nabla v\rVert)$.
 
 % ###### I have proofread everything above this line ######
 
-\subsection{Polynomial Surrogates}
+\subsection{Eulerian Surrogates}
 \label{sec:surrogates}
 
-This paper uses two surrogates for the separatrix, both recovered from
-$\mathbf{J}$. The first follows from its determinant $D = \det
-\mathbf{J}$, the second from the eigenvalues of its symmetric part. The Okubo-Weiss
-parameter \cite{21,22} satisfies $Q = \tfrac{1}{4} (\nabla \cdot
-\mathbf{v})^2 - D$ under the quarter-normalized convention of
-\cite{24} and $Q = (\nabla \cdot \mathbf{v})^2 - 4D$ under the common
-unhalved-strain convention, so
-$Q \propto D$ either way for incompressible flow, which covers the double gyre but not the ocean record of Section~\ref{sec:disc_ocean}. Its sign
-fixes the local eigenstructure: where $D < 0$ the
-flow is strain-dominated, where $D > 0$ it is rotation-dominated, and
-the zero level set is the Okubo-Weiss boundary. In the irrotational
-case nearby particles separate at rate $\sqrt{-D}$; in general that
-rate is $\lvert s_1 \rvert = \sqrt{\omega^2/4 - D}$.
-Where the vorticity vanishes, trenches of $D$ in strain regions mark the strongest instantaneous attraction and repulsion.
+Lagrangian methods locate coherent structures by integrating particle
+trajectories over a finite time window \cite{14,15}. This paper instead
+reads them from the instantaneous geometry of the velocity field, which
+the six-robot fit already provides. Two fields computed from that fit
+mark the separatrix. The first is the determinant of the velocity
+gradient, and the second is the smaller eigenvalue of its symmetric
+part.
 
-The same four coefficients carry the second surrogate, through the
-Cauchy--Stokes decomposition $\mathbf{J} = \mathbf{S} + \mathbf{W}$ into a
-symmetric rate-of-strain tensor and an antisymmetric spin tensor carrying
-the vorticity $\omega = \partial v/\partial x - \partial u/\partial y$. Under a change of
-observer at angular rate $\Omega$, the rotation enters the
-velocity gradient only through an antisymmetric term, landing
-entirely in the spin part, $\omega' = \omega + 2\Omega$, while the
-strain part transforms as $\mathbf{S}' = \mathbf{Q}\mathbf{S}
-\mathbf{Q}^\top$. The eigenvalues $s_1 \leq s_2$ of $\mathbf{S}$ are
-therefore frame-invariant, its eigenvectors co-rotate, and quantities
-built from them are objective: material behavior, which cannot depend
-on the observer, is predictable from them in any frame \cite{16,17}.
-
-Taking the determinant of the same splitting relates the two
-surrogates. For any two $2 \times 2$ matrices,
-$\det(\mathbf{A}+\mathbf{B}) = \det\mathbf{A} + \det\mathbf{B} +
-\operatorname{tr}\mathbf{A}\operatorname{tr}\mathbf{B} -
-\operatorname{tr}(\mathbf{A}\mathbf{B})$. Here $\operatorname{tr}
-\mathbf{W} = 0$, and $\operatorname{tr}(\mathbf{S}\mathbf{W}) = 0$
-because a symmetric and an antisymmetric matrix are orthogonal under
-the trace inner product, so the determinant splits exactly,
+\subsubsection{Determinant Field}
+The fitted coefficients define the velocity gradient at every point of
+the footprint. Differentiating the quadratic model gives a Jacobian whose
+entries are affine in position,
 \begin{equation}
-    D \;=\; \det\mathbf{S} + \det\mathbf{W}
-      \;=\; s_1 s_2 + \frac{\omega^2}{4}
-      \;=\; \frac{\omega^2}{4} - s_1^2,
-    \label{eq:splitting}
+    \hat{\mathbf{J}}(\mathbf{p}) =
+    \begin{bmatrix}
+        \hat{a}_2 + \hat{a}_5 x + \hat{a}_4 y &
+        \hat{a}_3 + \hat{a}_4 x + \hat{a}_6 y \\
+        \hat{b}_2 + \hat{b}_5 x + \hat{b}_4 y &
+        \hat{b}_3 + \hat{b}_4 x + \hat{b}_6 y
+    \end{bmatrix}.
+    \label{eq:Jhat}
 \end{equation}
-the last equality specializing to incompressible flow ($s_2 = -s_1$).
-Substituting $\omega' = \omega + 2\Omega$ gives
-\begin{equation}
-    D' = D + \Omega\,\omega + \Omega^2 ,
-    \label{eq:D_not_objective}
-\end{equation}
-so relatively rotating observers disagree about where the $D$ structures
-are. The artifact lives entirely in the spin term,
-so quantities derived from $D$ inherit it and those
-derived from $s_1$ carry none. Where the vorticity vanishes the
-identity collapses to $s_1 = -\sqrt{-D}$ and the two surrogates
-coincide. Differentiating transverse to a curve,
-\begin{equation}
-    \frac{\partial D}{\partial n} =
-    \frac{\omega}{2}\frac{\partial \omega}{\partial n}
-    - 2 s_1 \frac{\partial s_1}{\partial n},
-    \label{eq:trench_coincide}
-\end{equation}
-so on a vorticity-free strain-dominated curve the two transverse
-derivatives vanish together and the two trenches coincide.
-
-The structure the second tracker rides is defined by the smaller
-eigenvalue $s_1$, the local instantaneous contraction rate, compressing
-material along $\mathbf{e}_1$ and stretching it along $\mathbf{e}_2$ at
-rate $-s_1$. An attracting OECS is a trench of $s_1$
-ridden along $\mathbf{e}_2$, a curve on which $s_1$ is locally most
-negative transversely, so neighboring material is drawn onto it
-\cite{17}. Floating objects have been confirmed at sea to collect onto
-structures extracted this way from instantaneous surface currents
-\cite{10}.
-
-Both trackers consume quantities that follow from the fitted
-coefficients in closed form, without numerical differencing. Each
-Jacobian entry is affine in position, so $\hat{D}(\mathbf{p})$ is exactly
-quadratic over the footprint. Its gradient and Hessian at the centroid
-are polynomials in the coefficients, the Hessian being
+The determinant $\hat{D}(\mathbf{p}) = \det\hat{\mathbf{J}}(\mathbf{p})$
+is therefore exactly quadratic over the footprint. Its value, gradient,
+and Hessian at the centroid are polynomials in the coefficients. The
+value is $\hat{D}_0 = \hat{a}_2\hat{b}_3 - \hat{a}_3\hat{b}_2$, and the
+Hessian is
 \begin{equation}
     \hat{\mathbf{H}}_{D,0} =
     \begin{bmatrix}
-        2(\hat{a}_5 \hat{b}_4 - \hat{a}_4 \hat{b}_5) &
-        \hat{a}_5 \hat{b}_6 - \hat{a}_6 \hat{b}_5 \\
-        \hat{a}_5 \hat{b}_6 - \hat{a}_6 \hat{b}_5 &
-        2(\hat{a}_4 \hat{b}_6 - \hat{a}_6 \hat{b}_4)
-    \end{bmatrix}.
+        2(\hat{a}_5\hat{b}_4 - \hat{a}_4\hat{b}_5) &
+        \hat{a}_5\hat{b}_6 - \hat{a}_6\hat{b}_5 \\
+        \hat{a}_5\hat{b}_6 - \hat{a}_6\hat{b}_5 &
+        2(\hat{a}_4\hat{b}_6 - \hat{a}_6\hat{b}_4)
+    \end{bmatrix},
     \label{eq:hess_det}
 \end{equation}
-This curvature is constant over the footprint and, unlike the gradient,
-does not sharpen as the cluster contracts. The strain side reads from
-the same fit through the mean, deviatoric normal, and shear strain,
-$\mu =
-(\hat{a}_2 + \hat{b}_3)/2$, $s_n = (\hat{a}_2 - \hat{b}_3)/2$, $s_s =
-(\hat{a}_3 + \hat{b}_2)/2$, with $\mu = 0$ for incompressible flow.
-The strain eigenvalues are $s_{1,2} = \mu \mp r$ with $r = \sqrt{s_n^2
-+ s_s^2}$. These three scalars are affine in position under the
-quadratic model, so
+which is constant over the footprint.
+
+For incompressible flow the determinant is a negative multiple of the
+Okubo-Weiss parameter \cite{21,22}, so the two carry the same partition of
+the flow. Where $D < 0$ the flow is strain-dominated, and where $D > 0$
+it is rotation-dominated. Separatrices run along the trenches of $D$
+inside the strain-dominated regions.
+
+Every term of $\hat{D}$, its gradient, and its Hessian comes in an
+opposite-sign pair such as $\hat{a}_2\hat{b}_3 - \hat{a}_3\hat{b}_2$.
+The robots are independent and both fits share
+$\boldsymbol{\Phi}^{-1}$, so a correlation between the $\hat{a}$ and
+$\hat{b}$ errors inflates both products of a pair equally, and the
+subtraction cancels it. The $D$ estimates are therefore unbiased under
+measurement noise, and under position noise to first order.
+
+\subsubsection{Strain Eigenvalue Field}
+The same fitted Jacobian carries the second field through its symmetric
+part, the rate-of-strain tensor
+$\hat{\mathbf{S}} = \tfrac{1}{2}(\hat{\mathbf{J}} + \hat{\mathbf{J}}^{\top})$.
+At the centroid its mean, deviatoric normal, and shear strain are
+$\hat{\mu} = (\hat{a}_2 + \hat{b}_3)/2$,
+$\hat{s}_n = (\hat{a}_2 - \hat{b}_3)/2$, and
+$\hat{s}_s = (\hat{a}_3 + \hat{b}_2)/2$, and each is affine in position.
+The eigenvalues of $\hat{\mathbf{S}}$ are
+$\hat{s}_{1,2} = \hat{\mu} \mp \hat{r}$ with
+$\hat{r} = \sqrt{\hat{s}_n^2 + \hat{s}_s^2}$. Their eigenvectors
+$\mathbf{e}_1$ and $\mathbf{e}_2$ are the compression and stretching
+directions. The gradient of the smaller eigenvalue follows by the chain
+rule,
 \begin{equation}
-    \nabla \hat{s}_1 = \nabla\mu
-    - \frac{s_n\,\nabla s_n + s_s\,\nabla s_s}{r}
+    \nabla\hat{s}_1 = \nabla\hat{\mu}
+        - \frac{\hat{s}_n\nabla\hat{s}_n + \hat{s}_s\nabla\hat{s}_s}{\hat{r}},
     \label{eq:grad_s1}
 \end{equation}
-is exact for the fitted field, with $\nabla\mu$, $\nabla s_n$, $\nabla
-s_s$ read off the second-order coefficients. No usable Hessian of $s_1$ accompanies it. The map
-$\mathbf{p} \mapsto (s_n, s_s)$ is affine, so $\hat{s}_1 = \mu -
-\|(s_n, s_s)\|$ is concave and its Hessian negative semidefinite for
-all fields and formations, while an $s_1$ trench's positive transverse curvature lives in third
-derivatives, outside a quadratic fit's span. Both rule out the Newton step the $D$ tracker uses
-(Section~\ref{sec:sep_controller}). The gradient is unaffected, its transverse
-component recovering the trench-restoring signal with the correct sign.
-Gradient descent still converges because the fit is recomputed at the
-new centroid each cycle, so every step descends a valid quadratic.
+with $\nabla\hat{\mu}$, $\nabla\hat{s}_n$, and $\nabla\hat{s}_s$ read
+from the second-order coefficients. Unlike $\hat{D}$, $\hat{s}_1$ has no
+usable Hessian. It is an affine function minus the norm of an affine
+map, so it is concave over the footprint for every field and formation.
 
+Serra and Haller define objective Eulerian coherent structures (OECS)
+from these eigenvalues and eigenvectors \cite{17}. An attracting OECS is a
+trench of $s_1$ tangent to $\mathbf{e}_2$, and floating material has been
+observed at sea to collect onto such curves \cite{10}. A repelling OECS is a
+ridge of $s_2$ tangent to $\mathbf{e}_1$, along which neighboring
+material separates. In incompressible flow $s_2 = -s_1$, so repelling
+structures are also trenches of $s_1$, and one tracker rides both.
 
+Recovering $\hat{s}_1$ requires a norm, which biases it under either
+noise channel. The error $\boldsymbol{\epsilon}$ in
+$(\hat{s}_n, \hat{s}_s)$ is zero-mean, but its component transverse to
+the true $(s_n, s_s)$ always lengthens the norm. Expanding to second
+order in $\boldsymbol{\epsilon}$ gives
+\begin{equation}
+    E[\hat{s}_1] - s_1 \approx -\frac{\sigma_r^2}{2r},
+    \label{eq:s1_bias}
+\end{equation}
+where $r$ is the true deviatoric strain magnitude and $\sigma_r$ is the
+standard deviation of each strain component. The approximation holds
+while $\sigma_r$ is small against $r$. The bias is always negative, so
+$\hat{s}_1$ reads a trench deeper than it is.
+
+\subsubsection{Relation Between the Fields}
+Both fields are read from the same fitted Jacobian, so moving between
+them changes nothing in the estimator. Where the vorticity
+$\omega = \partial v/\partial x - \partial u/\partial y$ vanishes,
+$\mathbf{J}$ equals $\mathbf{S}$ and $D = s_1 s_2$, which is $-s_1^2$ in
+incompressible flow. Along such a curve the two fields share their
+trenches. Elsewhere the spin $\mathbf{W} = \mathbf{J} - \mathbf{S}$, the
+antisymmetric part of $\mathbf{J}$ that carries the vorticity, separates
+them. It also separates them across observers. A frame rotating at rate
+$\Omega$, with rotation $\mathbf{Q}$, adds a uniform spin that raises
+$\omega$ to $\omega + 2\Omega$. The strain tensor only co-rotates, so
+$s_1$ is objective \cite{17}, while the determinant keeps the spin,
+\begin{equation}
+    D' = D + \Omega\,\omega + \Omega^2 .
+    \label{eq:D_not_objective}
+\end{equation}
+Relatively rotating observers therefore disagree about where the
+trenches of $D$ lie. In general neither instantaneous field is
+guaranteed to mark the material transport structure \cite{16}.
 
 \subsection{The Double-Gyre Example}
 \label{sec:dg_example}
 
-The double-gyre flow used throughout is the steady ($\varepsilon = 0$)
-member of the Shadden family \cite{15}, shifted from the canonical domain
-$[0,2] \times [0,1]$ to $[-1,1] \times [-0.5, 0.5]$ by
-$x_f = x + 1$, $y_f = y + 0.5$, where $(x_f, y_f)$ are field-frame and
+The double gyre is
+a benchmark flow on which both fields mark the material transport structure
+exactly, and every
+quantity of interest has a closed form. The flow is two counter-rotating gyres in a
+closed basin, separated by a separatrix that runs between two saddle points on
+the basin walls. We use the steady member of the Shadden
+family~\cite{15}, shifted from the canonical domain
+$[0,2]\times[0,1]$ to $[-1,1]\times[-0.5,0.5]$ to center it on the origin. The
+shift is $x_f = x + 1$, $y_f = y + 0.5$, where $(x_f, y_f)$ are field-frame and
 $(x, y)$ world-frame coordinates. Both are non-dimensional throughout the
-double-gyre experiments, so world-frame distances need no unit
-conversion unless stated. The field is
+double-gyre experiments. The field is
 \begin{equation}
-    u = -\pi A \sin(\pi x_f) \cos(\pi y_f), \quad
-    v = \pi A \cos(\pi x_f) \sin(\pi y_f),
-    \label{eq:dg_u}
+u = -\pi A \sin(\pi x_f)\cos(\pi y_f), \quad
+v = \pi A \cos(\pi x_f)\sin(\pi y_f),
+\label{eq:dg_u}
 \end{equation}
-with $A = 0.1$. The flow is incompressible, the separatrix is the line
-$x = 0$, the saddle points are $\mathbf{p}^*_1 = (0, -0.5)$ and
-$\mathbf{p}^*_2 = (0, 0.5)$, and the gyre centers are $(\pm 0.5, 0)$.
-The unsteady member of the same family, used once as a spot check in
-Section~\ref{sec:disc_clean}, carries the standard time-dependent
-perturbation of $x_f$ \cite{15}, which oscillates the separatrix about
-$x = 0$ and recovers the steady field at $\varepsilon = 0$.
+with $A = 0.1$. The separatrix is the line $x = 0$, the saddle points are
+$\mathbf{p}_1^* = (0, -0.5)$ and $\mathbf{p}_2^* = (0, 0.5)$, and the gyre
+centers are $(\pm 0.5, 0)$.
 
-All quantities of interest have closed forms. Where a partial
-derivative of the true field is meant rather than a fitted coefficient,
-it is written in subscript form, $u_x$, $u_{xy}$, and so on. The
+The benchmark quantities follow from the Jacobian of the field. Where
+a partial derivative of the true field is meant rather than a fitted
+coefficient, it is written in subscript form, $u_x$, $u_{xy}$, and so on. The
 Jacobian entries are
 $u_x = -\pi^2 A \cos\pi x_f \cos\pi y_f = -v_y$ and
-$u_y = \pi^2 A \sin\pi x_f \sin\pi y_f = -v_x$, so the flow is divergence
-free, and
+$u_y = \pi^2 A \sin\pi x_f \sin\pi y_f = -v_x$. The flow is therefore
+incompressible, and its determinant and Hessian are
 \begin{equation}
-    \begin{aligned}
-    D(\mathbf{p}) &= -\tfrac{1}{2}\pi^4 A^2
-        \bigl(\cos 2\pi x_f + \cos 2\pi y_f\bigr), \\
-    \mathbf{H}_D &= 2\pi^6 A^2
-        \begin{bmatrix} \cos 2\pi x_f & 0 \\ 0 & \cos 2\pi y_f \end{bmatrix},
-    \end{aligned}
-    \label{eq:det_analytic_main}
+\begin{aligned}
+D(\mathbf{p}) &= -\tfrac{1}{2}\pi^4 A^2 \left(\cos 2\pi x_f + \cos 2\pi y_f\right),\\
+\mathbf{H}_D &= 2\pi^6 A^2
+\begin{bmatrix} \cos 2\pi x_f & 0 \\ 0 & \cos 2\pi y_f \end{bmatrix}.
+\end{aligned}
+\label{eq:det_analytic_main}
 \end{equation}
-with $\nabla D = \pi^5 A^2 (\sin 2\pi x_f, \sin 2\pi y_f)^\top$ and
-vorticity $\omega = -2\pi^2 A \sin\pi x_f \sin\pi y_f$. The
-Okubo-Weiss boundary is the diamond $x_f \pm y_f \in \tfrac{1}{2} +
-\mathbb{Z}$ inscribed around each gyre center, $D > 0$ inside.
+The Hessian is diagonal everywhere, so its eigenvectors lie on the coordinate
+axes.
 
-The separatrix is a trench of $D$. Cross-track curvature
-$2\pi^6 A^2 > 0$ on $x = 0$ (Fig.~\ref{fig:trench_cross}), deepest at
-the two saddles, rising to a crest ($D = 0$, vorticity also zero, so
-$\sqrt{-D}$ by (\ref{eq:splitting}) is the attraction rate toward it)
-at the origin, where a descend-only primitive stalls. Periodicity
-turns the trenches of $D$ into a grid whose right-angle crossings
-are the saddle points, so a tracker continuing past a saddle is still
-on a trench.
+The landscape of $D$ is a grid of trenches around rotation-dominated gyres,
+each inside an Okubo-Weiss diamond $x_f \pm y_f \in \tfrac{1}{2} + \mathbb{Z}$
+where $D > 0$. The trenches lie on the lines $x \in \{-1, 0, 1\}$ and
+$y = \pm 0.5$, the separatrix and the four basin walls, which cross at right
+angles at $\mathbf{p}_1^*$, $\mathbf{p}_2^*$, and the four domain corners.
 
-The strain field shares the grid but signs its segments. The shear strain vanishes identically, so $\mathbf{S} = \mathrm{diag}(u_x, -u_x)$ everywhere, with eigenvectors fixed on the coordinate axes away from the degeneracy lines $\cos\pi x_f \cos\pi y_f = 0$. This gives
+Along the separatrix $D = -\pi^4 A^2 \sin^2 \pi y$. The trench is deepest at
+the two saddles and rises to a crest, $D = 0$, at the origin
+(Fig.~\ref{fig:trench_cross}). The crest divides the separatrix into an upper
+and a lower segment. On $x = 0$ the Hessian reduces to
+$\mathbf{H}_D = 2\pi^6 A^2\,\mathrm{diag}(1, -\cos 2\pi y)$.
+The transverse curvature $2\pi^6 A^2$ is the same along the whole separatrix.
+The along-trench curvature is negative for $|y| < 0.25$ and positive beyond, so
+each segment is concave along its length on its inner half and convex on its
+outer half. At a saddle both curvatures are positive, and $D$ has a local
+minimum where the separatrix crosses the wall.
+
+The vorticity ties the $s_1$ field to the $D$ field on this flow. It is
+$\omega = -2\pi^2 A \sin\pi x_f \sin\pi y_f$, which vanishes where $x_f$ or
+$y_f$ is an integer, exactly on the trench grid of $D$. There
+$\mathbf{J} = \mathbf{S}$ and $D = -s_1^2$ (Section~\ref{sec:surrogates}), so
+the two fields share every trench. The shear strain vanishes identically, so
+$\mathbf{S} = \mathrm{diag}(u_x, -u_x)$ everywhere. This gives
 \begin{equation}
-    s_1 = -\pi^2 A\,\lvert\cos \pi x_f \cos \pi y_f\rvert,
-    \label{eq:s1_analytic_main}
+s_1 = -\pi^2 A \left|\cos\pi x_f \cos\pi y_f\right|,
+\label{eq:s1_analytic_main}
 \end{equation}
-with the trench minima $s_1 = -\pi^2 A$ at the six flow saddles, the
-terminal cores a traverse settles at: $\mathbf{p}^*_1$,
-$\mathbf{p}^*_2$, and the four domain corners at
-$x = \pm 1$, $y = \pm 0.5$.
-So $s_1$ is a transverse trench on \emph{both} halves of the separatrix. What alternates by segment is the
-\emph{material} identity of its tangent, the stretching eigenvector
-$\mathbf{e}_2$ above and the compression eigenvector $\mathbf{e}_1$
-below, swapping at the origin, the isotropic point of $\mathbf{S}$
-where the $D$ crest sits and both are undefined. By the OECS
-definition the upper segment is an attracting structure and the lower
-a repelling one, joined at that point.
+with minima $s_1 = -\pi^2 A$ where the grid lines cross, at $\mathbf{p}_1^*$,
+$\mathbf{p}_2^*$, and the four domain corners. The eigenvectors of
+$\mathbf{S}$ lie on the coordinate axes except on the lines $x = \pm 0.5$ and
+$y = 0$ through the gyre centers, where $u_x = 0$, $\mathbf{S}$ vanishes, and
+both eigenvectors are undefined. The line $y = 0$ crosses the separatrix at
+the origin, an isotropic point of $\mathbf{S}$ at the crest of $D$.
+
+On the upper segment $u_x < 0$, so the stretching
+eigenvector $\mathbf{e}_2$ is tangent to the trench. On the lower segment
+$u_x > 0$, and the compression eigenvector $\mathbf{e}_1$ is tangent. By the
+OECS definition of Section~\ref{sec:surrogates}, the upper segment is an
+attracting OECS and the lower a repelling OECS. The two meet at the isotropic
+point, where the tangent swaps between eigenvectors (Fig.~\ref{fig:s1_trench}).
 
 \begin{figure}[!tb]
     \centering
     \includegraphics[width=0.30\textwidth]{figures/detJ_trench_cross_section.png}
     \caption{Signed $D$ as an elevation surface over the double gyre.
-    The gyre cores rise as ridges ($D > 0$). The separatrix at $x = 0$
+    The gyre centers rise as peaks ($D > 0$). The separatrix at $x = 0$
     (bold) is a trench of $D$, deepest at the saddles and rising to
     $D = 0$ at the origin.}
     \label{fig:trench_cross}
@@ -511,100 +538,87 @@ a repelling one, joined at that point.
     \centering
     \includegraphics[width=0.30\textwidth]{figures/s1_trench_surface.png}
     \caption{$s_1$ as an elevation surface over the same domain as
-    Fig.~\ref{fig:trench_cross}. The separatrix at $x = 0$ is a trench on both halves, deepest at the saddles. The two halves differ in the material
-    identity of the trench tangent, swapping at the isotropic point of
+    Fig.~\ref{fig:trench_cross}. The separatrix at $x = 0$ is a trench on
+    both segments, deepest at the saddles. The trench tangent is
+    $\mathbf{e}_2$ on the upper, attracting segment and $\mathbf{e}_1$ on
+    the lower, repelling segment. The two swap at the isotropic point of
     $\mathbf{S}$ at the origin, where the $D$ crest of
-    Fig.~\ref{fig:trench_cross} sits and both eigenvectors are
-    undefined.}
+    Fig.~\ref{fig:trench_cross} sits.}
     \label{fig:s1_trench}
 \end{figure}
 
-\section{Adaptive Navigation Primitives}
+\section{Control Architecture}
 \label{sec:controllers}
 
-\subsection{Control Architecture}
+\subsection{Three-Layer Structure}
 \label{sec:arch}
 
-The control architecture is the established layered approach of prior
-cluster space studies \cite{8,31}, shown in
-Fig.~\ref{fig:control_architecture}. There are four layers: (1) a robot
-control layer that converts individual robot velocity commands into
-actuation, (2) a cluster space layer that maps a cluster-level command to
-those robot velocities through the inverse kinematic Jacobian and maps
-measured positions back into cluster variables for feedback \cite{31,32},
-(3) an adaptive navigation layer that holds the estimator and whichever
-primitive's control law is active, and (4) a state control layer that
-emits the navigation mode. Field measurements enter only at the adaptive
-navigation layer; the layers below it operate on velocity commands alone.
+The control architecture is the established multilayer approach of prior
+cluster space adaptive navigation studies \cite{8,32}, shown in
+Fig.~\ref{fig:control_architecture}. There are three layers: (1) an
+adaptive navigation layer that estimates the local field and generates the
+cluster velocity command, (2) a cluster controller layer that maintains
+the formation and translates between cluster space and robot space
+variables, and (3) a robot controller layer that converts each robot's
+velocity command into actuation. Field samples enter only at the adaptive
+navigation layer. The layers below it operate on velocity commands and
+positions alone.
 
-At each control cycle the six robots report their positions and field
-samples. The adaptive navigation layer fits the local quadratic model,
-evaluates the active control law, and emits a desired centroid velocity
-$\dot{\mathbf{p}}_c$ together with the formation setpoints. The state
-control layer sequences acquisition, traversal, and terminal capture from
-the sensed field quantities and the mission parameters. In the $s_1$
-tracker it also applies the depth latch of (\ref{eq:capture_test}), which
-keeps a noise-driven flicker from recycling a mode. The $D$ tracker's band
-test carries no such latch (Section~\ref{sec:disc_limits}). Each layer presents a fixed interface upward, so swapping
-trackers changes only the adaptive navigation layer.
+The adaptive navigation layer has three functional blocks. The feature
+estimation block fits the local quadratic model (\ref{eq:solve}) to the
+six field samples and robot positions. The navigation controller evaluates
+the active primitive, including its mode logic, and emits a desired
+centroid velocity $\dot{\mathbf{p}}_c$. Each channel of that command
+saturates through $c_{\max}\tanh(c/c_{\max})$ and is scaled by a fixed
+navigation gain $k$, so the commanded centroid speed never exceeds
+$\sqrt{2}\,k\,c_{\max}$. The formation controller regulates the cluster
+shape to the desired shape parameters by proportional feedback. The two
+commands combine into one cluster-space velocity vector. Swapping
+trackers changes only the navigation controller, since the blocks around
+it and the layers below keep the same interfaces.
 
-Cluster space control is an operational space control approach in
-which the multirobot formation is represented as a virtualized full
-degree-of-freedom articulating mechanism \cite{31}. The cluster-level
-parameters are the cluster position, the cluster shape, and the robots'
-orientation relative to the cluster. A
-forward kinematic Jacobian maps robot-level velocities to cluster-level
-velocities, and its inverse maps the cluster-level compensation
-commands back to the individual robots.
-Lyapunov stability of the cluster space controller has been
-characterized for arbitrary cluster space command trajectories, with
-and without collision avoidance options \cite{32}. The cluster is the
-pentagon-plus-center formation, its centroid
-and heading following the command from above and each remaining cluster
-variable regulated to its nominal shape value. Each robot is an
-omnidirectional point mass.
+Cluster space control treats a multirobot formation as a virtual rigid
+body that can be moved, scaled, and articulated \cite{31}. For six planar
+robots the cluster state has twelve variables. The centroid $(x_c, y_c)$
+and heading $\theta_c$ place the formation, and nine shape variables set
+its geometry. The robots are grouped in three pairs, each contributing a
+separation and an angle, and the triangle of pair midpoints contributes
+the SAS parameters $(p, \beta, q)$. The cluster controller layer maps the
+cluster-space velocity vector to robot velocities through the analytic
+inverse Jacobian $\mathbf{J}^{-1}$ and returns measured robot positions to
+the layer above through the forward kinematics.
 
-\subsection{Robot Kinematics and Dynamics}
-\label{sec:robot_model}
-
-Each robot's velocity response is first order, $\dot{\mathbf{v}}_i =
-(\mathbf{v}_i^{\text{des}} - \mathbf{v}_i)/\tau$, for commanded velocity
-$\mathbf{v}_i^{\text{des}}$ and actuator time constant $\tau$.
-Discretizing at control period $\Delta t$
-gives the momentum model identified in \cite{8} on the Decabot, a
-six-robot indoor omnidirectional testbed built for this work
-\cite{33,34}:
-$\mathbf{v}[k+1] = \alpha_{\text{mom}}\mathbf{v}[k] + (1 -
-\alpha_{\text{mom}})\mathbf{v}^{\text{des}}[k]$,
-where $\alpha_{\text{mom}} = e^{-\Delta t/\tau}$ gives $\tau = -\Delta
-t/\ln\alpha_{\text{mom}} \approx 0.28$~s at $\Delta t = 0.1$~s,
-consistent with the identified Decabot lag. Each robot carries a speed limit and a stiction floor.
-Each command channel saturates through $c_{\max}\tanh(c/c_{\max})$, so
-the commanded centroid speed never exceeds $\sqrt{2}\,k\,c_{\max}$. A
-fixed navigation gain $k$ lifts steady commands clear of the stiction
-floor. That gain has units of inverse time, the step being $600$~s at the ocean operating point. Table~\ref{tab:params}
-gives the two operating points, fixed across all experiments unless
-noted. The double-gyre core wells have depth $s_1 = -\pi^2 A \approx
--0.987$, well past $-4s_{\mathrm{trim}}$ at those values.
+Each robot follows its velocity command through a first-order lag,
+discretized at control period $\Delta t$ as
+$\mathbf{v}[n+1] = \alpha_{\text{mom}}\mathbf{v}[n] + (1 -
+\alpha_{\text{mom}})\mathbf{v}^{\text{des}}[n]$ with
+$\alpha_{\text{mom}} = e^{-\Delta t/\tau}$. This momentum model was
+identified in \cite{8} on the Decabot indoor omnidirectional testbed
+\cite{33,34}, and $\alpha_{\text{mom}} = 0.7$ at $\Delta t = 0.1$~s gives
+$\tau \approx 0.28$~s, consistent with the identified lag. Each robot also
+carries a speed limit and a stiction floor. Table~\ref{tab:params} gives
+the two operating points, fixed across all experiments unless noted.
 
 \begin{table}[!t]
-\caption{Operating points. The double-gyre column is non-dimensional;
-Section~\ref{sec:ocean_sim} converts the ocean column to physical units.}
+\caption{Operating points. The double-gyre column is non-dimensional,
+with one time unit equal to one second of the Decabot's identified
+dynamics. Section~\ref{sec:ocean_sim} converts the ocean column to
+physical units.}
 \label{tab:params}
 \centering
 \begin{tabular}{llll}
 \hline
 Parameter & Double gyre & Ocean & Units \\
 \hline
-$c_{\max}$              & 0.04  & 0.04   & length/step \\
-$k$                     & 3.0   & 1.8    & 1/step \\
+$c_{\max}$              & 0.04  & 0.04   & length/time \\
+$k$                     & 3.0   & 1.8    & none \\
 $\rho$                  & 0.075 & 0.105  & length (5.4 km) \\
-$v_{\text{max,robot}}$  & 0.3   & 0.3    & length/step \\
-$v_{\text{stiction}}$   & 0.025 & 0.002  & length/step \\
+$v_{\text{max,robot}}$  & 0.3   & 0.3    & length/time \\
+$v_{\text{stiction}}$   & 0.025 & 0.002  & length/time \\
 $\alpha_{\text{mom}}$   & 0.7   & 0      & none \\
 $\varepsilon_{\text{raw}}$ & $10^{-3}$ & $10^{-3}$ & $1/\text{time}^2$ \\
 $\varepsilon_{\dim}$    & 0.025 & 0.025  & length$^2$ \\
-$g_\perp$               & 1.0   & 1.0    & 1/step \\
+$g_\perp$               & 1.0   & 1.0    & length$^2$ \\
 $s_{\mathrm{trim}}$     & 0.05  & 0.3    & 1/time \\
 $g_{\text{capture}}$    & 0.15  & 0.15   & 1/(time$\cdot$length) \\
 $r_{\text{band}}$       & 0.05  & 0.05   & 1/time \\
@@ -615,9 +629,11 @@ $r_{\text{band}}$       & 0.05  & 0.05   & 1/time \\
 \begin{figure}[!tb]
     \centering
     \includegraphics[width=0.32\textwidth]{figures/control_architecture.png}
-    \caption{Hierarchical control architecture. Robot controller,
-    cluster controller, and adaptive navigation layers, with the state
-    control layer sequencing navigation modes above them.}
+    \caption{Three-layer control architecture. The adaptive navigation
+    layer (left) estimates the field and generates the cluster command, the
+    cluster controller layer (center) maps between cluster and robot space,
+    and the robot controller layer (right) actuates each robot and reports
+    its position and field sample.}
     \label{fig:control_architecture}
 \end{figure}
 
@@ -636,14 +652,15 @@ $\|\mathbf{w}_k\| = 1$ and $\lambda_1 \leq \lambda_2$, taking
 $\mathbf{w}_2$ across the trench and $\mathbf{w}_1$ along it, its sign
 fixed by $\hat{\mathbf{v}}_0^\top \mathbf{w}_1 \geq 0$ to orient it
 downstream. Identifying $\mathbf{w}_2$ with the trench normal is exact
-on the benchmark, where $\mathbf{H}_D$ is diagonal, and an
+on the benchmark, where $\mathbf{H}_D$ is diagonal
+(Section~\ref{sec:dg_example}), and an
 approximation in general.
 
 The primitive below assumes a trench convex across and concave along,
 $\lambda_1 < 0 < \lambda_2$. That is a property of the surface, not the
 estimator, and it fails over the outer half of each separatrix segment
 of the benchmark, where the true $\mathbf{H}_D$ is positive
-definite (Section~\ref{sec:disc_limits}).
+definite (Section~\ref{sec:dg_example}).
 
 $\hat{D}$ is an exact quadratic, so its Newton step
 $-\hat{\mathbf{H}}_{D,0}^{-1}\hat{\mathbf{g}}_0$ reaches the fitted
@@ -689,7 +706,7 @@ and the velocity command is
       \hat{\mathbf{g}}_0}{\lambda_2}\right)\mathbf{w}_2}_{\text{across the trench}},
     \label{eq:d_law}
 \end{equation}
-scaled by the navigation gain $k$ of Section~\ref{sec:robot_model}.
+scaled by the navigation gain $k$ of Section~\ref{sec:arch}.
 
 This primitive decouples travel from trench holding through the eigenbasis.
 The across-trench term is the Newton component of the fitted quadratic,
@@ -710,7 +727,7 @@ the saturated flow alone. This fallback never fires on the benchmark,
 for a reason specific to that field (Section~\ref{sec:disc_limits}), so
 it is defined but untested.
 
-That same sign test is the primitive's terminal condition: the cluster
+That same sign test is the primitive's terminal condition. The cluster
 holds when
 \begin{equation}
     \lambda_1 \lambda_2 \geq 0,
@@ -718,7 +735,12 @@ holds when
 \end{equation}
 when the fitted Hessian is no longer indefinite. Where two trench segments cross, at a flow saddle, the true $D$ has a local minimum and meets this test, the terminal analogue of the vanishing-gradient test the $s_1$ tracker uses.
 
-Convergence follows from the trench geometry. In arclength coordinates $(\ell, n)$ along and across the trench, $D = h(\ell) + \tfrac{1}{2}\kappa_\perp n^2$ with $\kappa_\perp = 2\pi^6 A^2 > 0$ along a separatrix segment of the benchmark. The transverse channel of the $D$ tracker then reduces to $\dot{n} = -k\,\mathrm{sat}(a_\perp n)$, with $a_\perp = \kappa_\perp/\hat{\kappa}_\perp$ the ratio of true transverse curvature to fitted. Taking $V = \tfrac{1}{2}n^2$
+Convergence follows from the trench geometry, for a cluster that realizes
+$\dot{\mathbf{p}}_c$. Cluster space control tracks any commanded trajectory
+with bounded error for unicycle robots \cite{37}, including those an
+adaptive navigation layer generates \cite{2}, and the omnidirectional
+robots here carry no nonholonomic constraint. The robot lag of
+Section~\ref{sec:arch} is not modeled in what follows. In arclength coordinates $(\ell, n)$ along and across the trench, $D = h(\ell) + \tfrac{1}{2}\kappa_\perp n^2$ with $\kappa_\perp = 2\pi^6 A^2 > 0$ along a separatrix segment of the benchmark. The transverse channel of the $D$ tracker then reduces to $\dot{n} = -k\,\mathrm{sat}(a_\perp n)$, with $a_\perp = \kappa_\perp/\hat{\kappa}_\perp$ the ratio of true transverse curvature to fitted. Taking $V = \tfrac{1}{2}n^2$
 gives $\dot{V} < 0$ for $n \neq 0$, so $|n|$ never grows. The cluster reaches the proportional region $|n| < c_{\max}/a_\perp$ in finite time and converges exponentially to the trench thereafter. Along the trench,
 both branches of (\ref{eq:vpar}) keep $v_\parallel \geq 0$, so traversal
 cannot reverse. Both branches also vanish at a stagnation point, where the flow and the
@@ -762,8 +784,8 @@ Away from a stationary point $\nabla\hat{s}_1$ points almost wholly along the tr
 where $\mathbf{t}_{\mathrm{ref}}$ is the previous step's tangent once one
 exists, or the measured flow $\hat{\mathbf{v}}_0$ on the
 first tracking step. The rule selects $\mathbf{e}_2$ on the attracting
-half of the separatrix and $\mathbf{e}_1$ on the repelling half, swapping
-automatically through the origin.
+segment of the separatrix and $\mathbf{e}_1$ on the repelling segment, swapping
+automatically through the origin (Fig.~\ref{fig:s1_channels}(a)).
 
 The primitive alternates between traversing and settling, selected by a ride flag $\beta \in \{0,1\}$ that is one while traversing. The velocity command is
 \begin{equation}
@@ -785,8 +807,8 @@ vector.
     (\ref{eq:tangent_select}). At each sample the strain eigenframe is
     drawn, the selected eigenvector heavy and the rejected one light,
     with $\nabla\hat{s}_1$ in orange. The argmax takes
-    $\mathbf{e}_2$ on the attracting half and $\mathbf{e}_1$ on the
-    repelling half, swapping through the isotropic point at the origin.
+    $\mathbf{e}_2$ on the attracting segment and $\mathbf{e}_1$ on the
+    repelling segment, swapping through the isotropic point at the origin.
     (b) The command. Travel along $\mathbf{t}$ is open loop at cruise
     speed, while $\mathbf{P}$ removes the along-trench component of the
     gradient so descent acts only across the trench. The along-trench
@@ -795,7 +817,8 @@ vector.
     \label{fig:s1_channels}
 \end{figure}
 
-This primitive decouples descent from travel through the projector.
+This primitive decouples descent from travel through the projector
+(Fig.~\ref{fig:s1_channels}(b)).
 With $\beta = 1$, $\mathbf{P}$ removes the along-trench component of the
 gradient, so the cluster descends only across the trench while riding
 along it at cruise speed $c_{\max}\tanh(1)$. With $\beta = 0$ the
@@ -805,7 +828,7 @@ local minimum. The gain $g_\perp$ is fixed and not
 curvature-normalized, so the transverse channel contracts at gradient
 rate.
 
-The state layer moves $\beta$ through two transitions. It starts at zero, so before the cluster reaches any structure the descent term homes onto the trench. First contact, when $\hat{s}_1$ first falls below $-s_{\mathrm{trim}}$, latches $\beta$ to one and the ride begins. Terminal capture returns it to zero, holding the cluster at a two-dimensional
+The navigation controller moves $\beta$ through two transitions. It starts at zero and latches to one, beginning the ride, once $\hat{s}_1$ first falls below $-s_{\mathrm{trim}}$. That depth floor is a small fraction of the benchmark's well depth $-\pi^2 A \approx -0.987$ (Section~\ref{sec:dg_example}), so from most starting positions the latch sets at the first step, and the projected descent, not a separate homing phase, carries the cluster onto the trench. Terminal capture returns it to zero, holding the cluster at a two-dimensional
 stationary point of $\hat{s}_1$ when
 \begin{equation}
     r > r_{\mathrm{band}}, \qquad
@@ -816,7 +839,7 @@ stationary point of $\hat{s}_1$ when
 
 A flow saddle is more than a crossing of two transverse trenches. It is
 a true two-dimensional minimum of $s_1$, and on the benchmark this
-is closed form: (\ref{eq:s1_analytic_main}) gives
+is closed form, since (\ref{eq:s1_analytic_main}) gives
 $s_1 \geq -\pi^2 A$ with equality exactly at integer $(x_f, y_f)$, a
 strict nondegenerate minimum with curvature $\pi^4 A$ on both axes. The
 full gradient therefore collapses there, while at an
@@ -828,7 +851,7 @@ where the ride needs one.
 The three tests in (\ref{eq:capture_test}) reject, in order, the
 isotropic point, an ordinary trench point, and a shallow flat spot away
 from real structure. The $-4s_{\mathrm{trim}}$ depth
-threshold is a hysteresis ratio, not a physical relation. The condition arms at four times the first-contact depth and releases when $\hat{s}_1$ rises back above $-s_{\mathrm{trim}}$. A noise-driven flicker of the gradient test does not send the cluster back through the tangent comparison at the well, while a real departure still does.
+threshold is a hysteresis ratio, not a physical relation. The condition arms at four times the latch depth and releases when $\hat{s}_1$ rises back above $-s_{\mathrm{trim}}$. A noise-driven flicker of the gradient test does not send the cluster back through the tangent comparison at the well, while a real departure still does.
 
 If the eigenframe is
 degenerate, $r < r_{\mathrm{band}}$, and no previous tangent has been
@@ -838,8 +861,7 @@ $\mathbf{t} = \hat{\mathbf{v}}_0/\|\hat{\mathbf{v}}_0\|$, with the
 projector set to the identity. Only the first tracking step can reach
 this case, and it is where the ambient flow enters the command.
 
-The transverse argument is the same, with one difference that decides
-where the primitive can be used. The projector $\mathbf{P}$ at $\beta = 1$
+The transverse argument is the same as for the $D$ tracker. The projector $\mathbf{P}$ at $\beta = 1$
 removes the along-trench gradient, leaving the same transverse dynamics
 $\dot{n} = -k\,\mathrm{sat}(a_\perp n)$, but with no curvature to
 normalize by, the rate is set by the field, $a_\perp = g_\perp
@@ -854,7 +876,7 @@ nothing steers the cluster off the structure. The ride carries it across a ball 
 A Python simulation of the architecture of Section~\ref{sec:arch} evaluates both primitives.
 The double-gyre experiments use the steady field of
 Section~\ref{sec:dg_example} ($A = 0.1$) on $[-1, 1] \times
-[-0.5, 0.5]$. The integrator is explicit Euler at 10~Hz ($\Delta t = 0.1$~s) and robot dynamics follow the first-order model. The cluster layer distributes the centroid command through the analytic $12 \times 12$ inverse Jacobian, driving the nine formation shape terms to nominal proportionally (gain 1.0 on lengths, 0.1 on angles). All trials use the nominal
+[-0.5, 0.5]$. The integrator is explicit Euler with step $\Delta t = 0.1$ and robot dynamics follow the first-order model. The formation controller drives the nine shape terms to nominal proportionally (gain 1.0 on lengths, 0.1 on angles), and the cluster controller layer distributes the combined command through the analytic $12 \times 12$ inverse Jacobian. All trials use the nominal
 formation with ring radius $\rho = 0.075$; a trial varies only the
 formation's initial heading, drawn uniformly from $[0, 2\pi)$ in the
 Monte Carlo sweeps and zero in the noise-free demonstration runs. The
@@ -866,12 +888,6 @@ steps and stop at task completion or domain exit. The
 estimator-accuracy sweep holds the formation static and draws
 independent noise per trial.
 
-Five experiment families exercise the estimator and the primitives: an
-open-loop estimator-accuracy sweep, noise-free double-gyre runs from six
-matched starts, Monte Carlo sweeps over a two-dimensional noise grid, a
-rotating-observer trial, and runs on a measured ocean record, each
-described with its results below.
-
 \subsection{Ocean HFR Setup}
 \label{sec:ocean_sim}
 
@@ -880,7 +896,7 @@ Barbara Channel from the HFRNet U.S.~West~Coast Radial-to-Total Vector
 product \cite{36}, on the $2$~km grid, which is public. The record is the one \cite{26} uses, the same network over the same 28-h window, 29 frames from May 16, 2012 08:00 GMT to May 17, 2012 12:00 GMT, so these results are interpretable against prior work on it. No controlled head-to-head was run, since initialization and advection differ.
 Frames are interpolated linearly in time. World
 coordinates on $[-0.65, 0.65]^2$ map affinely onto a region centered on
-$(34.2^{\circ}\mathrm{N}, -120.4^{\circ}\mathrm{W})$.
+$(34.2^{\circ}\mathrm{N}, 120.4^{\circ}\mathrm{W})$.
 
 Physical numbers follow from one unit block, length $L_w = 51.4$~km on
 both axes and time $6000$~s, with a control period $\Delta t = 0.1$
@@ -890,11 +906,11 @@ $\sqrt{2}\,k\,c_{\max}$ is then $0.87$~m/s, within reach of a small
 autonomous surface vessel but above a buoyancy glider. The longitude
 extent is
 scaled by $\cos(34.2^{\circ})$, so both axes carry the same physical
-scale and the map is a uniform dilation: each zero set, trench, and
+scale and the map is a uniform dilation, so each zero set, trench, and
 extremum of $D$ and of the strain eigenframe is the physical one. The
 FTLE reference uses the same constants, so controller and evaluation
 frames agree by construction. Those fields come from subwindows of this record at two
-horizons: the 24-h field of Fig.~\ref{fig:ocean_ftle} integrates the
+horizons. The 24-h field of Fig.~\ref{fig:ocean_ftle} integrates the
 first 25 frames, and the four-anchor persistence check uses 12~h.
 
 The pentagon is
@@ -911,11 +927,11 @@ floor drops to $0.002$, having no vessel-scale analogue. No noise level is estim
 \begin{figure}[!tb]
     \centering
     \includegraphics[width=0.68\columnwidth]{figures/estimator_accuracy_vs_noise.png}
-    \caption{Estimator accuracy on the steady double gyre at the strain-region
+    \caption{Estimator accuracy on the steady double gyre at the rotation-dominated
     point $(-0.3, 0.1)$, $10^4$ noise draws per point. (a) Median relative error
     of $\hat{D}$, $\nabla\hat{D}$, and $\hat{\mathbf{H}}_D$ against measurement
     noise at $\rho = 0.075$; the dashed line marks error equal to signal, the
-    dash-dotted line the $D$ tracker's 50\% traverse-success level. (b) Mean
+    dash-dotted line the $D$ tracker's 50\% traverse-success level on the separatrix, for reference. (b) Mean
     angle between the fitted and true principal eigenvector of
     $\hat{\mathbf{H}}_D$, against the $45^\circ$ of a uniformly random axis.
     The star is truncation acting alone.}
@@ -923,7 +939,7 @@ floor drops to $0.002$, having no vessel-scale analogue. No noise level is estim
 \end{figure}
 
 The estimator was characterized on the steady double gyre before any
-loop closed, over $10^4$ draws per condition at the strain-region point
+loop closed, over $10^4$ draws per condition at the rotation-dominated point
 $(-0.3, 0.1)$, and the predictions of Section~\ref{sec:sensitivity}
 held. The reading error induced
 by position noise matched (\ref{eq:sigma_eff}) within 1.6\%. The downward bias of $\hat{s}_1$ matched (\ref{eq:s1_bias}) within 5\% in eighteen of twenty-four conditions, and within one standard error in all twenty-four. The six wider cases sit at $r/\sigma_r \geq 3$, where the predicted bias falls below the resolution of $10^4$ draws. The
@@ -938,7 +954,7 @@ channels.
 In Fig.~\ref{fig:est_accuracy}(a), $\hat{D}$ stays informative to
 $\sigma_{uv} \approx 0.07$ and $\nabla\hat{D}$ to $\approx 0.0075$, while
 $\hat{\mathbf{H}}_D$ never clears the error-equals-signal line at any
-noise level, bottoming at $0.94$ and held there by truncation. In Fig.~\ref{fig:est_accuracy}(b),
+noise level, bottoming at $0.94$. In Fig.~\ref{fig:est_accuracy}(b),
 truncation acting alone costs the $\hat{\mathbf{H}}_D$ eigendirections
 $2.2^\circ$, while noise costs them $24^\circ$ by $\sigma_{uv} = 0.003$ and
 $39^\circ$ at the closed-loop failure cliff, against $45^\circ$ for a
@@ -953,9 +969,8 @@ over ring phase, recovers a restoring slope of $6.83$ against the
 analytic $6.888$, a $0.9$\% truncation deficit. Rotating the ring
 through its $72^\circ$ period moves that slope between $4.0$ and $9.7$,
 and halving $\rho$ halves the spread, confirming the linear-in-radius
-scaling. The mean tracks the analytic value, so the estimator is not
-biased in the transverse channel. An individual formation orientation
-is. At $\sigma_{uv} = 0.01$ the median direction error of
+scaling. The mean tracks the analytic value, so averaged over heading the estimator is not
+biased in the transverse channel, though at any single heading it is. At $\sigma_{uv} = 0.01$ the median direction error of
 $\mathbf{e}_2$ is $4.5^\circ$, against $44^\circ$ for $\nabla\hat{s}_1$
 and $41^\circ$ for the $\hat{\mathbf{H}}_D$ eigenvector.
 
@@ -975,14 +990,14 @@ and $41^\circ$ for the $\hat{\mathbf{H}}_D$ eigenvector.
     \label{fig:traverse_vs_logic_c}
 \end{figure*}
 
-These runs test acquisition, traversal, and the terminal step for both primitives. The transverse derivatives of $D$ and $s_1$ vanish together wherever the vorticity vanishes and the flow is strain-dominated (\ref{eq:trench_coincide}). The double gyre's entire trench network is such a set, its vorticity identically zero on the separatrix and on all four walls, excepting only the isotropic point at the origin.
+These runs test acquisition, traversal, and the terminal step for both primitives. On the double gyre the two fields share every trench (Section~\ref{sec:dg_example}).
 
 Both ran noise-free from six matched starts
 (Fig.~\ref{fig:traverse_vs_logic_c}), spanning both gyre halves, the origin, and points up to $2.7\rho$ off the structure, acquiring the network from all six in 0 to 35 steps for the $D$ tracker and 0 to 46 for the $s_1$ tracker. They then ride the same segments in the same direction and cross the isotropic point at the origin. A run
 acquiring above the origin therefore rides an attracting OECS to that
 point and continues onto a repelling one, on the same primitive and the
 same scalar trench throughout. Neither needs a dedicated rule at the
-crossing: the $s_1$ tracker rides through the origin on ordinary tangent
+crossing. The $s_1$ tracker rides through the origin on ordinary tangent
 selection, and over a sweep of $r_{\text{band}}$ from 0.05 to 0 the
 degenerate-frame fallback never fires once.
 
@@ -993,36 +1008,30 @@ its initial tangent resolves toward, four at
 $\mathbf{p}^*_1 = (0, -0.5)$ and two at $\mathbf{p}^*_2 = (0, 0.5)$. The
 $D$ tracker passes within 0.02 of $\mathbf{p}^*_1$, then rides onto the
 crossing wall trench and continues, because the capture test
-$\lambda_1\lambda_2 \geq 0$ cannot fire. By
-Section~\ref{sec:sep_controller} the fitted $\hat{\mathbf{H}}_D$ is
-traceless here, so its eigenvalues approximate
-$\pm|\hat{H}_{xx}|$: at the cluster's $0.05$ offset from the well the
-estimated pair is $[-0.51, 0.45]$ against a true $[18.3, 19.2]$, the
-induced trace being a finite-radius truncation artifact. The same underestimate also
+$\lambda_1\lambda_2 \geq 0$ cannot fire. The field has
+$u_{xx} = u_{yy}$ and $v_{xx} = v_{yy}$, so the fitted
+$\hat{\mathbf{H}}_D$ is traceless here up to truncation error, and its
+eigenvalues approximate $\pm|\hat{H}_{xx}|$. At the cluster's $0.05$
+offset from the well the estimated pair is $[-0.51, 0.45]$ against a
+true $[18.3, 19.2]$. The second derivatives of the field vanish at the
+saddle, so the true pair comes mostly from products of the Jacobian with
+third derivatives, which a quadratic fit omits, and the induced trace is
+a finite-radius truncation artifact. The same underestimate also
 carries the cluster through, since the off-band along-trench speed
 (\ref{eq:vpar}) divides by $|\lambda_1|$ and a fitted $0.51$ against a
-true $18.3$ inflates it by a factor of order thirty. The underestimate
-therefore carries the cluster across the stagnation region instead of
-stalling in it, and the same underestimate is why no capture can be
-certified.
+true $18.3$ inflates it by a factor of order thirty.
 
 This limit applies to both surrogates. $\hat{\mathbf{H}}_{s_1}$ is negative
 semidefinite for every field and formation (Section~\ref{sec:surrogates}), so
-neither surrogate admits a definiteness certificate. The one terminal test a quadratic fit supports is a vanishing gradient, and it succeeds for a different reason than the fitted curvature suggests. The fitted \emph{gradient} tracks the true gradient even where the fitted \emph{curvature} carries the wrong sign, and a flow saddle is a true two-dimensional minimum of $s_1$. The test is
+neither surrogate admits a definiteness certificate. The one terminal test a quadratic fit supports is a vanishing gradient. The fitted \emph{gradient} tracks the true gradient even where the fitted \emph{curvature} carries the wrong sign, and a flow saddle is a true two-dimensional minimum of $s_1$. The test is
 therefore sufficient where the $s_1$ tracker needs one. However, it is
 unavailable where the $D$ tracker would need one.
 
-The clean-field descent also fixes the reachable set, and it is not the
-Okubo-Weiss partition. Over a 20\,000-cell start-position grid no run settles at a gyre core.
-Descent of $\hat{D}$ leaves the rotation-dominated interiors instead of
-stalling in them. The
-reachable set is the watershed of that descent composited with the flow
-direction on the acquired branch, whose arrival rate at
-$\mathbf{p}^*_1$ is 47.4\% over that grid and 47.1\% over $n =
-10{,}000$ random starts and headings. Prior AN primitives
-\cite{2}, \cite{3} report local convergence without such an estimate.
+Acquisition does not depend on the start. Over a 20\,000-cell
+start-position grid no run settles at a gyre center, since descent of
+$\hat{D}$ leaves the rotation-dominated interiors instead of stalling in
+them.
 
-A spot check on the time-varying member of the same family \cite{15}, its separatrix oscillating at $\varepsilon = 0.1$, holds the $D$ tracker on the moving trench to a mean transverse offset of 0.006. The primitive carries no time-derivative term, and no analytic guarantee covers that case.
 
 \subsection{Behavior Under Noise}
 \label{sec:disc_noise}
@@ -1030,7 +1039,7 @@ A spot check on the time-varying member of the same family \cite{15}, its separa
 \begin{figure}[!tb]
     \centering
     \includegraphics[width=0.68\columnwidth]{figures/flip_resolution.png}
-    \caption{Resolving the tangent-sign flip. Far-saddle success and
+    \caption{Resolving the $s_1$ tracker's tangent-sign flip. Far-saddle success and
     straddle retention (both conditioned on reaching $\mathbf{p}^*_1$),
     10\,000 trials/cell, at 0.0005 spacing on each axis. (a) Against
     $\sigma_{uv}$, $\sigma_p = 0$. (b) Against $\sigma_p$,
@@ -1045,18 +1054,16 @@ start reaches under either primitive, without formation collapse; each trial
 also records straddle retention and tracking error. A trial straddles when the robots fall on both sides of the separatrix,
 and retention requires it never stop once started, the failure
 \cite{26} reports. Holding one target fixed makes a settle at the near saddle a
-directional failure rather than a loss of the structure. Both start at 100\% with no noise, which then separates them in favor
+directional failure rather than a loss of the structure. Both succeed in every noise-free trial. Noise separates them in favor
 of the $D$ tracker, whose 50\% crossing sits at
-four to five times the noise level, and the two fail differently.
+four to five times the $s_1$ tracker's, and the two fail differently.
 
-For the $D$ tracker the cliff and an estimator threshold nearly coincide. Success crosses 50\% at $\sigma_{uv} \approx 0.0079$, within
-6\% of the $\sigma_{uv} \approx 0.0075$ at which $\nabla\hat{D}$ stops
-being informative (Section~\ref{sec:results_est}). The gradient is not the only input exhausted by then. Fig.~\ref{fig:est_accuracy}(b) puts the curvature eigenframe $39^\circ$ from truth at the cliff, against $45^\circ$ for a random axis, and both terms of the $D$ tracker are built on that frame.
+For the $D$ tracker the cliff sits where the estimator runs out. Success crosses 50\% at $\sigma_{uv} \approx 0.0079$. Along the separatrix between $y = \pm 0.35$, $\nabla\hat{D}$ stops being informative between $\sigma_{uv} \approx 0.0047$ and $0.0085$, a range that brackets the cliff, and at the cliff the curvature eigenframe is $32^\circ$ to $40^\circ$ from truth against $45^\circ$ for a random axis. Both terms of the $D$ tracker are built on that frame.
 
 The $s_1$ tracker crosses 50\% between $\sigma_{uv} = 0.0015$ and 0.002
-(Fig.~\ref{fig:flip_resolution}). On the separatrix $s_s \equiv 0$ and $\mu \equiv 0$, so the gradient collapses to $\nabla\hat{s}_1 = \pm(\hat{a}_5, \hat{a}_4)$ and tangent selection reduces to the comparison $|\hat{a}_5| > |\hat{a}_4|$. The true $a_5 = u_{xx}$ is identically zero there and $a_4$ collapses at both saddles, so the comparison decides at a signal-to-noise ratio of $1.4$ at $\sigma_{uv} = 0.002$, against the seed's $71$. Supplying one channel at a time confirms it: a clean flow to the seed
+(Fig.~\ref{fig:flip_resolution}). These cliffs are 2.5\% and 0.5 to 0.6\% of the peak speed $\pi A$, below what trackers steering on raw velocities tolerate \cite{26,30}, since this estimator differentiates the field twice. On the separatrix $s_s \equiv 0$ and $\mu \equiv 0$, so the gradient collapses to $\nabla\hat{s}_1 = \pm(\hat{a}_5, \hat{a}_4)$ and tangent selection reduces to the comparison $|\hat{a}_5| > |\hat{a}_4|$. The true $a_5 = u_{xx}$ is identically zero there and $a_4$ collapses at both saddles, so the comparison decides at a signal-to-noise ratio of $1.4$ at $\sigma_{uv} = 0.002$, against the seed's $71$. Supplying one channel at a time confirms it. A clean flow to the seed
 moves the correct-saddle rate at $\sigma_{uv} = 0.002$ from 44.6\% to
-45.8\%, a clean gradient and eigenframe to the argmax to 100\%. The cluster settles in the wrong direction, a sign inversion.
+45.8\%, and a clean gradient and eigenframe to the argmax moves it to 100\%. The cluster settles in the wrong direction, a sign inversion.
 
 Formation radius trades robustness against accuracy. A sweep over
 $\rho \in \{0.0375, 0.075, 0.105, 0.15\}$ at 400 trials per cell found
@@ -1065,7 +1072,7 @@ level, while the zero-noise tracking error roughly doubled between
 $\rho = 0.075$ and $0.15$, from 0.0016 to 0.0031 for the $D$ tracker and
 from 0.0075 to 0.0145 for the $s_1$ tracker.
 
-The zero-noise tracking errors, 0.0075 for the $s_1$ tracker against 0.0016 for the $D$ tracker, do not come from noise. Both primitives park where their own transverse command vanishes, on the \emph{fitted} trench rather than the field's, and the offset between the two is the orientation-dependent truncation bias. Noise robustness depends less on per-cycle estimation accuracy than on how long a sign decision persists before a new measurement checks it. The $D$ tracker re-signs $\mathbf{w}_1$ against $\hat{\mathbf{v}}_0$ every cycle; the $s_1$ tracker carries the sign in state through $\mathbf{t}_{\text{ref}}$. That reliance follows from objectivity, which rules out the fitted curvature (Section~\ref{sec:surrogates}), the measured flow (Appendix~\ref{app:equivariance}), and a world axis as sign references, leaving the
+The zero-noise tracking errors, 0.0075 for the $s_1$ tracker against 0.0016 for the $D$ tracker, do not come from noise. Both primitives park where their own transverse command vanishes, on the \emph{fitted} trench rather than the field's, and the offset between the two is the orientation-dependent truncation bias. Noise robustness depends less on per-cycle estimation accuracy than on how long a sign decision persists before a new measurement checks it. The $D$ tracker re-signs $\mathbf{w}_1$ against $\hat{\mathbf{v}}_0$ every cycle; the $s_1$ tracker carries the sign in state through $\mathbf{t}_{\text{ref}}$. That reliance follows from objectivity and traversal together. Objectivity rules out the fitted curvature (Section~\ref{sec:surrogates}), the measured flow (Appendix~\ref{app:equivariance}), and a world axis as sign references, and traversal rules out the along-trench component of $\nabla\hat{s}_1$, which reverses at the along-trench maximum the ride must cross, leaving the
 primitive's own prior output.
 
 \subsection{Behavior Under a Rotating Observer}
@@ -1075,7 +1082,7 @@ primitive's own prior output.
     \includegraphics[width=0.95\columnwidth]{figures/objectivity_traverser.png}
     \caption{Objectivity trial, both primitives started from
     $(0.05, 0.40)$ and run in the inertial frame (solid) and in a
-    frame rotating at $\Omega = 0.2$ rad/s (dashed, pulled back to
+    frame rotating at $\Omega = 0.2$ (dashed, pulled back to
     inertial coordinates). (a) the $s_1$ tracker's two runs coincide
     and capture at the same saddle (final gap
     0.025). (b) the $D$ tracker's rotating-frame run leaves the
@@ -1086,8 +1093,7 @@ primitive's own prior output.
 
 Both primitives were run from $(0.05, 0.40)$, just inside the upper
 saddle, on the same physical double gyre in two observer
-frames: the inertial one and a frame rotating at $\Omega = 0.2$
-rad/s, where the field is $\mathbf{v}'(\mathbf{p}', t) =
+frames, the inertial one and a frame rotating at $\Omega = 0.2$, where the field is $\mathbf{v}'(\mathbf{p}', t) =
 \mathbf{Q}\mathbf{v}(\mathbf{Q}^\top \mathbf{p}') + \Omega\,(-y',
 x')^\top$. At a Rossby number $\mathrm{Ro} =
 \lvert\omega\rvert_{\max}/2\Omega \approx 4.9$ the frame perturbs the
@@ -1129,10 +1135,10 @@ network, so nothing forces the two surrogates
 onto a common curve. It also carries nonzero horizontal divergence, so $s_1 + s_2 = 2\mu$ no
 longer vanishes. That departure, $2|\mu|/r$, normalizes the divergence against the deviatoric strain. It has median $0.8$--$1.1$ and 90th percentile $3.0$--$5.9$ along the two
 primitives' paths. The $s_2 = -s_1$ substitution is therefore not tightly
-bounded here, and the splitting-identity reading of their agreement is
+bounded here, and the $D = -s_1^2$ reading of their agreement is
 qualified accordingly.
 Both were run unmodified from a shared start north of the channel
-entrance, $(34.41^{\circ}\mathrm{N}, -120.39^{\circ}\mathrm{W})$, at
+entrance, $(34.41^{\circ}\mathrm{N}, 120.39^{\circ}\mathrm{W})$, at
 the operating point of Table~\ref{tab:params}. The $s_1$ tracker's depth condition latched at the first step and stayed
 latched for the entire 168-step run. The record therefore reports the ride,
 not gradient descent on an unlatched field. Both spend the record near the edge
@@ -1152,23 +1158,19 @@ is 1.8~km for the $D$ tracker and 2.4~km for the $s_1$ tracker. The grid is
 persists while the finer structure downstream evolves. The $D$ tracker's branch
 outcome agrees across 84 of 100 jittered starts.
 
-Instantaneous criteria are not in general reliable indicators
-of the material transport skeleton \cite{16}. The double gyre is a
-special case with a vorticity-free trench network, and this is a finding
+The double gyre is a
+special case with a vorticity-free trench network
+(Section~\ref{sec:surrogates}), and this is a finding
 on one record rather than a guarantee that carries to arbitrary flows. The record is also time-varying,
 each primitive seeing only instantaneous samples at its own position,
 with no analytic guarantee.
 
-The ocean field differs from the benchmark in a second way that matters
-for the $s_1$ tracker.
-Its degeneracies are isolated and its cores move between frames. The trial
+The ocean field's degeneracies are isolated and its eddy centers move between frames. The trial
 therefore exercises tangent selection where neither the eigenframe nor the
 trench network is axis-aligned, which the double gyre cannot do. It offers no
 two-dimensional minimum of $s_1$ within reach of the ride, so the
-capture test never engages and the same unmodified primitive behaves
-as a traverser. Capture on the double gyre and
-traverse on the ocean follows from the field itself, since the terminal
-test is unconditional by design.
+capture test, which is always armed, never engages and the same
+unmodified primitive behaves as a traverser.
 
 \subsection{Limitations}
 \label{sec:disc_limits}
@@ -1200,33 +1202,40 @@ and on it runs outside the premise of
 Section~\ref{sec:sep_controller}. Where the true $\mathbf{H}_D$ is
 positive definite the degenerate-frame fallback should fire and does
 not, because $u_{xx} = u_{yy}$ and $v_{xx} = v_{yy}$ on this field
-leave the true (\ref{eq:hess_det}) traceless, and the fitted trace is
-too small to separate the eigenvalue signs.
+leave (\ref{eq:hess_det}) traceless up to truncation error, too small to
+separate the eigenvalue signs.
 
 No controlled head-to-head against the straddle family \cite{26,27,28} or the onboard-FTLE strategy of \cite{30} was run. Running those methods from an off-structure start is outside their stated problems, and their robots are advected while this paper's are not, so one simulator cannot host both.
-All results are simulated. The no-advection premise is exact for the
+All results are simulated, and the ocean run samples the gridded product without added noise. The no-advection premise is exact for the
 planned Decabot follow-on, where the field is encoded and read rather
 than physically experienced \cite{34}, but on the ocean field it is an
 extrapolation, untested against real advection.
 
 \section{Conclusion}
 
-This paper has presented two adaptive navigation primitives that acquire and ride the instantaneous coherent structures of a planar flow with a six-robot cluster. They use only synchronous local velocity measurements, with no map, no forecast, and no assumption about the structure's identity. Both read the same quadratic fit and present the same interface to the
-cluster space layer.
+This paper has shown that a second-order fit of the local flow, from six
+robots sampling at once, is enough to acquire and ride the instantaneous
+coherent structures of a planar flow. The fit gives the velocity gradient
+as a field over the formation, and the two adaptive navigation primitives
+built on it use only synchronous local velocity measurements, with no
+map, no forecast, and no assumption about the structure's identity. Both
+present the same interface to the cluster controller layer.
 
 The experiments give an operational selection rule. With a noisy sensor
-the $D$ tracker withstands four to five times the noise. Under a rotating observer the
-ranking reverses: the $D$ tracker leaves the structure, final
+the $D$ tracker withstands four to five times the noise the $s_1$ tracker does. Under a rotating observer the
+ranking reverses. The $D$ tracker leaves the structure, final
 gap 1.219, while the $s_1$ tracker returns the same material curve in
 both frames, final gap 0.025. On Santa Barbara Channel currents both followed the same transport corridor
-for 28 hours, within 1.8 and 2.4~km of an FTLE ridge neither could see. A cluster that can certify its orientation should carry the $D$ tracker,
+for 28 hours, at mean distances of 1.8 and 2.4~km from an FTLE ridge neither could see. A cluster that can certify its orientation should carry the $D$ tracker,
 which tolerates a noisier sensor. One that cannot should carry the $s_1$ tracker, which is objective.
 
 Ongoing and future work targets a) extending the stability results to
 time-varying fields; b) online formation reshaping, to protect the
 conditioning of $\boldsymbol{\Phi}$ and average out the truncation
-bias; and c) verifying both primitives on the Decabot testbed and then
-with surface vessels.
+bias; c) a cubic fit from ten robots off any common cubic curve, which
+recovers the third derivatives on which the true $\mathbf{H}_D$ and the
+transverse curvature of an $s_1$ trench depend; and d) verifying both
+primitives on the Decabot testbed and then with surface vessels.
 
 \appendices
 
@@ -1250,7 +1259,7 @@ so provided the frame turns slower than the cluster can correct,
 $\Omega\lVert\mathbf{p}_Q\rVert < k\,c_{\max}$, the residue does not
 accumulate and the tracker follows the same structure in every frame.
 
-One step is exempt. The tangent is seeded once, at first contact, from
+One step is exempt. The tangent is seeded once, when the ride begins, from
 the measured flow, not objective, and that seed decides which
 way the cluster rides. The frames agree while the transport
 velocity perturbs the seed less than the flow supplies,
@@ -1397,7 +1406,7 @@ Mechatronics}, vol. 20, no. 2, pp. 506--518, 2015.
 adaptive navigation research,'' in \textit{Proc. IEEE Aerosp. Conf.},
 pp. 1--12, 2018.
 
-\bibitem{34} C. Waight and C. Kitts, ``A functional indoor testbed for
+\bibitem{34} C. Waight and C. A. Kitts, ``A functional indoor testbed for
 multirobot adaptive navigation in vector field environments,'' in
 \textit{Proc. ASME Int. Des. Eng. Tech. Conf.}, vol. 89251, 2025.
 
@@ -1408,6 +1417,10 @@ vol. 4, no. 4, pp. 353--373, 1994.
 \bibitem{36} NOAA Nat. Centers Environ. Inf., ``Near-real-time surface
 ocean velocities derived from HF-radar stations,'' NCEI Accession
 gov.noaa.nodc:IOOS-HFRadarRTVector.
+
+\bibitem{37} I. Mas and C. A. Kitts, ``Obstacle avoidance policies for cluster
+space control of nonholonomic multirobot systems,'' \textit{IEEE/ASME Trans.
+Mechatronics}, vol. 17, no. 6, pp. 1068--1079, 2012.
 
 \end{thebibliography}
 

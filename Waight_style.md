@@ -1,9 +1,7 @@
 # Writing Guide: Chris Waight
 
 This guide is for agents drafting or editing technical prose as Chris Waight.
-It governs every section of a paper or thesis. `Kitts_style.md` is the
-companion for lab lineage and paper framing. Where the two conflict, this
-guide wins, except for the paper-level rules in Part 6, which come from Kitts.
+It governs every section of a paper or thesis.
 
 Every rule is a test you can run on a draft. Most rules carry a Bad/Good pair
 taken from real edits. Learn from the pair, not only the rule.
@@ -385,7 +383,6 @@ applied to proofs. (From Kitts.)
 
 ## Part 6. Paper-level rules
 
-Mostly from `Kitts_style.md`. See that file for the full rationale.
 
 **6.1 Open the introduction on a capability defined as a process, set against
 the conventional approach.** "Adaptive navigation is the process of modifying
