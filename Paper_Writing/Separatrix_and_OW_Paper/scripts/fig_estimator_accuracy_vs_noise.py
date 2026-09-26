@@ -53,9 +53,6 @@ PARAMS = {
     "sigma_uv_for_radius_panel": 0.01,
     "centroid": [-0.3, 0.1],
     "ring_phase_deg": -90.0,     # matches the built cluster's ring phase
-    # Traverse-success 50% crossing for the D tracker at sigma_p = 0, interpolated
-    # log-linearly between 62.4% at 0.005 and 43.7% at 0.010 in Table tab:mc_success(a).
-    "closed_loop_50pct_sigma_uv": 0.0079,
     "dpi": 220,
 }
 
@@ -166,7 +163,6 @@ def main(args):
                          "legend.fontsize": 7, "axes.titlesize": 8})
     fig, ax = plt.subplots(2, 1, figsize=(3.45, 3.9), sharex=True)
     sv = p["sigma_uv_vals"]
-    cliff = p["closed_loop_50pct_sigma_uv"]
     style = {"D": ("#1f77b4", "o", r"$\hat{D}$"),
              "gD": ("#d62728", "s", r"$\nabla\hat{D}$"),
              "H": ("#2ca02c", "^", r"$\hat{\mathbf{H}}_D$")}
@@ -174,7 +170,6 @@ def main(args):
     for k, (c, m, lab) in style.items():
         ax[0].loglog(sv, noise[k], color=c, marker=m, ms=3, lw=1.2, label=lab)
     ax[0].axhline(1.0, ls="--", c="0.4", lw=0.9)
-    ax[0].axvline(cliff, ls="-.", c="0.4", lw=0.9)
     ax[0].text(0.02, 1.15, "error = signal", transform=ax[0].get_yaxis_transform(),
                ha="left", va="bottom", fontsize=6, color="0.35")
     ax[0].set_ylabel("median relative error")
@@ -184,14 +179,12 @@ def main(args):
 
     ax[1].semilogx(sv, noise["ang"], color="#2ca02c", marker="^", ms=3, lw=1.2)
     ax[1].axhline(45.0, ls="--", c="0.4", lw=0.9)
-    ax[1].axvline(cliff, ls="-.", c="0.4", lw=0.9)
     ax[1].plot([sv[0]], [ang0], marker="*", ms=8, color="k", ls="none", zorder=5)
     ax[1].annotate("truncation\nalone", xy=(sv[0], ang0),
                    xytext=(sv[0] * 1.6, ang0 + 11), fontsize=6, color="0.25",
                    arrowprops=dict(arrowstyle="-", lw=0.6, color="0.45"))
     ax[1].text(0.97, 45.0, "random axis", transform=ax[1].get_yaxis_transform(),
                ha="right", va="bottom", fontsize=6, color="0.35")
-    ax[1].text(cliff * 1.15, 4, "closed-loop\n50% cliff", fontsize=6, color="0.35")
     ax[1].set_xlabel(r"$\sigma_{uv}$")
     ax[1].set_ylabel(r"$\hat{\mathbf{H}}_D$ eigendirection error (deg)")
     ax[1].set_title("(b) eigendirection vs sensor noise")

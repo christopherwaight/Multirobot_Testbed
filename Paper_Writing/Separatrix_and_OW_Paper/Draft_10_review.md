@@ -3,9 +3,12 @@
 **Paper:** Second-Order Cooperative Field Estimation for Multirobot Tracking of Coherent
 Flow Structures
 **Venue:** IEEE Systems Journal. **Recommendation:** Minor Revision.
-**Technical accuracy:** 8.5/10. The derivations hold. One bound carries a spurious gain
-(T1), and the objectivity result is a single trial (T2). All nine figures and Table I
-are referenced.
+**Technical accuracy:** 8.5/10. The derivations hold. The objectivity result is a single
+trial (T1). All nine figures and Table I are referenced.
+
+Section numbers follow the current draft: IV-B Estimator Accuracy, IV-C Clean Runs, IV-D
+Behavior Under Noise, IV-E Rotating Observer, V Ocean Trial, VI Limitations and Future
+Work, VII Conclusion, Appendix A equivariance, Appendix B stability.
 
 ## 1. Summary
 
@@ -19,10 +22,10 @@ closed-form gradient.
 
 | Contribution | Fills the gap? | Evidence |
 |---|---|---|
-| (a) Six-robot estimator, minimal, fails only on a common conic | Enables it | II-B counting argument, II-C conditioning (kappa 8.26, 564 near-conic), IV-C at 10^4 draws |
-| (b) Surrogates D and s1 in closed form, noise characterized | Yes | II-D derivations, D-hat unbiasedness and s1 bias confirmed in IV-C |
-| (c) Two trackers that acquire and ride without pre-straddling | Yes, on the benchmark | 6/6 matched starts (IV-D), 20,000-cell start grid, one ocean start (IV-G) |
-| (d) Noise versus objectivity tradeoff | Half | Noise side at 10^4 trials per cell (IV-E). Objectivity side is one trial (IV-F) |
+| (a) Six-robot estimator, minimal, fails only on a common conic | Enables it | II-B counting argument, II-C conditioning (kappa 8.26, 564 near-conic), IV-B at 10^4 draws |
+| (b) Surrogates D and s1 in closed form, noise characterized | Yes | II-D derivations, D-hat unbiasedness and s1 bias confirmed in IV-B |
+| (c) Two trackers that acquire and ride without pre-straddling | Yes, on the benchmark | 6/6 matched starts (IV-C), 20,000-cell start grid, one ocean start (V) |
+| (d) Noise versus objectivity tradeoff | Half | Noise side at 10^4 trials per cell (IV-D). Objectivity side is one trial (IV-E) |
 
 **Bonus contributions.**
 1. Objectivity plus traversal leaves the s1 tracker only its own prior output as a sign
@@ -36,24 +39,25 @@ closed-form gradient.
 
 ## 2. New gap and future work
 
-**Stated:** time-varying stability, online reshaping, a ten-robot cubic fit, Decabot then
+**Stated (VI):** time-varying stability, online reshaping, a ten-robot cubic fit, Decabot then
 surface vessels. The cubic fit is the natural next step. It recovers the third derivatives the
-true H_D depends on (T4).
+true H_D depends on (T3).
 
 **Open gap.** A tracker that is objective and noise-robust. Filtering the carried sign over
 time, or confirming it at the deeper s1 well, are the obvious candidates.
 
 **Missing limitations.**
-- The s1 tracker is objective except at its seed (Appendix), yet the Conclusion's selection
+- The s1 tracker is objective except at its seed (Appendix A), yet the Conclusion's selection
   rule calls it objective without the critical-rate caveat.
-- About 11 km inter-robot links at rho = 5.4 km make "ample bandwidth" an assumption.
+- (maybe irrelevant now?) About 11 km inter-robot links at rho = 5.4 km. VI scopes the claims
+  to ample bandwidth but does not say whether the ocean trial sits inside that scope.
 
 **Quick wins.**
-1. One sentence in II-D stating what H_D-hat omits (T4), cited where IV-C reports 0.94.
-2. Sweep Omega through the appendix's predicted critical rate, 0.238, for both trackers.
-3. Run the D tracker in the rotating frame with the inertial flow sign on w1 (T2).
+1. One sentence in II-D stating what H_D-hat omits (T3), cited where IV-B reports 0.94.
+2. Sweep Omega through Appendix A's predicted critical rate, 0.238, for both trackers.
+3. Run the D tracker in the rotating frame with the inertial flow sign on w1 (T1).
 4. Plot both trackers' success curves on one axis. The D curve exists but is in no figure.
-5. Backward FTLE for the attracting-structure comparison in IV-G.
+5. Backward FTLE for the attracting-structure comparison in V.
 
 ## 3. Narrative
 
@@ -62,9 +66,9 @@ trackers as uses of it, and ends on the tradeoff.
 
 | Claim | Check |
 |---|---|
-| 4 to 5x noise tolerance | Matches IV-E (0.0079 against 0.0015 to 0.002, ratio 3.9 to 5.3). In no single figure |
-| Final gaps 1.219 and 0.025 | Match IV-F. "Leaves the structure" misdescribes Fig. 8(b) (T2) |
-| 1.8 and 2.4 km, 28 h | Match IV-G |
+| 4 to 5x noise tolerance | Matches IV-D (0.0079 against 0.0015 to 0.002, ratio 3.9 to 5.3). In no single figure |
+| Final gaps 1.219 and 0.025 | Match IV-E. "Leaves the structure" misdescribes Fig. 8(b) (T1) |
+| 1.8 and 2.4 km, 28 h | Match V |
 | 0.87 m/s | sqrt(2)(1.8)(0.04) x 51.4 km / 6000 s = 0.872. Correct |
 | kappa 8.26, Ro 4.9, 18.3/19.2, 2.5%, critical rate 0.238, margin 1.19 | Recomputed, all correct |
 | 32° to 40°, 0.0047 to 0.0085 | Match `verify_estimator_separatrix.py` output |
@@ -74,10 +78,10 @@ trackers as uses of it, and ends on the tradeoff.
   is stated generally. II-D.3 says neither field is guaranteed.
 - "Along which floating material collects" (Abstract) describes attracting structures. The
   ocean paths are scored against forward-FTLE ridges, which are repelling.
-- "Acquisition does not depend on the start" (IV-D). The evidence is that no run of the
+- "Acquisition does not depend on the start" (IV-C). The evidence is that no run of the
   20,000-cell grid settles at a gyre center, which is weaker. Which tracker, and how many
   acquired?
-- "The D tracker reaching the 0.87 m/s cap exactly" (IV-G). tanh saturation never reaches
+- "The D tracker reaching the 0.87 m/s cap exactly" (V). tanh saturation never reaches
   its cap.
 - "Mapping these exact curves allows teams to... [11,12,13]" (I). [10] is the search paper.
   Check that [11-13] concern coherent structures. Likewise [24] as "refined for
@@ -89,65 +93,52 @@ Checked by hand and correct: the quadratic model, J-hat, the H_D-hat entries (as
 of D-hat), the D-hat unbiasedness pairing (Cov(a-hat, b-hat) is c Phi^-1 Phi^-T, symmetric,
 so every antisymmetric pair cancels), grad s1-hat, concavity of s1-hat, the s1 bias,
 D' = D + Omega omega + Omega^2 for the field as written, every II-E closed form, the
-position-noise correlation (0.447 at the test point), and the appendix margins.
+position-noise correlation (0.447 at the test point), the Appendix A margins, and the
+Appendix B practical-stability bound delta/a_perp.
 
-**T1. The practical-stability bound carries a spurious k.** III-B gives
-limsup |n| ≈ delta/(k a_perp). Estimation error enters the navigation controller's output,
-which k then scales, so n-dot = -k(a_perp n - delta) and the k cancels. The bound is
-delta/a_perp. The rho sweep in IV-E (error set by truncation, independent of gain) is
-consistent with the corrected form.
-
-**T2. The objectivity result is one trial, and Fig. 8(b) contradicts its caption.** One
+**T1. The objectivity result is one trial, and Fig. 8(b) contradicts its caption.** One
 start, Omega = 0.2, 16% below the s1 tracker's own critical rate. In Fig. 8(b) the
 rotating-frame D run follows the separatrix to p1* and then takes the opposite wall branch.
 The 1.219 gap is that branch choice, a sign decision on w1, which the flow's transport term
-sets every cycle. IV-F names both mechanisms (landscape and transport), then concludes "the
+sets every cycle. IV-E names both mechanisms (landscape and transport), then concludes "the
 artifact is in the surrogate," and the caption credits (eq. D_not_objective) alone.
 
-**T3. Loose ends in IV-G.** The jitter behind "84 of 100" is unstated. Where 2|mu|/r > 2
+**T2. Loose ends in V.** The jitter behind "84 of 100" is unstated. Where 2|mu|/r > 2
 (90th percentile 3.0 to 5.9) s1 and s2 share a sign, so there is no strain saddle there at
-all, which is stronger than "not tightly bounded." The branch outcome depends on k.
+all, which is stronger than "not tightly bounded."
 
-**T4. The fitted H_D is never said to omit third-derivative terms.** H_D-hat is the
+**T3. The fitted H_D is never said to omit third-derivative terms.** H_D-hat is the
 Hessian of D-hat. The true Hessian of det J adds products of J with third derivatives,
-which a quadratic fit drops at any radius. IV-D says this at the saddle, and III-B calls the
-trench normal "an approximation in general," but II-D presents H_D-hat as "the Hessian."
-It is the unstated cause of IV-C's 0.94 error floor at zero noise (at (-0.3, 0.1) the fit is
-about diag(4.8, -4.8) against a true diag(-5.9, -15.6)). IV-C's "signed mean error of
-H_D-hat zero" must then be relative to the noise-free fit. No claim changes. The headline
-gradient needs only first and second derivatives, and on the benchmark the fitted
-eigenframe stays on the axes with the transverse curvature positive.
+which a quadratic fit drops at any radius. IV-C says this at the saddle, but II-D presents
+H_D-hat as "the Hessian." It is the unstated cause of IV-B's 0.94 error floor at zero noise
+(at (-0.3, 0.1) the fit is about diag(4.8, -4.8) against a true diag(-5.9, -15.6)). IV-B's
+"signed mean error of H_D-hat zero" must then be relative to the noise-free fit. No claim
+changes. The headline gradient needs only first and second derivatives, and on the
+benchmark the fitted eigenframe stays on the axes with the transverse curvature positive.
 
-**T5. Smaller points.**
+**T4. Smaller points.**
 - The sigma_eff check (1.6%) cannot test its approximation. |grad u| = |grad v| everywhere
   on the double gyre, the case where (eq. sigma_eff) is exact.
 - The added term +Omega(-y', x') is the apparent flow of an observer rotating at -Omega.
   D' is correct for the field as written, but the text calls it rotation at Omega.
-- Cruise speed is c_max tanh(1) in III-C paragraph 4 and k c_max tanh 1 in the transverse
-  argument.
-- Limitations places both s1 weaknesses "where S approaches isotropy." The argmax failure
-  of IV-E happens at y = 0.35 (r = 0.88) and worsens toward the saddles, where S is most
+- VI places both s1 weaknesses "where S approaches isotropy." The argmax failure of IV-D
+  happens at y = 0.35 (r = 0.88) and worsens toward the saddles, where S is most
   anisotropic.
-- IV-E "a sign inversion" explains a floor near 50%, not success falling to 0% by
+- IV-D "a sign inversion" explains a floor near 50%, not success falling to 0% by
   sigma_uv = 0.004 (Fig. 7). Straddle retention also falls to 0, so the structure is lost.
 
 **Test plan versus results.** Fig. 7(b), position noise, is never discussed. Straddle
 retention is plotted, not quantified (23% against 44% success at 0.002). Tracking error
 versus noise is recorded, not reported. The rho sweep has no numbers for success. The
 20,000-cell grid has no setup (tracker, run length). "0 to 35 steps" to acquire has no
-acquisition criterion. The appendix's critical rate is never tested.
+acquisition criterion. Appendix A's critical rate is never tested.
 
 ## 5. What I don't like
 
-- **Notation collisions.** beta is the ride flag (III-C) and a SAS angle (III-A). n is the
-  lag's time index (III-A) and the transverse coordinate (III-B). r is strain magnitude and,
-  in IV-F, a radius. k is the gain and the eigen-index in w_k, lambda_k. m is the
-  measurement vector and a speed bound.
+- **Notation collisions.** n is the lag's time index (III-A) and the transverse coordinate
+  (III-B). r is strain magnitude and, in IV-E, a radius ("Omega r <= 0.10").
 - **Contradiction.** II-D.1's general "separatrices run along trenches of D" against
   II-D.3's "neither field is guaranteed."
-- **Mode logic scattered.** The s1 tracker's beta transitions are split across the latch
-  paragraph and the hysteresis sentence. The release from capture appears only in the
-  latter.
 - **Figures.** Fig. 4 labels "half" where the text says "segment," and draws the ride
   along +y while flow on x = 0 runs -y. Fig. 6 axes say meters. Fig. 7's "both conditioned
   on reaching p1*" would make success 100% by definition. The Fig. 9 title shows the code
@@ -155,14 +146,17 @@ acquisition criterion. The appendix's critical rate is never tested.
   the grid.
 - **References.** [36] lacks year and URL. [16] (2015) backs a claim about both fields,
   but OECS [17] came later.
-- **Small.** "Alternately" for "Alternatively" (II-B). IV-C's "eigenvalues are negative
-  semidefinite" (a matrix is semidefinite). Undefined "formation collapse" (IV-E).
+- **Small.** "Alternately" for "Alternatively" (II-B). IV-B's "eigenvalues are negative
+  semidefinite" (a matrix is semidefinite). Undefined "formation collapse" (IV-D).
 
 ## 6. Writing statistics
 
+(maybe stale now? Counted before the III-B/III-C rewrite and the move of future work
+into VI. Rerun before relying on the numbers.)
+
 399 sentences, 7,972 words of body text (equations, floats, and contribution list
 excluded). Mean sentence 20.2 words, burstiness (CV) 0.47, longest 74 words (the
-Conclusion's future-work list). MATTR(100) 0.68, high for technical prose. Top content
+future-work list). MATTR(100) 0.68, high for technical prose. Top content
 words: field 51, tracker 41, trench 41, gradient 40, flow 38, noise 35. Top trigram "the
 [D/s1] tracker" (36). Top 4-gram "a second-order fit of" (3), the thesis restated on
 purpose.
@@ -173,10 +167,10 @@ the flow," "the ride carries it," "costs nothing." Flattest cadence: Position No
 Formation 0.23, Eulerian Surrogates 0.27, Estimator Accuracy and rotating observer 0.29.
 Estimator Accuracy also has the longest mean sentence, 27.6 words. The Introduction varies
 most outside the Conclusion. Tell vocabulary is nearly clean (one "Furthermore," one
-"furthermore," one "Additionally").
+"Additionally").
 
 **Register.** Section I paragraphs 3 and 4 are looser and more promotional ("strategically
-deploy resources," "spewing vortices," doubled spaces). III-B through IV-F are compressed,
+deploy resources," "spewing vortices," doubled spaces). III-B through IV-E are compressed,
 with claims chained by ", so." The seam is audible at the start of II-D.
 
 ## 7. Grades
@@ -189,15 +183,15 @@ with claims chained by ", so." The seam is audible at the start of II-D.
 | II-C | B | Accurate. Position Noise is monotone, noise algebra in prose |
 | II-D, II-E | B+ | One job per paragraph, checkable. The D overclaim in II-D.1 |
 | III-A | B+ | Clear three-layer account, robot model in one paragraph |
-| III-B | C+ | Trench glossed, but the convergence paragraph is one dense block with a wrong bound |
-| III-C | B- | Latch described as it runs. Mode logic split, beta collision |
-| IV-A, IV-B | B, B- | Checkable setup. IV-B mixes justification with parameters |
-| IV-C | C+ | Longest sentences in the paper, numbers without causes (T4) |
-| IV-D | B- | Explains the terminal split well. Acquisition overclaim |
-| IV-E | C+ | Places its cliffs against prior work, but packs the sign-memory argument into results |
-| IV-F, IV-G | B-, B- | Clear. IV-F contradicts itself on mechanism, IV-G hedged |
-| IV-H, Conclusion | B, B | Honest. 74-word future-work sentence |
-| Appendix | B- | Followable, the seed exemption is the best-stated caveat in the paper |
+| III-B | C+ (maybe stale now?) | Trench glossed. Regrade after the rewrite and the move of stability to Appendix B |
+| III-C | B- (maybe stale now?) | Latch, capture, and release read in one paragraph as they run. Regrade |
+| IV-A | B (maybe irrelevant now?) | Graded with an older setup subsection that mixed justification with parameters |
+| IV-B | C+ | Longest sentences in the paper, numbers without causes (T3) |
+| IV-C | B- | Explains the terminal split well. Acquisition overclaim |
+| IV-D | C+ | Places its cliffs against prior work, but packs the sign-memory argument into results |
+| IV-E, V | B-, B- | Clear. IV-E contradicts itself on mechanism, V hedged |
+| VI, VII | B, B | Honest |
+| Appendices | B- | Followable, the seed exemption is the best-stated caveat in the paper |
 
 ## 8. Ideas most likely to outlive the paper
 
@@ -222,14 +216,13 @@ rules.
 
 ## 10. Reordering and additions
 
-Put the H_D-hat caveat (T4) in II-D, where the Hessian is introduced. Move the sign-memory
-paragraph out of IV-E into its own subsection. Merge the s1 mode logic (latch, capture,
-release) into one III-C paragraph. Add one figure with both trackers' noise curves.
+Put the H_D-hat caveat (T3) in II-D, where the Hessian is introduced. Move the sign-memory
+paragraph out of IV-D into its own subsection. Add one figure with both trackers' noise
+curves.
 
 ## 11. Recommendation: Minor Revision
 
 The headline claim, a closed-form gradient from a second-order fit, is the best-supported
-claim in the paper, and the paper is candid about where its trackers fail. T1 is a
-one-symbol fix, T4 one sentence. T2, T3, T5, and Section 5 are rewriting. The Omega
-sweep and flow-sign ablation would strengthen the objectivity finding but are not required
-for a secondary result.
+claim in the paper, and the paper is candid about where its trackers fail. T3 is one
+sentence. T1, T2, T4, and Section 5 are rewriting. The Omega sweep and flow-sign ablation
+would strengthen the objectivity finding but are not required for a secondary result.

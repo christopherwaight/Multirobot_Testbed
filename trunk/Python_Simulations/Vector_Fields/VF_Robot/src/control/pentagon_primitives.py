@@ -1308,7 +1308,8 @@ GAMMA2 = 8.0 / np.sqrt(10.0)  # eq:gain_ladder noise gain on the mixed a4/b4-sty
 def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
                          r_band=0.05, g_capture=0.15, s_capture=None,
                          override_seed=None, override_argmax=None,
-                         margin_gate=False, sigma_eff=None, rho=None):
+                         margin_gate=False, sigma_eff=None, rho=None,
+                         capture=True):
     """
     Objective separatrix traverser (Primitive 11).
 
@@ -1445,6 +1446,11 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
                     margin threshold above (only used if margin_gate).
         rho:        formation ring radius feeding the margin threshold
                     above (only used if margin_gate).
+        capture:    default True, unchanged for every existing call site.
+                    False skips the CAPTURE branch entirely (no hold, no
+                    latch), making the primitive a pure traverser. The
+                    Separatrix paper keeps capture (capture=True); False is
+                    diagnostic only.
 
     Returns:
         (vx_c, vy_c): centroid velocity command
@@ -1562,12 +1568,13 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
     # the latch may bridge a flicker of the transverse gradient test;
     # above it, the well is lost and the state machine falls through to
     # re-diagnose from TRACK, exactly as if CAPTURE had never latched.
-    captured = getattr(cluster, '_oecs_captured', False)
+    captured = getattr(cluster, '_oecs_captured', False) if capture else False
     if captured and s1 > -s_trim:
         captured = False
         cluster._oecs_captured = False
     g_norm = float(np.linalg.norm(grad_s1))
-    if captured or (r > r_band and g_norm < g_capture and s1 < -4.0 * s_trim):
+    if capture and (captured or (r > r_band and g_norm < g_capture
+                                 and s1 < -4.0 * s_trim)):
         cluster._oecs_captured = True
         _log('CAPTURE')
         return _descend_s1()

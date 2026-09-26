@@ -146,7 +146,7 @@ def main(args):
                 zorder=8,
                 arrowprops=dict(arrowstyle="-|>", color="orangered", lw=2.4))
     ax.text(x0 + ride[0] + 0.022, y0 + ride[1],
-            r"$\beta c_{\max}\tanh(1)\,\mathbf{t}$",
+            r"$c_{\max}\tanh(1)\,\mathbf{t}$",
             color="white", fontsize=8, ha="center", va="bottom", zorder=9)
     ax.text(x0 + perp[0] - 0.02, y0 - 0.075,
             r"$-\mathrm{sat}(g_\perp \mathbf{P}\nabla \hat{s}_1)$",
