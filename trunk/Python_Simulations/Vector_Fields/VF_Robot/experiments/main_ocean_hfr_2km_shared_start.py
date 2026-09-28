@@ -61,6 +61,20 @@ G_PERP, S_TRIM, R_BAND, G_CAPTURE = 1.0, 0.3, 0.05, 0.15
 
 START = (34.411906, -120.392016)   # candidate A, this session's search
 
+# The published Fig. 9 (July 2026) predates the isotropic world-to-geographic
+# map (config isotropic_map, 2026-08-03) and reproduces only with it OFF
+# (51.4 km north, 42.5 km east). With it ON the D path is similar but the s1
+# path leaves the ridge eastward. Draft_10 Section V describes the isotropic
+# map. Unresolved; see Draft_10_review.md.
+ISOTROPIC_MAP = False
+
+# (label, (lon, lat) pointed at, (lon, lat) of the text box)
+LABELS = [
+    ("Channel entrance", (-120.45, 34.30), (-120.60, 34.36)),
+    ("Bifurcation",      (-120.39, 34.13), (-120.58, 34.08)),
+    ("Middle island",    (-120.10, 33.96), (-120.10, 33.96)),
+]
+
 LON_MIN, LON_MAX = -120.7, -119.7
 LAT_MIN, LAT_MAX =   33.8,   34.7
 FTLE_HOURS, SUBSTEPS_HR, SEED_UPSAMPLE = 24, 6, 4
@@ -95,6 +109,7 @@ def run_traj(field, cluster, prim, lat, lon):
 
 def main():
     field = AnalyticalField(ocean_hfr_socal_timevarying, config_name=FIELD_CONFIG_NAME)
+    field.config["isotropic_map"] = ISOTROPIC_MAP
     cluster = PentagonCluster(FORMATION_CONFIG, field,
                               momentum_alpha=MOMENTUM_ALPHA,
                               stiction_threshold=STICTION_THRESHOLD)
@@ -153,13 +168,18 @@ def main():
     ax.set_aspect("equal")
     ax.legend(loc="lower right", fontsize=9, framealpha=0.9)
     plt.colorbar(im, ax=ax, label=r"FTLE [s$^{-1}$]", shrink=0.85)
-    ax.set_title(
-        f"{_ts(t_list[0])}  (TIME_WARP={TIME_WARP:.0f}x)\n"
-        f"Shared start ({START[0]:.4f}N, {-START[1]:.4f}W)  [28.0 h of field time]",
-        fontsize=10)
+    # Places the paper's Section V text refers to (no debug header).
+    box = dict(boxstyle="round,pad=0.25", fc="white", ec="0.3", alpha=0.9)
+    arrow = dict(arrowstyle="->", color="black", lw=1.0)
+    for label, xy, xytext in LABELS:
+        ax.annotate(label, xy=xy, xytext=xytext, fontsize=9, bbox=box,
+                    arrowprops=arrow if xytext != xy else None,
+                    ha="center", va="center", zorder=12)
+    print(f"D end ({d_path[-1, 0]:.4f}N, {d_path[-1, 1]:.4f}), "
+          f"s1 end ({s1_path[-1, 0]:.4f}N, {s1_path[-1, 1]:.4f})")
     plt.tight_layout(rect=[0, 0, 1, 0.96])
 
-    out_path = os.path.join(OUT_DIR, "ocean_shared_start_2km.png")
+    out_path = os.path.join(OUT_DIR, f"ocean_shared_start_2km_iso{int(ISOTROPIC_MAP)}.png")
     plt.savefig(out_path, dpi=150, bbox_inches="tight")
     print(f"Saved: {out_path}")
 
