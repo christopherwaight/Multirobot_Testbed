@@ -2,7 +2,7 @@
 plot_flip_resolution.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_10.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_11.tex
   Makes:  figures/flip_resolution.png, Fig. fig:flip_resolution (Behavior Under
           Noise). Far-saddle success of BOTH trackers against sigma_uv (panel a,
           sigma_p = 0) and sigma_p (panel b, sigma_uv = 0) on a log axis, the

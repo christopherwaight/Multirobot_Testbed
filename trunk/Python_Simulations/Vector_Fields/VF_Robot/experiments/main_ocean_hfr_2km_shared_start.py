@@ -6,6 +6,10 @@ Paper figure: D tracker and s1 tracker sharing a single start point on the
 (28h) budget. Both paths overlap almost the entire ride down the channel,
 diverging only in the final stretch near the middle island.
 
+The start, gain, speed cap, formation scale, and heading are candidate B of
+the isotropic-map searches (see the constants below). The paragraph that
+follows describes candidate A, the pre-2026-08-03 anisotropic-map start.
+
 Supersedes the D-tracker-only overlay in main_ocean_hfr_2km_ftle_overlay.py
 as the paper's Figure 8: this start point (34.411906N, -120.392016W) was
 found by a same-corridor Monte Carlo search around a manually-selected
@@ -45,13 +49,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _coords_common import latlon_to_world as _latlon_to_world
 from _coords_common import world_to_latlon as _world_to_latlon
 from _ftle_common import compute_ftle_field
+from _ocean_run_common import set_formation_scale
 
 FORMATION_CONFIG  = "config/formations/pentagon_small_2km.yaml"
 FIELD_CONFIG_NAME = "ocean_hfr_2km_timevarying"
 
-V_MAX        = 0.04
+# Candidate B of the equal-map searches (ocean_param_mc.csv, 2026-08-06),
+# chosen 2026-09-29 over the pre-fix candidate A below.
+V_MAX        = 0.0332630274329872
 SIM_STEPS    = 168
-CONTROL_GAIN = 1.8
+CONTROL_GAIN = 1.940386764778898
+FORMATION_SCALE = 0.934190927524684   # rho = 5.04 km (config is 5.4 km)
+HEADING_DEG     = 335.08707973270054  # initial formation heading
 MOMENTUM_ALPHA     = 0.0
 STICTION_THRESHOLD = 0.002
 TIME_WARP    = 6000.0
@@ -59,14 +68,16 @@ TIME_WARP    = 6000.0
 EPS_RAW, EPS_DIM = 1e-3, 0.025
 G_PERP, S_TRIM, R_BAND, G_CAPTURE = 1.0, 0.3, 0.05, 0.15
 
-START = (34.411906, -120.392016)   # candidate A, this session's search
-
-# The published Fig. 9 (July 2026) predates the isotropic world-to-geographic
-# map (config isotropic_map, 2026-08-03) and reproduces only with it OFF
-# (51.4 km north, 42.5 km east). With it ON the D path is similar but the s1
-# path leaves the ridge eastward. Draft_10 Section V describes the isotropic
-# map. Unresolved; see Draft_10_review.md.
-ISOTROPIC_MAP = False
+START = (34.38493548452217, -120.40546793817956)   # candidate B
+# Candidate A, (34.411906, -120.392016) with k = 1.8, c_max = 0.04, scale 1,
+# heading 0, was tuned on the pre-2026-08-03 anisotropic map (51.4 km north,
+# 42.5 km east). On the isotropic map Section V describes, its s1 path leaves
+# the channel ridge eastward along the mainland coast.
+#
+# Candidate B's s1 descent to the bifurcation is narrow: within +-5% of B on
+# every setting (start within 1 km, heading +-15 deg), s1 reaches the
+# bifurcation on the channel ridge in about 3 of 841 runs.
+ISOTROPIC_MAP = True
 
 # (label, (lon, lat) pointed at, (lon, lat) of the text box)
 LABELS = [
@@ -98,7 +109,8 @@ def _ts(t):
 
 def run_traj(field, cluster, prim, lat, lon):
     sx, sy = _latlon_to_world(lat, lon, field.config)
-    cluster.reset(sx, sy)
+    set_formation_scale(cluster, FORMATION_SCALE)
+    cluster.reset(sx, sy, heading_offset=np.radians(HEADING_DEG))
     field.reset_clock()
     for _ in range(SIM_STEPS):
         cluster.move(prim)

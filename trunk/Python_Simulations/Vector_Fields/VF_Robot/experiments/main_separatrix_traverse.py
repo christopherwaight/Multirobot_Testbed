@@ -2,7 +2,7 @@
 main_separatrix_traverse.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_11.tex
   Makes:  the path-match figure for the objective separatrix traverser
           (figures/traverse_vs_logic_c.png); review copy and per-run CSV in
           experiments/outputs/oecs/.
@@ -57,14 +57,15 @@ BAND_HOLD = 10          # consecutive steps required
 POST_SADDLE_STEPS = 150
 SADDLE_CONTACT_D = 0.06
 
-# Same starts as separatrix_clean_runs.py, so the two controllers are
-# compared from identical initial conditions.
+# Both controllers run from identical starts. S1 and S5 were moved in from
+# (-0.45, 0.30) and (0.25, 0.42), which acquired the top wall trench rather
+# than the separatrix; all six now ride x = 0. S6 stays the farthest start.
 STARTS = [
-    ("S1", -0.45,  0.30),
+    ("S1", -0.15,  0.30),
     ("S2",  0.05,  0.40),
     ("S3",  0.00,  0.00),
     ("S4",  0.10, -0.20),
-    ("S5",  0.25,  0.42),
+    ("S5",  0.15,  0.25),
     ("S6", -0.20, -0.30),
 ]
 COLORS = ["#2a78d6", "#1baf7a", "#4a3aa7", "#e34948", "#eb6834", "#e87ba4"]
@@ -175,7 +176,10 @@ def main():
     except Exception:
         commit = "unknown"
 
-    fig, axes = plt.subplots(1, 2, figsize=(13.0, 5.6), sharex=True, sharey=True)
+    # One IEEE column, panels stacked, drawn at print size.
+    plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
+                         "xtick.labelsize": 6, "ytick.labelsize": 6})
+    fig, axes = plt.subplots(2, 1, figsize=(3.45, 3.7), sharex=True, sharey=True)
     ax_c, ax_t = axes
 
     gx = np.linspace(-1, 1, 240)
@@ -191,16 +195,16 @@ def main():
     # paper and must not appear in a figure it embeds.
     for ax, title in ((ax_c, "$D$ tracker"),
                       (ax_t, "$s_1$ tracker")):
-        ax.streamplot(GX, GY, U, Vv, color="0.82", density=1.1, linewidth=0.6,
-                      arrowsize=0.7)
-        ax.axvline(SEPARATRIX_X, color="0.35", ls="--", lw=1.0)
+        ax.streamplot(GX, GY, U, Vv, color="0.82", density=0.9, linewidth=0.4,
+                      arrowsize=0.5)
+        ax.axvline(SEPARATRIX_X, color="0.35", ls="--", lw=0.7)
         for sad in (SADDLE_BOTTOM, SADDLE_TOP):
-            ax.plot(*sad, marker="x", color="k", ms=9, mew=2, zorder=6)
-        ax.set_title(title, fontsize=11)
+            ax.plot(*sad, marker="x", color="k", ms=5, mew=1.3, zorder=6)
+        ax.set_title(title, fontsize=7, pad=2)
         ax.set_xlim(-1.05, 1.05); ax.set_ylim(-0.55, 0.53)
         ax.set_aspect("equal")
-        ax.set_xlabel("$x$")
-    ax_c.set_ylabel("$y$")
+        ax.set_ylabel("$y$")
+    ax_t.set_xlabel("$x$")
 
     rows = []
     gaps = []
@@ -214,14 +218,14 @@ def main():
 
         for ax, r in ((ax_c, r_c), (ax_t, r_t)):
             h = r["hist"]
-            ax.plot(h[:, 0], h[:, 1], color=col, lw=1.7, zorder=5)
-            ax.plot(sx, sy, marker="o", color=col, ms=6, mec="k", mew=0.8,
+            ax.plot(h[:, 0], h[:, 1], color=col, lw=1.0, zorder=5)
+            ax.plot(sx, sy, marker="o", color=col, ms=3.5, mec="k", mew=0.5,
                     zorder=7)
-            ax.plot(h[-1, 0], h[-1, 1], marker="s", color=col, ms=6, mec="k",
-                    mew=0.8, zorder=7)
-            dx, dy = (8, -11) if name == "S1" else (6, 5)
+            ax.plot(h[-1, 0], h[-1, 1], marker="s", color=col, ms=3.5, mec="k",
+                    mew=0.5, zorder=7)
+            dx, dy = (-12, 2) if sx < 0 else (3, 2)
             ax.annotate(name, (sx, sy), textcoords="offset points",
-                        xytext=(dx, dy), fontsize=8, color=col)
+                        xytext=(dx, dy), fontsize=5.5, color=col)
 
         rows.append((name, sx, sy, r_c, r_t, mean_gap, max_gap))
         m_c, m_t = r_c["modes"], r_t["modes"]
@@ -241,7 +245,7 @@ def main():
     # title inside the image duplicates it.
     fig.tight_layout()
     out_png = os.path.join(OUT_DIR, "traverse_vs_logic_c.png")
-    fig.savefig(out_png, dpi=200, bbox_inches="tight")
+    fig.savefig(out_png, dpi=400, bbox_inches="tight", pad_inches=0.01)
     print(f"\nSaved: {out_png}")
 
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")

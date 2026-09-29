@@ -5,7 +5,7 @@ Figure: how the s1 tracker's two channels are built, in the plane.
 
 (a) Tangent selection, (eq:tangent_select). The strain eigenframe drawn
     at points on both halves of the separatrix, with the gradient. The
-    argmax picks e2 on the attracting half and e1 on the repelling half,
+    argmax picks e2 on the attracting segment and e1 on the repelling segment,
     swapping through the isotropic point at the origin. Verified against
     eigh(S): |grad.e2| carries the whole gradient norm above the origin
     and |grad.e1| carries it below, the other projection being 0.
@@ -37,8 +37,8 @@ PARAMS = {
     "y_range":    [-0.38, 0.38],
     "nx":         340,
     "ny":         340,
-    "frame_ys":   [0.24, -0.24],   # eigenframe sample points, one per half
-    "demo_y":     0.16,    # point used for the command decomposition
+    "frame_ys":   [0.24, -0.24],   # eigenframe sample points, one per segment
+    "demo_y":     0.26,    # point used for the command decomposition
     "dpi":        220,
 }
 
@@ -115,9 +115,9 @@ def main(args):
                     arrowprops=dict(arrowstyle="-|>", color="orangered", lw=1.7))
         ax.text(xo + L + 0.022, yv, rf"$\mathbf{{{name}}}$", color="white",
                 fontsize=9, va="center", zorder=9)
-    ax.text(0.0, 0.335, "attracting half", fontsize=8, color="white",
+    ax.text(0.0, 0.335, "attracting segment", fontsize=8, color="white",
             ha="center", zorder=9)
-    ax.text(0.0, -0.355, "repelling half", fontsize=8, color="white",
+    ax.text(0.0, -0.355, "repelling segment", fontsize=8, color="white",
             ha="center", zorder=9)
     ax.text(-0.285, 0.325, r"$\nabla \hat{s}_1$", color="orangered",
             fontsize=9, ha="left", va="center", zorder=9)
@@ -128,8 +128,8 @@ def main(args):
     ax = axes[1]
     yv = p["demo_y"]
     t, _ = _tangent(0.0, yv, A)
-    if t[1] < 0:
-        t = -t                      # orient the ride up-trench for the sketch
+    if t[1] > 0:
+        t = -t                      # ride down-trench, with the flow on x = 0
     P = np.eye(2) - np.outer(t, t)
     # start off-trench so the transverse term is visible
     x0, y0 = 0.075, yv
@@ -145,9 +145,9 @@ def main(args):
     ax.annotate("", xy=(x0 + perp[0], y0 + perp[1]), xytext=(x0, y0),
                 zorder=8,
                 arrowprops=dict(arrowstyle="-|>", color="orangered", lw=2.4))
-    ax.text(x0 + ride[0] + 0.022, y0 + ride[1],
+    ax.text(x0 + ride[0] + 0.022, y0 + ride[1] - 0.01,
             r"$c_{\max}\tanh(1)\,\mathbf{t}$",
-            color="white", fontsize=8, ha="center", va="bottom", zorder=9)
+            color="white", fontsize=8, ha="center", va="top", zorder=9)
     ax.text(x0 + perp[0] - 0.02, y0 - 0.075,
             r"$-\mathrm{sat}(g_\perp \mathbf{P}\nabla \hat{s}_1)$",
             color="orangered", fontsize=8, ha="center", zorder=9)

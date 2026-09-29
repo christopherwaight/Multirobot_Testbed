@@ -76,7 +76,9 @@ from src.control.pentagon_primitives import (
 
 FORMATION_CONFIG = "config/formations/pentagon_small.yaml"
 
-OMEGA_ROT  = 0.2    # frame rotation rate (rad/s), same as oecs_objectivity_demo
+OMEGA_ROT  = 0.23   # frame rotation rate; Logic C first loses the straddle
+                    # at ~0.21 (0.205 keeps it), so 0.23 shows the break while
+                    # Omega*|p| stays under k*c_max = 0.12 on the whole ride
 START      = (0.05, 0.40)
 SIM_STEPS  = 400
 DT         = 0.1
@@ -104,7 +106,7 @@ def logic_c_primitive(c):
 # SIMULATION
 # ============================================================================
 
-def run(field_fn, primitive, rotating=False):
+def run(field_fn, primitive, rotating=False, return_robots=False):
     field = AnalyticalField(field_fn)
     cluster = PentagonCluster(FORMATION_CONFIG, field)
     cluster.reset(*START)
@@ -119,13 +121,52 @@ def run(field_fn, primitive, rotating=False):
                       -np.sin(th) * cx + np.cos(th) * cy)
         if abs(cx) > 1.05 or abs(cy) > 0.60:
             break
+    if return_robots:
+        return cluster.get_center_history(), cluster.get_robot_history()
     return cluster.get_center_history()
+
+
+def straddle_loss(C, R, saddle_tol=0.06):
+    """Steps (before far-saddle contact) where all six robots sit on one side
+    of x = 0 after the first straddle, the retention measure of _mc_common.py.
+    Returns (lost step indices, one-sided depth at each)."""
+    hit = np.where(np.linalg.norm(C - np.array([0.0, -0.5]), axis=1)
+                   < saddle_tol)[0]
+    end = int(hit[0]) if len(hit) else len(C)
+    rx = R[:end, :, 0]
+    s = (rx.min(axis=1) < 0.0) & (rx.max(axis=1) > 0.0)
+    if not s.any():
+        return np.array([], dtype=int), np.array([])
+    first = int(np.argmax(s))
+    lost = np.where(~s[first:])[0] + first
+    depth = np.minimum(np.abs(rx.min(axis=1)), np.abs(rx.max(axis=1)))[lost]
+    return lost, depth
 
 
 def trench_network_distance(traj):
     dx = np.min(np.abs(traj[:, 0:1] - np.array([[-1.0, 0.0, 1.0]])), axis=1)
     dy = np.min(np.abs(traj[:, 1:2] - np.array([[-0.5, 0.5]])), axis=1)
     return np.minimum(dx, dy)
+
+
+def to_far_saddle(traj):
+    """Trajectory up to its closest approach to the far saddle (0, -0.5).
+    The figure stops there: the objectivity measure is taken on the ride,
+    and wall-trench motion past the saddle is shown in Fig. 4 instead."""
+    d = np.linalg.norm(traj - np.array([0.0, -0.5]), axis=1)
+    return traj[:int(np.argmin(d)) + 1]
+
+
+def ride_deviation(traj, acquire_tol=0.01, saddle_tol=0.06):
+    """Max |x| between first contact with the separatrix and arrival at
+    the far saddle (0, -0.5). The final gap is dominated by wall-trench
+    motion after that saddle, so this is the paper's objectivity measure."""
+    hit = np.where(np.linalg.norm(traj - np.array([0.0, -0.5]), axis=1)
+                   < saddle_tol)[0]
+    end = int(hit[0]) if len(hit) else len(traj)
+    acq = np.where(np.abs(traj[:end, 0]) < acquire_tol)[0]
+    start = int(acq[0]) if len(acq) else 0
+    return float(np.max(np.abs(traj[start:end, 0])))
 
 
 def main():
@@ -136,11 +177,17 @@ def main():
     print("Running 4 trials (2 controllers x 2 frames)...")
     runs['trav_inertial'] = run(double_gyre_static, traverser_primitive)
     runs['logicc_inertial'] = run(double_gyre_static, logic_c_primitive)
+    robots = {}
     for key, prim in [('trav_rotating', traverser_primitive),
                       ('logicc_rotating', logic_c_primitive)]:
-        traj = run(rotating_gyre, prim, rotating=True)
+        traj, rob = run(rotating_gyre, prim, rotating=True,
+                        return_robots=True)
         times = (np.arange(len(traj)) + 1) * DT
         runs[key] = pull_back_trajectory(traj, times, OMEGA_ROT)
+        robots[key] = np.stack(
+            [pull_back_trajectory(rob[:, i, :], times, OMEGA_ROT)
+             for i in range(rob.shape[1])], axis=1)
+    loss = {k: straddle_loss(runs[k], robots[k]) for k in robots}
 
     def summarize(name_i, name_r):
         ti, tr = runs[name_i], runs[name_r]
@@ -157,6 +204,7 @@ def main():
                                             - np.array(SADDLE_TOP)))
     trench = {k: float(np.mean(trench_network_distance(v[100:])))
               for k, v in runs.items()}
+    ride_dev = {k: ride_deviation(v) for k, v in runs.items()}
 
     rows = [
         {'controller': 'traverser', 'omega_rot': OMEGA_ROT,
@@ -165,14 +213,18 @@ def main():
          'trench_dist_inertial': round(trench['trav_inertial'], 4),
          'trench_dist_rotating': round(trench['trav_rotating'], 4),
          'final_dist_to_top_saddle_inertial': round(trav_core_dist_i, 4),
-         'final_dist_to_top_saddle_rotating': round(trav_core_dist_r, 4)},
+         'final_dist_to_top_saddle_rotating': round(trav_core_dist_r, 4),
+         'ride_max_abs_x_inertial': round(ride_dev['trav_inertial'], 4),
+         'ride_max_abs_x_rotating': round(ride_dev['trav_rotating'], 4)},
         {'controller': 'logic_c', 'omega_rot': OMEGA_ROT,
          'final_gap_inertial_vs_pulledback': round(lc_final_gap, 4),
          'mean_gap_common_steps': round(lc_mean_gap, 4),
          'trench_dist_inertial': round(trench['logicc_inertial'], 4),
          'trench_dist_rotating': round(trench['logicc_rotating'], 4),
          'final_dist_to_top_saddle_inertial': '',
-         'final_dist_to_top_saddle_rotating': ''},
+         'final_dist_to_top_saddle_rotating': '',
+         'ride_max_abs_x_inertial': round(ride_dev['logicc_inertial'], 4),
+         'ride_max_abs_x_rotating': round(ride_dev['logicc_rotating'], 4)},
     ]
     csv_path = os.path.join(OUT_DIR, "traverse_objectivity.csv")
     with open(csv_path, "w", newline="") as f:
@@ -193,8 +245,7 @@ def main():
 
     # Drawn at the size it is printed (one IEEE column, ~3.45 in) so nothing is
     # scaled down in the PDF.  Panel titles and a suptitle are deliberately
-    # absent: the paper's caption carries the controller names and both gap
-    # values, and duplicating them here wasted the vertical space that made the
+    # absent: the paper's caption carries the controller names, and duplicating them here wasted the vertical space that made the
     # trajectories unreadable.  Panels are labelled (a)/(b) for the caption.
     plt.rcParams.update({'font.size': 7, 'axes.labelsize': 7,
                          'xtick.labelsize': 6, 'ytick.labelsize': 6,
@@ -220,15 +271,12 @@ def main():
         ax.plot(*START, marker='o', color='lime', markersize=3.5,
                 markeredgecolor='black', markeredgewidth=0.5, zorder=10,
                 label='start')
-        ax.plot(runs[k_i][:, 0], runs[k_i][:, 1], color=c_i, linewidth=1.1,
+        tr_i, tr_r = to_far_saddle(runs[k_i]), to_far_saddle(runs[k_r])
+        ax.plot(tr_i[:, 0], tr_i[:, 1], color=c_i, linewidth=1.1,
                 label='inertial frame')
-        ax.plot(runs[k_r][:, 0], runs[k_r][:, 1], color=c_r, linewidth=0.9,
+        ax.plot(tr_r[:, 0], tr_r[:, 1], color=c_r, linewidth=0.9,
                 linestyle='--',
                 label='rotating frame (pulled back)')
-        for k, c in ((k_i, c_i), (k_r, c_r)):
-            ax.plot(runs[k][-1, 0], runs[k][-1, 1], marker='s', color=c,
-                    markersize=3.5, markeredgecolor='black',
-                    markeredgewidth=0.5, zorder=10)
         ax.add_patch(plt.Rectangle((-1, -0.5), 2, 1, fill=False,
                                    edgecolor='0.4', linewidth=0.5))
         ax.text(0.03, 0.97, tag, transform=ax.transAxes, va='top', ha='left',
@@ -243,6 +291,35 @@ def main():
             ax.set_yticklabels([])
         ax.tick_params(length=2, pad=1)
     axes[0].set_ylabel('$y$', labelpad=1)
+
+    # Inset on (b): the Logic C formation at its deepest straddle loss, all
+    # six robots on one side of the separatrix.  The one-sided depth is ~0.01
+    # against a 0.075 ring, invisible at full-domain scale.
+    lost, depth = loss['logicc_rotating']
+    if len(lost):
+        k_star = int(lost[np.argmax(depth)])
+        P = robots['logicc_rotating'][k_star]
+        c = runs['logicc_rotating'][k_star]
+        axin = axes[1].inset_axes([0.60, 0.50, 0.38, 0.47])
+        tr_r = to_far_saddle(runs['logicc_rotating'])
+        axin.axvline(0.0, color='magenta', linewidth=0.7, linestyle='--',
+                     alpha=0.6)
+        axin.plot(tr_r[:, 0], tr_r[:, 1], color='tab:red', linewidth=0.8,
+                  linestyle='--')
+        ring = P[1:][np.argsort(np.arctan2(P[1:, 1] - c[1], P[1:, 0] - c[0]))]
+        ring = np.vstack([ring, ring[:1]])
+        axin.plot(ring[:, 0], ring[:, 1], color='0.3', linewidth=0.5)
+        axin.plot(P[:, 0], P[:, 1], 'o', color='tab:red', markersize=1.8,
+                  markeredgewidth=0)
+        half = 0.10
+        axin.set_xlim(c[0] - half, c[0] + half)
+        axin.set_ylim(c[1] - half, c[1] + half)
+        axin.set_aspect('equal')
+        axin.set_xticks([])
+        axin.set_yticks([])
+        for sp in axin.spines.values():
+            sp.set_linewidth(0.5)
+        axes[1].indicate_inset_zoom(axin, edgecolor='0.3', linewidth=0.5)
 
     # One shared legend below both panels.  Per-axes legends sat on top of the
     # Logic C inertial trajectory where it runs along y = -0.5, and the start
@@ -282,6 +359,16 @@ def main():
     for k in ('trav_inertial', 'trav_rotating',
               'logicc_inertial', 'logicc_rotating'):
         print(f"  {k:>16}: {trench[k]:.4f}  ({len(runs[k])} steps)")
+    print("Max |x| from acquisition to far saddle (paper measure):")
+    for k in ('trav_inertial', 'trav_rotating',
+              'logicc_inertial', 'logicc_rotating'):
+        print(f"  {k:>16}: {ride_dev[k]:.4f}")
+    print("Straddle loss before far-saddle contact (rotating frame):")
+    for k, (lost, depth) in loss.items():
+        if len(lost):
+            print(f"  {k:>16}: {len(lost)} steps, max depth {depth.max():.4f}")
+        else:
+            print(f"  {k:>16}: none")
 
 
 if __name__ == "__main__":

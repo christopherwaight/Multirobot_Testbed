@@ -9,6 +9,10 @@ Formation structure:
 State variables (12 total):
   x_c, y_c       -- cluster centroid
   theta_c        -- triangle heading (angle from midpoint A to midpoint B)
+                    NOTE: forward_kinematics returns atan2(B - A), but
+                    inverse_kinematics places A along the local +x axis
+                    from B, so the two differ by pi. theta_c is not
+                    regulated (PentagonCluster commands zero spin).
   p_1, beta_1, q_1 -- SAS triangle: side A-B, angle at B, side B-C
   L_2, theta_2   -- pair A length and orientation
   L_3, theta_3   -- pair B length and orientation

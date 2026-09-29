@@ -218,8 +218,8 @@ def main(args):
             "H_D_true_fro": float(np.linalg.norm(true_hess_D(xc, yc), "fro")),
         },
     )
-    print("  NOTE: no pdflatex recompile; _common.compile_paper points at "
-          "Paper_Draft_1A.tex, not Draft_5d.tex.\n")
+    print("  NOTE: no pdflatex recompile; run regen_all.py to compile "
+          "Draft_11.tex.\n")
 
 
 if __name__ == "__main__":

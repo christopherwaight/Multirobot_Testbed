@@ -2,7 +2,7 @@
 mc_sweep_noise_both_trackers.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_10.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_11.tex
   Makes:  the data behind Fig. fig:flip_resolution (Behavior Under Noise), which
           after the Draft 10 Part A pass shows BOTH trackers' far-saddle success
           against sigma_uv (panel a) and sigma_p (panel b) on one log axis, plus
