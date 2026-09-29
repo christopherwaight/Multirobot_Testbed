@@ -666,9 +666,9 @@ landscape is a hyperbolic paraboloid, curving up across the separatrix
 and down along it. The $D$ tracker drives the centroid onto this trench
 and along it, over the crest.
 
-A trench is taken here as a second-derivative ridge of $-D$ \cite{15}, a
-curve to which the gradient is tangent and across which the curvature is
-the largest Hessian eigenvalue, which is positive. The tracker reads this frame from
+A trench is taken here in the height-ridge sense \cite{35}, a curve on
+which the gradient is orthogonal to a Hessian eigenvector with positive
+eigenvalue. The tracker reads this frame from
 $\hat{\mathbf{H}}_{D,0}\mathbf{w}_j = \lambda_j \mathbf{w}_j$, with
 $\|\mathbf{w}_j\| = 1$, $\lambda_1 \leq \lambda_2$, $\mathbf{w}_2$ across
 the trench, and $\mathbf{w}_1$ along it, signed by
@@ -892,8 +892,7 @@ Monte Carlo sweeps and zero in the noise-free demonstration runs.
     \centering
     \includegraphics[width=0.85\textwidth]{figures/traverse_vs_logic_c.png}
     \caption{$s_1$ tracker versus $D$ tracker from six matched starts
-    ($\bullet$), noise-free, overlaid on the double-gyre streamlines and
-    Okubo-Weiss diamonds. Both traverse the same network through the
+    ($\bullet$), noise-free, overlaid on the double-gyre streamlines. Both traverse the same network through the
     isotropic point at the origin. The $s_1$ tracker captures at the
     saddle ($\times$) its tangent orientation resolves toward, while the
     $D$ tracker continues onto the crossing wall trench past each saddle
@@ -930,7 +929,7 @@ truncation, so (\ref{eq:d_capture}) fires only intermittently
     \centering
     \includegraphics[width=0.68\columnwidth]{figures/flip_resolution.png}
     \caption{Far-saddle success of both trackers from the straddling start
-    $(0, 0.35)$, $10^4$ trials per point, with the $s_1$ tracker's straddle
+    $(0, 0.35)$, $10^4$ trials per point, with each tracker's straddle
     retention (counted on successful trials) dashed. The dotted line marks
     50\% and the ticks each tracker's crossing. (a) Against $\sigma_{uv}$,
     $\sigma_p = 0$. (b) Against $\sigma_p$, $\sigma_{uv} = 0$.}
@@ -958,6 +957,11 @@ position noise the ordering holds, $\sigma_p \approx 0.0081$ against
 a sign inversion at tangent selection (Section~\ref{sec:s1_controller}).
 Supplying a clean gradient and eigenframe to (\ref{eq:tangent_select}) at
 $\sigma_{uv} = 0.002$ restores the correct-saddle rate to 100\%.
+Straddle retention stays within five points of success for the $D$
+tracker but falls further below it for the $s_1$ tracker, 47.6\% against
+71.5\% at $\sigma_{uv} = 0.0015$. Most $s_1$ trials that lose the straddle
+do so within 0.1 of the origin, where the $s_1$ trench loses its
+transverse curvature (Section~\ref{sec:s1_controller}).
 
 \subsection{Behavior Under a Rotating Observer}
 
@@ -1006,7 +1010,7 @@ Appendix~\ref{app:equivariance}.
 
 The ocean experiment uses hourly surface-current frames for the Santa
 Barbara Channel from the HFRNet U.S.~West~Coast Radial-to-Total Vector
-product \cite{35}, on the $2$~km grid, which is public. The record is the one \cite{26} uses, the same network over the same 28-h window, 29 frames from May 16, 2012 08:00 GMT to May 17, 2012 12:00 GMT, so these results are interpretable against prior work on it.
+product \cite{36}, on the $2$~km grid, which is public. The record is the one \cite{26} uses, the same network over the same 28-h window, 29 frames from May 16, 2012 08:00 GMT to May 17, 2012 12:00 GMT, so these results are interpretable against prior work on it.
 Frames are interpolated linearly in time. World
 coordinates on $[-0.65, 0.65]^2$ map affinely onto a region centered on
 $(34.2^{\circ}\mathrm{N}, 120.4^{\circ}\mathrm{W})$.
@@ -1171,7 +1175,7 @@ $\Omega \approx 0.238$ against the $\Omega = 0.2$ run. If the condition fails, t
 
 Both arguments assume a cluster that realizes $\dot{\mathbf{p}}_c$.
 Cluster space control tracks any commanded trajectory with bounded error
-for unicycle robots \cite{36}, including those an adaptive navigation
+for unicycle robots \cite{37}, including those an adaptive navigation
 layer generates \cite{2}, and the omnidirectional robots here carry no
 nonholonomic constraint. The robot lag of Section~\ref{sec:arch} is not
 modeled.
@@ -1351,11 +1355,14 @@ pp. 1--12, 2018.
 multirobot adaptive navigation in vector field environments,'' in
 \textit{Proc. ASME Int. Des. Eng. Tech. Conf.}, vol. 89251, 2025.
 
-\bibitem{35} NOAA Nat. Centers Environ. Inf., ``Near-real-time surface
+\bibitem{35} D. Eberly et al., ``Ridges for image analysis,''
+\textit{J. Math. Imaging Vis.}, vol. 4, no. 4, pp. 353--373, 1994.
+
+\bibitem{36} NOAA Nat. Centers Environ. Inf., ``Near-real-time surface
 ocean velocities derived from HF-radar stations,'' NCEI Accession
 gov.noaa.nodc:IOOS-HFRadarRTVector.
 
-\bibitem{36} I. Mas and C. A. Kitts, ``Obstacle avoidance policies for cluster
+\bibitem{37} I. Mas and C. A. Kitts, ``Obstacle avoidance policies for cluster
 space control of nonholonomic multirobot systems,'' \textit{IEEE/ASME Trans.
 Mechatronics}, vol. 17, no. 6, pp. 1068--1079, 2012.
 

@@ -136,8 +136,7 @@ result changes; one sentence where (hess_det) is introduced fixes it.
 - The added term +Omega(-y', x') is the apparent flow of an observer rotating at -Omega.
   D' is correct for the field as written, but the text calls it rotation at Omega.
 
-**Test plan versus results.** Straddle retention is plotted, not quantified. "0 to 35 steps"
-to acquire has no acquisition criterion. Appendix A's critical rate is never tested.
+**Test plan versus results.** "0 to 35 steps" to acquire has no acquisition criterion. Appendix A's critical rate is never tested.
 
 ## 5. What I don't like
 
@@ -146,8 +145,7 @@ to acquire has no acquisition criterion. Appendix A's critical rate is never tes
 - **Contradiction.** II-D's general "separatrices run along trenches of D" against its own
   "neither field is guaranteed."
 - **Figures.** Fig. 4 labels "half" where the text says "segment," and panel (b) draws the
-  ride along +y while the flow on x = 0 runs -y. Fig. 5 axes say meters on a
-  non-dimensional benchmark. Fig. 7's caption says the D run "leaves the separatrix" (T2).
+  ride along +y while the flow on x = 0 runs -y. Fig. 7's caption says the D run "leaves the separatrix" (T2).
 - **Continuity.** IV-D's "the condition the appendix requires" should name Appendix A.
   "Formation collapse" (IV-C) is never defined.
 - **References.** [35] lacks year and URL. [16] (2015) backs a claim about both fields,

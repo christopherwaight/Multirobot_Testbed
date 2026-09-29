@@ -76,17 +76,12 @@ def main(args):
             color="black", linewidth=2.2, zorder=10,
             label="Separatrix ($x=0$)")
 
-    # Flat reference contour at D = 0 (boundary between rotation and strain),
-    # projected onto the floor of the box.
-    ax.contour(X, Y, D, levels=[0.0], colors="dimgray",
-               linewidths=1.8, linestyles="dashed",
-               offset=D.min(), zdir="z")
+    # No D = 0 floor contour and no in-plot title: the surface colors mark
+    # D = 0, and the caption carries the title.
 
     ax.set_xlabel(r"$x$", labelpad=6)
     ax.set_ylabel(r"$y$", labelpad=6)
     ax.set_zlabel(r"$D=\det(\mathbf{J})$", labelpad=10)
-    ax.set_title(r"Separatrix as a trench of signed $D=\det(\mathbf{J})$",
-                 fontsize=10, pad=0)
     ax.view_init(elev=p["elev"], azim=p["azim"])
     ax.set_box_aspect((2.0, 1.0, 1.1))
 
@@ -97,8 +92,8 @@ def main(args):
     cbar.set_label(r"$D$", rotation=0, labelpad=8)
 
     ax.legend(fontsize=9, loc="upper left")
-    # Reserve room on the left (z-axis label) and top (title, legend).
-    fig.subplots_adjust(left=0.10, right=0.98, top=0.90, bottom=0.02)
+    # Reserve room on the left (z-axis label) and top (legend).
+    fig.subplots_adjust(left=0.10, right=0.98, top=0.96, bottom=0.02)
 
     out = args.out
     out.parent.mkdir(parents=True, exist_ok=True)

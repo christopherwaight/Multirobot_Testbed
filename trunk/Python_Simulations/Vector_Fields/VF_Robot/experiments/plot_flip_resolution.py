@@ -61,14 +61,17 @@ def _panel(ax, data, axis, xlabel, title):
         succ = [100 * r["success"] for r in rows]
         c = crossing_50(xs, succ)
         crossings[tr] = c
-        tag = f", 50% at {c:.4f}" if c is not None else ""
-        ax.plot(xs, succ, label=f"{name}{tag}", zorder=3, **style)
-        if tr == "s1":
-            ax.plot(xs, [100 * r["straddle"] for r in rows], color=style["color"],
-                    marker="s", markersize=3, linewidth=1.1, linestyle="--",
-                    alpha=0.7, label="$s_1$ straddle", zorder=2)
+        ax.plot(xs, succ, label=f"{name} success", zorder=3, **style)
+        ax.plot(xs, [100 * r["straddle"] for r in rows], color=style["color"],
+                marker="s", markersize=3, linewidth=1.1, linestyle="--",
+                alpha=0.6, label=f"{name} straddle", zorder=2)
         if c is not None:
             ax.plot([c, c], [40, 60], color=style["color"], linewidth=2.0, zorder=4)
+            # Value just right of the tick, above the line: clear of both
+            # trackers' curves on both panels.
+            ax.annotate(f"{c:.4f}", xy=(c, 60), xytext=(2, 1),
+                        textcoords="offset points", ha="left", va="bottom",
+                        fontsize=6.5, color=style["color"])
     ax.set_xscale("log")
     ax.set_xlim(4e-4, 3.5e-2)
     ax.set_ylim(-3, 103)
@@ -94,11 +97,13 @@ def main():
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(3.45, 4.2))
     c_uv = _panel(ax1, data, "uv", r"$\sigma_{uv}$",
                   "(a) vs. measurement noise, $\\sigma_p = 0$")
-    ax1.legend(loc="upper right", fontsize=6, frameon=False)
     c_p = _panel(ax2, data, "p", r"$\sigma_p$",
                  "(b) vs. position noise, $\\sigma_{uv} = 0$")
-    ax2.legend(loc="upper right", fontsize=6, frameon=False)
-    fig.tight_layout()
+    # One shared legend under both panels, so no entry sits on a curve.
+    handles, labels = ax1.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=2, fontsize=6.5,
+               frameon=False, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=[0, 0.07, 1, 1])
 
     os.makedirs(FIG_DIR, exist_ok=True)
     out_path = os.path.join(FIG_DIR, "flip_resolution.png")

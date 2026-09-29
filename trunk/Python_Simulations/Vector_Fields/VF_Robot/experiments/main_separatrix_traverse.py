@@ -185,8 +185,6 @@ def main():
     for i in range(GX.shape[0]):
         for j in range(GX.shape[1]):
             U[i, j], Vv[i, j] = double_gyre_static(GX[i, j], GY[i, j])
-    Dfield = -(np.pi**4 * A**2 / 2) * (np.cos(2*np.pi*(GX+1))
-                                       + np.cos(2*np.pi*(GY+0.5)))
 
     # Titles use the paper's names for the two primitives. The internal
     # names (Logic C / Primitive 7, Primitive 11) do not appear in the
@@ -195,15 +193,14 @@ def main():
                       (ax_t, "$s_1$ tracker")):
         ax.streamplot(GX, GY, U, Vv, color="0.82", density=1.1, linewidth=0.6,
                       arrowsize=0.7)
-        ax.contour(GX, GY, Dfield, levels=[0.0], colors="0.45", linewidths=1.0)
         ax.axvline(SEPARATRIX_X, color="0.35", ls="--", lw=1.0)
         for sad in (SADDLE_BOTTOM, SADDLE_TOP):
             ax.plot(*sad, marker="x", color="k", ms=9, mew=2, zorder=6)
         ax.set_title(title, fontsize=11)
         ax.set_xlim(-1.05, 1.05); ax.set_ylim(-0.55, 0.53)
         ax.set_aspect("equal")
-        ax.set_xlabel("x (m)")
-    ax_c.set_ylabel("y (m)")
+        ax.set_xlabel("$x$")
+    ax_c.set_ylabel("$y$")
 
     rows = []
     gaps = []
