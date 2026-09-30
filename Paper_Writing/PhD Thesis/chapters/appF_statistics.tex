@@ -1,147 +1,23 @@
 \chapter{Statistical Methods}
-\label{app:stats}
-% Ported from: idetc2025_testbed.txt Sec. 3.5/4.2/4.3 (DETC2025-167604,
-% thesis:33, zeroth-order hardware trials and formation-maintenance
-% statistics); cwaight_systems_paper.tex Secs. "Validation
-% Test Plan," "Control Performance in Simulation," "Attraction
-% Controller Results," "Orbital Control Results" (first-order hardware
-% and simulation trials); Draft_11.tex Secs. "Behavior Under Noise" and
-% "Double-Gyre Benchmark" (second-order Monte Carlo success-rate
-% sweeps). hart_thesis.txt Appendix A (statistics) is a model for this
-% appendix's shape only; none of its content is ported.
+\label{app:statistics}
 
-This appendix collects the statistical methodology actually used to
-produce the trial counts, success rates, and error statistics reported in
-Chapters~\ref{ch:zeroth}, \ref{ch:first_order}, and
-\ref{ch:second_order}. Each section is specific to the estimator and
-experiment design of its chapter; no single method (for example, a
-confidence interval or a hypothesis test) is shared across all three.
+% New text
+\section{Bias and Precision}
+Chapter~\ref{ch:first_order} summarizes each set of convergence trials by
+its final centroid positions. The systematic bias is the distance from
+the mean final position to the true critical point, and it measures what
+averaging cannot remove. The precision is the standard deviation of the
+final positions, and it measures repeatability. Orbital trials are
+summarized by the mean and standard deviation of the radial error.
 
-\section{Zeroth-Order Chapter: Formation-Maintenance and Steady-State Statistics}
-\label{sec:appF:zeroth}
+\section{Circular Statistics for Hue}
+Hue is an angle, so a reading near 0 and a reading near 1 are the same
+direction. The hue network of Section~\ref{sec:ch2:calibration} predicts
+the sine and cosine of hue for this reason, and its accuracy is reported
+with circular statistics.
 
-The testbed paper \cite{39} reports trial statistics
-for the fixed-vortex and sinking-vortex fields
-(Appendix~\ref{app:fields}) on physical hardware. A 3-robot cluster with
-fixed formation parameters ($p=0.35$~m, $q=0.35$~m, $\beta=1.05$~rad,
-Appendix~\ref{app:kin3}) was used to test two control primitives
-(vector-sum and vector-to-scalar) across the fixed-vortex and
-sinking-vortex environments, with OptiTrack recording robot positions at
-10~Hz. For each environment-primitive combination, 10 trial runs were
-conducted; the fixed vortex was tested with both primitives, the sinking
-vortex with the vector-sum primitive only. Both consistent and randomized
-starting positions were used. Three metrics were evaluated: the robot
-trajectory relative to the expected path, the steady-state error between
-the final cluster position and the target position, and the cluster's
-ability to maintain its commanded shape.
-
-The cluster settled approximately 0.1~m from the center in the sinking
-vortex under the vector-sum primitive, and within 0.2~m of the center in
-the fixed vortex under the vector-to-scalar primitive; in both cases the desired location fell within the
-circumscribed triangle of the three-robot cluster. Formation-maintenance
-statistics (mean and standard deviation of each shape variable, across
-the 10 trials per combination) are reported in
-Table~\ref{tab:appF:formation}. Across all three test conditions, the
-shape variables stayed within 1~cm of their commanded values.
-
-\begin{table}[htbp]
-\centering
-\caption{Formation control performance across primitive-testing trial
-runs (10 trials per column), from \cite{39}.}
-\label{tab:appF:formation}
-\begin{tabular}{lcccccc}
-\hline
-& \multicolumn{2}{c}{Fixed vortex} & \multicolumn{2}{c}{Fixed vortex} & \multicolumn{2}{c}{Sinking vortex} \\
-& \multicolumn{2}{c}{(vector-sum)} & \multicolumn{2}{c}{(vector-to-scalar)} & \multicolumn{2}{c}{(vector-sum)} \\
-Var. & Avg. & $\sigma$ & Avg. & $\sigma$ & Avg. & $\sigma$ \\
-\hline
-$p$ & 0.36~m & 0.028 & 0.35~m & 0.015 & 0.35~m & 0.019 \\
-$q$ & 0.36~m & 0.032 & 0.36~m & 0.009 & 0.35~m & 0.015 \\
-$\beta$ & 1.03~rad & 0.122 & 1.02~rad & 0.045 & 1.02~rad & 0.056 \\
-\hline
-\end{tabular}
-\end{table}
-
-\section{First-Order Chapter: Hardware and Simulation Trial Statistics}
-\label{sec:appF:first_order}
-
-Two error statistics are reported throughout Chapter~\ref{ch:first_order}
-for convergence trials: systematic bias, the mean offset of the final
-centroid position from the true critical point, and precision $\sigma$,
-the standard deviation of the final centroid position, quantifying
-repeatability. Both are computed from unrounded final positions.
-
-\textbf{Simulation.} For each of eight fields (the six analytical fields
-of Appendix~\ref{sec:appA:canonical} plus two fields reconstructed from
-sensed hardware measurements), the cluster was initialized at a random
-position drawn uniformly from a $1\text{ m}\times1\text{ m}$ box centered
-on the true critical point, and the simulation was run for 100 time steps
-at 10~Hz. This was repeated 1000 times per field. A trial was counted as
-convergent if the trajectory remained bounded and terminated within the
-stiction-limited neighborhood of the critical point; the final-position
-statistics quantify that neighborhood. The cluster converged in 100\% of
-the 1000 trials for every field tested.
-
-\textbf{Hardware.} For each of two fields (vortex and saddle), eight
-starting locations were selected around the perimeter of the workspace,
-and the attraction controller was run 10 times from each location using
-the three-robot equilateral-triangle formation, yielding 80 trials per
-field (160 total). Due to file-management errors, 2 saddle trials and 1
-vortex trial were lost, giving 157 usable convergence trials (78 saddle,
-79 vortex). The cluster converged to the critical point in 100\% of these
-157 hardware trials.
-
-\textbf{Orbital control.} For each of six commanded radii (matched
-between simulation and hardware), the orbital controller was run and the
-mean radial error and standard deviation of the traveled path relative to
-the desired path were recorded. In simulation, the controller ran for 600
-time steps, discarding the first 100 (10~s) as a settling transient before
-computing statistics. On hardware, the controller ran for 3000 cycles at
-10~Hz (more than three complete orbits), and the reported statistics cover
-the full record, including the initial transient (no settling-transient
-discard on hardware).
-
-\section{Second-Order Chapter: Monte Carlo Success-Rate Sweeps}
-\label{sec:appF:second_order}
-
-Chapter~\ref{ch:second_order}'s controllers are evaluated with Monte
-Carlo sweeps over measurement noise $\sigma_{uv}$ and position noise
-$\sigma_p$, run independently (one swept with the other held at zero),
-from one straddling start, $(0,0.35)$ on the double-gyre benchmark
-(Appendix~\ref{sec:appA:double_gyre}), at $10^4$ trials per noise level,
-with independent random initial headings across trials. Noise-sweep
-trials run up to 500 steps and stop at task completion or domain exit.
-
-Success is defined as contact within 0.06 of the far saddle
-$\mathbf{p}_1^* = (0,-0.5)$, a target that a noise-free run from this
-start reaches under either primitive, without formation collapse (defined
-as an RMS error above $4\rho$, with $\rho$ the formation radius, in the
-fifteen inter-robot distances). Each trial also records straddle
-retention: a trial straddles when the robots fall on both sides of the
-separatrix at some point, and retention requires that the straddle, once
-achieved, never be lost for the remainder of the trial. Both success and
-straddle-retention rates are reported as simple fractions $\hat{P}$ of the
-$N = 10^4$ independent trials at each noise level. Treating each trial as
-a Bernoulli outcome, the standard error of a reported rate is
-\begin{equation}
-\operatorname{SE}(\hat{P}) = \sqrt{\frac{\hat{P}(1-\hat{P})}{N}}
-  \le \frac{1}{2\sqrt{N}} = 0.005,
-\label{eq:appF:binomial_se}
-\end{equation}
-so every reported rate is resolved to within about one percentage point
-at 95\% confidence ($\pm 1.96\,\operatorname{SE}$), and differences
-between curves larger than this are not sampling artifacts.
-%% NOTE(new-math): Draft_11 reports point fractions only; this bound is
-%% computed from N alone, not from the data.
-
-Clean (noise-free) trials, used to characterize acquisition and
-traversal rather than success rate, run 400 to 600 steps and stop at
-domain exit or, for the $D$ tracker, 150 steps after first saddle
-contact; six matched starting positions were used, spanning both gyre
-halves, the origin, and points up to $2.7\rho$ off the separatrix.
-
-The Santa Barbara Channel trial (Chapter~\ref{ch:second_order}) is a
-single 28-hour run per tracker from a shared start, not a Monte Carlo
-sweep; no noise level is estimated for it, since the exactly determined
-six-robot fit leaves no residual on gridded field data, so the noise
-model above is validated on the double-gyre benchmark only.
+\section{Success Rates}
+The noise sweeps of Chapter~\ref{ch:second_order} report success rates
+over $N = 10^4$ trials per noise level. Each trial succeeds or fails
+independently, so the standard error of a rate $\hat{p}$ is
+$\sqrt{\hat{p}(1-\hat{p})/N} \leq 1/(2\sqrt{N}) = 0.005$.

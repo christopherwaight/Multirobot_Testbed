@@ -1,132 +1,55 @@
 \chapter{Frame Equivariance of the $s_1$ Tracker}
 \label{app:frame_equivariance}
-% Ported from: Draft_11.tex Sec. "Relation Between the Fields" (D is not
-% objective; s1 is objective) and Sec. "Behavior Under a Rotating
-% Observer" (the double-gyre rotating-frame experiment and its result).
 
-This appendix collects the statement, and what supporting derivation
-exists in the source paper, for why the $s_1$ tracker of
-Chapter~\ref{ch:second_order} is objective (frame-indifferent) while the
-$D$ tracker is not.
+% New text. Draft 11 states the frame shift without the algebra; the
+% derivation below was checked 2026-09-29.
+Section~\ref{sec:ch3:relation} states that an observer rotating at rate
+$\Omega$ sees the determinant field shifted by $\Omega\omega + \Omega^2$
+and the strain eigenvalues unchanged. This appendix gives the algebra.
 
-\section{The Determinant Field Is Not Objective}
-\label{sec:appD:D_not_objective}
-
-Both the determinant field $D=\det\mathbf{J}$ and the smaller strain
-eigenvalue $s_1$ are read from the same fitted Jacobian $\hat{\mathbf{J}}$.
-Where the vorticity $\omega = \partial v/\partial x - \partial u/\partial y$
-vanishes, $\mathbf{J}$ equals its symmetric part $\mathbf{S}$ and
-$D = s_1s_2$, which is $-s_1^2$ in incompressible flow. Along such a
-curve the two fields share their trenches. Elsewhere the spin
-$\mathbf{W} = \mathbf{J}-\mathbf{S}$, the antisymmetric part of
-$\mathbf{J}$ that carries the vorticity, separates them, and it also
-separates them across observers.
-
-A frame rotating clockwise at rate $\Omega$, with rotation $\mathbf{Q}$,
-adds a uniform spin that raises $\omega$ to $\omega+2\Omega$. The strain
-tensor only co-rotates, so $s_1$ is objective \cite{52}, while the
-determinant keeps the spin,
+Split the velocity gradient into strain and spin,
 \begin{equation}
-D' = D + \Omega\,\omega + \Omega^2.
-\label{eq:appD:D_not_objective}
+    \mathbf{S} = \mu\mathbf{I} +
+    \begin{bmatrix} s_n & s_s \\ s_s & -s_n \end{bmatrix},
+    \qquad
+    \mathbf{W} = \frac{\omega}{2}\mathbf{E}, \qquad
+    \mathbf{E} = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix},
+    \label{eq:appD:split}
 \end{equation}
-Relatively rotating observers therefore disagree about where the
-trenches of $D$ lie.
-%% NOTE(new-math, checked 2026-09-29): Draft_11 states
-%% eq:appD:D_not_objective without the algebra; the derivation below is new.
-
-To see where Equation~\eqref{eq:appD:D_not_objective} comes from, split
-the Jacobian into strain and spin,
+with $r = \sqrt{s_n^2 + s_s^2}$, so the strain eigenvalues are
+$s_{1,2} = \mu \mp r$. Expanding the determinant,
 \begin{equation}
-\mathbf{S} = \mu\mathbf{I} + \begin{bmatrix} s_n & s_s \\ s_s & -s_n\end{bmatrix},
-\qquad
-\mathbf{W} = \frac{\omega}{2}\begin{bmatrix} 0 & -1 \\ 1 & 0\end{bmatrix},
-\label{eq:appD:split}
+    D = \det(\mathbf{S} + \mathbf{W})
+      = \mu^2 - r^2 + \frac{\omega^2}{4}
+      = s_1 s_2 + \frac{\omega^2}{4}.
+    \label{eq:appD:D_split}
 \end{equation}
-with $\mu = \tfrac12\operatorname{div}\mathbf{v}$ and
-$r = \sqrt{s_n^2+s_s^2}$, so the strain eigenvalues are $s_{1,2} = \mu \mp r$.
-Expanding the determinant,
+
+The rotating observer sees the field
 \begin{equation}
-D = \det(\mathbf{S}+\mathbf{W}) = \mu^2 - r^2 + \frac{\omega^2}{4}
-  = s_1 s_2 + \frac{\omega^2}{4}.
-\label{eq:appD:D_split}
+    \mathbf{v}'(\mathbf{p}') = \mathbf{Q}\,\mathbf{v}(\mathbf{Q}^{\top}\mathbf{p}')
+        + \Omega\,(-y',\, x')^{\top}.
+    \label{eq:appD:rotating_field}
 \end{equation}
-The rotating observer of Equation~\eqref{eq:appD:rotating_field} adds the
-field $\Omega(-y',x')^{\mathsf T}$, whose gradient is purely antisymmetric,
-so it leaves $\mathbf{S}$ unchanged up to the co-rotation
-$\mathbf{S}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^{\mathsf T}$, which preserves
-$\mu$ and $r$, and replaces $\omega/2$ by $\omega/2 + \Omega$. Substituting
-into Equation~\eqref{eq:appD:D_split},
+The gradient of the first term is $\mathbf{Q}\mathbf{J}\mathbf{Q}^{\top}$.
+A planar rotation commutes with $\mathbf{E}$, so the strain co-rotates to
+$\mathbf{Q}\mathbf{S}\mathbf{Q}^{\top}$, which keeps $\mu$ and $r$, and
+the spin is unchanged. The gradient of the second term is
+$\Omega\mathbf{E}$, which is pure spin. The observer's gradient is
+therefore
+$\mathbf{J}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^{\top} +
+(\tfrac{\omega}{2} + \Omega)\mathbf{E}$, and by (\ref{eq:appD:D_split})
 \begin{equation}
-D' = \mu^2 - r^2 + \Bigl(\frac{\omega}{2}+\Omega\Bigr)^2
-   = D + \Omega\,\omega + \Omega^2 ,
+    D' = \mu^2 - r^2 + \Bigl(\frac{\omega}{2} + \Omega\Bigr)^2
+       = D + \Omega\,\omega + \Omega^2 ,
+    \label{eq:appD:shift}
 \end{equation}
-while $s_1' = s_1$ and $s_2' = s_2$. The $s_1$ tracker's gradient and
-Hessian are those of an observer-invariant scalar field, and its tangent
-reference $\mathbf{t}_{\mathrm{ref}}$ is carried in state rather than read
-from a world axis, so its commanded velocity co-rotates with the frame.
+while $s_1' = s_1$ and $s_2' = s_2$.
 
-\section{Behavior Under a Rotating Observer}
-\label{sec:appD:rotating}
-
-Both trackers were run from $(0.05,0.40)$, just inside the upper saddle
-of the double gyre, on the same physical flow in two observer frames: the
-inertial one and a frame rotating clockwise at $\Omega=0.23$, a heading
-drift of about $8^\circ$/h at the ocean time unit of
-Chapter~\ref{ch:second_order}, where the field observed in the rotating
-frame is
-\begin{equation}
-\mathbf{v}'(\mathbf{p}',t) = \mathbf{Q}\mathbf{v}(\mathbf{Q}^\top\mathbf{p}') + \Omega\,(-y',x')^\top.
-\label{eq:appD:rotating_field}
-\end{equation}
-The rate keeps the structure's apparent speed along the tracked path,
-$\Omega\lVert\mathbf{p}\rVert \leq 0.11$, inside the command authority
-$k\,c_{\max}=0.12$, the condition required by
-Appendix~\ref{app:stability}. Rotating-frame trajectories are pulled back
-to inertial coordinates and compared with the inertial run of the same
-primitive.
-
-The trajectories are shown in Figure~\ref{fig:ch7:oecs_objectivity}.
-
-Between acquisition and the far saddle, the $s_1$ tracker stays within
-0.016 of the separatrix in the rotating frame, against 0.010 in the
-inertial frame, keeps the straddle throughout, and both runs capture at
-the same bottom saddle. The $D$ tracker's rotating-frame run is displaced
-by up to 0.084, against 0.010, and loses the straddle for 36 steps across
-the crest, with all six robots on one side of the separatrix. Sweeping
-the rate, the $D$ tracker first loses the straddle at
-$\Omega \approx 0.21$, where $\Omega\lVert\mathbf{p}\rVert$ at the crest
-is a sixth of the command authority.
-
-The frame's solid-body vorticity shifts the $D'$ landscape
-(Equation~\eqref{eq:appD:D_not_objective}) and adds a transport term to
-the measured flow, so both terms of the $D$ tracker are steered by a
-frame artifact. On the separatrix $\omega=0$ but
-$\partial_x\omega = 2\pi^3A\sin\pi y_f$, so $\Omega\omega$ tilts $D'$
-across the trench. Against the transverse curvature $2\pi^6A^2$, it moves
-the trench by $\Omega\sin(\pi y_f)/(\pi^3A)$, largest at the origin and
-zero at the saddles, so the run rejoins the separatrix near
-$\mathbf{p}_1^*$.
-
-\section{Why the $s_1$ Command Is Equivariant}
-\label{sec:appD:s1_equivariant}
-
-The $s_1$ tracker's tests are scalar inequalities in quantities a
-rotation leaves invariant, so its command co-rotates with the frame, and
-its residual error is the frame-transport term bounded in
-Appendix~\ref{app:stability}. Its one non-objective input is the tangent
-seed taken from the measured flow, which fixes the ride direction on the
-first ride step (Equation~\eqref{eq:ch7:tangent_select}); the frames agree
-while
-\begin{equation}
-\Omega\lVert\mathbf{p}_{\text{seed}}\rVert < \bigl\lvert\hat{\mathbf{v}}_0^\top\mathbf{t}_{\text{raw}}\bigr\rvert.
-\label{eq:appD:seed_condition}
-\end{equation}
-Past that one seed step, the tangent is carried in state through
-$\mathbf{t}_{\mathrm{ref}}$ (Equation~\eqref{eq:ch7:tangent_select}), which is
-itself built from objective quantities, so the $s_1$ tracker is objective
-except for this single, bounded, first-step dependence on the measured
-flow.
-%% NOTE: \ref{eq:ch7:tangent_select} matches the eq:ch7:-prefixed label
-%% currently defined in ch07_second_order.tex for the $s_1$ tracker's
-%% tangent-selection rule; re-check if that chapter's labels change.
+The $s_1$ tracker's channels are built from $\hat{s}_1$, its gradient,
+and the strain eigenframe, which all co-rotate with the observer. Its
+tests are scalar inequalities in quantities a rotation leaves unchanged,
+and its tangent reference is its own previous output, carried in state. Its command therefore co-rotates with the frame. The one
+exception is the tangent seed on the first ride step, taken from the
+measured flow, and Section~\ref{sec:ch7:rotating} gives the condition
+under which the two frames agree on it.

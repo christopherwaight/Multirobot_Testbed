@@ -1,3 +1,11 @@
+import port
+from port import P, T, write
+port.PRE = 'ch2'
+
+IDC = '% Ported from: IDETC 2025 (DETC2025-167604), {}, transcribed from the published PDF'
+
+parts = [
+T(r"""
 % ===================================================================
 % CHAPTER 2: VERIFICATION TOOLS
 % ===================================================================
@@ -8,18 +16,18 @@
 The hardware results of this dissertation come from the Decabot testbed
 of the Santa Clara University Robotic Systems Laboratory. The robots, the
 motion capture system, and the cluster space software predate this work
-\cite{41}. This dissertation adds the HSV encoding of vector fields
+\cite{idc:16}. This dissertation adds the HSV encoding of vector fields
 on printed floor maps, the neural network calibration of the robots'
 color sensors, a remeasurement of the robots' dynamics, and the
 simulation environments built around them.
 
 \section{The Decabots}
 \label{sec:ch2:decabots}
-
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 2.2, transcribed from the published PDF
+"""),
+T(IDC.format('Sec. 2.2') + r"""
 The robots used for this testbed are Decabots, a fleet of
 omnidirectional rovers developed at Santa Clara University
-\cite{41}. They are equipped with TCS34725 RGB sensors on their
+\cite{idc:16}. They are equipped with TCS34725 RGB sensors on their
 undercarriage, enabling them to sense the color patterns of the colored
 floor mat underneath and estimate the vector field being represented at
 that point. Each is powered by an Arduino and communicates over TCP/IP to
@@ -58,11 +66,11 @@ readings from the test palette.
 
 \section{Testbed and Motion Capture}
 \label{sec:ch2:testbed}
-
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.1, transcribed from the published PDF
+"""),
+T(IDC.format('Sec. 3.1') + r"""
 This research used an existing testbed as a starting point
-\cite{41}. Unlike general-purpose multi-agent platforms such as
-Robotic Park \cite{42} that emphasize heterogeneous robot
+\cite{idc:16}. Unlike general-purpose multi-agent platforms such as
+Robotic Park \cite{idc:19} that emphasize heterogeneous robot
 integration, our testbed specifically focuses on vector field
 representation and interpretation through a homogeneous robot fleet with
 consistent sensing capabilities. It includes three omnidirectional mobile
@@ -84,30 +92,25 @@ equipment.
     adaptive navigation.}
     \label{fig:ch2:testbed_overview}
 \end{figure}
+"""),
+P('sys', "The testbed used for validation is SCU's Robotic Systems Laboratory Decabot testbed",
+  subs=[('The testbed used for validation is', 'The same testbed, used for the critical point experiments of Chapter~\\ref{ch:first_order}, is')]),
+P('sys', '\\caption{Experimental testbed: 1.6 m', end='\\end{figure}', back=3,
+  subs=[('testbed_with_four.png', 'ch2_testbed_with_four.png'),
+        ('width=0.28\\textwidth', 'width=0.5\\textwidth')]),
+P('sys', 'The multilayer control architecture from Section~III runs in MATLAB/Simulink',
+  subs=[('from Section~III runs', 'of Chapter~\\ref{ch:estimation} runs')]),
 
-% Ported from: cwaight_systems_paper.tex
-The same testbed, used for the critical point experiments of Chapter~\ref{ch:first_order}, is SCU's Robotic Systems Laboratory Decabot testbed \cite{41}, which has been used to validate multirobot adaptive navigation algorithms for both cluster control and swarm particle optimization techniques \cite{4,43}. Fig.~\ref{fig:ch2:fullbed} shows the complete testbed.
-
-% Ported from: cwaight_systems_paper.tex
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.5\textwidth]{ch2_testbed_with_four.png}
-    \caption{Experimental testbed: 1.6 m × 1.6 m printed vector field map, Decabot rovers, and OptiTrack system. Four Decabots are shown; the experiments here used three of this fleet.}
-    \label{fig:ch2:fullbed}
-    \end{figure}
-
-% Ported from: cwaight_systems_paper.tex
-The multilayer control architecture of Chapter~\ref{ch:estimation} runs in MATLAB/Simulink on a central computer that communicates with the robots over Wi-Fi at 10~Hz: at each control cycle it receives OptiTrack positions and RGB sensor readings, computes the control laws, and returns velocity commands, which each robot's onboard computer (Intel Edison) converts into drive motor commands.
-
+T(r"""
 \section{Vector Field Encoding in HSV Color Space}
 \label{sec:ch2:hsv}
 
 \subsection{Limitations of RGB Encoding}
-
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 1, transcribed from the published PDF
+"""),
+T(IDC.format('Sec. 1') + r"""
 Previous attempts at creating vector field testbeds for multirobot
 adaptive navigation had limited success due to technical barriers
-\cite{44}. Approaches using red and green colors to represent
+\cite{idc:5}. Approaches using red and green colors to represent
 orthogonal vectors suffered from sensor channel interference on robotic
 RGB sensors. This interference made encoding vectors to color maps
 problematic, preventing accurate decoding of direction and magnitude
@@ -118,8 +121,8 @@ direction shifts. Additionally, the limited discrete sampling speed of
 study of motion dynamics.
 
 \subsection{Hue as Direction, Saturation as Magnitude}
-
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.2, transcribed from the published PDF
+"""),
+T(IDC.format('Sec. 3.2') + r"""
 Previous attempts to use RGB colors to represent orthogonal vector sets
 showed limited success, as only a small portion of the spectrum remained
 usable after eliminating high-interference regions. To allow for greater
@@ -138,10 +141,9 @@ representing all possible vector representations.
     \caption{A plot of saturation versus hue representing vector space.}
     \label{fig:ch2:hsv_space}
 \end{figure}
-
-% Ported from: cwaight_systems_paper.tex
-Vector fields are physically realized as printed floor maps using HSV color encoding, where hue (0--2$\pi$) represents flow direction and saturation (0--1) encodes magnitude. Printed magnitudes are scaled to the 0.3--1.0 saturation range to avoid undersaturated areas and ensure reliable sensor readings, then remapped to 0--1 in software, with saturation 1.0 corresponding to the maximum robot velocity of 0.3~m/s. Together with the sensor shroud and self-illumination, this encoding is minimally affected by overhead lighting variations.
-
+"""),
+P('sys', 'Vector fields are physically realized as printed floor maps using HSV color encoding'),
+T(r"""
 \subsection{Printed Field Construction}
 
 % New text
@@ -150,7 +152,7 @@ sinking vortex maps of Chapter~\ref{ch:zeroth} and the vortex and saddle
 maps of Chapter~\ref{ch:first_order} were built this way, and their
 equations are given in Appendix~\ref{app:fields}.
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.2, transcribed from the published PDF
+""" + IDC.format('Sec. 3.2') + r"""
 Once vectors were created at all plot points, they were scaled to the
 range of 0.3 to 1. Values less than 0.2 were not used in training, and
 values less than 0.3 produced velocities insufficient to overcome static
@@ -159,9 +161,9 @@ friction.
 \section{Neural Network Sensor Calibration}
 \label{sec:ch2:calibration}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.3, transcribed from the published PDF
+""" + IDC.format('Sec. 3.3') + r"""
 The RGB sensor data suffered from channel interference as noted in
-previous studies \cite{44}. The TCS34725 RGB sensor specification
+previous studies \cite{idc:5}. The TCS34725 RGB sensor specification
 sheet confirms that blue, green, and red channels cannot be fully
 isolated. This effect persisted even after conversion to an HSV color
 space. Traditional calibration methods neither significantly improved
@@ -219,7 +221,7 @@ conditions.
 
 \subsection{Cross-Robot Generalization}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 4.1, transcribed from the published PDF
+""" + IDC.format('Sec. 4.1') + r"""
 The supervised learning approach for sensor calibration demonstrated
 excellent vector field interpretation capabilities across all validation
 datasets. Using a cross-robot training strategy, we achieved high
@@ -281,21 +283,19 @@ critical point experiments of Chapter~\ref{ch:first_order}. The
 recalibrated models use the four raw channels as inputs and are the ones
 the later hardware results rely on.
 
-% Ported from: cwaight_systems_paper.tex
-The robots' RGB sensors are calibrated against a printed palette spanning hue $0$ to $2\pi$ and saturation $0$ to $1$ at 24 intervals in each dimension. Each robot records raw RGB and clear-channel counts over every palette cell. The readings are normalized and stored as a four-dimensional feature vector $(R,G,B,K)$. Two feedforward networks, each with two hyperbolic-tangent hidden layers, are trained to recover the target hue and saturation from this vector. The saturation network has a single output, while the hue network outputs the sine and cosine of hue to respect its circularity. Training pools data across robots so that a single model transfers to an uncalibrated unit without per-robot tuning. Calibration achieved hue RMSE of 0.17 radians (9.7$^\circ$, R$^2$=0.991) and saturation RMSE of 4.4\% (R$^2$=0.951) across the operational range (see Fig.~\ref{fig:ch2:HuePredictions}). The encoding and calibration palette follows~\cite{28}. All robots were calibrated after receiving preventive maintenance and servicing for this study.
+"""),
+P('sys', 'The experimental platform used three omnidirectional Decabot rovers operating within',
+  subs=[('The experimental platform used three omnidirectional Decabot rovers operating within a 1.6~m $\\times$ 1.6~m workspace. Each Decabot features three omnidirectional wheels providing holonomic motion capability and a downward-facing TCS34725 RGB color sensor enclosed in a light-shrouded housing to minimize external lighting effects. ', '')]),
+P('sys', '\\caption{Neural network predictions for HSV field encoding on unit-normalized axes.',
+  end='\\end{figure}', back=3,
+  subs=[('color_sensor_hsv_predictions.png', 'ch2_color_sensor_hsv_predictions.png'),
+        ('width=0.90\\columnwidth', 'width=0.8\\textwidth')]),
 
-% Ported from: cwaight_systems_paper.tex
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.8\textwidth]{ch2_color_sensor_hsv_predictions.png}
-    \caption{Neural network predictions for HSV field encoding on unit-normalized axes. Hue RMSE = 0.027 (0.17 rad, 9.7$^\circ$), saturation RMSE = 0.044 (4.4\%).}
-    \label{fig:ch2:HuePredictions}
-\end{figure}
-
+T(r"""
 \section{Saturation-to-Velocity Characterization}
 \label{sec:ch2:saturation}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.4, transcribed from the published PDF
+""" + IDC.format('Sec. 3.4') + r"""
 To validate the relationship between detected vector magnitude and robot
 velocity, lanes of a single hue at different saturation levels were
 printed (Fig.~\ref{fig:ch2:lanes}). Each robot was placed on each of the
@@ -313,7 +313,7 @@ velocity.
 
 Each robot's position was tracked over a 3 second period as it followed
 each lane. This continuous motion capability stands in contrast to sparse
-sampling approaches necessary in marine environments \cite{45}, where
+sampling approaches necessary in marine environments \cite{idc:14}, where
 energy constraints and environmental factors limit sampling frequency.
 The average velocity for each saturation run was computed. Across all
 robots, the velocities scaled linearly with saturation at values above
@@ -325,42 +325,28 @@ interpreting vector primitive performance.
 
 \section{Robot Dynamics Identification}
 \label{sec:ch2:dynamics}
+"""),
+P('sys', 'In simulation, each robot is modeled as a single omnidirectional point mass',
+  end='the momentum coefficient $\\alpha = e^{-\\Delta t/\\tau}$. At a 10~Hz control rate'),
+P('sys', 'The sensed field $\\mathbf{v}(\\mathbf{p}_i)$ enters only the estimation framework of Section~II.',
+  subs=[('enters only the estimation framework of Section~II.',
+         'enters only the estimation framework of Section~\\ref{sec:ch4:estimation}.'),
+        ('Section~VI-D discusses the extension to flows that advect the robot directly.',
+         'Section~\\ref{sec:ch9:advection} discusses the extension to flows that advect the robot directly.')]),
 
-% Ported from: cwaight_systems_paper.tex
-In simulation, each robot is modeled as a single omnidirectional point mass with a first order response:
-
-\begin{equation}
-    \dot{\mathbf{v}}(t) = -\frac{1}{\tau}\mathbf{v}(t) + \frac{1}{\tau}\mathbf{v}_{\text{des}}(t)
-    \label{eq:ch2:continuous}
-    \end{equation}
-
-where $\tau$ is the actuator time constant \cite{5,46}. The time constant on the Decabot hardware was found to be approximately 0.28 s.  The robots are also modeled with a maximum speed of 0.3~m/s and a minimum speed of 0.025~m/s needed to overcome stiction (remeasured for this work; an earlier characterization of the testbed reported 0.05~m/s \cite{28}).
-
-For digital implementation at control period $\Delta t$, discretization yields:
-
-\begin{equation}
-\mathbf{v}[k+1] = \alpha \mathbf{v}[k] + (1-\alpha)\mathbf{v}_{\text{des}}[k]
-\label{eq:ch2:momentum}
-\end{equation}
-where the momentum coefficient $\alpha = e^{-\Delta t/\tau}$. At a 10~Hz control rate, $\alpha \approx 0.70$.
-
-% Ported from: cwaight_systems_paper.tex
-The sensed field $\mathbf{v}(\mathbf{p}_i)$ enters only the estimation framework of Section~\ref{sec:ch4:estimation}. It does not appear as a force or drift term in (\ref{eq:ch2:continuous})--(\ref{eq:ch2:momentum}), so each robot's velocity responds only to the commanded $\mathbf{v}_{\text{des}}$. On the testbeds used here the field exists as a printed color map or a simulated quantity, so no physical flow acts on the platform. Section~\ref{sec:ch9:advection} discusses the extension to flows that advect the robot directly.
-
+T(r"""
 \section{Field Reconstruction as a Simulation Noise Model}
 \label{sec:ch2:reconstruction}
+"""),
+P('sys', 'This method of representing vector fields in printed floor maps has imperfections',
+  subs=[('referenced in Section~IV as the realistic noise model for simulation.',
+         'used in Chapter~\\ref{ch:first_order} as the realistic noise model for simulation.')]),
+P('sys', '\\caption{Analytical fields, sensor-based reconstructions, and reconstruction error',
+  end='\\end{figure}', back=3,
+  subs=[('measurement_error_comparison.png', 'ch2_measurement_error_comparison.png'),
+        ('width=0.43\\textwidth', 'width=0.75\\textwidth')]),
 
-% Ported from: cwaight_systems_paper.tex
-This method of representing vector fields in printed floor maps has imperfections in both printing and sensing. Fig.~\ref{fig:ch2:measurement_error} shows the analytical vortex and saddle fields, reconstructions of each field from sensed robot measurements, and the reconstruction error (bottom row). These reconstructed fields were used to fit multilayer perceptron (MLP) interpolation models, used in Chapter~\ref{ch:first_order} as the realistic noise model for simulation.
-
-% Ported from: cwaight_systems_paper.tex
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.75\textwidth]{ch2_measurement_error_comparison.png}
-    \caption{Analytical fields, sensor-based reconstructions, and reconstruction error for vortex and saddle fields.}
-    \label{fig:ch2:measurement_error}
-\end{figure}
-
+T(r"""
 \section{Simulation Environment}
 \label{sec:ch2:simulation}
 
@@ -378,12 +364,12 @@ measurement time, leaving the true robot state untouched.
 \section{Testbed Limitations}
 \label{sec:ch2:limitations}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 5, transcribed from the published PDF
+""" + IDC.format('Sec. 5') + r"""
 Despite significant improvements over previous testbeds, important
 limitations persist. Indoor small-scale testbeds often inadequately
-represent large-scale environments \cite{40}, and our system is
+represent large-scale environments \cite{idc:10}, and our system is
 currently restricted to static vector fields, preventing reactive control
-testing in dynamic environments \cite{37} with no clear path to enable
+testing in dynamic environments \cite{idc:6} with no clear path to enable
 this using colormaps. Constrained to two-dimensional vector fields, 3D
 extensions would require additional sensing capabilities.
 
@@ -397,3 +383,7 @@ life per robot, and a limited velocity range of 0.05 to 0.3~m/s.
 Additionally, the Decabots' wheels degrade both paper and printed colors
 on colormaps, necessitating replacement after a few dozen runs and adding
 significant operational costs.
+"""),
+]
+
+write('ch02_verification_tools.tex', parts)

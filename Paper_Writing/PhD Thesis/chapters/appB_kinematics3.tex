@@ -1,103 +1,63 @@
 \chapter{Three-Robot Cluster Kinematics}
 \label{app:kin3}
-% Ported from: cwaight_systems_paper.tex, Appendix "Three-Robot Cluster
-% Controller Equations" (Forward Kinematics, Inverse Kinematics, Inverse
-% Jacobian), the newest source for this material.
 
-This appendix gives the forward kinematics, inverse kinematics, and
-inverse Jacobian for the three-robot Side-Angle-Side (SAS) triangle
-formation used by the cluster space controller of
-Chapter~\ref{ch:first_order}. The shape is parameterized by $(p,\beta,q)$,
-where $p$ is the distance between robots 1 and 2, $\beta$ is the interior
-angle at robot 2, and $q$ is the distance between robots 2 and 3.
-
+% Ported from: cwaight_systems_paper.tex
 \section{Forward Kinematics}
-\label{sec:appB:forward}
 
-The forward kinematics transform robot positions $(x_1,y_1)$,
-$(x_2,y_2)$, $(x_3,y_3)$ to the SAS parameters and centroid coordinates.
-The centroid position is
-\begin{equation}
-x_c = \frac{x_1+x_2+x_3}{3}, \qquad y_c = \frac{y_1+y_2+y_3}{3}.
-\label{eq:appB:centroid}
+The forward kinematics transforms robot positions $(x_1, y_1)$, $(x_2, y_2)$, $(x_3, y_3)$ to the SAS parameters and centroid coordinates. The centroid position is:
+\begin{equation}\label{eq:appB:20}
+x_c = \frac{x_1 + x_2 + x_3}{3}, \quad y_c = \frac{y_1 + y_2 + y_3}{3}
 \end{equation}
-The side lengths, with $\mathbf{p}_i = (x_i,y_i)$ the position of robot
-$i$, are
-\begin{equation}
-p = \lVert \mathbf{p}_2 - \mathbf{p}_1 \rVert, \qquad
-q = \lVert \mathbf{p}_3 - \mathbf{p}_2 \rVert.
-\label{eq:appB:sides}
+The side lengths, with $\mathbf{p}_i = (x_i, y_i)$ the position of robot $i$, are:
+\begin{equation}\label{eq:appB:21}
+p = \lVert \mathbf{p}_2 - \mathbf{p}_1 \rVert, \quad q = \lVert \mathbf{p}_3 - \mathbf{p}_2 \rVert
 \end{equation}
-The interior angle at robot 2 is
-\begin{equation}
-\beta = \arccos\left(\frac{(\mathbf{p}_1-\mathbf{p}_2)\cdot(\mathbf{p}_3-\mathbf{p}_2)}{pq}\right).
-\label{eq:appB:beta}
+The interior angle at robot 2 is:
+\begin{equation}\label{eq:appB:23}
+\beta = \arccos\left(\frac{(\mathbf{p}_1 - \mathbf{p}_2) \cdot (\mathbf{p}_3 - \mathbf{p}_2)}{pq}\right)
 \end{equation}
-The orientation angle is
-\begin{equation}
-\theta_c = \operatorname{atan2}(y_1-y_2,\,x_1-x_2).
-\label{eq:appB:theta_c}
+
+The orientation angle is:
+\begin{equation}\label{eq:appB:24}
+\theta_c = \text{atan2}(y_1 - y_2, x_1 - x_2)
 \end{equation}
 
 \section{Inverse Kinematics}
-\label{sec:appB:inverse}
 
-Given the SAS parameters $(p,\beta,q)$ and centroid parameters
-$(x_c,y_c,\theta_c)$, the robot positions are recovered by constructing
-the triangle in a local frame and then applying rotation and translation.
+Given the SAS parameters $(p, \beta, q)$ and centroid parameters $(x_c, y_c, \theta_c)$, the robot positions are recovered by constructing the triangle in a local frame and then applying rotation and translation.
 
-In the local frame with robot 2 at the origin, the triangle is
-constructed as
-\begin{equation}
-(x_1,y_1)^{\text{local}} = (p,0), \qquad
-(x_2,y_2)^{\text{local}} = (0,0), \qquad
-(x_3,y_3)^{\text{local}} = (q\cos\beta,\,q\sin\beta).
-\label{eq:appB:local_triangle}
+In the local frame with robot 2 at the origin, the triangle is constructed as:
+\begin{equation}\label{eq:appB:25}
+\begin{aligned}
+(x_1, y_1)^{\text{local}} &= (p,\, 0), \qquad (x_2, y_2)^{\text{local}} = (0,\, 0), \\
+(x_3, y_3)^{\text{local}} &= (q\cos\beta,\, q\sin\beta)
+\end{aligned}
 \end{equation}
-This construction assumes robot 3 lies counterclockwise from the robot
-1-robot 2 edge; since $\beta$ from Equation~\eqref{eq:appB:beta} lies in
-$(0,\pi)$, the mirror configuration (robot 3 clockwise of the edge) maps
-to the same SAS parameters.
 
-The local centroid is
-\begin{equation}
-x_c^{\text{local}} = \frac{x_1^{\text{local}}+x_2^{\text{local}}+x_3^{\text{local}}}{3}, \qquad
-y_c^{\text{local}} = \frac{y_1^{\text{local}}+y_2^{\text{local}}+y_3^{\text{local}}}{3}.
-\label{eq:appB:local_centroid}
+This construction assumes robot 3 lies counterclockwise from the robot 1--robot 2 edge; since $\beta$ from (\ref{eq:appB:23}) lies in $(0, \pi)$, the mirror configuration (robot 3 clockwise of the edge) maps to the same SAS parameters.
+
+The local centroid is:
+\begin{equation}\label{eq:appB:28}
+x_c^{\text{local}} = \frac{x_1^{\text{local}} + x_2^{\text{local}} + x_3^{\text{local}}}{3}, \quad y_c^{\text{local}} = \frac{y_1^{\text{local}} + y_2^{\text{local}} + y_3^{\text{local}}}{3}
 \end{equation}
-After centering the triangle at the local origin and applying rotation
-$\theta_c$ and translation to $(x_c,y_c)$, the global positions become
-\begin{equation}
-\begin{bmatrix} x_i \\ y_i \end{bmatrix} =
-\begin{bmatrix} \cos\theta_c & -\sin\theta_c \\ \sin\theta_c & \cos\theta_c \end{bmatrix}
-\begin{bmatrix} x_i^{\text{local}} - x_c^{\text{local}} \\ y_i^{\text{local}} - y_c^{\text{local}} \end{bmatrix}
-+ \begin{bmatrix} x_c \\ y_c \end{bmatrix}
-\label{eq:appB:global_positions}
+
+After centering the triangle at the local origin and applying rotation $\theta_c$ and translation to $(x_c, y_c)$, the global positions become:
+\begin{equation}\label{eq:appB:29}
+\begin{bmatrix} x_i \\ y_i \end{bmatrix} = \begin{bmatrix} \cos\theta_c & -\sin\theta_c \\ \sin\theta_c & \cos\theta_c \end{bmatrix} \begin{bmatrix} x_i^{\text{local}} - x_c^{\text{local}} \\ y_i^{\text{local}} - y_c^{\text{local}} \end{bmatrix} + \begin{bmatrix} x_c \\ y_c \end{bmatrix}
 \end{equation}
-for $i \in \{1,2,3\}$.
+for $i \in \{1, 2, 3\}$.
 
 \section{Inverse Jacobian}
-\label{sec:appB:jacobian}
 
-The inverse Jacobian maps shape-parameter velocities to robot velocities:
-\begin{equation}
+The inverse Jacobian maps shape parameter velocities to robot velocities:
+\begin{equation}\label{eq:appB:30}
 \begin{bmatrix}
 \delta x_1 \\ \delta y_1 \\ \delta x_2 \\ \delta y_2 \\ \delta x_3 \\ \delta y_3
 \end{bmatrix} =
 \mathbf{J}_c^{-1}
 \begin{bmatrix}
-\delta x_c \\ \delta y_c \\ \delta\theta_c \\ \delta p \\ \delta\beta \\ \delta q
-\end{bmatrix},
-\label{eq:appB:inv_jac}
+\delta x_c \\ \delta y_c \\ \delta \theta_c \\ \delta p \\ \delta \beta \\ \delta q
+\end{bmatrix}
 \end{equation}
-where $\mathbf{J}_c^{-1}$ is a $6\times6$ matrix containing partial
-derivatives $\partial x_i/\partial\xi_j$ and $\partial y_i/\partial\xi_j$
-for robot positions and shape parameters
-$\xi_j \in \{x_c,y_c,\theta_c,p,\beta,q\}$. The entries of $\mathbf{J}_c^{-1}$ are not listed here; they follow
-mechanically from differentiating Equation~\eqref{eq:appB:global_positions}.
-In the simulation software they are evaluated at each control step by
-forward finite differences of the inverse kinematics
-(\texttt{compute\_inverse\_jacobian} in \texttt{src/control/kinematics.py},
-step $10^{-6}$), and the \texttt{cluster\_builder} tool in the same
-repository generates them in closed symbolic form for any formation
-(\texttt{clusterbuilder.py} with the \texttt{--symbolic} option).
+
+where $\mathbf{J}_c^{-1}$ is a $6 \times 6$ matrix containing partial derivatives $\frac{\partial x_i}{\partial \xi_j}$ and $\frac{\partial y_i}{\partial \xi_j}$ for robot positions and shape parameters $\xi_j \in \{x_c, y_c, \theta_c, p, \beta, q\}$. This matrix is computed analytically by taking partial derivatives of the inverse kinematics equations (\ref{eq:appB:29}) with respect to each shape parameter. The explicit entries are not listed here. The simulation software computes them by forward finite differences of the inverse kinematics (\texttt{compute\_inverse\_jacobian} in \texttt{src/control/kinematics.py}), and the \texttt{cluster\_builder} tool generates them in closed symbolic form (\texttt{clusterbuilder.py} with the \texttt{--symbolic} option).

@@ -1,3 +1,9 @@
+import port
+from port import P, T, write
+port.PRE = 'ch4'
+
+parts = [
+T(r"""
 % ===================================================================
 % CHAPTER 4: COOPERATIVE ESTIMATION FRAMEWORK
 % ===================================================================
@@ -13,19 +19,12 @@ describes the architecture and the estimation pattern once.
 
 \section{Multilayer Control Architecture}
 \label{sec:ch4:architecture}
-
-% Ported from: Draft_11.tex
-The control architecture is the established multilayer approach of prior
-cluster space adaptive navigation studies \cite{2}, shown in
-Fig.~\ref{fig:ch4:control_architecture}. There are three layers: (1) an
-adaptive navigation layer that estimates the local field and generates the
-cluster velocity command, (2) a cluster controller layer that maintains
-the formation and translates between cluster space and robot space
-variables, and (3) a robot controller layer that converts each robot's
-velocity command into actuation. Field samples enter only at the adaptive
-navigation layer. The layers below it operate on velocity commands and
-positions alone.
-
+"""),
+P('sep', 'The control architecture is the established multilayer approach of prior',
+  end='positions alone.',
+  subs=[('studies \\cite{2,10}, shown in\nFig.~\\ref{fig:control_architecture}.',
+         'studies \\cite{2}, shown in\nFig.~\\ref{fig:ch4:control_architecture}.')]),
+T(r"""
 % Ported from: IDETC 2025 (DETC2025-167604), Sec. 2.1, transcribed from the published PDF
 This architecture was selected because its modular layered approach
 allows for independent development and testing of different components
@@ -34,24 +33,21 @@ reusability, enabling systematic comparison of navigation strategies
 using standardized components in downstream layers. Additionally, the
 architecture enables the same control laws to be applied across different
 robot platforms and formations.
+"""),
+P('sys', 'At each control cycle (10~Hz), each robot reports its position and vector field measurement.'),
+P('sys', '\\caption{Hierarchical control architecture: robot, cluster space, and adaptive',
+  end='\\end{figure}', back=3,
+  subs=[('control_architecture_2.png', 'ch4_control_architecture.png'),
+        ('width=0.40\\textwidth', 'width=0.55\\textwidth')]),
 
-% Ported from: cwaight_systems_paper.tex
-At each control cycle (10~Hz), each robot reports its position and vector field measurement. The cluster space kinematics are computed, and the cluster shape velocity commands needed for formation control are determined. The adaptive navigation layer computes the critical point estimate and generates a cluster velocity command. The cluster space controller maps all velocity commands to individual robot velocities via the inverse kinematic Jacobian.
-
-% Ported from: cwaight_systems_paper.tex
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.55\textwidth]{ch4_control_architecture.png}
-    \caption{Hierarchical control architecture: robot, cluster space, and adaptive navigation layers.}
-    \label{fig:ch4:control_architecture}
-\end{figure}
-
+T(r"""
 \subsection{Robot Controller Layer}
 \label{sec:ch4:robot_layer}
-
-% Ported from: cwaight_systems_paper.tex
-Each robot's controller receives velocity commands and translates them into motion. Each robot also samples the local vector field $\mathbf{v}(\mathbf{p}_i) = (u_i, v_i)$ and reports its global position $\mathbf{p}_i$, providing the inputs to the estimation framework of Section~\ref{sec:ch4:estimation}.
-
+"""),
+P('sys', "Each robot's controller receives velocity commands and translates them into motion.",
+  subs=[('providing the inputs to the estimation framework described in Section~II.',
+         'providing the inputs to the estimation framework of Section~\\ref{sec:ch4:estimation}.')]),
+T(r"""
 % New text
 Section~\ref{sec:ch2:dynamics} gives the first-order lag, speed limit, and
 stiction floor identified for the Decabots, which the simulations of
@@ -64,7 +60,7 @@ later chapters reproduce.
 To maintain a fixed formation while commanding all robots with individual
 velocity commands, a cluster space controller was used. Cluster space
 control is a technique developed by Dr. Chris Kitts of Santa Clara
-University \cite{52}. In this technique, all robot positions are
+University \cite{idc:17}. In this technique, all robot positions are
 described geometrically relative to a cluster frame via a set of
 kinematic equations.
 
@@ -72,10 +68,9 @@ kinematic equations.
 It is an operational space control approach in which the multirobot
 formation is represented as a virtualized full degree-of-freedom
 articulating mechanism.
-
-% Ported from: cwaight_systems_paper.tex
-We refer to the group of robots as a cluster: a formation treated as a single virtual rigid body whose centroid, orientation, and internal geometry can be independently specified and controlled \cite{52,53}.
-
+"""),
+P('sys', 'We refer to the group of robots as a cluster: a formation treated as a single virtual rigid body'),
+T(r"""
 % Ported from: IDETC 2025, Sec. 2.3, transcribed from the published PDF
 Cluster space control also provides a closed form method for converting
 between cluster-level commands and robot-level commands. This allows for
@@ -87,50 +82,33 @@ instantaneous position and sensed information.
 
 \subsubsection{Three-Robot SAS Formation}
 \label{sec:ch4:sas}
+"""),
+P('sys', "The cluster space controller maintains the cluster's formation geometry while executing"),
+P('sys', 'In this study, we consider a cluster of three robots forming a triangular configuration.',
+  subs=[('In this study, we consider', 'Chapters~\\ref{ch:zeroth} and~\\ref{ch:first_order} consider')]),
+P('sys', '\\caption{Three-robot triangular formation parameterized by SAS variables',
+  end='\\end{figure}', back=3,
+  subs=[('SAS_Robots.png', 'ch4_SAS_Robots.png'),
+        ('width=0.30\\textwidth', 'width=0.45\\textwidth')]),
+P('sys', 'The forward kinematic equations map the robot positions',
+  subs=[('The full equations are given in Appendix~B.',
+         'The full equations are given in Appendix~\\ref{app:kin3}.')]),
 
-% Ported from: cwaight_systems_paper.tex
-The cluster space controller maintains the cluster's formation geometry while executing centroid velocity commands from the adaptive navigation layer. It translates cluster-level velocity commands into individual robot velocity commands using an inverse kinematic Jacobian, and transforms robot position data back into cluster variables for feedback control.
-
-% Ported from: cwaight_systems_paper.tex
-Chapters~\ref{ch:zeroth} and~\ref{ch:first_order} consider a cluster of three robots forming a triangular configuration. The shape can be parameterized using Side-Angle-Side (SAS) representation with parameters $(p, \beta, q)$, where $p$ is the distance between robots 1 and 2, $\beta$ is the interior angle at robot 2, and $q$ is the distance between robots 2 and 3, as visualized in Fig.~\ref{fig:ch4:threerobot}.
-
-% Ported from: cwaight_systems_paper.tex
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.45\textwidth]{ch4_SAS_Robots.png}
-    \caption{Three-robot triangular formation parameterized by SAS variables: side lengths $p$, $q$ and interior angle $\beta$.}
-    \label{fig:ch4:threerobot}
-\end{figure}
-
-% Ported from: cwaight_systems_paper.tex
-The forward kinematic equations map the robot positions $(x_1, y_1), (x_2, y_2), (x_3, y_3)$ to the cluster shape parameters, and the inverse kinematic equations map cluster variables back to robot positions. Differentiating them gives analytic forms for the cluster space kinematic Jacobian and its inverse, which translate velocities between robot space and cluster space. The full equations are given in Appendix~\ref{app:kin3}.
-
+T(r"""
 \subsubsection{Six-Robot Pentagon-Plus-Center Formation}
 \label{sec:ch4:pentagon}
+"""),
+P('sep', 'Cluster space control treats a multirobot formation as a virtual rigid',
+  end='the layer above through the forward kinematics.',
+  subs=[('(Fig.~\\ref{fig:pentagon})', '(Fig.~\\ref{fig:ch4:pentagon})'),
+        ('inverse Jacobian $\\mathbf{J}^{-1}$', 'inverse Jacobian $\\mathbf{J}_c^{-1}$'),
+        ('through the forward kinematics.', 'through the forward kinematics (Appendix~\\ref{app:kin6}).')]),
+P('sep', '\\caption{Pentagon-plus-center formation. Robot 1 sits at the centroid',
+  end='\\end{figure}', back=3,
+  subs=[('figures/pentagon_formation.png', 'ch4_pentagon_formation.png'),
+        ('width=0.5\\columnwidth', 'width=0.45\\textwidth')]),
 
-% Ported from: Draft_11.tex
-Cluster space control treats a multirobot formation as a virtual rigid
-body that can be moved, scaled, and articulated \cite{52}. For six planar
-robots the cluster state has twelve variables. The centroid $(x_c, y_c)$
-and heading $\theta_c$ place the formation, and nine shape variables set
-its geometry. The robots form three pairs whose midpoints define an SAS
-triangle $(p, \beta, q)$ (Fig.~\ref{fig:ch4:pentagon}). The cluster controller layer maps the
-cluster-space velocity vector to robot velocities through the analytic
-inverse Jacobian $\mathbf{J}_c^{-1}$ and returns measured robot positions to
-the layer above through the forward kinematics (Appendix~\ref{app:kin6}).
-
-% Ported from: Draft_11.tex
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.45\textwidth]{ch4_pentagon_formation.png}
-    \caption{Pentagon-plus-center formation. Robot 1 sits at the centroid
-    $\mathbf{p}_c$ and robots 2 to 6 on a ring (dotted). The cluster
-    variables shown are the pair separations $L_2$, $L_3$, $L_4$, a pair
-    orientation $\theta_3$, the SAS parameters $(p, \beta, q)$ of the
-    triangle of pair midpoints (squares), and the heading $\theta_c$.}
-    \label{fig:ch4:pentagon}
-\end{figure}
-
+T(r"""
 \subsection{Adaptive Navigation Layer}
 \label{sec:ch4:an_layer}
 
@@ -237,3 +215,7 @@ Third & 10 & common cubic & third derivatives, the true $\mathbf{H}_D$ and trans
 \hline
 \end{tabular}
 \end{table}
+"""),
+]
+
+write('ch04_estimation_framework.tex', parts)

@@ -1,0 +1,87 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{amsmath,amssymb}
+
+\begin{document}
+
+\title{\vspace{-2.0cm}Response to Reviewer 1}
+\author{Christopher Waight and Christopher A. Kitts}
+\date{\today}
+\maketitle
+
+\vspace{-0.5cm}
+We thank the reviewer for their thorough and constructive feedback. We appreciate the detailed review of the mathematics, benchmark analysis, and claims. Below is our point-by-point response addressing every single piece of feedback in the report, including minimal textual fixes proposed for the next revision.
+
+\vspace{-0.2cm}
+\section*{2.2 Where the mathematics can be challenged}
+
+\textbf{M1. The rotating-observer model matches one sensing pipeline, and the paper does not say which} \\
+\textit{Response:} We initially questioned whether the $\mathbf{v}' = \mathbf{Q}\mathbf{v} + \Omega R \mathbf{p}'$ kinematic artifact accurately applied, but we appreciate the rigorous breakdown demonstrating its exact correspondence. The mathematical derivation provided by the reviewer is sound for the specific sensing pipeline where a robot measures relative water velocity and adds its own velocity obtained from position fixes in the drifting axes. \\
+\textbf{Minimal Fix Proposed:} 
+\begin{enumerate}
+    \setlength{\itemsep}{0pt}
+    \setlength{\parskip}{0pt}
+    \item Add two sentences to IV-D right after the rotating-frame field $\mathbf{v}'$: \textit{``This is the field a cluster measures when each robot senses water velocity relative to itself and adds its own velocity from position fixes in the drifting axes. A sensor that reports an earth-referenced vector rotated by the heading error measures $\mathbf{Q}\mathbf{v}$ instead, which leaves $D$ unchanged.''}
+    \item In the Conclusion, narrow the rule: \textit{``One whose flow estimate is referenced to a drifting frame...''}
+    \item Replace ``about $7^\circ$/h'' with the dimensionless rate $\Omega/(\pi^2 A) \approx 0.21$.
+\end{enumerate}
+
+\vspace{-0.2cm}
+\section*{Stability, Heuristics, and Noise}
+
+\textbf{M2. The stability argument is a continuous-time idealization} \\
+\textit{Response:} We agree with the scope regarding the positive constant $a_\perp$. \\
+\textbf{Minimal Fix Proposed:} Add the scoping sentence to the Appendix before the Proposition: \textit{``The analysis is for the continuous-time idealization; where $a_\perp$ varies along the ride, the bound holds with $a_\perp$ replaced by its infimum.''} Add the uniform-decrease step to the proof, and the one-sentence benchmark profile to III-B.
+
+\textbf{M3. The $D$ tracker's capture test cannot certify its own target on the benchmark} \\
+\textit{Response:} We agree the fitted Hessian lacks the terms to make it definite at a saddle. \\
+\textbf{Minimal Fix Proposed:} After Eq. (18), add: \textit{``The fitted Hessian lacks the $\mathbf{J}\cdot\partial^3\mathbf{v}$ terms that make $\mathbf{H}_D$ definite at a saddle, so (18) is a heuristic.''}
+
+\textbf{M4. The $s_1$ noise fragility has a per-cycle explanation that the paper sets aside} \\
+\textit{Response:} The reviewer rightly separates persistence from accuracy. \\
+\textbf{Minimal Fix Proposed:} Soften the attribution in IV-C to: \textit{``Noise flips the sign at tangent selection, and because the $s_1$ tracker carries that sign in state through $\mathbf{t}_{\mathrm{ref}}$, a flip persists instead of being corrected on the next cycle.''} Also change ``leaving the primitive's own prior output'' to ``so we use the primitive's own prior output''.
+
+\textbf{M5. The simulated noise model is right, and Eq. (7) is an approximation to it} \\
+\textit{Response:} Valid point on spatial correlation and approximations. \\
+\textbf{Minimal Fix Proposed:} Add \textit{``gives, approximately, one effective noise level''} before Eq. (7), and explicitly state that $\eta^u$ and $\eta^v$ are independent. Drop the ``validated on the double gyre only'' clause.
+
+\vspace{-0.2cm}
+\section*{Further Points (M6 - M9)}
+
+\textbf{M6. Tangent selection off the trench is not analyzed} \\
+\textit{Response:} We will adopt the minimal text scope rather than adding the new basin-of-acquisition map. \\
+\textbf{Minimal Fix Proposed:} Scope the claim in the Abstract and Section C3 to \textit{``from starts up to $2.7\rho$ off the structure.''}
+
+\textbf{M7. The ocean trial exercises both segment types, but its $s_1$ result depends on the interpolant} \\
+\textit{Response:} This is a fair assessment of the bilinear sampler vs. smoother interpolants. \\
+\textbf{Minimal Fix Proposed:} State the bilinear sampler in V-A. In V-B, report the eigenvector split and matching references per segment. In Section VI, add the limitation: \textit{``The $s_1$ path depends on the spatial interpolant after about 14 h, while the $D$ path does not.''}
+
+\textbf{M8. Statements true on the benchmark are written as general} \\
+\textit{Response:} Agreed. \\
+\textbf{Minimal Fix Proposed:} Change ``a flow saddle is...'' to \textit{``on the benchmark, a flow saddle is...''} in III-C, and restrict the strain-dominated claim to \textit{``In incompressible flow, where $D < 0$''} in II-D.
+
+\textbf{M9. The minimality and conic statements need one line each} \\
+\textit{Response:} The degenerate conic case needs addressing. \\
+\textbf{Minimal Fix Proposed:} Add \textit{``since $\boldsymbol{\Phi} \mathbf{c} = \mathbf{0}$ for nonzero $\mathbf{c}$ exactly when all six satisfy $\mathbf{c}^T\boldsymbol{\phi}(\mathbf{p}) = 0$, degenerate conics such as line pairs included, so any two-row layout is singular''} in II-B.
+
+\vspace{-0.2cm}
+\section*{Overclaims and Housekeeping}
+
+\textit{Response:} We agree with all the quick wins and housekeeping points. \\
+\textbf{Minimal Fixes Proposed:}
+\begin{itemize}
+    \setlength{\itemsep}{0pt}
+    \setlength{\parskip}{0pt}
+    \item Delete the word ``exact'' describing the curves.
+    \item Delete the closing flourish ``neither could see''.
+    \item Cite or cut the unsupported claim about sampling larger basins without adaptive navigation.
+    \item Clarify ambiguous numbers and locations identified in Section 5.2.
+    \item Fix the figure order (IEEE chronological requirement), fix the notation collision on $\mathbf{J}$, and update references [2] and [34] as requested.
+    \item Remove the inline source comment ``\%\ \#\#\#\#\#\#\ I have proofread...''.
+\end{itemize}
+
+\end{document}

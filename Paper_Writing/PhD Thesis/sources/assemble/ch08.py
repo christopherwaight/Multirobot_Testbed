@@ -1,3 +1,9 @@
+import port
+from port import P, T, write
+port.PRE = 'ch8'
+
+parts = [
+T(r"""
 % ===================================================================
 % CHAPTER 8: CROSS-CUTTING FINDINGS
 % ===================================================================
@@ -192,3 +198,7 @@ $s_1$ tracker & 2 & 6 & $\hat{s}_1$ and $\nabla\hat{s}_1$ & same transverse boun
 \hline
 \end{tabular}
 \end{table}
+"""),
+]
+
+write('ch08_crosscutting.tex', parts)

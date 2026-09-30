@@ -1,180 +1,60 @@
 \chapter{Canonical Field Definitions}
 \label{app:fields}
-% Ported from: cwaight_systems_paper.tex, Appendix "Vector Field
-% Environments" (six canonical critical-point fields); Draft_11.tex
-% Sec. "The Double-Gyre Example" (steady double gyre, closed forms for
-% D, grad D, H_D, s1); PhD Thesis/sources/idetc2025_testbed.txt Sec. 3.1
-% (DETC2025-167604, Waight and Kitts, thesis:33 -- fixed-vortex and
-% sinking-vortex closed forms, eqs. 8-13 there).
 
-This appendix collects, in one place, every vector field used anywhere in
-this dissertation: the six canonical critical-point fields of
-Chapter~\ref{ch:first_order}, the fixed and sinking vortex fields of
-Chapter~\ref{ch:zeroth}, and the steady double gyre of
-Chapter~\ref{ch:second_order}. Where two chapters use a field with the
-same name but a different functional form, both are given here as
-distinct fields, and the difference is flagged rather than resolved.
-
-\section{Six Canonical Critical-Point Fields}
+\section{Six Canonical Critical Point Fields}
 \label{sec:appA:canonical}
 
-Six vector field environments centered at the origin were used to evaluate
-the three-robot critical-point navigation algorithms of
-Chapter~\ref{ch:first_order}. Let $\rho = \sqrt{x^2+y^2}$ and
-$\theta = \operatorname{atan2}(y,x)$ (this polar radius is written $\rho$
-rather than the source paper's bare $r$ to avoid collision with the
-orbital radial magnitude $r$ used elsewhere in that chapter's control
-laws). The base fields are the vortex (pure rotational flow), the sink
-(radial inward flow) whose negation $\mathbf{v}_{\text{source}} =
--\mathbf{v}_{\text{sink}}$ is the source (radial outward flow), and the
-saddle, an axis-aligned saddle rotated by $45^\circ$ so that its stable
-and unstable directions lie along the diagonals $y=x$ and $y=-x$:
-\begin{equation}
-\mathbf{v}_{\text{vortex}} = \begin{bmatrix} -\rho\sin\theta \\ \rho\cos\theta \end{bmatrix}, \quad
-\mathbf{v}_{\text{sink}} = \begin{bmatrix} -x \\ -y \end{bmatrix}, \quad
-\mathbf{v}_{\text{saddle}} = \begin{bmatrix} -y \\ -x \end{bmatrix}.
-\label{eq:appA:base_fields}
+% Ported from: cwaight_systems_paper.tex
+Six vector field environments centered at the origin were used to evaluate the first-order primitives of Chapter~\ref{ch:first_order}. Let $r = \sqrt{x^2 + y^2}$ and $\theta = \text{atan2}(y, x)$. The base fields are the vortex (pure rotational flow), the sink (radial inward flow) whose negation $\mathbf{v}_{\text{source}} = -\mathbf{v}_{\text{sink}}$ is the source (radial outward flow), and the saddle, an axis-aligned saddle rotated by $45^\circ$ so that its stable and unstable directions lie along the diagonals $y = x$ and $y = -x$:
+\begin{equation}\label{eq:appA:14}
+\mathbf{v}_{\text{vortex}} = \begin{bmatrix} -r \sin(\theta) \\ r \cos(\theta) \end{bmatrix}, \;\;
+\mathbf{v}_{\text{sink}} = \begin{bmatrix} -x \\ -y \end{bmatrix}, \;\;
+\mathbf{v}_{\text{saddle}} = \begin{bmatrix} -y \\ -x \end{bmatrix}
 \end{equation}
-The sinking vortex (spiraling inward) and spewing vortex (spiraling
-outward) are linear combinations of the base fields:
-\begin{equation}
+
+% Ported from: cwaight_systems_paper.tex
+The sinking vortex (spiraling inward) and spewing vortex (spiraling outward) are linear combinations of the base fields:
+\begin{equation}\label{eq:appA:15}
 \begin{aligned}
-\mathbf{v}_{\text{sink-vortex}} &= 0.4\,\mathbf{v}_{\text{vortex}} + 0.15\,\mathbf{v}_{\text{sink}}, \\
-\mathbf{v}_{\text{spew-vortex}} &= -0.4\,\mathbf{v}_{\text{vortex}} - 0.15\,\mathbf{v}_{\text{sink}}.
+\mathbf{v}_{\text{sink-vortex}} &= 0.4\,\mathbf{v}_{\text{vortex}} + 0.15\,\mathbf{v}_{\text{sink}} \\
+\mathbf{v}_{\text{spew-vortex}} &= -0.4\,\mathbf{v}_{\text{vortex}} - 0.15\,\mathbf{v}_{\text{sink}}
 \end{aligned}
-\label{eq:appA:combo_fields}
 \end{equation}
-Every field in this section is affine (in fact linear) in $(x,y)$, so its
-Jacobian is constant and the three-robot estimator of
-Chapter~\ref{ch:first_order} recovers the critical point exactly on any
-non-collinear formation, at any size. Table~\ref{tab:appA:summary}
-classifies each field's critical point by the eigenvalue structure of its
-Jacobian.
 
-\section{Fixed and Sinking Vortex (Zeroth-Order Chapter)}
-\label{sec:appA:idetc}
+\section{Testbed Vortex Fields}
+\label{sec:appA:testbed}
 
-Chapter~\ref{ch:zeroth}'s fields are built from solutions of the Laplace
-equation $\nabla^2\phi = 0$ (uniform flow, sinks, sources, dipoles, and
-vortices), superposed using the linearity of that equation. The two
-fields used on hardware are those of the testbed paper \cite{39}.
+% New text
+The fixed and sinking vortex maps of Chapter~\ref{ch:zeroth} are given by
+(\ref{eq:ch5:rtheta})--(\ref{eq:ch5:sinking}). The fixed vortex there is
+the linear clockwise rotation $(y - c_y,\, -(x - c_x))$, the vortex of
+(\ref{eq:appA:14}) with the opposite sense. Its sinking component falls
+off as $1/r$, so it differs from the linear sinking vortex of
+(\ref{eq:appA:15}) and is singular at the center apart from the
+$10^{-6}$ regularization.
 
-The fixed vortex, centered at $(\text{center}_x,\text{center}_y)$, is
-\begin{equation}
-r = \sqrt{(x-\text{center}_x)^2+(y-\text{center}_y)^2}, \qquad
-\theta = \operatorname{atan2}(y-\text{center}_y,\,x-\text{center}_x),
-\label{eq:appA:idetc_rtheta}
-\end{equation}
-\begin{equation}
-u = r\sin\theta, \qquad v = -r\cos\theta.
-\label{eq:appA:idetc_vortex}
-\end{equation}
-Since $r\sin\theta = y-\text{center}_y$ and $r\cos\theta =
-x-\text{center}_x$, Equation~\eqref{eq:appA:idetc_vortex} is the linear,
-clockwise solid-body rotation $\mathbf{v}_{\text{fixed-vortex}} =
-(y-\text{center}_y,\,-(x-\text{center}_x))$, the mirror image (opposite
-sense of rotation) of the vortex of
-Equation~\eqref{eq:appA:base_fields}, and likewise regular (finite
-Jacobian) at the center. Vectors are then rescaled to the range
-$[0.3,1]$ before being printed as the testbed's HSV floor map.
+\section{Steady Double Gyre}
+\label{sec:appA:dg}
 
-The sinking vortex adds a point sink of strength $c_s = 0.2$ to the fixed vortex:
-\begin{equation}
-u \mathrel{+}= -\frac{c_s\,(x-\text{center}_x)}{r^2+10^{-6}}, \qquad
-v \mathrel{+}= -\frac{c_s\,(y-\text{center}_y)}{r^2+10^{-6}},
-\label{eq:appA:idetc_sinking}
-\end{equation}
-with the $10^{-6}$ term added to avoid division by zero at the center.
-This added term is $-c_s\,\hat{\boldsymbol{\rho}}/r$ (pointing toward
-the center with magnitude $c_s/r$), so the sinking vortex is
-singular at the center, apart from the $10^{-6}$ regularization, unlike
-the fixed vortex and unlike
-Equation~\eqref{eq:appA:combo_fields}, which is finite everywhere.
-%% Sign: DETC2025-167604 Eqs. 12-13 print this term with a plus sign
-%% (outward), a typo; the hardware plotting script
-%% trunk/robots_3/saddle_tests/plotter_avg_run_Sinking_Vortex.m uses the
-%% inward form, and the trials spiral inward.
-%% c_s = 0.2 follows the testbed paper's own plotting package
-%% (trunk/robots_3/Results_for TestBed_Paper/plotting_package/
-%% plotter_avg_run_Sinking_Vortex.m); the published equations print 0.1.
-%% Author decision 2026-09-29: use the code value.
-%% This 1/r sink differs from the linear sinking vortex of
-%% Chapter~\ref{ch:first_order}, Equation~\eqref{eq:appA:combo_fields}.
-
-\section{Steady Double Gyre (Second-Order Chapter)}
-\label{sec:appA:double_gyre}
-
-The steady double gyre used throughout Chapter~\ref{ch:second_order} is
-the steady member of the Shadden family \cite{49}, shifted from the
-canonical domain $[0,2]\times[0,1]$ to $[-1,1]\times[-0.5,0.5]$ to center
-it on the origin. The shift is $x_f = x+1$, $y_f = y+0.5$, where
-$(x_f,y_f)$ are field-frame and $(x,y)$ world-frame coordinates, both
-non-dimensional. The field is
-\begin{equation}
-u = -\pi A\sin(\pi x_f)\cos(\pi y_f), \qquad
-v = \pi A\cos(\pi x_f)\sin(\pi y_f),
-\label{eq:appA:dg_u}
-\end{equation}
-with $A = 0.1$. The separatrix is the line $x=0$, the saddle points are
-$\mathbf{p}_1^* = (0,-0.5)$ and $\mathbf{p}_2^* = (0,0.5)$, and the gyre
-centers are $(\pm0.5,0)$.
-
-The Jacobian entries are $u_x = -\pi^2A\cos\pi x_f\cos\pi y_f = -v_y$ and
-$u_y = \pi^2A\sin\pi x_f\sin\pi y_f = -v_x$ (subscripts denote partial
-derivatives), so the flow is incompressible. Its determinant, gradient,
-and Hessian are
-\begin{equation}
-D(\mathbf{p}) = -\tfrac12\pi^4A^2\bigl(\cos2\pi x_f + \cos2\pi y_f\bigr),
-\label{eq:appA:det_analytic}
-\end{equation}
-\begin{equation}
-\nabla D = \pi^5A^2\begin{bmatrix}\sin2\pi x_f\\\sin2\pi y_f\end{bmatrix}, \qquad
-\mathbf{H}_D = 2\pi^6A^2\begin{bmatrix}\cos2\pi x_f & 0\\0 & \cos2\pi y_f\end{bmatrix}.
-\label{eq:appA:gradhess_analytic}
-\end{equation}
-The Hessian is diagonal everywhere, so its eigenvectors lie on the
-coordinate axes and $D$ is additively separable in $x_f$ and $y_f$. $D$
-is positive at the gyre centers, negative at the corner saddles, and zero
-on the diamonds $x_f\pm y_f\in\tfrac12+\mathbb{Z}$. Along the separatrix
-$D = -\pi^4A^2\sin^2\pi y$, deepest at the two saddles and rising to a
-crest, $D=0$, at the origin.
-
-The vorticity is $\omega = -2\pi^2A\sin\pi x_f\sin\pi y_f$, which vanishes
-exactly on the trench grid of $D$ (where $x_f$ or $y_f$ is an integer).
-There $\mathbf{J} = \mathbf{S}$ (the Jacobian equals its symmetric part)
-and, by incompressibility, $D = -s_1^2$. The shear strain vanishes
-identically on this flow, so $\mathbf{S} = \operatorname{diag}(u_x,-u_x)$
-everywhere and the smaller strain eigenvalue has the closed form
-\begin{equation}
-s_1 = -\pi^2A\,\bigl|\cos\pi x_f\cos\pi y_f\bigr|,
-\label{eq:appA:s1_analytic}
-\end{equation}
-with minima $s_1 = -\pi^2A$ at $\mathbf{p}_1^*$, $\mathbf{p}_2^*$, and the
-four domain corners. By incompressibility the Okubo-Weiss parameter is
-$Q = -D$ \cite{43,44}, so the $Q=0$ and $D=0$ contours coincide.
-
-\section{Summary}
-
-Table~\ref{tab:appA:summary} lists every field defined in this appendix,
-its critical point classification, and the chapter that uses it.
+% New text
+The steady double gyre of Chapter~\ref{ch:second_order} is defined in
+(\ref{eq:ch3:dg_u}), with its determinant, Hessian, and smaller strain
+eigenvalue in closed form in Section~\ref{sec:ch3:dg_example}.
 
 \begin{table}[htbp]
 \centering
 \caption{Fields used in this dissertation.}
 \label{tab:appA:summary}
-\begin{tabular}{p{2.3cm}p{3.6cm}p{2.2cm}p{1.6cm}}
+\begin{tabular}{lll}
 \hline
-\textbf{Field} & \textbf{Formula} & \textbf{Critical point} & \textbf{Used in} \\
+Field & Critical points & Chapter \\
 \hline
-Vortex & Eq.~\eqref{eq:appA:base_fields} & Center & \ref{ch:first_order} \\
-Sink & Eq.~\eqref{eq:appA:base_fields} & Stable node & \ref{ch:first_order} \\
-Source & $-\mathbf{v}_{\text{sink}}$ & Unstable node & \ref{ch:first_order} \\
-Saddle & Eq.~\eqref{eq:appA:base_fields} & Saddle point & \ref{ch:first_order} \\
-Sinking vortex & Eq.~\eqref{eq:appA:combo_fields} & Stable spiral & \ref{ch:first_order} \\
-Spewing vortex & Eq.~\eqref{eq:appA:combo_fields} & Unstable spiral & \ref{ch:first_order} \\
-Fixed vortex (testbed) & Eq.~\eqref{eq:appA:idetc_vortex} & Center (regular) & \ref{ch:zeroth} \\
-Sinking vortex (testbed) & Eqs.~\eqref{eq:appA:idetc_vortex}-\eqref{eq:appA:idetc_sinking} & Singular at center & \ref{ch:zeroth} \\
-Steady double gyre & Eq.~\eqref{eq:appA:dg_u} & Two saddles, two centers & \ref{ch:second_order} \\
+Vortex, sink, source, saddle & center, stable node, unstable node, saddle & \ref{ch:first_order} \\
+Sinking and spewing vortex (linear) & stable and unstable spiral & \ref{ch:first_order} \\
+Fixed vortex (testbed) & center & \ref{ch:zeroth} \\
+Sinking vortex (testbed, $1/r$ sink) & singular sink at the center & \ref{ch:zeroth} \\
+Steady double gyre & two saddles, two centers & \ref{ch:second_order} \\
+Santa Barbara Channel record & measured, time-varying & \ref{ch:second_order} \\
 \hline
 \end{tabular}
 \end{table}

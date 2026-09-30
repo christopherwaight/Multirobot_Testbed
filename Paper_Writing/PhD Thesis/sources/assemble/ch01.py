@@ -1,3 +1,11 @@
+import port
+from port import P, T, write
+port.PRE = 'ch1'
+
+IDC = '% Ported from: IDETC 2025 (DETC2025-167604), {}, transcribed from the published PDF'
+
+parts = [
+T(r"""
 % ===================================================================
 % CHAPTER 1: INTRODUCTION
 % ===================================================================
@@ -6,86 +14,63 @@
 
 \section{Adaptive Navigation in Vector Field Environments}
 \label{sec:ch1:an}
+"""),
+P('sep', '\\IEEEPARstart{M}{ultirobot} systems (MRS) offer redundancy, increased',
+  end='\\cite{3,4,5}.',
+  subs=[('\\IEEEPARstart{M}{ultirobot} systems (MRS)', 'Multirobot systems (MRS)')]),
+P('sep', 'Some environments are better modeled as vector fields, which contain features',
+  end='simultaneous local velocity measurements and used this estimate to adaptively navigate towards and around them.',
+  subs=[('  In \\cite{10} a three-robot cluster\nestimated the location and type of one from a linear fit of\nsimultaneous local velocity measurements and used this estimate to adaptively navigate towards and around them.', '')]),
+P('sys', 'The oceanic and atmospheric environments that motivate this work are governed'),
 
-% Ported from: Draft_11.tex
-Multirobot systems (MRS) offer redundancy, increased
-throughput, and cooperative behaviors a single vehicle cannot produce,
-and they now operate across land, sea, air, and space \cite{1,2}.
- In adaptive
-navigation (AN), a vehicle or group of vehicles modifies its direction and path in real time
-from measurements taken while moving \cite{3}. A single vehicle must translate to sense a
-gradient, which costs time and misleads in a time-varying field,
-whereas an MRS can sample multiple locations simultaneously, tolerate
-vehicle failures, adapt its size and shape to the spatial frequencies
-present, and fit a local model of the landscape to steer on its features
-\cite{3,4,5}.
-
-% Ported from: Draft_11.tex
-Some environments are better modeled as vector fields, which contain features without scalar field equivalents. Critical points, such as sinks, sources, and spewing vortices can be used to model convergence zones \cite{6} and subsurface leaks \cite{7}. 
-
-% Ported from: cwaight_systems_paper.tex
-The oceanic and atmospheric environments that motivate this work are governed by a spatially varying velocity or force, and their transport and accumulation behavior is organized by the critical points of the field, the coordinates where the flow vanishes \cite{8,9}. A surface convergence zone acts as a sink, gathering buoyant debris and drifting bodies; this makes such zones high probability search regions after a loss at sea \cite{10,11}. Containing a ruptured wellhead or a harbor discharge requires reaching the source against its own outward flow \cite{7,12}. A mesoscale ocean eddy serves as a center, trapping a body of water, along with the plankton bloom inside it, and carrying both across a basin for weeks \cite{13,14,15}. Monitoring the bloom over its lifetime therefore requires a sensor to orbit the drifting core at a fixed standoff; a ground-fixed station would not stay with the eddy. These applications require the coordinate of the feature itself, whether to drive the multirobot team onto it or to hold it at a fixed standoff radius; a heading toward the feature is not sufficient.
-
+T(r"""
 \section{Literature Review}
 \label{sec:ch1:lit}
 
 \subsection{Adaptive Navigation in Scalar Fields}
+"""),
+P('sep', 'AN in scalar fields is well developed. Each', end='indoor testbed \\cite{4,7}.'),
+P('sys', 'AN in scalar fields is well explored.',
+  subs=[('AN in scalar fields is well explored. Each robot collects a single scalar measurement as the input to a navigation policy that reaches and follows features such as extrema, saddle points, ridges, trenches, contour lines, and fronts \\cite{5,6,7,8,9}. ', '')]),
 
-% Ported from: Draft_11.tex
-AN in scalar fields is well developed. Each
-robot contributes one scalar measurement to a policy that reaches and
-follows a feature, and formations are sized so that differential
-measurements across the cluster recover the gradient and curvature that
-policy consumes \cite{5,16}. \"{O}gren, Fiorelli, and Leonard
-established cooperative gradient climbing with a formation of mobile
-sensors \cite{16}. Bri\~{n}\'{o}n-Arranz, Renzaglia, and Schenato
-extended it to the Hessian, five robots on a ring plus one at the
-center recovering both in closed form \cite{5}. Kitts, McDonald, and
-Neumann developed primitives for extrema finding, contour following,
-ridge/trench following, and saddle point station keeping \cite{3}, and
-verified ridge, trench, saddle, and front tracking experimentally on an
-indoor testbed \cite{4,17}.
-
-% Ported from: cwaight_systems_paper.tex
-Strategies include gradient following \cite{2}, Hessian estimation \cite{5}, extended information consensus filters \cite{18,19}, constrained nonsmooth distributed optimization \cite{20}, and bio-inspired search \cite{21}, and several such systems have been field-deployed on ground, surface, and aerial vehicles for environmental monitoring, pollution tracking, and search and rescue \cite{2,22,23,24}.
-
+T(r"""
 \subsection{Navigation in Vector Fields}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 1, transcribed from the published PDF
+""" + IDC.format('Sec. 1') + r"""
 While multirobot adaptive navigation in scalar field environments is
 well-studied both in simulation and practice, adaptive navigation through
 vector fields remains largely theoretical, compared to extensive
-experimental confirmation in scalar fields \cite{4}. Existing research
+experimental confirmation in scalar fields \cite{idc:2}. Existing research
 in vector fields primarily focuses on constructing artificial vector
 fields for single-robot navigation, formation control, and obstacle
-avoidance \cite{25}. In contrast, this research involves navigation
+avoidance \cite{idc:3}. In contrast, this research involves navigation
 through naturally existing vector fields. The few studies examining
 multirobot systems with distributed sensor measurements in physical
 vector fields have identified promising control primitives for features
 like flow maxima, sinks, sources, and vortices, but these approaches lack
 comprehensive real-world validation and are only validated in simulation
-\cite{26}.
+\cite{idc:4}.
+"""),
+P('sys', 'By contrast, only a few works address navigation of physically sensed vector fields'),
 
-% Ported from: cwaight_systems_paper.tex
-By contrast, only a few works address navigation of physically sensed vector fields \cite{27,28,29}. Much of the broader vector field literature constructs artificial fields for path-following and obstacle avoidance, a separate problem from sensing a real flow \cite{30,31,25,32}, and field campaigns that track features carried by an actual ocean current underscore the distinction \cite{33}.
-
+T(r"""
 \subsection{Robotic Sensing of Physical Flows}
+"""),
+P('sys', 'Work that senses the physical field falls into two camps.'),
 
-% Ported from: cwaight_systems_paper.tex
-Work that senses the physical field falls into two camps. One camp presumes prior knowledge of the environment, which is unavailable in the unmapped settings that motivate this work \cite{34,35}. The other operates online in two behaviors: minimally actuated drifters that ride and station-keep along ambient streamlines, and PIM-triple-inspired teams that straddle a saddle and track a single stable or unstable manifold from local velocity measurements \cite{29,8,36}. Both supply a heading along the flow or track the manifold of a single assumed saddle; neither recovers the coordinate of a critical point together with its identity across the full taxonomy of feature types. Estimating the locations of critical points in vector fields remains an open problem for multirobot systems.
-
+T(r"""
 \subsection{Experimental Testbeds}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 1, transcribed from the published PDF
+""" + IDC.format('Sec. 1') + r"""
 The gap between simulation and reality highlights the need to develop
 experimental testbeds that allow validation of vector field navigation
 strategies under real-world conditions. A testbed of this kind offers
 researchers a cost-effective way to test vector field navigation designs
 before deployment in challenging environments like ocean currents,
 airflow systems, electromagnetic fields, and industrial magnetic settings
-\cite{37,24}. Building upon the framework of Mokhtarian et al.
-\cite{38}, such a platform validates theoretical models prior to
-real-world implementation \cite{39,40}.
+\cite{idc:6,idc:7}. Building upon the framework of Mokhtarian et al.
+\cite{idc:8}, such a platform validates theoretical models prior to
+real-world implementation \cite{idc:9,idc:10}.
 
 \section{Problem Statement}
 \label{sec:ch1:problem}
@@ -183,3 +168,7 @@ Chapter~\ref{ch:conclusion} concludes. The appendices give the field
 definitions, the cluster kinematics for three and six robots, the frame
 equivariance of the $s_1$ tracker, the stability arguments, and the
 statistical methods.
+"""),
+]
+
+write('ch01_introduction.tex', parts)

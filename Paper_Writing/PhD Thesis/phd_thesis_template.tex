@@ -2,15 +2,13 @@
 % Document class: report, 12pt, letter paper, single-sided
 %
 % Structure: 10 chapters organized by estimator fit order (zeroth/first/
-% second), per the fit-order-ladder outline agreed 2026-09-29. This
-% supersedes the 6-chapter, per-paper structure in thesis.tex (kept
-% alongside, untouched, as a prose source to port from).
+% second), per the fit-order-ladder outline agreed 2026-09-29.
 %
-% Section/subsection headers below are SKELETON ONLY. Each carries a
-% %% SOURCE comment pointing at where the real prose should be ported
-% from (thesis.tex line range, or a paper file + section name) so a
-% later pass can move content mechanically rather than redraft it.
-% Figures are placeholder \fbox blocks pending real figure generation.
+% Chapter prose was rebuilt 2026-09-29 by copying from the three papers
+% (IDETC 2025, the critical-points Systems paper, Draft_11). The scripts in
+% sources/assemble/ regenerate each chapter file; every passage carries a
+% "% Ported from" or "% New text" comment. Rerunning a script overwrites
+% its chapter file.
 \documentclass[12pt, letterpaper, oneside]{report}
 
 % -----------------------------------------------------------------------
@@ -196,15 +194,14 @@
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
 
-% SOURCE: thesis.tex lines 181-196 (ported verbatim, first-pass draft,
-% not yet reviewed).
+% Placeholder, for the author to write.
 
 I would like to thank my advisor, Christopher A. Kitts, and the members of
 the Santa Clara University Robotic Systems Laboratory for their support
 throughout this work.
 
-A portion of this work has been published or submitted in [1] and [2], and
-portions are in preparation for future publication.
+Portions of this work appear in the papers listed in
+Section~\ref{sec:ch1:publications}.
 
 \clearpage
 
@@ -225,33 +222,32 @@ portions are in preparation for future publication.
 
 \vspace{0.4in}
 
-% SOURCE: thesis.tex lines 220-246, ported with fit-order framing added.
-% First-pass draft, not yet reviewed.
-
+% Assembled from the three paper abstracts; linking sentences marked.
 \noindent
-This dissertation develops a progression of tools for multirobot estimation
-and navigation in physical fields, in which the order of a local polynomial
-fit to cooperative field measurements sets the class of feature the team can
-locate. A functional hardware testbed of omnidirectional rovers, printed
-HSV-encoded vector field maps, and neural-network sensor calibration
-establishes the experimental platform used throughout, together with a
-zeroth-order (direction-only) baseline that motivates the need for
-higher-order estimation. A first-order estimator is then shown to recover a
-two-dimensional vector field's local Jacobian from three robots' simultaneous
-local measurements alone, enabling closed-form critical point localization,
-eigenvalue-based classification, and attraction and orbital control laws;
-three robots is proven both necessary and sufficient for this estimate, and
-the method is validated in simulation across eight canonical fields and on
-hardware with a 100\% convergence success rate over 157 trials. This result
-is then extended to second order: a six-robot team recovers a flow's local
-Jacobian, Okubo-Weiss parameter, and Hessian from simultaneous measurements,
-enabling two modified-Newton controllers that track dynamic boundaries and
-separatrices no single critical point can describe, with a proven stability
-guarantee and validation on both a canonical double-gyre flow and real
-oceanographic current data. Together, these contributions establish a
-coherent methodology for distributed, model-free field estimation that
-scales from heading-only baselines through isolated critical points to
-extended coherent structures using only local, cooperative sensing.
+Adaptive navigation is the process of modifying a robot's or a system of
+robots' motion in real time based on measurements taken while moving. This
+dissertation applies that process to vector fields and shows that the
+order of the local fit a cluster makes to its measurements sets which
+features of the field it can reach. An indoor testbed encodes direction in
+hue and magnitude in saturation on printed floor maps, and a supervised
+learning neural network calibration achieves an encoding-decoding $R^2$ of
+0.96 in direction and 0.91 in magnitude. On it, direction-only primitives
+reach a target the flow carries them to, but drift outward when asked to
+orbit. A first-order fit from a minimum of three robots estimates critical
+point locations without prior field knowledge, using only real-time local
+measurements. Hardware validation demonstrates a 100\% attraction
+convergence success rate across 157 convergence trials, with average
+position errors of 0.012~m or less from the true critical points, and
+stable orbital control at six commanded radii across two fields. A
+second-order fit from six robots recovers the local quadratic model of a
+flow from one synchronized set of measurements. Two primitives built on it
+locate a separating boundary and navigate to and along it with no
+integration horizon and no pre-straddling. Monte Carlo sweeps show the
+determinant tracker withstands about four times more measurement noise
+than the strain tracker, while in a rotating-frame trial only the strain
+tracker, which is objective, holds the same material path. On Santa
+Barbara Channel radar currents, both primitives follow the same dominant
+transport corridor.
 
 \clearpage
 
@@ -261,29 +257,33 @@ extended coherent structures using only local, cooperative sensing.
 \chapter*{Glossary of Terms}
 \addcontentsline{toc}{chapter}{Glossary of Terms}
 
-% SOURCE: thesis.tex lines 269-295, ported verbatim.
-
 \begin{table}[h]
 \centering
-\begin{tabular}{l p{3.5in}}
-$\mathbf{p}$ & Position vector in the plane, $\mathbf{p}=(x,y)$ \\
-$\mathbf{p}^*$ & Critical point of a vector field, $\mathbf{v}(\mathbf{p}^*)=\mathbf{0}$ \\
-$\mathbf{v}(\mathbf{p})$ & Vector field value at $\mathbf{p}$, components $(u,v)$ \\
-$\mathbf{J}$ & Field Jacobian, $\mathbf{J} = \left[\begin{smallmatrix} u_x & u_y \\ v_x & v_y \end{smallmatrix}\right]$ \\
-$\mathbf{J}_c$ & Kinematic (cluster-space) Jacobian, robot-space to cluster-space velocity map \\
-$\alpha_{\text{eig}}$ & Real part of a complex eigenvalue pair of $\mathbf{J}$ (spiral classification) \\
-$\alpha_{\text{mom}}$ & Momentum / discretization coefficient, $\alpha_{\text{mom}} = \exp(-\Delta t/\tau)$ \\
-$p, q, \beta$ & SAS triangle side lengths and interior angle (Kitts-lab notation, unchanged across chapters) \\
-$\mathbf{q}$ (bold) & Cluster-space state vector (pose + shape, dimension $2N$) \\
-$r$ & Orbital radial vector / magnitude, $\mathbf{r} = \mathbf{p}^*-\mathbf{p}_c$ \\
-$\rho$ & Polar radius (field definitions, Appendix~A) and pentagon ring radius \\
-$D$ & Okubo-Weiss parameter, $D = \det(\mathbf{J})$ \\
+\begin{tabular}{l p{4.2in}}
+$\mathbf{p} = (x, y)$ & Position in the plane \\
+$\mathbf{p}_c$, $\mathbf{p}_i$ & Cluster centroid, position of robot $i$ \\
+$\mathbf{p}^*$ & Critical point, $\mathbf{v}(\mathbf{p}^*) = \mathbf{0}$ \\
+$\mathbf{v} = (u, v)$ & Velocity field and its components \\
+$\mathbf{J} = \nabla\mathbf{v}$ & Velocity gradient (field Jacobian) \\
+$\mathbf{J}_c^{-1}$ & Inverse kinematic Jacobian of the cluster \\
+$\mathbf{S}$, $\mathbf{W}$ & Rate-of-strain tensor and spin, the symmetric and antisymmetric parts of $\mathbf{J}$ \\
+$\omega$ & Vorticity, $\partial v/\partial x - \partial u/\partial y$ \\
+$s_1 \leq s_2$ & Eigenvalues of $\mathbf{S}$, with eigenvectors $\mathbf{e}_1$, $\mathbf{e}_2$ \\
+$D$ & Determinant of the velocity gradient, $\det\mathbf{J}$ \\
 $\mathbf{H}_D$ & Hessian of $D$ \\
-$\boldsymbol{\phi}(\tilde{\mathbf{p}})$ & Quadratic sensing basis vector \\
-$\boldsymbol{\Phi}$ & Six-robot formation matrix (capital Phi) \\
-$\tau$ & Actuator time constant, 0.28~s on Decabot hardware (after recalibration) \\
+$\alpha \pm i\omega$ & Complex eigenvalue pair of $\mathbf{J}$ (Chapter~\ref{ch:first_order}) \\
+$\mathbf{A}$ & Three-robot formation matrix of the first-order fit \\
+$\boldsymbol{\Phi}$, $\boldsymbol{\Phi}_k$ & Formation matrix of the second-order fit, and of an order-$k$ fit \\
+$n_k$ & Number of coefficients per component in an order-$k$ fit \\
+$\kappa(\cdot)$ & Condition number \\
+$p, \beta, q$ & SAS side lengths and interior angle of a cluster triangle \\
+$\rho$ & Formation radius \\
+$r$, $r_d$ & Orbital radius and commanded orbital radius \\
+$\sigma_{uv}$, $\sigma_p$ & Standard deviations of measurement noise and position noise \\
+$\tau$ & Actuator time constant, 0.28~s on the Decabots \\
+$\alpha_{\text{mom}}$ & Momentum coefficient, $e^{-\Delta t/\tau}$ \\
 $\Delta t$ & Control period, 0.1~s (10~Hz) \\
-$v_{\max}$ & Maximum robot speed, 0.3~m/s \\
+$\Omega$ & Rotation rate of an observer frame \\
 \end{tabular}
 \end{table}
 

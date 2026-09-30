@@ -5,130 +5,49 @@
 \label{ch:conclusion}
 
 \section{Summary of Contributions}
+\label{sec:ch10:summary}
 
-\textbf{Chapter~\ref{ch:tools}} established the Decabot testbed used for
-every hardware result in this dissertation: an HSV floor-map encoding,
-direction in hue and magnitude in saturation, together with a
-supervised neural-network calibration procedure that removed the
-RGB-channel interference and the roughly 0.15~Hz discrete-palette
-sampling limit of the prior testbed generation \cite{39}. The
-calibration's first published iteration reached a cross-trained
-accuracy of $R^2 = 0.96$ in direction and $R^2 = 0.91$ in magnitude
-\cite{39}; a later recalibration, performed after preventive
-maintenance and servicing for the first-order hardware campaign of
-Chapter~\ref{ch:first_order}, reached hue RMSE of 0.17~rad
-($9.7^\circ$, $R^2 = 0.991$) and saturation RMSE of 4.4\%
-($R^2 = 0.951$). This chapter's testbed carried the vector-sum and
-vector-to-scalar primitives of Chapter~\ref{ch:zeroth} through their
-first hardware demonstrations and underlies every subsequent hardware
-result in Chapters~\ref{ch:zeroth} and~\ref{ch:first_order}.
+% Ported from: IDETC 2025 (DETC2025-167604), Sec. 7, transcribed from the published PDF
+The testbed of Chapter~\ref{ch:tools} overcame previous testbed
+limitations through HSV color space representation and neural network
+calibration, achieving $R^2$ accuracies of 0.96 for direction and 0.91 for
+magnitude while maintaining precise formation control of the robot
+cluster. On it, the vector-sum and vector-to-scalar primitives ran in
+continuous motion, confirming behaviors previously demonstrated only in
+simulation.
 
-\textbf{Chapter~\ref{ch:preliminaries}} assembled the shared
-mathematical background the rest of the dissertation builds on: the
-velocity gradient tensor and its six canonical critical-point types,
-the rotation-strain (Okubo-Weiss) partition of the plane, Lagrangian
-and objective Eulerian coherent structures, and the steady double gyre
-used as the running benchmark in Chapters~\ref{ch:second_order}
-and~\ref{ch:crosscutting}.
+% Ported from: cwaight_systems_paper.tex
+Chapter~\ref{ch:first_order} presented a distributed framework for multirobot navigation in vector fields containing critical points. A Jacobian-based approach uses instantaneous measurements from three robots to identify critical point locations without prior field knowledge, supporting an attraction control law and an orbital control law built on these estimates. Simulation across six canonical field types confirmed convergence of these control primitives. In 157 hardware convergence trials, the system achieved a 100\% success rate with average position errors of 0.012~m or less. Orbital control experiments maintained commanded radii within 0.25~m error at small radii and 0.1~m at larger radii.
 
-\textbf{Chapter~\ref{ch:estimation}} stated once the machinery the
-papers each re-derived: the three-layer control architecture, the
-three-robot and six-robot cluster-space formations, and the local
-polynomial estimator in general form. A fit of order $k$ has
-$(k+1)(k+2)/2$ coefficients per field component, so it needs that many
-robots, three for the affine fit and six for the quadratic fit, and it
-is singular exactly when the robots lie on a common curve of degree $k$,
-a line at first order and a conic at second. Its noise gains scale as
-$\rho^{-q}$ for a coefficient of degree $q$, against a truncation error
-that grows with the formation radius $\rho$.
+% Ported from: Draft_11.tex
+Chapter~\ref{ch:second_order} showed that a second-order fit of the local flow, from six
+robots sampling at once, is enough to acquire and ride the instantaneous
+coherent structures of a planar flow. The fit gives the velocity gradient
+as a field over the formation, and the two adaptive navigation primitives
+built on it use only synchronous local velocity measurements, with no
+map, no forecast, and no assumption about the structure's identity.
 
-\textbf{Chapter~\ref{ch:zeroth}} instantiated this framework at zeroth
-order: a single scalar reduction of the sensed flow, direction alone
-(vector-sum) or magnitude alone (vector-to-scalar), drives a cluster
-toward a feature with no coordinate estimate. Hardware trials on fixed
-and sinking vortex fields (three robots, $p=q=0.35$~m,
-$\beta = 1.05$~rad, formation held within about 1~cm throughout)
-demonstrated both primitives in continuous motion for the first time
-\cite{39}. The vector-sum primitive settled within
-approximately 0.1~m of the sinking vortex's center but showed a
-consistent outward drift, stable at all angles, on the fixed vortex,
-a momentum effect absent from the primitive's simulation model; the
-vector-to-scalar primitive settled within approximately 0.2~m of the
-fixed vortex's center, with performance essentially unchanged under
-randomized starting positions \cite{39}. Neither primitive
-recovers the critical point's coordinate or supports a commanded
-orbital radius, the gap Chapter~\ref{ch:first_order} closes.
-
-\textbf{Chapter~\ref{ch:first_order}} showed that three robots in a
-non-collinear triangle are both necessary and sufficient to recover a vector field's
-local Jacobian from simultaneous measurements alone. This estimate
-supports a proportional attraction law and an orbital law, both
-validated across eight simulated fields (six canonical, two
-sensor-reconstructed) with 100\% convergence, and validated on
-hardware with a 100\% success rate over 157 convergence trials at
-position errors of 0.012~m or less. Orbital control held commanded
-radii within 0.25~m error at small radii and 0.1~m at larger radii in
-hardware. Recomputed offline from the logs, the same estimates named the
-class of both printed fields correctly in effectively every cycle, once
-each map's sensor frame was registered to the motion-capture frame. A
-direct comparison showed both zeroth-order primitives of
-Chapter~\ref{ch:zeroth} drift outward under orbital command, since
-neither has a mechanism to correct radial error against a specific
-point; the first-order estimate is what supplies that mechanism.
-
-\textbf{Chapter~\ref{ch:second_order}} extended this to second order:
-six robots in a pentagon-plus-center formation, the minimum for the
-quadratic fit, recover a flow's local Jacobian, its determinant $D$, and its
-Hessian $\mathbf{H}_D$ from one synchronized measurement set. Two
-adaptive navigation primitives built on this estimate, the $D$ tracker
-and the $s_1$ (rate-of-strain) tracker, acquire and ride a separating
-boundary from instantaneous measurements alone, with no pre-straddling
-and no integration horizon. Monte Carlo sweeps on the double gyre
-showed the $D$ tracker withstands roughly four times the measurement
-noise the $s_1$ tracker does before its 50\% success crossing, while
-under a rotating observer the ranking reverses: the $s_1$ tracker is
-objective and keeps its straddle at any heading drift tested, while the
-$D$ tracker's formation loses the straddle once the drift exceeds
-roughly $7^\circ$/h. On real Santa Barbara Channel current data, both
-trackers followed the same dominant transport corridor over a 28-hour
-window to its bifurcation, at mean distances of 1.5~km and 2.1~km from
-an FTLE ridge neither tracker could see.
-
-\textbf{Chapter~\ref{ch:crosscutting}} compared the two estimation
-orders directly. A feature located as the zero of a quantity built from
-$m$-th field derivatives is placed with an error that scales as
-$\rho^{-m}\sigma$ over that quantity's transverse slope. For the critical
-point $m = 0$, which recovers
-$\sigma_p \approx \|\mathbf{J}^{-1}\|\sigma_v/\sqrt{3}$ independent of
-formation radius; for both second-order trackers $m = 2$, so their
-terminal error grows as $\rho^{-2}$. Under a rotating observer the trace
-of the Jacobian is unchanged while its determinant shifts, so the
-first-order sink-versus-source distinction survives a frame rotation but
-the saddle-versus-node distinction and the critical point location do
-not; among the trackers only the $s_1$ tracker is objective. What each
-order certifies at the terminal step also differs: the first-order law
-converges to its own estimate, limited by stiction, while the
-second-order trackers certify only a vanishing gradient of their
-surrogate.
+% Ported from: Draft_11.tex
+The experiments give an operational selection rule. With a noisy sensor
+the $D$ tracker withstands about four times the noise the $s_1$ tracker does. Under a rotating observer the
+ranking reverses. Above a heading drift of about 7$^\circ$/h the $D$ tracker's formation
+no longer straddles the structure, while the $s_1$ tracker keeps the
+straddle and returns the same material curve in both frames. On Santa Barbara Channel currents both followed the same transport corridor
+to its bifurcation, at mean distances of 1.5 and 2.1~km from an FTLE ridge neither could see. A cluster with an absolute heading reference, such as a compass, GNSS
+heading, or overhead tracking, should carry the $D$ tracker, which
+tolerates a noisier sensor. One whose heading is dead-reckoned, and so
+drifts, should carry the $s_1$ tracker, which is objective past its one
+seed step.
 
 \section{Final Thoughts}
+\label{sec:ch10:final}
 
-The chapters above share one method applied at rising fit order: a
-multirobot team recovers local structure in an unmapped field from its
-own simultaneous measurements, with no forecast and no prior model, and
-uses that structure directly as a control input. Each order needs
-exactly as many robots as its fit has coefficients per component, three
-for the affine fit and six for the quadratic fit, placed off the fit's
-degenerate curve, a line or a conic. The zeroth-order
-primitives of Chapter~\ref{ch:zeroth} show what a team gains by
-crossing into this framework at all: direction alone drifts on an
-orbit it cannot correct, and only an explicit coordinate estimate
-supplies the mechanism to hold one.
-
-Between the two estimation chapters, the choice is not which method is
-better but which the platform can support. A cluster with an absolute
-heading reference, a compass, GNSS heading, or overhead tracking,
-should carry the $D$ tracker of Chapter~\ref{ch:second_order}, which
-tolerates a noisier sensor. A cluster whose heading is dead-reckoned,
-and so drifts, should carry the $s_1$ tracker, which stays objective
-past its one seed step.
+% New text
+The primitives in this dissertation are admittedly simple, reactive, and
+minimal. Each uses the smallest cluster its fit order allows and only the
+measurements of the current instant. Even in this form, however, they
+show that the order of a cooperative fit sets which features of a flow a
+cluster can reach, from a heading, to a critical point, to a separatrix.
+Ongoing and future work targets a) hardware trials of the second-order
+trackers on the Decabot testbed, b) control that accounts for a flow that
+advects the robots, and c) a third-order fit from ten robots.

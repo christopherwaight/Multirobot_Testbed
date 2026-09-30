@@ -1,3 +1,11 @@
+import port
+from port import P, T, write
+port.PRE = 'ch5'
+
+IDC = '% Ported from: IDETC 2025 (DETC2025-167604), {}, transcribed from the published PDF'
+
+parts = [
+T(r"""
 % ===================================================================
 % CHAPTER 5: ZEROTH-ORDER BASELINES (IDETC 2025 testbed paper)
 % ===================================================================
@@ -15,9 +23,9 @@ the sensed magnitude. Both supply a heading. They were run on the testbed
 of Chapter~\ref{ch:tools}, and they set the baseline for the higher rungs
 of Section~\ref{sec:ch4:ladder}.
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 2.5, transcribed from the published PDF
+""" + IDC.format('Sec. 2.5') + r"""
 To evaluate our platform, we implemented two adaptive navigation
-primitives as control laws from \cite{26}. These were both shown as
+primitives as control laws from \cite{idc:4}. These were both shown as
 center finding primitives that can find environmental extrema or follow a
 closed orbit around the extrema. Both primitives were previously
 validated in simulation, with known limitations documented. These
@@ -27,7 +35,7 @@ reactive approach to adaptive navigation control.
 \section{Vector-Sum Primitive}
 \label{sec:ch5:vector_sum}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 2.5, transcribed from the published PDF
+""" + IDC.format('Sec. 2.5') + r"""
 The vector-sum technique combines the vectors sensed by each robot into a
 resultant vector. The normalized direction of this resultant is then used
 to specify $\dot{x}_c$ and $\dot{y}_c$ for the cluster.
@@ -35,7 +43,7 @@ to specify $\dot{x}_c$ and $\dot{y}_c$ for the cluster.
 \section{Vector-to-Scalar Primitive}
 \label{sec:ch5:vector_to_scalar}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 2.5, transcribed from the published PDF
+""" + IDC.format('Sec. 2.5') + r"""
 The vector-to-scalar technique uses only the magnitude information from
 vector readings, effectively transforming vector field navigation into a
 scalar field problem. This allows the application of scalar field
@@ -67,7 +75,7 @@ direction of steepest change but no critical point.
 
 \subsection{Setup}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 2.4, transcribed from the published PDF
+""" + IDC.format('Sec. 2.4') + r"""
 For this research, we used a 3-robot cluster with a constant shape policy
 as shown in Fig.~\ref{fig:ch4:threerobot}. The cluster parameters were set
 to $p = 0.35$~m, $q = 0.35$~m, and $\beta = 1.05$~radians. These
@@ -76,7 +84,7 @@ tight grouping and equidistant spacing. Cluster control was chosen to
 maintain explicit formation control with full controllability and
 observability which would not be easily achievable with alternative
 approaches such as swarm architecture or leader-follower systems
-\cite{43}. Neither the cluster orientation nor individual robot
+\cite{idc:18}. Neither the cluster orientation nor individual robot
 orientations were specified, ensuring all velocity commands related
 directly to the control primitives and formation control rather than
 orientation maintenance.
@@ -89,7 +97,7 @@ feature estimator's operation.
 %% The formation here is 0.35 m on a side; the critical point experiments
 %% of Chapter 6 used 0.33 m. These are two experiments, not a conflict.
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.2, transcribed from the published PDF
+""" + IDC.format('Sec. 3.2') + r"""
 Two vector fields were constructed for these trials. The first studied
 field was a fixed vortex, modeled as
 \begin{equation}
@@ -143,7 +151,7 @@ as a quiver plot overlaid on an HSV plot.
 
 \subsection{Test Methodology}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.5, transcribed from the published PDF
+""" + IDC.format('Sec. 3.5') + r"""
 A 3-robot cluster with fixed formation parameters ($p = 0.35$~m,
 $q = 0.35$~m, and $\beta = 1.05$~radians) was used to test both control
 primitives (vector-sum and vector-to-scalar) across the two vector field
@@ -165,7 +173,7 @@ shape.
 
 \subsection{Results}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 4.2, transcribed from the published PDF
+""" + IDC.format('Sec. 4.2') + r"""
 The high accuracy achieved in hue and saturation interpretation ($R^2$
 values of 0.96 and 0.91 respectively) enabled the testing of control
 primitives in different environments that were previously only validated
@@ -272,7 +280,7 @@ overcome static friction.
 \section{Formation Maintenance}
 \label{sec:ch5:formation}
 
-% Ported from: IDETC 2025 (DETC2025-167604), Sec. 4.3, transcribed from the published PDF
+""" + IDC.format('Sec. 4.3') + r"""
 Throughout all experiments, the cluster space controller maintained
 precise formation control, as evidenced by
 Table~\ref{tab:ch5:formation}. The values stayed within 1~cm of desired
@@ -314,3 +322,7 @@ flow, and nothing in it measures the distance to the center, so momentum
 carried the cluster steadily outward. Correcting that drift needs the
 location of the center itself, which the three robots can estimate from
 the same readings once they assemble the Jacobian.
+"""),
+]
+
+write('ch05_zeroth_order.tex', parts)

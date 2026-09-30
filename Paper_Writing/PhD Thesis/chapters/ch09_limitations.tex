@@ -4,368 +4,197 @@
 \chapter{Limitations and Future Work}
 \label{ch:limitations}
 
+% New text
+Each chapter states the limits of its own claims. This chapter collects
+them. The limits of the testbed itself are given in
+Section~\ref{sec:ch2:limitations}.
+
 \section{Limitations}
+\label{sec:ch9:limitations}
 
-\subsection{Planar Fields}
-% Ported from: cwaight_systems_paper.tex Sec. VI-C (Limitations);
-% thesis.tex Ch.4 Limitations (lines 2348-2350); idetc2025_testbed.txt
-% Sec. 5 (System Limitations, 2D constraint).
+\subsection{First-Order Estimation and Control}
+\label{sec:ch9:first_order}
 
-The zeroth-order primitives of Chapter~\ref{ch:zeroth}, hardware-tested
-on the HSV-encoded testbed of Chapter~\ref{ch:tools}, and the
-first-order attraction and orbital primitives of
-Chapter~\ref{ch:first_order} and the second-order trackers of
-Chapter~\ref{ch:second_order} are all restricted to planar vector
-fields. Extending the first-order estimator to three dimensions would
-require at minimum four non-coplanar robots, since an affine model in
-three dimensions carries four unknowns per velocity component rather
-than three. Extending the testbed's own HSV floor-map encoding to a
-third dimension would separately require additional sensing capability
-beyond the color sensor used throughout \cite{39}. No
-three-dimensional extension of either the estimator or the testbed
-representation is developed in this dissertation.
+% Ported from: cwaight_systems_paper.tex
+Several limitations constrain the current implementation and experimental validation. First, the approach is restricted to planar (2D) vector fields, though many real-world applications involve three-dimensional flows. Extension to 3D fields would require at minimum four non-coplanar robots for Jacobian estimation.
 
-\subsection{No Advection}
-\label{sec:ch9:no_advection}
-% Ported from: cwaight_systems_paper.tex Sec. III-A (lines 213-215);
-% Draft_11.tex Sec. VII (lines 1088-1094).
+Second, the testbed validates performance only on static fields where critical points remain fixed during operation. The static printed field approach enables precise ground truth validation but does not capture dynamic field behavior.
 
-In both control architectures, the sensed field enters only the
-estimation layer. It does not appear as a force or drift term in the
-robot dynamics, so each robot's velocity responds to its commanded
-value alone, and no physical flow acts on the platform. Every result in
-Chapters~\ref{ch:first_order} and~\ref{ch:second_order}, including the
-second-order tracker's run on real Santa Barbara Channel current data,
-assumes the field is sensed rather than felt. That premise is exact for
-a Decabot deployment, where the field is encoded and read rather than
-physically experienced \cite{39}, but on a genuine ocean deployment
-it is an extrapolation, since the current would advect the vehicle
-directly, and it is untested against real advection in either chapter.
+Third, robot team sizes were limited to three. While the theoretical framework supports arbitrary team sizes through the overdetermined system approach, larger formations present practical implementation challenges including communication bandwidth, computational complexity, and formation control stability.
 
-\subsection{Centralized Control and Team Size}
-% Ported from: Draft_11.tex Sec. VII (lines 1061-1065);
-% cwaight_systems_paper.tex Sec. VI-C (lines 484-485).
+Fourth, the estimator assumes the field is well approximated by an affine model over the cluster's spatial extent. On fields that are highly nonlinear at the scale of the formation, this local linear fit degrades, biasing the recovered critical point location; the six canonical fields and the two reconstructed hardware fields evaluated here do not probe this regime.
 
-Cluster space control is centralized, requires global state, becomes
-intractable for suitably large clusters, and is impractical without
-reliable high-bandwidth communication among the robots \cite{53}.
-Every result in this dissertation, three robots for the zeroth-order
-and first-order primitives of Chapters~\ref{ch:zeroth}
-and~\ref{ch:first_order}, and six for the
-second-order trackers of Chapter~\ref{ch:second_order}, is a small
-cluster in a limited workspace with ample bandwidth. Team size was not
-varied within a fit order to probe this boundary; the estimation
-framework of Chapter~\ref{ch:estimation} supports larger, overdetermined
-teams at each order, but larger formations raise communication
-bandwidth, computation, and formation-control-stability costs this
-dissertation does not quantify. All three chapters also share a
-centralized architecture; extending any of the three primitive families
-to a decentralized, swarm-style architecture remains open, and the
-testbed of Chapter~\ref{ch:tools} was not built with the controller
-substitution such a comparison would need \cite{39}.
+Finally, this work assumes a sampling rate sufficiently high that the system approximates continuous control. The robustness of the approach to lower update rates and communication dropouts was not tested.
 
-\subsection{Static and Simulated Fields}
-% Ported from: cwaight_systems_paper.tex Sec. VI-C (lines 481-483);
-% Draft_11.tex Sec. VII (line 1088); idetc2025_testbed.txt Sec. 5 (System
-% Limitations, static-field restriction).
+\subsection{Second-Order Estimation and Tracking}
+\label{sec:ch9:second_order}
 
-The testbed of Chapter~\ref{ch:tools}, and with it the zeroth-order
-primitives of Chapter~\ref{ch:zeroth} and the first-order primitives of
-Chapter~\ref{ch:first_order}, is restricted to static printed vector
-fields; there is no clear path from a printed colormap to a reactive,
-dynamic environment, so no hardware result in either chapter tests
-performance against a field that changes during a trial
-\cite{39}. Ground truth ties directly to the print, but the
-trials do not exercise dynamic field behavior. The second-order trackers
-of Chapter~\ref{ch:second_order} are evaluated on the steady double
-gyre and on real, time-varying Santa Barbara Channel current data, but
-every second-order result is simulated: no hardware trial of either
-tracker exists, and the ocean run itself samples the gridded current
-product without added measurement noise, so the noise-robustness
-results of that chapter rest on the double gyre alone. More generally,
-an indoor, small-scale testbed of this kind does not necessarily
-represent the scale of a real oceanic or atmospheric deployment
-\cite{39}.
+% Ported from: Draft_11.tex
+Cluster space control is centralized, requires global state, becomes intractable
+for suitably large clusters, and is impractical without reliable
+high-bandwidth communication among the robots \cite{52}. The claims here
+are for small clusters in a limited workspace with ample bandwidth, the
+regime the six-robot estimator occupies.
 
-\subsection{Sampling Rate and Communication}
-% Ported from: cwaight_systems_paper.tex Sec. VI-C (lines 487-488);
-% Draft_11.tex Sec. VII (centralized-communication clause,
-% lines 1061-1065).
+Two limitations sit in the estimator and its band logic. The fit is
+ill-conditioned whenever the six sampling points drift toward a common
+conic, and no field tested here drives the formation toward one, so the
+estimator is untested in the regime its own conditioning limit
+describes; the mitigation, monitoring $\kappa(\boldsymbol{\Phi})$ with a
+shape-maintenance term, is not implemented. The band test carries no
+hysteresis, so noise can chatter the $D$ tracker across its boundary,
+which costs speed alone, since both branches share the same transverse
+dynamics.
 
-Both control architectures assume a sampling rate high enough that the
-closed loop approximates continuous control, and both assume every
-robot reports its position and field measurement synchronously each
-cycle. Chapter~\ref{ch:first_order}'s hardware trials run this loop at
-10~Hz over WiFi. Robustness to lower update rates, to communication
-dropouts, to partial measurement sets, or to asynchronous reporting was
-not tested in either chapter. Every robot also samples only a single
-point in the field at its current location, with no look-ahead; this
-limits testing of any predictive or path-planning extension to the
-purely reactive primitives studied here \cite{39}.
+The eigenvector comparison of
+Section~\ref{sec:ch7:s1_controller} weakens near the saddles. The residual risk
+of a wrong branch under heavy noise is damped but not excluded by the
+capture latch.
 
-\subsection{Physical Testbed Constraints}
-% Ported from: idetc2025_testbed.txt Sec. 5 (System Limitations).
+The $D$ tracker's traversal past a saddle is untested off the benchmark,
+and on it runs outside the premise of
+Section~\ref{sec:ch7:sep_controller}, as the fitted Hessian is
+indefinite where the true one is not.
 
-The Decabot testbed of Chapter~\ref{ch:tools} that hosts every hardware
-result in this dissertation carries its own physical constraints,
-independent of estimation order. The workspace is bounded between
-roughly 1~m~$\times$~1~m and 3~m~$\times$~6~m, battery life limits a
-continuous trial to about one hour per robot, and the commandable
-velocity range is 0.05 to 0.3~m/s, set by the stiction floor and the
-motor's rated maximum \cite{39}. The fleet is homogeneous and
-carries no obstacle-avoidance sensing, so heterogeneous multi-robot
-behavior and obstacle-rich environments are outside every hardware
-result reported here. The printed floor map itself wears under repeated
-robot traffic and needs periodic replacement, an operational cost
-distinct from any algorithmic limitation \cite{39}.
-
-\subsection{Estimator Conditioning and Tracker Robustness Near
-Degeneracies}
-\label{sec:ch9:estimator_conditioning}
-% Ported from: Draft_11.tex Sec. VII (lines 1067-1085);
-% cwaight_systems_paper.tex Sec. VI-A (condition number discussion,
-% line 458).
-
-Chapter~\ref{ch:estimation}'s formation matrix $\boldsymbol{\Phi}$ is
-singular when the robots lie on a common curve of the fit's own degree,
-a line for the first-order estimator and a conic for the second-order
-estimator. The first-order estimator's degradation as the three-robot
-formation approaches collinearity is discussed in
-Chapter~\ref{ch:first_order}; monitoring $\kappa(\boldsymbol{\Phi})$
-online and correcting for it is not implemented in either chapter. No
-field tested in Chapter~\ref{ch:second_order} drives the six-robot
-formation toward a common conic, so the second-order estimator is
-untested in the regime its own conditioning limit describes.
-
-Two further robustness gaps are specific to the second-order trackers.
-The eigenvector comparison the $s_1$ tracker uses for tangent selection
-weakens near saddle points; the capture latch of
-Chapter~\ref{ch:second_order} damps, but does not exclude, the residual
-risk of a wrong branch under heavy noise. The $D$ tracker's traversal
-past a saddle is untested outside the double-gyre benchmark, and on the
-benchmark it already runs outside that tracker's own stated premise,
-since the fitted Hessian is locally indefinite where the true Hessian
-is not.
-
-\subsection{Second-Order Hardware Verification}
-\label{sec:ch9:second_order_hw}
-% Ported from: Draft_11.tex Sec. VII ("All results are simulated,"
-% line 1088); thesis.tex Ch.5 Limitations (lines 4637-4638); parallel
-% noted per Hart's Sec. 7.2 preliminary primitives.
-
-Every second-order result in Chapter~\ref{ch:second_order}, on the
-double gyre and on the Santa Barbara Channel record alike, is
-simulation only. No hardware trial of the $D$ tracker or the $s_1$
-tracker exists on the Decabot testbed of Chapter~\ref{ch:tools}, and
-the calibration and dynamics identification that testbed provides have
-so far validated only the zeroth- and first-order primitives of
-Chapters~\ref{ch:zeroth} and~\ref{ch:first_order}. The second-order
-trackers are, in this sense, in the same position the ridge, trench,
-and saddle-point primitives of an earlier reactive-swarm architecture
-occupied: developed and verified in simulation, with hardware
-validation still to come \cite{59}.
+No controlled head-to-head against the straddle family \cite{29,63,64} or the onboard-FTLE strategy of \cite{8} was run. Running those methods from an off-structure start is outside their stated problems, and their robots are advected while this dissertation's are not, so one simulator cannot host both.
+All results are simulated, and the ocean run samples the gridded product without added noise. The ocean agreement is a finding on one time-varying record, where
+neither primitive has an analytic guarantee, not a guarantee for arbitrary
+flows. Neither instantaneous field is guaranteed to mark the material
+transport structure \cite{58}. The no-advection premise is exact for the
+planned Decabot follow-on, where the field is encoded and read rather
+than physically experienced \cite{28}, but on the ocean field it is an
+extrapolation, untested against real advection.
 
 \section{Future Work}
+\label{sec:ch9:future}
 
-\subsection{Third-Order Estimation from Ten Robots}
-% Ported from: Draft_11.tex Sec. VII, item c) (lines 1096-1100),
-% generalizing the minimality argument of Chapter~\ref{ch:estimation}
-% (Draft_11.tex Sec. II-B, lines 208-233).
+\subsection{Time-Varying Fields}
+\label{sec:ch9:time_varying}
 
-The estimator of Chapter~\ref{ch:estimation} generalizes to a cubic
-local model by the same counting argument that fixes the first- and
-second-order minimums. A planar cubic basis has ten terms per velocity
-component, $1, x, y, x^2, xy, y^2, x^3, x^2y, xy^2, y^3$, so ten robots
-is the minimum formation size, and the formation matrix is singular
-exactly when the ten sampling points lie on a common cubic curve, the
-third-order analogue of the collinear and common-conic degeneracies of
-Chapters~\ref{ch:first_order} and~\ref{ch:second_order}. A cubic fit
-recovers the third derivatives of the field that the quadratic model of
-Chapter~\ref{ch:second_order} truncates away. Those third derivatives
-are exactly what is missing from the true Hessian of $D$ and from the
-transverse curvature of an $s_1$ trench; recovering them would remove
-the structural bias in $\hat{\mathbf{H}}_D$ noted in
-Section~\ref{sec:ch9:ow_corner_branch} below, rather than only bound
-it.
+% Ported from: cwaight_systems_paper.tex
+The estimation framework uses only instantaneous measurements and carries no state between control cycles. This memoryless property means the estimator does not assume field stationarity, suggesting applicability to environments where the field itself varies with time, that is, where $\mathbf{v}(\mathbf{p}, t)$ changes shape or strength during operation. This is distinct from a critical point that translates while the field's structure around it stays fixed, a moving-target tracking problem the current formulation does not address. Validating the estimator on a genuinely time-varying field remains future work.
 
-\subsection{Online Formation Reshaping}
-% Ported from: Draft_11.tex Sec. VII, item b) (lines 1096-1098);
-% thesis.tex Ch.5 Future Work (lines 4665-4668); cwaight_systems_paper.tex
-% Sec. VI-A (fallback strategies, line 458).
-
-Adapting a formation's shape online, the pair lengths and SAS
-parameters of Chapter~\ref{ch:estimation}'s formations, to preserve the
-conditioning of $\boldsymbol{\Phi}$ as a cluster nears a degenerate
-configuration, is future work at every fit order. For the first-order
-triangle of Chapter~\ref{ch:first_order}, this means resizing or
-reshaping as the formation approaches collinearity; for the
-second-order pentagon of Chapter~\ref{ch:second_order}, it means the
-same as the formation approaches a common conic. Neither chapter
-implements the fix; both leave it as the direct answer to the
-conditioning gap of Section~\ref{sec:ch9:estimator_conditioning} above.
+% New text
+The Santa Barbara Channel trial of Section~\ref{sec:ch7:ocean} ran the
+second-order trackers on a field that changes in time, but on one record
+and with no analytic guarantee.
 
 \subsection{Advection-Aware Control}
-\label{sec:ch9:advection_control}
-% Ported from: cwaight_systems_paper.tex Sec. VI-D (Future Work,
-% line 496), paired with the No-Advection limitation above
-% (Draft_11.tex Sec. VII, lines 1091-1094).
+\label{sec:ch9:advection}
 
-Extending the robot dynamics model of Chapter~\ref{ch:tools} to include
-a direct advective term, so that a physical current displaces the
-platform rather than only the sensed field, is a priority for future
-work in both estimation chapters. This closes the gap identified in
-Section~\ref{sec:ch9:no_advection} above: it is the difference between
-the Decabot testbed, where no physical flow acts on the robot, and a
-genuine ocean or atmospheric deployment, where it does.
+% Ported from: cwaight_systems_paper.tex
+As noted in Section~\ref{sec:ch2:dynamics}, the robot dynamics (\ref{eq:ch2:continuous})--(\ref{eq:ch2:momentum}) respond only to commanded velocity. In a physical flow such as an ocean current, the field advects the platform, adding a disturbance term that the present controller does not compensate for. Extending the control architecture to account for this direct effect on robot motion is a priority for future work.
 
-A complementary route attacks the same sim-to-reality gap from the
-robot side rather than the field side: a digital twin of the Decabot
-platform, built by capturing each robot's velocity and acceleration
-response directly rather than assuming the first-order momentum model
-of Chapter~\ref{ch:tools}, would let the simulator used throughout
-Chapters~\ref{ch:first_order} and~\ref{ch:second_order} reproduce
-hardware dynamics more faithfully, independent of whether an advective
-term is also added \cite{39}.
+\subsection{Higher-Order Fits and Formation Reshaping}
+\label{sec:ch9:higher_order}
+
+% Ported from: Draft_11.tex
+Ongoing and future work targets a) extending the stability results to
+time-varying fields; b) online formation reshaping, to protect the
+conditioning of $\boldsymbol{\Phi}$; c) a cubic fit from ten robots off any common cubic curve, which
+recovers the third derivatives on which the true $\mathbf{H}_D$ and the
+transverse curvature of an $s_1$ trench depend; and d) testing both primitives on the Decabot testbed, then on surface vessels.
 
 \subsection{Three-Dimensional Fields}
-% Ported from: cwaight_systems_paper.tex Sec. VI-C. The second-order
-% count and degeneracy condition are new text, the three-variable form of
-% Chapter~\ref{ch:estimation}'s minimality and degeneracy results.
-%% NOTE(new-math, checked 2026-09-29): not in any source paper.
+\label{sec:ch9:3d}
 
-A polynomial of total degree $k$ in three variables has
-$\binom{k+3}{3} = (k+1)(k+2)(k+3)/6$ coefficients per field component,
-so the minimality argument of Chapter~\ref{ch:estimation} carries over
-with 4, 10, and 20 unknowns per component for $k = 1, 2, 3$. A
-first-order estimate in three dimensions therefore needs at least four
-robots, and it is degenerate exactly when they are coplanar. A
-second-order estimate needs at least ten robots; with exactly ten, the
-formation matrix is singular exactly when the robots lie on a common
-quadric surface, since a null vector of the matrix is the coefficient
-vector of a quadric through all ten positions, the three-dimensional
-counterpart of the common-conic condition. No formation avoiding this
-set has yet been designed, and the second-order surrogates themselves
-change in three dimensions, where the Okubo-Weiss partition generalizes
-to the $Q$-criterion and the strain tensor has three eigenvalues. The
-zeroth-order primitives of Chapter~\ref{ch:zeroth} were also developed
-and tested only in two dimensions.
+% New text
+The estimator of Section~\ref{sec:ch4:estimation} extends to three
+dimensions by counting monomials in $x$, $y$, and $z$. A fit of order $k$
+then has $\tfrac{1}{6}(k+1)(k+2)(k+3)$ coefficients per component. A
+first-order fit needs four robots and fails when they are coplanar. A
+second-order fit needs ten robots and fails when they lie on a common
+quadric surface. The sensing and formation control of a
+three-dimensional cluster are outside this dissertation.
 
 \subsection{Additional Topological Features}
-% Ported from: cwaight_systems_paper.tex Sec. VI-D (line 498);
-% thesis.tex Ch.4 Future Work (lines 2375-2386).
+\label{sec:ch9:features}
 
-Chapter~\ref{ch:second_order} tracks two Eulerian surrogates for a
-separating boundary, the Jacobian determinant and the rate-of-strain
-eigenvalue. Chapter~\ref{ch:preliminaries} introduces further
-candidates, the Q-criterion and the Hua-Klein criterion among them,
-that neither tracker in this dissertation follows. Heteroclinic orbits
-connecting distinct critical points through their manifolds, offering
-transit routes through a complex field, are also untouched; the
-eigenvector-alignment argument Chapter~\ref{ch:first_order} sketches
-for detecting such connections between neighboring critical points was
-never implemented or tested. More generally, the feature taxonomy of
-Chapters~\ref{ch:zeroth} through~\ref{ch:second_order} is not
-exhaustive, and other regions of interest in a vector field remain to
-be catalogued.
+% Ported from: cwaight_systems_paper.tex
+Beyond critical point detection and orbital control, vector fields contain other topological features of practical interest. Heteroclinic orbits connecting different critical points through their manifolds offer transit routes through complex fields. The Jacobian estimation framework developed here provides the foundation for detecting such features through analysis of eigenvector alignment between neighboring critical points.
 
-\subsection{Deployment on Surface Vessels}
-% Ported from: Draft_11.tex Sec. VII, item d) (lines 1096-1100),
-% paired with the Second-Order Hardware Verification limitation above;
-% idetc2025_testbed.txt Sec. 6 (Future Work, outdoor surface-vessel and
-% UAV testing).
+\subsection{Testbed Extensions}
+\label{sec:ch9:testbed}
 
-Testing both second-order trackers on the Decabot testbed of
-Chapter~\ref{ch:tools}, and then on surface vessels, is the direct
-extension the simulation-only status of
-Section~\ref{sec:ch9:second_order_hw} above calls for. A Decabot
-deployment would use a field emitted by an onboard computer and sampled
-by the robots' own sensors, following the pattern
-Chapter~\ref{ch:tools} already establishes for the zeroth- and
-first-order primitives. A surface-vessel deployment would additionally
-confront the advection gap of
-Section~\ref{sec:ch9:advection_control} directly, since a vessel's own
-motion is no longer decoupled from the current it senses. Outdoor
-testing was already proposed independently, for the zeroth- and
-first-order primitives, as a way to examine transferability from the
-indoor testbed's small scale to a real deployment, and it named both
-autonomous surface vessels and UAVs as candidate platforms
-\cite{39}; the second-order trackers would follow the same path.
+% Ported from: IDETC 2025 (DETC2025-167604), Sec. 6, transcribed from the published PDF
+The supervised learning calibration technique can be extended to
+greyscale sensors for encoding and decoding scalar field monochrome color
+maps, creating a unified platform for testing both vector and scalar
+field navigation paradigms simultaneously. The modular architecture can
+also be enhanced to facilitate controller substitution, enabling
+comparative studies between cluster space controllers and alternative
+approaches such as swarm-based methods \cite{43}. This modularity
+would allow researchers to isolate the effects of different control
+strategies while maintaining consistent environmental conditions.
+Outdoor testing with autonomous surface vessels \cite{2} and UAVs for
+environmental monitoring \cite{46} would examine transferability to
+larger scales and real-world deployment challenges.
 
-\subsection{Scalar-Field Calibration and a Unified Testbed}
-% Ported from: idetc2025_testbed.txt Sec. 6 (Future Work, greyscale
-% sensor calibration for scalar fields).
-
-The neural-network calibration technique of Chapter~\ref{ch:tools} was
-developed for the hue-and-saturation encoding used throughout this
-dissertation's vector-field trials. Extending the same supervised
-calibration approach to greyscale sensors would support monochrome
-colormaps encoding a scalar field, letting a single testbed and a
-single calibration methodology serve both the vector-field primitives
-of Chapters~\ref{ch:zeroth} through~\ref{ch:second_order} and the
-scalar-field extremum-, contour-, and front-following primitives that
-motivate them \cite{39}. No scalar-field calibration or hardware
-trial is reported in this dissertation.
-
-\subsection{Okubo-Weiss Corner Branch Selection (Deferred 2026-07-02)}
-\label{sec:ch9:ow_corner_branch}
-
-% Research note carried over unchanged from phd_thesis_template.tex's
-% prior Chapter 5 (git history, this file). Relocated here because it
-% is a specific, evaluable future-work item, not a general limitation.
-% Sources: experiments/ow_clean_runs.py and
-% experiments/outputs/ow_clean/ under
-% trunk/Python_Simulations/Vector_Fields/VF_Robot/, git commits 7dc01a8
-% and c19732f, and plan.md (repo root) Phase 3 and Phase 7 entries.
-
-\textbf{Context.} The Okubo-Weiss boundary tracker of the second paper
-drives $\hat{D} = \det(\hat{\mathbf{J}})$ to zero and drifts along the
-level-set tangent $\mathrm{perp}(\nabla\hat{D})$, sign-aligned with the
-ambient flow. On the steady double gyre the $D = 0$ set is not a pair of
-closed diamonds but a network of straight lines,
-$x_f \pm y_f \in \tfrac{1}{2} + \mathbb{Z}$, which cross at the diamond
-corners where $\nabla D = \mathbf{0}$. Noise-free experiments (four
-starts) showed lock-on within 13 to 16 control steps and mean $|D|$
-between 0.003 and 0.007 on the boundary, 0.3 to 0.8 percent of the well
-depth $\pi^4 A^2 = 0.974$, but the tangent follows its line straight
-through every corner crossing: the gradient-floor fallback carries the
-team across the degenerate point and the Newton action resumes on the
-continuing line. Circulation around a single vortex core therefore never
-occurs with the published law. The paper presents this straight-through
-behavior honestly; the wording of Problem 2 was changed from ``circulate
-along'' to ``travel along'' the boundary.
-
-\textbf{The deferred idea.} At an X-crossing the field is locally
-$D(\mathbf{p}^* + \mathbf{t}) \approx \tfrac{1}{2}\mathbf{t}^\top
-\mathbf{H}_D \mathbf{t}$ with $\mathbf{H}_D$ indefinite, so the zero set
-consists of the two asymptote directions $\mathbf{t}$ satisfying
-$\mathbf{t}^\top \mathbf{H}_D \mathbf{t} = 0$. In the eigenbasis of
-$\mathbf{H}_D$ with $\lambda_1 < 0 < \lambda_2$ these lie at angles
-$\pm\arctan\sqrt{-\lambda_1/\lambda_2}$ from the $\lambda_2$
-eigenvector. A corner rule can therefore be computed onboard from
-$\hat{\mathbf{H}}_D$ alone: inside the gradient-floor ball, evaluate
-both estimated asymptotes, discard the one parallel to the incoming
-tangent, and exit along the turning branch, sign-chosen by the flow.
-Selecting the turning branch at every corner closes the circuit around
-one diamond; always selecting the continuing branch reproduces the
-published straight-through behavior, so the rule is a second
-one-parameter behavior switch, mirroring the park-versus-traverse knob
-of the separatrix tracker.
-
-\textbf{Known risk.} The $\hat{\mathbf{H}}_D$ estimate carries a
-formation-radius-independent structural bias (third-derivative terms
-absent from the quadratic model; see the estimator accuracy results of
-the second paper). Eigen-directions survive that bias to within a few
-tenths of a degree on the separatrix, but the accuracy of the estimated
-asymptote directions at the corners specifically is untested, and near
-the corners the eigenvalues themselves are strongly biased. This is the
-first thing to measure.
-
-\textbf{Validation plan when revisited.} Implement as a new primitive
-(working name \textit{logic\_g\_fable\_step}) alongside the untouched
-\textit{logic\_g\_newton\_contour\_pentagon}, following the pattern of
-\textit{separatrix\_logic\_fable\_step} (bit-exact equivalence to the
-parent law when the knob is off, then the new branch enabled).
-Head-to-head at all eight diamond corners plus the domain-center
-crossing: success is loop closure around one diamond; metrics are
-circumnavigation time and mean $|D|$ per circuit, against the
-straight-through baseline of \textit{ow\_clean\_runs.py}.
+% -------------------------------------------------------------------
+% Parked research note, kept by the author's decision (commit ad76bbf,
+% 2026-07-02). Not rendered: it describes the earlier D = 0 contour
+% tracker, which this dissertation does not present.
+% -------------------------------------------------------------------
+%% \subsection{Okubo-Weiss Corner Branch Selection (Deferred 2026-07-02)}
+%% \label{sec:ch9:ow_corner_branch}
+%%
+%% % Research note carried over unchanged from phd_thesis_template.tex's
+%% % prior Chapter 5 (git history, this file). Relocated here because it
+%% % is a specific, evaluable future-work item, not a general limitation.
+%% % Sources: experiments/ow_clean_runs.py and
+%% % experiments/outputs/ow_clean/ under
+%% % trunk/Python_Simulations/Vector_Fields/VF_Robot/, git commits 7dc01a8
+%% % and c19732f, and plan.md (repo root) Phase 3 and Phase 7 entries.
+%%
+%% \textbf{Context.} The Okubo-Weiss boundary tracker of the second paper
+%% drives $\hat{D} = \det(\hat{\mathbf{J}})$ to zero and drifts along the
+%% level-set tangent $\mathrm{perp}(\nabla\hat{D})$, sign-aligned with the
+%% ambient flow. On the steady double gyre the $D = 0$ set is not a pair of
+%% closed diamonds but a network of straight lines,
+%% $x_f \pm y_f \in \tfrac{1}{2} + \mathbb{Z}$, which cross at the diamond
+%% corners where $\nabla D = \mathbf{0}$. Noise-free experiments (four
+%% starts) showed lock-on within 13 to 16 control steps and mean $|D|$
+%% between 0.003 and 0.007 on the boundary, 0.3 to 0.8 percent of the well
+%% depth $\pi^4 A^2 = 0.974$, but the tangent follows its line straight
+%% through every corner crossing: the gradient-floor fallback carries the
+%% team across the degenerate point and the Newton action resumes on the
+%% continuing line. Circulation around a single vortex core therefore never
+%% occurs with the published law. The paper presents this straight-through
+%% behavior honestly; the wording of Problem 2 was changed from ``circulate
+%% along'' to ``travel along'' the boundary.
+%%
+%% \textbf{The deferred idea.} At an X-crossing the field is locally
+%% $D(\mathbf{p}^* + \mathbf{t}) \approx \tfrac{1}{2}\mathbf{t}^\top
+%% \mathbf{H}_D \mathbf{t}$ with $\mathbf{H}_D$ indefinite, so the zero set
+%% consists of the two asymptote directions $\mathbf{t}$ satisfying
+%% $\mathbf{t}^\top \mathbf{H}_D \mathbf{t} = 0$. In the eigenbasis of
+%% $\mathbf{H}_D$ with $\lambda_1 < 0 < \lambda_2$ these lie at angles
+%% $\pm\arctan\sqrt{-\lambda_1/\lambda_2}$ from the $\lambda_2$
+%% eigenvector. A corner rule can therefore be computed onboard from
+%% $\hat{\mathbf{H}}_D$ alone: inside the gradient-floor ball, evaluate
+%% both estimated asymptotes, discard the one parallel to the incoming
+%% tangent, and exit along the turning branch, sign-chosen by the flow.
+%% Selecting the turning branch at every corner closes the circuit around
+%% one diamond; always selecting the continuing branch reproduces the
+%% published straight-through behavior, so the rule is a second
+%% one-parameter behavior switch, mirroring the park-versus-traverse knob
+%% of the separatrix tracker.
+%%
+%% \textbf{Known risk.} The $\hat{\mathbf{H}}_D$ estimate carries a
+%% formation-radius-independent structural bias (third-derivative terms
+%% absent from the quadratic model; see the estimator accuracy results of
+%% the second paper). Eigen-directions survive that bias to within a few
+%% tenths of a degree on the separatrix, but the accuracy of the estimated
+%% asymptote directions at the corners specifically is untested, and near
+%% the corners the eigenvalues themselves are strongly biased. This is the
+%% first thing to measure.
+%%
+%% \textbf{Validation plan when revisited.} Implement as a new primitive
+%% (working name \textit{logic\_g\_fable\_step}) alongside the untouched
+%% \textit{logic\_g\_newton\_contour\_pentagon}, following the pattern of
+%% \textit{separatrix\_logic\_fable\_step} (bit-exact equivalence to the
+%% parent law when the knob is off, then the new branch enabled).
+%% Head-to-head at all eight diamond corners plus the domain-center
+%% crossing: success is loop closure around one diamond; metrics are
+%% circumnavigation time and mean $|D|$ per circuit, against the
+%% straight-through baseline of \textit{ow\_clean\_runs.py}.
