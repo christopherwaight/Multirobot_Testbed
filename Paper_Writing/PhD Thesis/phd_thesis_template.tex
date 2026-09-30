@@ -1,5 +1,16 @@
 % Santa Clara University PhD Thesis Template
 % Document class: report, 12pt, letter paper, single-sided
+%
+% Structure: 10 chapters organized by estimator fit order (zeroth/first/
+% second), per the fit-order-ladder outline agreed 2026-09-29. This
+% supersedes the 6-chapter, per-paper structure in thesis.tex (kept
+% alongside, untouched, as a prose source to port from).
+%
+% Section/subsection headers below are SKELETON ONLY. Each carries a
+% %% SOURCE comment pointing at where the real prose should be ported
+% from (thesis.tex line range, or a paper file + section name) so a
+% later pass can move content mechanically rather than redraft it.
+% Figures are placeholder \fbox blocks pending real figure generation.
 \documentclass[12pt, letterpaper, oneside]{report}
 
 % -----------------------------------------------------------------------
@@ -8,18 +19,35 @@
 \usepackage[left=1.5in, right=1in, top=1in, bottom=1in, headheight=15pt]{geometry}
 \usepackage{setspace}
 \usepackage{amsmath, amsfonts, amssymb}
+\usepackage{amsthm}
 \usepackage{graphicx}
+\graphicspath{{figures/}}
 \usepackage{array}
 \usepackage{caption}
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{url}
+\usepackage{textcomp}
 \usepackage[hidelinks]{hyperref}
+
+% -----------------------------------------------------------------------
+% Theorem environments -- one running counter, tied to chapter number
+% -----------------------------------------------------------------------
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{assumption}[theorem]{Assumption}
 
 % -----------------------------------------------------------------------
 % Thesis metadata -- edit these fields
 % -----------------------------------------------------------------------
-\newcommand{\thesistitle}{The Title of the Dissertation Here}
+\newcommand{\thesistitle}{Distributed Multirobot Estimation and Navigation in Vector Fields: From Hardware Testbed to Second-Order Field Structure}
 \newcommand{\thesisauthor}{Christopher J. Waight}
 \newcommand{\thesisdepartment}{Mechanical Engineering}
 \newcommand{\thesisdegreefield}{Mechanical Engineering}
@@ -41,7 +69,6 @@
 \fancyhead[R]{\thepage}
 \renewcommand{\headrulewidth}{0pt}
 
-% Plain style used on chapter opening pages
 \fancypagestyle{plain}{%
   \fancyhf{}
   \fancyhead[R]{\thepage}
@@ -58,7 +85,12 @@
 % -----------------------------------------------------------------------
 % Hyphenation hints
 % -----------------------------------------------------------------------
-\hyphenation{multi-robot cluster-space Jacobian}
+\hyphenation{multi-robot cluster-space Jacobian separ-atrix}
+
+% -----------------------------------------------------------------------
+% Placeholder figure macro
+% -----------------------------------------------------------------------
+\newcommand{\placeholderfig}[1]{\fbox{\rule{0pt}{2in}\rule{0.7\textwidth}{0pt}}\\[-1.6in]\centering\textit{[placeholder: #1]}\\[1.4in]}
 
 % -----------------------------------------------------------------------
 % Document
@@ -147,13 +179,14 @@
 \end{titlepage}
 
 % ===================================================================
-% 3. DEDICATION (optional)
+% 3. COPYRIGHT
 % ===================================================================
 \clearpage
 \thispagestyle{plain}
 \vspace*{3in}
 \begin{center}
-  \textit{Dedicated to ...}
+  \copyright\ Copyright by \thesisauthor\ \thesisyear \\
+  All Rights Reserved
 \end{center}
 \clearpage
 
@@ -163,7 +196,15 @@
 \chapter*{Acknowledgements}
 \addcontentsline{toc}{chapter}{Acknowledgements}
 
-I would like to thank ...
+% SOURCE: thesis.tex lines 181-196 (ported verbatim, first-pass draft,
+% not yet reviewed).
+
+I would like to thank my advisor, Christopher A. Kitts, and the members of
+the Santa Clara University Robotic Systems Laboratory for their support
+throughout this work.
+
+A portion of this work has been published or submitted in [1] and [2], and
+portions are in preparation for future publication.
 
 \clearpage
 
@@ -184,26 +225,85 @@ I would like to thank ...
 
 \vspace{0.4in}
 
+% SOURCE: thesis.tex lines 220-246, ported with fit-order framing added.
+% First-pass draft, not yet reviewed.
+
 \noindent
-This dissertation presents ...
+This dissertation develops a progression of tools for multirobot estimation
+and navigation in physical fields, in which the order of a local polynomial
+fit to cooperative field measurements sets the class of feature the team can
+locate. A functional hardware testbed of omnidirectional rovers, printed
+HSV-encoded vector field maps, and neural-network sensor calibration
+establishes the experimental platform used throughout, together with a
+zeroth-order (direction-only) baseline that motivates the need for
+higher-order estimation. A first-order estimator is then shown to recover a
+two-dimensional vector field's local Jacobian from three robots' simultaneous
+local measurements alone, enabling closed-form critical point localization,
+eigenvalue-based classification, and attraction and orbital control laws;
+three robots is proven both necessary and sufficient for this estimate, and
+the method is validated in simulation across eight canonical fields and on
+hardware with a 100\% convergence success rate over 157 trials. This result
+is then extended to second order: a six-robot team recovers a flow's local
+Jacobian, Okubo-Weiss parameter, and Hessian from simultaneous measurements,
+enabling two modified-Newton controllers that track dynamic boundaries and
+separatrices no single critical point can describe, with a proven stability
+guarantee and validation on both a canonical double-gyre flow and real
+oceanographic current data. Together, these contributions establish a
+coherent methodology for distributed, model-free field estimation that
+scales from heading-only baselines through isolated critical points to
+extended coherent structures using only local, cooperative sensing.
 
 \clearpage
 
 % ===================================================================
-% 6. TABLE OF CONTENTS
+% 6. GLOSSARY OF TERMS
+% ===================================================================
+\chapter*{Glossary of Terms}
+\addcontentsline{toc}{chapter}{Glossary of Terms}
+
+% SOURCE: thesis.tex lines 269-295, ported verbatim.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l p{3.5in}}
+$\mathbf{p}$ & Position vector in the plane, $\mathbf{p}=(x,y)$ \\
+$\mathbf{p}^*$ & Critical point of a vector field, $\mathbf{v}(\mathbf{p}^*)=\mathbf{0}$ \\
+$\mathbf{v}(\mathbf{p})$ & Vector field value at $\mathbf{p}$, components $(u,v)$ \\
+$\mathbf{J}$ & Field Jacobian, $\mathbf{J} = \left[\begin{smallmatrix} u_x & u_y \\ v_x & v_y \end{smallmatrix}\right]$ \\
+$\mathbf{J}_c$ & Kinematic (cluster-space) Jacobian, robot-space to cluster-space velocity map \\
+$\alpha_{\text{eig}}$ & Real part of a complex eigenvalue pair of $\mathbf{J}$ (spiral classification) \\
+$\alpha_{\text{mom}}$ & Momentum / discretization coefficient, $\alpha_{\text{mom}} = \exp(-\Delta t/\tau)$ \\
+$p, q, \beta$ & SAS triangle side lengths and interior angle (Kitts-lab notation, unchanged across chapters) \\
+$\mathbf{q}$ (bold) & Cluster-space state vector (pose + shape, dimension $2N$) \\
+$r$ & Orbital radial vector / magnitude, $\mathbf{r} = \mathbf{p}^*-\mathbf{p}_c$ \\
+$\rho$ & Polar radius (field definitions, Appendix~A) and pentagon ring radius \\
+$D$ & Okubo-Weiss parameter, $D = \det(\mathbf{J})$ \\
+$\mathbf{H}_D$ & Hessian of $D$ \\
+$\boldsymbol{\phi}(\tilde{\mathbf{p}})$ & Quadratic sensing basis vector \\
+$\boldsymbol{\Phi}$ & Six-robot formation matrix (capital Phi) \\
+$\tau$ & Actuator time constant, 0.28~s on Decabot hardware (after recalibration) \\
+$\Delta t$ & Control period, 0.1~s (10~Hz) \\
+$v_{\max}$ & Maximum robot speed, 0.3~m/s \\
+\end{tabular}
+\end{table}
+
+\clearpage
+
+% ===================================================================
+% 7. TABLE OF CONTENTS
 % ===================================================================
 \tableofcontents
 \clearpage
 
 % ===================================================================
-% 7. LIST OF FIGURES
+% 8. LIST OF FIGURES
 % ===================================================================
 \listoffigures
 \addcontentsline{toc}{chapter}{List of Figures}
 \clearpage
 
 % ===================================================================
-% 8. LIST OF TABLES
+% 9. LIST OF TABLES
 % ===================================================================
 \listoftables
 \addcontentsline{toc}{chapter}{List of Tables}
@@ -216,191 +316,16 @@ This dissertation presents ...
 \setcounter{page}{1}
 \doublespacing
 
-% ===================================================================
-% CHAPTER 1: INTRODUCTION
-% ===================================================================
-\chapter{Introduction}
-
-\section{Motivation}
-
-Placeholder text for motivation ...
-
-\section{Problem Statement}
-
-Placeholder text for problem statement ...
-
-\section{Contributions}
-
-The main contributions of this dissertation are:
-\begin{enumerate}
-  \item Contribution one.
-  \item Contribution two.
-  \item Contribution three.
-\end{enumerate}
-
-\section{Organization}
-
-Chapter~\ref{ch:background} provides background ...
-
-% ===================================================================
-% CHAPTER 2: BACKGROUND
-% ===================================================================
-\chapter{Background}
-\label{ch:background}
-
-\section{Related Work}
-
-Placeholder text ...
-
-\subsection{Subtopic A}
-
-Placeholder text ...
-
-\subsection{Subtopic B}
-
-Placeholder text ...
-
-\section{Notation and Definitions}
-
-Throughout this dissertation, bold lowercase letters denote vectors, e.g., $\mathbf{p} \in \mathbb{R}^2$. Bold uppercase letters denote matrices, e.g., $\mathbf{J} \in \mathbb{R}^{m \times n}$.
-
-% ===================================================================
-% CHAPTER 3: RESEARCH CHAPTER
-% ===================================================================
-\chapter{Methodology}
-\label{ch:methodology}
-
-\section{Overview}
-
-Placeholder text ...
-
-\section{Technical Approach}
-
-An equation example:
-\begin{equation}
-  \dot{\mathbf{c}} = \mathbf{J} \dot{\mathbf{r}}
-  \label{eq:jacobian}
-\end{equation}
-
-\section{Example Figure}
-
-\begin{figure}[h]
-  \centering
-  % \includegraphics[width=0.7\textwidth]{figures/placeholder.png}
-  \fbox{\rule{0pt}{2in}\rule{0.7\textwidth}{0pt}}
-  \caption{Placeholder figure caption.}
-  \label{fig:placeholder}
-\end{figure}
-
-\section{Example Table}
-
-\begin{table}[h]
-  \centering
-  \caption{Placeholder table caption.}
-  \label{tab:placeholder}
-  \begin{tabular}{|l|c|c|}
-    \hline
-    \textbf{Parameter} & \textbf{Value} & \textbf{Units} \\
-    \hline
-    Control rate & 10 & Hz \\
-    Time constant & 0.3 & s \\
-    Max speed & 0.3 & m/s \\
-    \hline
-  \end{tabular}
-\end{table}
-
-% ===================================================================
-% CHAPTER 4: RESULTS
-% ===================================================================
-\chapter{Results and Validation}
-\label{ch:results}
-
-\section{Simulation Results}
-
-Placeholder text ...
-
-\section{Hardware Results}
-
-Placeholder text ...
-
-% ===================================================================
-% CHAPTER 5: CONCLUSIONS
-% ===================================================================
-\chapter{Conclusions}
-\label{ch:conclusions}
-
-\section{Summary}
-
-Placeholder text ...
-
-\section{Future Work}
-
-Placeholder text ...
-
-\subsection{Okubo-Weiss corner branch selection (deferred 2026-07-02)}
-\label{sec:ow_corner_branch}
-
-% Research note parked here from the separatrix / Okubo-Weiss paper
-% (Paper_Writing/Separatrix_and_OW_Paper/Paper_Draft_2A.tex). The paper
-% keeps the straight-through behavior ("travel along the boundary");
-% this note preserves the circulation idea and the evidence needed to
-% revisit it. Sources: experiments/ow_clean_runs.py and
-% experiments/outputs/ow_clean/ under
-% trunk/Python_Simulations/Vector_Fields/VF_Robot/, git commits 7dc01a8
-% and c19732f, and plan.md (repo root) Phase 3 and Phase 7 entries.
-
-\textbf{Context.} The Okubo-Weiss boundary tracker of the second paper
-drives $\hat{D} = \det(\hat{\mathbf{J}})$ to zero and drifts along the
-level-set tangent $\mathrm{perp}(\nabla\hat{D})$, sign-aligned with the
-ambient flow. On the steady double gyre the $D = 0$ set is not a pair of
-closed diamonds but a network of straight lines,
-$x_f \pm y_f \in \tfrac{1}{2} + \mathbb{Z}$, which cross at the diamond
-corners where $\nabla D = \mathbf{0}$. Noise-free experiments (four
-starts) showed lock-on within 13 to 16 control steps and mean $|D|$
-between 0.003 and 0.007 on the boundary, 0.3 to 0.8 percent of the well
-depth $\pi^4 A^2 = 0.974$, but the tangent follows its line straight
-through every corner crossing: the gradient-floor fallback carries the
-team across the degenerate point and the Newton action resumes on the
-continuing line. Circulation around a single vortex core therefore never
-occurs with the published law. The paper presents this straight-through
-behavior honestly; the wording of Problem 2 was changed from ``circulate
-along'' to ``travel along'' the boundary.
-
-\textbf{The deferred idea.} At an X-crossing the field is locally
-$D(\mathbf{p}^* + \mathbf{t}) \approx \tfrac{1}{2}\mathbf{t}^\top
-\mathbf{H}_D \mathbf{t}$ with $\mathbf{H}_D$ indefinite, so the zero set
-consists of the two asymptote directions $\mathbf{t}$ satisfying
-$\mathbf{t}^\top \mathbf{H}_D \mathbf{t} = 0$. In the eigenbasis of
-$\mathbf{H}_D$ with $\lambda_1 < 0 < \lambda_2$ these lie at angles
-$\pm\arctan\sqrt{-\lambda_1/\lambda_2}$ from the $\lambda_2$
-eigenvector. A corner rule can therefore be computed onboard from
-$\hat{\mathbf{H}}_D$ alone: inside the gradient-floor ball, evaluate
-both estimated asymptotes, discard the one parallel to the incoming
-tangent, and exit along the turning branch, sign-chosen by the flow.
-Selecting the turning branch at every corner closes the circuit around
-one diamond; always selecting the continuing branch reproduces the
-published straight-through behavior, so the rule is a second
-one-parameter behavior switch, mirroring the park-versus-traverse knob
-of the separatrix tracker.
-
-\textbf{Known risk.} The $\hat{\mathbf{H}}_D$ estimate carries a
-formation-radius-independent structural bias (third-derivative terms
-absent from the quadratic model; see the estimator accuracy results of
-the second paper). Eigen-directions survive that bias to within a few
-tenths of a degree on the separatrix, but the accuracy of the estimated
-asymptote directions at the corners specifically is untested, and near
-the corners the eigenvalues themselves are strongly biased. This is the
-first thing to measure.
-
-\textbf{Validation plan when revisited.} Implement as a new primitive
-(working name \textit{logic\_g\_fable\_step}) alongside the untouched
-\textit{logic\_g\_newton\_contour\_pentagon}, following the pattern of
-\textit{separatrix\_logic\_fable\_step} (bit-exact equivalence to the
-parent law when the knob is off, then the new branch enabled).
-Head-to-head at all eight diamond corners plus the domain-center
-crossing: success is loop closure around one diamond; metrics are
-circumnavigation time and mean $|D|$ per circuit, against the
-straight-through baseline of \textit{ow\_clean\_runs.py}.
+\input{chapters/ch01_introduction}
+\input{chapters/ch02_verification_tools}
+\input{chapters/ch03_preliminaries}
+\input{chapters/ch04_estimation_framework}
+\input{chapters/ch05_zeroth_order}
+\input{chapters/ch06_first_order}
+\input{chapters/ch07_second_order}
+\input{chapters/ch08_crosscutting}
+\input{chapters/ch09_limitations}
+\input{chapters/ch10_conclusion}
 
 % ===================================================================
 % REFERENCES
@@ -411,9 +336,7 @@ straight-through baseline of \textit{ow\_clean\_runs.py}.
 
 \begin{thebibliography}{99}
 
-\bibitem{1} C. A. Kitts and I. Mas, ``Cluster space specification and control of mobile multirobot systems,'' \textit{IEEE/ASME Transactions on Mechatronics}, vol. 14, no. 2, pp. 207--218, Apr. 2009.
-
-\bibitem{2} Author, ``Title of paper,'' \textit{Journal Name}, vol. X, no. Y, pp. ZZ--ZZ, Year.
+\input{chapters/bibliography}
 
 \end{thebibliography}
 
@@ -422,14 +345,11 @@ straight-through baseline of \textit{ow\_clean\_runs.py}.
 % ===================================================================
 \appendix
 
-\chapter{Appendix Title A}
-\label{app:a}
-
-Placeholder text for Appendix A ...
-
-\chapter{Appendix Title B}
-\label{app:b}
-
-Placeholder text for Appendix B ...
+\input{chapters/appA_fields}
+\input{chapters/appB_kinematics3}
+\input{chapters/appC_kinematics6}
+\input{chapters/appD_frame_equivariance}
+\input{chapters/appE_stability}
+\input{chapters/appF_statistics}
 
 \end{document}

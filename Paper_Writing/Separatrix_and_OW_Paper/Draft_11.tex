@@ -11,6 +11,7 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
 \urlstyle{same}
+\newtheorem{proposition}{Proposition}
 
 % Float spacing: IEEEtran defaults leave generous gaps around floats.
 % Tightened to recover vertical space without altering figure content.
@@ -1123,49 +1124,60 @@ seed step.
 \section{Stability of the Trackers}
 \label{app:stability}
 
-Both arguments assume a cluster that realizes $\dot{\mathbf{p}}_c$,
-which cluster space control provides with bounded error \cite{35,3}.
-Robot lag is not modeled.
+Both arguments assume the cluster realizes $\dot{\mathbf{p}}_c$
+\cite{35,3} and neglect robot lag. Near a trench, with $n$ the distance
+across it and $\ell$ the arclength along it, the surrogate is
+$f = h(\ell) + \tfrac{1}{2}\kappa_\perp(\ell)\,n^2$ to second order, with
+$\kappa_\perp > 0$.
 
-Near a trench, write the surrogate in arclength coordinates $(\ell, n)$
-along and across it as $h(\ell) + \tfrac{1}{2}\kappa(\ell)\,n^2$, with
-$\kappa > 0$. On this model the gradient component $g_j$ along a Hessian
-eigenvector $\mathbf{w}_j$ obeys
-$\dot{g}_j = \lambda_j\,\mathbf{w}_j^\top\dot{\mathbf{p}}_c$, so the
+On a quadratic model with Hessian eigenpair $(\lambda_j, \mathbf{w}_j)$,
+the gradient component $g_j = \mathbf{w}_j^\top\nabla f$ obeys
+$\dot{g}_j = \lambda_j\mathbf{w}_j^\top\dot{\mathbf{p}}_c$, so the
 saturated Newton channel
-$\mathbf{w}_j^\top\dot{\mathbf{p}}_c = -k\,\mathrm{sat}(g_j/\lambda_j)$
-gives
+$\mathbf{w}_j^\top\dot{\mathbf{p}}_c = -k\,\mathrm{sat}(x_j)$,
+$x_j = g_j/\lambda_j$, gives
 \begin{equation}
     \frac{d}{dt}\,\tfrac{1}{2}g_j^2
-    = -k\,\lambda_j\,g_j\,\mathrm{sat}(g_j/\lambda_j) \leq 0
+    = -k\,\lambda_j^2\,x_j\,\mathrm{sat}(x_j) \leq 0
     \label{eq:newton_lyap}
 \end{equation}
 for either sign of $\lambda_j$, with equality only at $g_j = 0$. A full
-Newton step therefore settles at any stationary point, the crest
-included. The $D$ tracker keeps the channel across the trench, where
-$\lambda_2 = \kappa$ and $g_2 = \kappa n$, and replaces the other with (\ref{eq:vpar}).
+Newton step would therefore halt at the crest, so the $D$ tracker keeps
+only the across-trench channel.
 
-With fitting error the transverse channel becomes
-$\dot{n} = -k\,\mathrm{sat}(a n + e)$, $|e| \leq \delta$, where
-$a = \kappa/\hat{\kappa}$ for the $D$ tracker and $a = g_\perp\kappa$ for
-the projected descent of the $s_1$ tracker. For $a > 0$,
-$V = \tfrac{1}{2}n^2$ gives $\dot{V} < 0$ whenever $|n| > \delta/a$, so
-$\limsup|n| \leq \delta/a$. With $e = 0$ the cluster reaches
-$|n| < c_{\max}/a$ in finite time and then converges exponentially at a
-rate of at least $k a \tanh 1$. A frame rotating at $\Omega$ adds a
-disturbance of magnitude $\Omega\lVert\mathbf{p}\rVert$ to $\dot{n}$,
-which leaves $n$ ultimately bounded while
-$\Omega\lVert\mathbf{p}\rVert < k\,c_{\max}$. Where $\kappa$ vanishes
-over a stretch of length $2\epsilon$, the $s_1$ ride crosses it in time
-$2\epsilon/(k\,c_{\max}\tanh 1)$, during which $|n|$ grows by at most
-$2\epsilon/\tanh 1$.
+\begin{proposition}
+Let $\dot{n} = -k\,\mathrm{sat}(a_\perp n + e)$ with $a_\perp > 0$ and
+$|e| \leq \delta$. Then $\limsup_{t\to\infty}|n| \leq \delta/a_\perp$.
+If $e = 0$, $|n|$ falls below $c_{\max}/a_\perp$ in finite time, then
+decays at rate at least $k\,a_\perp\tanh 1$.
+\end{proposition}
 
-Along the trench both branches of (\ref{eq:vpar}) are nonnegative, so
-the $D$ tracker cannot reverse. If $\mathrm{sat}(v_\parallel) \geq
-v_{\min} > 0$ outside the neighborhoods of flow saddles where
-(\ref{eq:d_capture}) applies, a segment of length $L_\Gamma$ is crossed
-within $L_\Gamma/(k\,v_{\min})$. The $s_1$ tracker rides at the constant
-speed $k\,c_{\max}\tanh 1$.
+\begin{IEEEproof}
+With $V = \tfrac{1}{2}n^2$,
+$\dot{V} = -k\,n\,\mathrm{sat}(a_\perp n + e) < 0$ for
+$|n| > \delta/a_\perp$, where the argument of $\mathrm{sat}$ has the
+sign of $n$. With $e = 0$, $|\dot{n}| \geq k\,c_{\max}\tanh 1$
+while $a_\perp|n| \geq c_{\max}$, and $|\tanh x| \geq |x|\tanh 1$ for
+$|x| \leq 1$ gives the rate.
+\end{IEEEproof}
+
+Let the fitted transverse gradient be $\kappa_\perp n + \epsilon$,
+$|\epsilon| \leq \delta_g$. In (\ref{eq:d_law}),
+$a_\perp = \kappa_\perp/\hat{\kappa}_\perp$ and
+$e = \epsilon/\hat{\kappa}_\perp$. In (\ref{eq:s1_law}),
+$a_\perp = g_\perp\kappa_\perp$ and $e = g_\perp\epsilon$. Both bounds
+equal $\delta_g/\kappa_\perp$, independent of gain and fitted
+curvature, but only the $D$ tracker needs $\hat{\kappa}_\perp > 0$.
+Where $\kappa_\perp$ vanishes over a length $\Delta\ell$, as at the
+fold, the $s_1$ ride crosses it in time $\Delta\ell/(k\,c_{\max}\tanh 1)$
+and $|n|$ grows by at most $\Delta\ell/\tanh 1$. A frame rotating at
+$\Omega$ perturbs its $\dot{n}$ by at most $\Omega\lVert\mathbf{p}\rVert$,
+leaving $n$ bounded while $\Omega\lVert\mathbf{p}\rVert < k\,c_{\max}$.
+
+Both branches of (\ref{eq:vpar}) are nonnegative, so the $D$ tracker
+never reverses along the trench. If $\mathrm{sat}(v_\parallel) \geq v_{\min} > 0$ outside
+the flow-saddle neighborhoods where (\ref{eq:d_capture}) applies, it crosses a
+segment of length $L_\Gamma$ within $L_\Gamma/(k\,v_{\min})$.
 
 \begin{thebibliography}{99}
 \itemsep 0pt plus 0.2pt

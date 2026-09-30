@@ -1,0 +1,641 @@
+% ===================================================================
+% CHAPTER 4: COOPERATIVE ESTIMATION FRAMEWORK
+% ===================================================================
+\chapter{Cooperative Estimation Framework}
+\label{ch:estimation}
+
+The three-robot critical-point estimator of Chapter~\ref{ch:first_order}
+and the six-robot separatrix estimator of Chapter~\ref{ch:second_order}
+were developed independently, in two papers written a year apart, and
+each rederives the same machinery for its own robot count: a formation
+of robots reporting simultaneous field measurements, a local polynomial
+model fit to those measurements, and a three-layer control architecture
+that turns the fitted model into a velocity command. This chapter states
+that machinery once, for a fit of arbitrary order $k$, so that the
+first-order and second-order cases in the following chapters appear as
+two instances of one estimator rather than two unrelated derivations.
+
+\section{Multilayer Control Architecture}
+\label{sec:ch4:architecture}
+% Ported from: cwaight_systems_paper.tex Sec. III (Multilayer Control
+% Architecture, Robot Controller Layer, Cluster Space Controller Layer,
+% Adaptive Navigation Layer); Draft_11.tex Sec. III-A (Three-Layer
+% Structure). Merged into one description covering both the three-robot
+% and six-robot instantiations.
+
+Both studies in this dissertation use the same layered control
+architecture, established in prior cluster-space adaptive navigation
+work \cite{20,40,17,18}. There are three layers. An
+adaptive navigation layer estimates the local field and generates a
+desired cluster centroid velocity $\dot{\mathbf{p}}_c$. A cluster
+controller layer maintains the formation's shape and translates between
+cluster-space and robot-space variables. A robot controller layer
+converts each robot's velocity command into actuation. Field samples
+enter the architecture only at the adaptive navigation layer; the two
+layers below it operate on velocity commands and positions alone, with
+no reference to the field.
+
+\subsection{Adaptive Navigation Layer}
+\label{sec:ch4:nav_layer}
+
+The adaptive navigation layer has three functional blocks. A feature
+estimation block fits the local polynomial model of
+Section~\ref{sec:ch4:estimation} to the robots' simultaneous positions
+and field measurements. A navigation controller evaluates the active
+control primitive on that fit and emits a desired centroid velocity
+$\dot{\mathbf{p}}_c$; Chapter~\ref{ch:first_order} defines the
+attraction and orbital primitives built on the $k=1$ fit, and
+Chapter~\ref{ch:second_order} defines the $D$ and $s_1$ trackers built
+on the $k=2$ fit. A formation controller regulates the cluster's shape
+variables to a target configuration by proportional feedback, holding
+the formation geometry the estimator assumes. The navigation and
+formation velocity commands combine into one cluster-space velocity
+vector, which the cluster controller layer below maps to individual
+robot velocities. Swapping the active primitive changes only the
+navigation controller; the estimation block and the two lower layers
+keep their interfaces.
+
+\subsection{Cluster Controller Layer}
+\label{sec:ch4:cluster_layer}
+
+The cluster controller layer maps cluster-space velocity commands to
+individual robot velocities through the analytic inverse kinematic
+Jacobian $\mathbf{J}_c$, and returns measured robot positions to the
+layer above through the forward kinematics, in both directions without
+reference to the sensed field. Section~\ref{sec:ch4:cluster_space}
+defines the two formations used in this dissertation, the three-robot
+SAS triangle and the six-robot pentagon-plus-center; their full forward
+and inverse kinematics and inverse Jacobians are given in
+Appendices~\ref{app:kin3} and~\ref{app:kin6}.
+
+\subsection{Robot Controller Layer}
+\label{sec:ch4:robot_layer}
+
+Each robot's controller receives a velocity command and translates it
+into motion; each robot also samples the local field
+$\mathbf{v}(\mathbf{p}_i) = (u_i,v_i)$ and reports its global position
+$\mathbf{p}_i$, supplying the inputs consumed by the estimation block
+above. Every robot in both studies is modeled as a single omnidirectional
+point mass with a first-order response,
+\begin{equation}
+    \dot{\mathbf{v}}(t) = -\frac{1}{\tau}\mathbf{v}(t)
+        + \frac{1}{\tau}\mathbf{v}_{\text{des}}(t),
+    \label{eq:ch4:lag_cont}
+\end{equation}
+where $\tau$ is the actuator time constant. For digital implementation at
+control period $\Delta t$, discretization yields the momentum update
+\begin{equation}
+    \mathbf{v}[k+1] = \alpha_{\text{mom}}\mathbf{v}[k]
+        + (1-\alpha_{\text{mom}})\mathbf{v}_{\text{des}}[k],
+    \qquad \alpha_{\text{mom}} = e^{-\Delta t/\tau}.
+    \label{eq:ch4:lag_disc}
+\end{equation}
+Each robot also carries a maximum speed and a stiction floor below which
+a commanded velocity produces no motion. This model was identified once,
+on the Decabot testbed, and reused unchanged between the two studies
+\cite{40,41,39}; the identified values of $\tau$,
+$\alpha_{\text{mom}}$, the speed limit, and the stiction floor are given
+in Chapter~\ref{ch:tools}. The sensed field enters only the estimation
+block of Section~\ref{sec:ch4:nav_layer}: it does not appear as a force
+or drift term in Equations~\eqref{eq:ch4:lag_cont}--\eqref{eq:ch4:lag_disc},
+so a robot's velocity responds only to its commanded
+$\mathbf{v}_{\text{des}}$, never to the field it is sensing.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\textwidth]{ch4_control_architecture.png}
+    % FIGURE SOURCE: Paper_Writing/Separatrix_and_OW_Paper/figures/control_architecture.png
+    \caption{Three-layer control architecture. The adaptive navigation
+    layer estimates the field and generates the cluster velocity command,
+    the cluster controller layer maps between cluster-space and
+    robot-space variables, and the robot controller layer actuates each
+    robot and reports its position and field sample. The same three
+    layers instantiate both the three-robot formation of
+    Chapter~\ref{ch:first_order} and the six-robot formation of
+    Chapter~\ref{ch:second_order}.}
+    \label{fig:ch4:control_architecture}
+\end{figure}
+
+\section{Cluster Space Control}
+\label{sec:ch4:cluster_space}
+
+We refer to a group of robots driven as one unit as a cluster: a
+formation treated as a single virtual rigid body whose centroid,
+orientation, and internal geometry can be independently specified and
+controlled \cite{53,54}. A planar formation of $N$ robots has
+$2N$ degrees of freedom, of which three are always rigid-body pose, the
+centroid $(x_c,y_c)$ and heading $\theta_c$, and the remaining $2N-3$
+describe internal shape. Both formations used in this dissertation fit
+this pattern: three robots give six degrees of freedom, three pose and
+three shape; six robots give twelve, three pose and nine shape.
+
+\subsection{Three-Robot SAS Formation}
+\label{sec:ch4:sas3}
+% Ported from: cwaight_systems_paper.tex Sec. III-B; Appendix B
+% (Three-Robot Cluster Controller Equations), also in app:kin3.
+
+Chapter~\ref{ch:first_order}'s cluster is three robots in a triangular
+configuration, parameterized by the Side-Angle-Side (SAS) shape
+variables $(p,\beta,q)$: $p$ is the distance from robot 1 to robot 2,
+$\beta$ is the interior angle at robot 2, and $q$ is the distance from
+robot 2 to robot 3 (Fig.~\ref{fig:ch4:sas3}). Together with the centroid
+$(x_c,y_c)$ and heading $\theta_c$, $(x_c,y_c,\theta_c,p,\beta,q)$ is the
+full six-variable cluster state. The forward kinematics map robot
+positions to this state, the inverse kinematics recover robot positions
+from it, and differentiating the inverse kinematics gives the analytic
+cluster-space Jacobian $\mathbf{J}_c$ used by the cluster controller
+layer; the full equations are given in Appendix~\ref{app:kin3}.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.75\textwidth]{ch4_SAS_Robots.png}
+    % FIGURE SOURCE: Paper_Writing/Systems Paper/cwaight_systems_paper/SAS_Robots.png
+    \caption{Three-robot triangular formation parameterized by SAS
+    variables: side lengths $p$, $q$ and interior angle $\beta$.}
+    \label{fig:ch4:sas3}
+\end{figure}
+
+\subsection{Six-Robot Pentagon-Plus-Center Formation}
+\label{sec:ch4:pentagon6}
+% Ported from: Draft_11.tex Sec. III-A (Three-Layer Structure, cluster
+% state description); thesis.tex Appendix C Sec. "Six-Robot Pentagon
+% Plus Center" (Forward/Inverse Kinematics, Pentagon-of-Pairs).
+
+Chapter~\ref{ch:second_order}'s estimator uses six robots placed at the
+vertices of a regular pentagon of ring radius $\rho$ plus one robot at
+its center, the minimal symmetric formation for second-order estimation
+(Section~\ref{sec:ch4:degeneracy}). The formation controller that holds
+this shape parameterizes the six robots not as a hub and five spokes but
+as three rigid pairs: pair $k$ ($k=1,2,3$) consists of two robots whose
+midpoint is $\mathbf{m}_k$. The three midpoints form a triangle, and the
+SAS parameters of that triangle, $(p_1,\beta_1,q_1)$, are defined exactly
+as in Section~\ref{sec:ch4:sas3}. Each pair is further described by its
+half-length $L_k/2$ and orientation $\psi_k$, with pair 1's orientation
+fixed to the cluster heading, $\psi_1 = \theta_c$, by convention. The
+full twelve-variable cluster state is
+\begin{equation}
+    (x_c,y_c,\theta_c,\,p_1,\beta_1,q_1,\,L_2,\psi_2,\,L_3,\psi_3,\,L_4,\psi_4).
+    \label{eq:ch4:pentagon_state}
+\end{equation}
+This pentagon-of-pairs parameterization realizes the ring-plus-center
+formation the estimator needs only at the specific target configuration
+used throughout Chapter~\ref{ch:second_order}; the grouping into pairs
+is a convenience for the formation controller and is invisible to the
+estimator, which reads only the six robots' measured positions,
+regardless of how the controller parameterizes their shape. The full
+forward and inverse kinematics and the $12\times12$ inverse kinematic
+Jacobian are given in Appendix~\ref{app:kin6}.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.75\textwidth]{ch4_pentagon_formation.png}
+    % FIGURE SOURCE: Paper_Writing/Separatrix_and_OW_Paper/figures/pentagon_formation.png
+    \caption{Pentagon-plus-center formation. Robot 1 sits at the centroid
+    $\mathbf{p}_c$ and robots 2 to 6 on a ring (dotted). The cluster
+    variables shown are the pair separations $L_2$, $L_3$, $L_4$, a pair
+    orientation $\theta_3$, the SAS parameters $(p,\beta,q)$ of the
+    triangle of pair midpoints (squares), and the heading $\theta_c$.}
+    \label{fig:ch4:pentagon6}
+\end{figure}
+
+\section{Local Polynomial Field Estimation}
+\label{sec:ch4:estimation}
+
+% Main new-synthesis section: states the monomial-basis estimator once,
+% for general fit order k, with the first-order (critical-points paper)
+% and second-order (Draft_11 / thesis.tex) estimators as instances.
+
+\subsection{Monomial Basis and Formation Matrix}
+\label{sec:ch4:basis}
+% Ported from: Draft_11.tex Sec. II-A (Local Vector Field Polynomials);
+% thesis.tex "Quadratic Fit from Six Simultaneous Measurements"
+% (lines 2976-3004); generalized to arbitrary fit order k.
+
+A planar vector field assigns a velocity $\mathbf{v}(\mathbf{p}) =
+(u(\mathbf{p}),v(\mathbf{p}))$ to each position $\mathbf{p}=(x,y)$. Fix a
+fit order $k \geq 0$ and expand each component in a Taylor polynomial of
+total degree $k$ about a reference point $\mathbf{p}_c$, the cluster
+centroid throughout this dissertation. Writing
+$\tilde{\mathbf{p}} = \mathbf{p}-\mathbf{p}_c = (\tilde x,\tilde y)$,
+\begin{equation}
+    u(\mathbf{p}) = \sum_{i+j\le k}
+        \frac{\partial^{i+j}u}{\partial x^i\,\partial y^j}\Big|_{\mathbf{p}_c}
+        \frac{\tilde x^i \tilde y^j}{i!\,j!}
+        + \mathcal{O}\!\left(\|\tilde{\mathbf{p}}\|^{k+1}\right),
+    \label{eq:ch4:taylor}
+\end{equation}
+and likewise for $v$, with $\mathcal{O}(\|\tilde{\mathbf{p}}\|^{k+1})$
+the truncation error. This is the same expansion the critical-points
+paper and Draft~11 each write out independently for their own $k$: a
+plane ($k=1$) in Chapter~\ref{ch:first_order}, a full quadratic ($k=2$)
+in Chapter~\ref{ch:second_order}. Collecting the monomials of
+Equation~\eqref{eq:ch4:taylor} into a basis vector,
+\begin{equation}
+    \boldsymbol{\phi}_k(\tilde{\mathbf{p}}) =
+        \left[\frac{\tilde x^i \tilde y^j}{i!\,j!}\right]_{0 \le i+j \le k},
+    \label{eq:ch4:basis}
+\end{equation}
+ordered by increasing total degree, makes the coefficients recovered by
+fitting this basis to data equal the Taylor derivatives directly, with
+no rescaling. The basis has
+\begin{equation}
+    n_k = \sum_{d=0}^{k}(d+1) = \frac{(k+1)(k+2)}{2}
+    \label{eq:ch4:nk}
+\end{equation}
+entries: $n_0=1$, $n_1=3$, $n_2=6$, $n_3=10$.
+%% NOTE(new-math, checked 2026-09-29): not in any source paper. Equations
+% \eqref{eq:ch4:taylor}--\eqref{eq:ch4:nk} generalize the k=1 basis of the
+% critical-points paper (Sec. II-B, the plane U(x,y)=ax+by+c) and the k=2
+% basis of Draft_11 (Sec. II-A, Eq. for phi(p)) to arbitrary fit order;
+% neither source states the general-k form.
+
+Given a formation of $N$ robots at positions $\mathbf{p}_i$ reporting
+measurements $(u_i,v_i)$, stacking $\boldsymbol{\phi}_k(\tilde{\mathbf{p}}_i)^{\mathsf T}$
+row-wise gives the $N \times n_k$ formation matrix $\boldsymbol{\Phi}$,
+and the coefficient vectors $\mathbf{c}_u,\mathbf{c}_v \in \mathbb{R}^{n_k}$
+solve
+\begin{equation}
+    \boldsymbol{\Phi}\,\mathbf{c}_u = \mathbf{m}_u, \qquad
+    \boldsymbol{\Phi}\,\mathbf{c}_v = \mathbf{m}_v,
+    \label{eq:ch4:solve}
+\end{equation}
+where $\mathbf{m}_u=[u_1,\ldots,u_N]^{\mathsf T}$ and
+$\mathbf{m}_v=[v_1,\ldots,v_N]^{\mathsf T}$ collect the measurements. One
+matrix factorization of $\boldsymbol{\Phi}$ serves both components. When
+the true field is exactly an order-$k$ polynomial over the formation's
+footprint, Equation~\eqref{eq:ch4:solve} is exact for any nonsingular
+$\boldsymbol{\Phi}$; on a smooth nonlinear field the fit carries the
+truncation error quantified in Section~\ref{sec:ch4:sensitivity}. At
+$k=1$, $\boldsymbol{\Phi}$ is the $3\times3$ matrix $\mathbf{A}$ of
+Chapter~\ref{ch:first_order}; at $k=2$ it is the $6\times6$ matrix of
+Chapter~\ref{ch:second_order}. The critical-points paper's own matrix
+$\mathbf{A}$ is built from un-centered robot positions rather than
+$\tilde{\mathbf{p}}_i$; shifting the origin to the centroid is an
+invertible change of basis on the coefficient space that leaves the rank
+of the formation matrix, and hence every degeneracy condition below,
+unchanged.
+
+\subsection{Minimality by Fit Order}
+\label{sec:ch4:minimality}
+% Ported from: Draft_11.tex Sec. II-B (Minimality); cwaight_systems_paper.tex
+% Sec. II-C (Minimum Robot Requirements); thesis.tex Proposition
+% "Minimality". Generalized to arbitrary k.
+
+\begin{proposition}[Minimality]
+\label{prop:ch4:minimality}
+Each robot contributes one linear equation per field component to
+Equation~\eqref{eq:ch4:solve}, and each component has $n_k=(k+1)(k+2)/2$
+unknown coefficients. No algorithm, linear or otherwise, can uniquely
+recover the order-$k$ polynomial model of Equation~\eqref{eq:ch4:taylor}
+from one synchronous sample of fewer than $n_k$ robots, and $n_k$ robots
+suffice exactly when $\boldsymbol{\Phi}$ is nonsingular.
+\end{proposition}
+\begin{proof}
+With $N < n_k$ robots, $\boldsymbol{\Phi} \in \mathbb{R}^{N\times n_k}$
+has a nontrivial null space, so for any candidate coefficient vector
+$\mathbf{c}_u$ the vector $\mathbf{c}_u + \mathbf{c}_0$ with
+$\boldsymbol{\Phi}\mathbf{c}_0 = \mathbf{0}$, $\mathbf{c}_0 \ne
+\mathbf{0}$, generates identical measurements at every robot; the two
+order-$k$ fields are indistinguishable from the data. With $N=n_k$,
+Equation~\eqref{eq:ch4:solve} has a unique solution if and only if
+$\det(\boldsymbol{\Phi}) \ne 0$. With $N > n_k$ the system is
+overdetermined and solved by least squares.
+\end{proof}
+%% NOTE(new-math, checked 2026-09-29): not in any source paper for general k. Both
+% sources prove exactly this argument for their own k: the critical-points
+% paper (Sec. II-C) for k=1 ("three equations" for three unknowns), and
+% Draft_11 (Sec. II-B) / thesis.tex for k=2. The proof pattern is identical;
+% only the generalization to arbitrary k is new.
+
+For $k=1$ this is the minimum-robot argument of
+Chapter~\ref{ch:first_order}: each robot contributes one equation to
+each of the two $3\times3$ systems of Equation~\eqref{eq:ch4:solve}, so
+three robots are necessary. For $k=2$ it is the six-robot minimality of
+Chapter~\ref{ch:second_order}: each robot contributes one equation to
+each $6\times6$ system, so six robots are necessary. Both chapters give
+the sufficiency argument for their own $k$ in full.
+
+\subsection{Degeneracy: Robots on a Common Curve}
+\label{sec:ch4:degeneracy}
+% Ported from: thesis.tex "Six Robots Are Necessary, and Almost Always
+% Sufficient" (Proposition "Conic criterion", Corollary "Pentagon plus
+% center", Remark "The center robot is essential"); cwaight_systems_paper.tex
+% Sec. II-C (collinearity). Generalized to arbitrary k as one statement.
+
+Nonsingularity of $\boldsymbol{\Phi}$ has a clean geometric
+characterization at every fit order.
+
+\begin{proposition}[Common-curve degeneracy]
+\label{prop:ch4:degeneracy}
+For $k \ge 1$, $\boldsymbol{\Phi}$ is singular if and only if the $n_k$
+sampling points lie on a common algebraic curve of degree $k$, that is,
+on the zero set of some nonzero polynomial $q(\tilde x,\tilde y)$ of
+total degree at most $k$ (including degenerate curves, such as line
+pairs). For $k=0$ the basis $\boldsymbol{\phi}_0$ has a single,
+identically nonvanishing entry, so no configuration of robots is
+singular.
+\end{proposition}
+\begin{proof}
+$\boldsymbol{\Phi}$ is singular if and only if its columns are linearly
+dependent, if and only if there is a nonzero coefficient vector
+$\mathbf{c}$ with
+$\boldsymbol{\phi}_k(\tilde{\mathbf{p}}_i)^{\mathsf T}\mathbf{c} = 0$ for
+every $i$. The function $q = \boldsymbol{\phi}_k^{\mathsf T}\mathbf{c}$
+is precisely a nonzero polynomial of degree at most $k$ vanishing at
+every sampling point.
+\end{proof}
+%% NOTE(new-math, checked 2026-09-29): not in any source paper for general k;
+% generalizes the k=1 collinearity statement (critical-points paper,
+% Sec. II-C) and the k=2 conic statement (thesis.tex Proposition "Conic
+% criterion") to arbitrary k.
+
+\paragraph{$k=1$: a common line.} Three non-collinear robots are
+sufficient for the plane fit of Chapter~\ref{ch:first_order}:
+$\det(\mathbf{A})$ equals twice the signed area of the formation
+triangle, so $\mathbf{A}$ is invertible exactly when the robots are not
+collinear.
+
+\paragraph{$k=2$: a common conic.} At $k=2$, Proposition~\ref{prop:ch4:degeneracy}
+specializes as follows.
+
+\begin{corollary}[Pentagon plus center]
+\label{cor:ch4:pentagon}
+Place five robots at the vertices of a regular pentagon of radius $\rho$
+and the sixth at its center. Then $\boldsymbol{\Phi}$ is nonsingular.
+\end{corollary}
+\begin{proof}
+No three vertices of a regular pentagon are collinear, and five points
+in general position determine a unique conic; for the pentagon vertices
+that conic is the circumscribed circle. The center does not lie on the
+circle, so no conic passes through all six points, and
+Proposition~\ref{prop:ch4:degeneracy} applies.
+\end{proof}
+
+\begin{remark}[The center robot is essential]
+\label{rem:ch4:center_essential}
+Any formation whose six robots lie on one circle, for example a regular
+hexagon, is singular regardless of its size or orientation, since the
+circle itself is a conic through all six points. Rings are natural
+formations for mobile robots, which makes this failure mode easy to
+adopt by accident; moving one robot to the center removes it entirely.
+This is why the estimator of Chapter~\ref{ch:second_order} uses a
+pentagon plus a center robot rather than a six-robot ring.
+\end{remark}
+
+\paragraph{$k=3$: a common cubic.} A cubic fit from ten robots is
+degenerate exactly when the ten sampling points lie on a common cubic
+curve. This third rung of the ladder recovers the third derivatives on
+which the true Hessian of the determinant field and the transverse
+curvature of an $s_1$ trench depend (Section~\ref{sec:ch4:sensitivity};
+Chapter~\ref{ch:second_order}); it has not been built or tested and is
+future work, discussed in Chapter~\ref{ch:limitations}.
+
+\section{Estimator Sensitivity}
+\label{sec:ch4:sensitivity}
+
+The accuracy of the estimator is affected by the conditioning of the
+formation, the noise on each robot's measurement, the error in each
+robot's position, and the truncation error of the polynomial model
+itself.
+
+\subsection{Formation Conditioning}
+\label{sec:ch4:conditioning}
+% Ported from: Draft_11.tex Sec. II-C "Estimator Sensitivity" (Formation
+% subsubsection); cwaight_systems_paper.tex Discussion (equilateral
+% triangle, kappa(A)).
+
+The rank of the formation matrix $\boldsymbol{\Phi}$ determines whether a
+unique fit exists (Section~\ref{sec:ch4:minimality}), and its condition
+number $\kappa(\boldsymbol{\Phi})$ indicates how much the fit amplifies
+noise. Because the columns of $\boldsymbol{\Phi}$ scale with different
+powers of the formation radius $\rho$ (a degree-$d$ monomial column
+scales as $\rho^d$), condition numbers are reported on the
+radius-normalized matrix, each column divided by $\rho^d$; without this
+normalization the higher-degree columns shrink as $\rho$ shrinks and a
+well-conditioned formation would appear to degrade. The normalized
+matrix depends only on the formation's shape, not its size.
+
+This formation-level condition number is a property of the sampling
+geometry, and the operator can improve it by choosing the formation's
+shape; it is not to be confused with the condition number of a
+downstream operator built from the fitted coefficients, such as the
+field Jacobian $\mathbf{J}$ whose inversion locates a critical point
+(Chapter~\ref{ch:first_order}) or the fitted Hessian used to build a
+tracking direction (Chapter~\ref{ch:second_order}). That second kind of
+conditioning is an intrinsic property of the field itself, not of the
+sampling formation, and is addressed separately in each chapter that
+uses it.
+
+\paragraph{$k=1$ instance.} An equilateral triangle minimizes
+$\kappa(\mathbf{A})$ among formations of the same size centered on the
+sampled region, which is why Chapter~\ref{ch:first_order} uses an
+equilateral triangle rather than an arbitrary SAS shape; as the robots
+approach collinearity, $\kappa(\mathbf{A}) \to \infty$.
+
+\paragraph{$k=2$ instance.} The pentagon-plus-center formation gives
+$\kappa(\boldsymbol{\Phi}) = 8.26$ at every radius. The condition number
+grows continuously as the robots drift toward a common conic, with no
+threshold at which the fit abruptly fails: moving the center robot out
+to $0.99\rho$ places all six robots within $0.6\%$ of a common circle
+and raises $\kappa(\boldsymbol{\Phi})$ to $564$.
+
+\subsection{Measurement Noise}
+\label{sec:ch4:meas_noise}
+% Ported from: Draft_11.tex Sec. II-C (Measurement Noise); thesis.tex
+% Lemma "Exact noise gains of the pentagon-plus-center formation".
+
+Each robot carries its own sensor, so the measurement noise on one
+robot's reading is independent of the others, and the estimator uses
+only instantaneous measurements, so each cycle's fit sees only that
+cycle's noise. Noise is modeled as additive on each reading,
+\begin{equation}
+    u_i^m = u(\mathbf{p}_i) + \eta_i^u, \qquad
+    v_i^m = v(\mathbf{p}_i) + \eta_i^v,
+    \label{eq:ch4:meas_noise}
+\end{equation}
+with $\eta \sim \mathcal{N}(0,\sigma_{uv}^2)$. The fit is linear in the
+measurements, so the noise reaches the coefficients as
+$\boldsymbol{\Phi}^{-1}\boldsymbol{\eta}^u$ and
+$\boldsymbol{\Phi}^{-1}\boldsymbol{\eta}^v$; both are zero-mean, so
+measurement noise adds no bias to the coefficient estimates. Writing
+$\boldsymbol{\Phi} = \bar{\boldsymbol{\Phi}}\,\mathbf{S}_\rho$ with
+$\mathbf{S}_\rho$ the diagonal radius-scaling matrix of
+Section~\ref{sec:ch4:conditioning} (entries $\rho^d$ by monomial degree
+$d$), noise on a degree-$d$ coefficient scales as $\sigma_{uv}/\rho^d$: a
+larger formation averages noise better, and it does so more for
+higher-order coefficients than for lower-order ones.
+
+\begin{lemma}[Exact noise gains of the pentagon-plus-center formation]
+\label{lem:ch4:noise_gains}
+For five robots on a ring of radius $\rho$ and one at the centroid, the
+coefficient standard deviations of the $k=2$ fit are
+\begin{equation}
+    \sigma_{u_0} = \sigma_{uv}, \qquad
+    \sigma_{u_x} = \sigma_{u_y} = \frac{2}{\sqrt{10}}\frac{\sigma_{uv}}{\rho},
+    \label{eq:ch4:gain_grad}
+\end{equation}
+\begin{equation}
+    \sigma_{u_{xx}} = \sigma_{u_{yy}} = \frac{8}{\sqrt{10}}\frac{\sigma_{uv}}{\rho^2},
+    \qquad
+    \sigma_{u_{xy}} = \frac{4}{\sqrt{10}}\frac{\sigma_{uv}}{\rho^2},
+    \label{eq:ch4:gain_hess}
+\end{equation}
+independent of the formation heading, and identically for the
+coefficients of $v$.
+\end{lemma}
+\begin{proof}
+The value coefficient is exact: every basis function except the constant
+vanishes at the origin, so interpolation forces $\hat u_0$ to equal the
+center robot's reading, giving unit gain. The remaining rows follow from
+direct inversion of $\boldsymbol{\Phi}$ using the fifth roots of unity;
+the row norms reduce to the stated constants, and repeating the
+computation with an arbitrary ring phase leaves them unchanged.
+\end{proof}
+
+These gains are isotropic (independent of heading), so estimator quality
+does not degrade as the cluster turns, and they confirm the general
+scaling above: second derivatives are harder to sense than first
+derivatives by one power of the formation radius.
+
+\subsection{Position Noise}
+\label{sec:ch4:pos_noise}
+% Ported from: Draft_11.tex Sec. II-C (Position Noise).
+
+A robot with position error
+$\boldsymbol{\xi}_i \sim \mathcal{N}(\mathbf{0},\sigma_p^2\mathbf{I})$
+samples the field at $\mathbf{p}_i + \boldsymbol{\xi}_i$, but the fit is
+built from its nominal position $\mathbf{p}_i$. The formation matrix is
+therefore wrong by $\Delta\boldsymbol{\Phi}$, whose row $i$ is
+$\boldsymbol{\phi}_k(\tilde{\mathbf{p}}_i+\boldsymbol{\xi}_i)^{\mathsf T} -
+\boldsymbol{\phi}_k(\tilde{\mathbf{p}}_i)^{\mathsf T}$, and the fit
+returns
+\begin{equation}
+    \hat{\mathbf{c}}_u = \mathbf{c}_u
+        + \boldsymbol{\Phi}^{-1}\Delta\boldsymbol{\Phi}\,\mathbf{c}_u,
+    \label{eq:ch4:pos_noise}
+\end{equation}
+and likewise for $\hat{\mathbf{c}}_v$. To first order, entry $i$ of
+$\Delta\boldsymbol{\Phi}\,\mathbf{c}_u$ is
+$\nabla u \cdot \boldsymbol{\xi}_i$, the change in $u$ across the
+displacement. This error vanishes in a uniform flow and grows with the
+local gradient, so unlike measurement noise it depends on the field. Its
+variance is $\lVert\nabla u\rVert^2\sigma_p^2$ for $u$ and
+$\lVert\nabla v\rVert^2\sigma_p^2$ for $v$, and the two average, at
+$k=1$ or $k=2$, to $\tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\sigma_p^2$
+with $\mathbf{J}=\nabla\mathbf{v}$ the field Jacobian. Combining both
+noise sources gives one effective noise level,
+\begin{equation}
+    \sigma_{\text{eff}}^2 = \sigma_{uv}^2
+        + \tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\,\sigma_p^2 .
+    \label{eq:ch4:sigma_eff}
+\end{equation}
+
+\subsection{Truncation Error and Formation Radius}
+\label{sec:ch4:truncation}
+% Ported from: thesis.tex "Sensitivity: Noise, Truncation, and Formation
+% Radius" (lines 3186-3287).
+
+\paragraph{Truncation bias.} If the field is $(k+1)$ times differentiable
+with its order-$(k+1)$ partial derivatives bounded by $M_{k+1}$ over the
+footprint, the Taylor remainder of Equation~\eqref{eq:ch4:taylor} at
+robot $i$ is bounded by a constant times $M_{k+1}\rho^{k+1}$, and passing
+it through $\mathbf{S}_\rho^{-1}\bar{\boldsymbol{\Phi}}^{-1}$ bounds the
+systematic error on each fitted coefficient. At $k=2$ this gives
+\begin{equation}
+    |\hat u_x - u_x| \le c_1 M_3 \rho^2, \qquad
+    |\hat u_{xx} - u_{xx}| \le c_2 M_3 \rho,
+    \label{eq:ch4:truncation}
+\end{equation}
+and likewise for the remaining coefficients, where $c_1,c_2$ are absolute
+constants of the formation shape. The highest-order coefficient's bias
+decays only linearly in $\rho$: smaller formations track curvature
+better, in tension with Section~\ref{sec:ch4:meas_noise}, where larger
+formations average noise better.
+
+\paragraph{The radius trade-off.} Combining the two effects, the total
+error of the highest-order fitted coefficient is bounded by
+$c_2M_3\rho + c_2'\sigma_{uv}/\rho^2$ at $k=2$, minimized at
+\begin{equation}
+    \rho^* = \left(\frac{2c_2'\sigma_{uv}}{c_2M_3}\right)^{1/3}
+        \propto \left(\frac{\sigma_{uv}}{M_3}\right)^{1/3}.
+    \label{eq:ch4:rho_star}
+\end{equation}
+The formation radius is a sensing parameter, not merely a spacing
+choice: it should grow with the noise floor and shrink with the field's
+higher-derivative scale.
+
+\paragraph{Propagation to derived quantities.} Errors in the fitted
+coefficients enter any quantity built from them, such as the determinant
+of the fitted field Jacobian used in Chapter~\ref{ch:second_order}. For
+two-by-two matrices the determinant expansion is exact at second order,
+$\det(\mathbf{J}+\mathbf{E}) = \det(\mathbf{J}) +
+\operatorname{tr}(\operatorname{adj}(\mathbf{J})\mathbf{E}) +
+\det(\mathbf{E})$, with $\lVert\operatorname{adj}(\mathbf{J})\rVert_F =
+\lVert\mathbf{J}\rVert_F$, so the estimated determinant $\hat D$
+satisfies
+\begin{equation}
+    |\hat D - D| \le \lVert\mathbf{J}\rVert_F\lVert\mathbf{E}\rVert_F
+        + \tfrac{1}{2}\lVert\mathbf{E}\rVert_F^2,
+    \label{eq:ch4:det_perturbation}
+\end{equation}
+where $\mathbf{E} = \hat{\mathbf{J}} - \mathbf{J}$ collects the fitted
+first-order coefficient errors. A first derivative of $D$ inherits errors
+only from these same fitted coefficients. A second derivative of $D$ does
+not: it involves third derivatives of the field that a $k=2$ fit has no
+way to recover, so the fitted Hessian of $D$ carries a model bias that is
+independent of the formation radius and cannot be reduced by averaging.
+Chapter~\ref{ch:second_order} shows, for the steady double gyre, that
+this bias falls disproportionately on the Hessian's eigenvalues rather
+than its eigenvectors, which is why a formation too small to resolve
+curvature accurately can still track the structure that curvature
+defines.
+
+\section{The Fit-Order Ladder}
+\label{sec:ch4:ladder}
+% NEW. Restates the fit-order ladder using the machinery of this chapter.
+
+Table~\ref{tab:ch4:ladder} collects the fit-order ladder in the notation
+developed above. Each rung fits a higher-degree local polynomial from
+more simultaneous measurements, recovers one more derivative of the
+field at the centroid, and reaches a feature class the lower rungs
+cannot.
+
+\begin{table}[!t]
+\centering
+\caption{The fit-order ladder. $n_k=(k+1)(k+2)/2$ is the coefficient
+count per field component and the minimum robot count
+(Proposition~\ref{prop:ch4:minimality}); the degeneracy set is the
+common curve on which $\boldsymbol{\Phi}$ becomes singular at that
+minimum
+(Proposition~\ref{prop:ch4:degeneracy}).}
+\label{tab:ch4:ladder}
+\small
+\begin{tabular}{cccp{1.5cm}p{1.9cm}p{2.1cm}c}
+\toprule
+$k$ & $n_k$ & Min. & Degeneracy & Derivatives & Features & Ch. \\
+    &       & robots &  set    & recovered   & reachable  & \\
+\midrule
+0 & 1  & 1  & none        & value       & heading only, no location & \ref{ch:zeroth} \\
+1 & 3  & 3  & common line & value, gradient ($\mathbf{J}$) & critical points; attraction, orbit & \ref{ch:first_order} \\
+2 & 6  & 6  & common conic & value, gradient, Hessian & separatrices; $D$, $s_1$ trackers & \ref{ch:second_order} \\
+3 & 10 & 10 & common cubic & value, gradient, Hessian, 3rd deriv. & true $\mathbf{H}_D$, trench curvature (future) & \ref{ch:limitations} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Summary}
+\label{sec:ch4:summary}
+
+A single estimator, a local polynomial fit of order $k$ recovered from a
+formation of robots reporting simultaneous field measurements, underlies
+every chapter in this dissertation that navigates on a field feature.
+The coefficient count $n_k=(k+1)(k+2)/2$ sets the minimum robot count,
+the formation matrix $\boldsymbol{\Phi}$ is singular exactly on a common
+algebraic curve of degree $k$, and its conditioning, together with
+measurement noise, position noise, and truncation error, sets the
+accuracy of every derivative recovered at the centroid. The same
+three-layer control architecture and the same cluster-space machinery
+carry this estimate into a velocity command regardless of $k$.
+Chapters~\ref{ch:first_order} and~\ref{ch:second_order} instantiate the
+$k=1$ and $k=2$ rungs in full; Chapter~\ref{ch:limitations} discusses
+the $k=3$ rung as future work.

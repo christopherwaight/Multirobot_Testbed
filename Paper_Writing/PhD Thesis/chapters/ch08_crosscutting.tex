@@ -1,0 +1,282 @@
+% ===================================================================
+% CHAPTER 8: CROSS-CUTTING FINDINGS
+% ===================================================================
+\chapter{Cross-Cutting Findings}
+\label{ch:crosscutting}
+
+% NEW SYNTHESIS CHAPTER. Every section here must state something
+% neither source paper states alone; if a section only restates
+% Chapter 6 or 7, fold it into Chapter 10 instead and drop to nine
+% chapters total.
+
+The zeroth-, first-, and second-order estimators of Chapters~\ref{ch:zeroth}, \ref{ch:first_order}, and \ref{ch:second_order} were built and validated one at a time, against different fields, formations, and failure modes. This chapter puts their stated results next to each other. Some sections below add nothing beyond that juxtaposition and say so; the remainder point out where the papers, read together, support a claim that neither states on its own.
+
+\section{Noise Amplification with Fit Order}
+\label{sec:ch8:noise_order}
+
+% SOURCE: combine Ch.6 Error Analysis (sigma_p ~ ||J^{-1}|| sigma_v /
+% sqrt(3)) with Ch.7's noise cliffs (Draft_11.tex Sec. VI-B,
+% lines 873-924). The comparison across orders is new.
+
+The first-order estimator (Chapter~\ref{ch:first_order}) reports one noise-propagation formula, mapping per-component sensor noise $\sigma_v$ into position scatter $\sigma_p$ through the inverse Jacobian of the fitted plane,
+\begin{equation}
+    \sigma_p \approx \frac{\lVert\mathbf{J}^{-1}\rVert\,\sigma_v}{\sqrt{3}} .
+    \label{eq:ch8:sigma_p}
+\end{equation}
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. VI-A (Error Analysis), the sigma_p formula and the sqrt(3) attributed to three-robot averaging.
+With the calibration error of the printed-map sensor, $\sigma_v \approx 0.02$~m/s, this formula predicts roughly 0.03~m of scatter on the printed vortex, matching the observed 0.009--0.016~m precision after closed-loop time-averaging reported for the two hardware fields. Equation~(\ref{eq:ch8:sigma_p}) carries no explicit dependence on formation radius; it is evaluated at the single 0.33~m equilateral triangle used throughout that paper's hardware and simulation trials.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. VI-A (Error Analysis).
+
+The second-order estimator (Chapter~\ref{ch:second_order}) states its noise-propagation model in more granular form. Combining measurement noise $\sigma_{uv}$ on each robot's reading with position noise $\sigma_p$ at measurement time gives one effective noise level,
+\begin{equation}
+    \sigma_{\mathrm{eff}}^2 = \sigma_{uv}^2 + \tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\,\sigma_p^2 ,
+    \label{eq:ch8:sigma_eff}
+\end{equation}
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. II-C (Estimator Sensitivity, Position Noise subsection), eq. sigma_eff.
+and states directly that formation size scales the noise reaching each fitted coefficient by $\rho^{-q}$, where $q$ is the polynomial order of that coefficient (1 for the gradient terms, 2 for the curvature terms) and $\rho$ is the formation radius, so a larger formation suppresses noise most in the second-order terms.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. II-C (Estimator Sensitivity, Formation subsection).
+Both surrogates built on this fit, $\hat{D}$ and $\hat{s}_1$, are read from the same coefficients but at different orders: the value $\hat{D}_0$ is a product of first-order ($q=1$) coefficients, while the Hessian $\hat{\mathbf{H}}_{D,0}$ and the gradient $\nabla\hat{s}_1$ draw on the second-order ($q=2$) coefficients.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. II-D (Eulerian Surrogates), eq. hess_det and eq. grad_s1.
+Under Monte Carlo noise sweeps from a straddling start, the $D$ tracker's far-saddle success crosses 50\% at $\sigma_{uv} \approx 0.0077$ and the $s_1$ tracker's at $\sigma_{uv} \approx 0.0019$, roughly a factor of four apart; under position noise the crossings are $\sigma_p \approx 0.0081$ against $0.0023$.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. IV-B (Behavior Under Noise).
+Both crossing values are small fractions of the commanded speed scale $c_{\max} = 0.04$ used in the same trials (Table~II of Chapter~\ref{ch:second_order}), so both second-order trackers fail at noise levels that are modest relative to the robots' own commanded speed.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Table params (c_max, double-gyre column) and Sec. IV-B.
+
+%% NOTE(new-math, checked 2026-09-29): the derivation below is not in
+%% either paper. It generalizes Draft_11's rho^{-q} statement to every fit
+%% order and recovers the critical-points paper's sigma_p formula.
+Both results follow from one scaling argument that holds at every fit
+order. Let the formation have a fixed shape $\boldsymbol{\xi}_i$ scaled to
+radius $\rho$, so $\tilde{\mathbf{p}}_i = \rho\,\boldsymbol{\xi}_i$. Each
+entry of $\boldsymbol{\phi}_k$ is a monomial of degree $|\alpha|$, so
+\begin{equation}
+    \boldsymbol{\Phi}_\rho = \boldsymbol{\Phi}_1\,\mathbf{S}_\rho,
+    \qquad
+    \mathbf{S}_\rho = \operatorname{diag}\bigl(\rho^{|\alpha|}\bigr),
+    \label{eq:ch8:phi_scaling}
+\end{equation}
+and with independent measurement noise of standard deviation $\sigma$ on
+each reading, the fitted coefficient of degree $q$ has standard deviation
+\begin{equation}
+    \sigma_{c_\alpha} = \rho^{-q}\,\sigma\,
+        \bigl\lVert \mathbf{e}_\alpha^{\mathsf T}\boldsymbol{\Phi}_1^{-1}\bigr\rVert_2,
+    \qquad q = |\alpha|,
+    \label{eq:ch8:coef_noise}
+\end{equation}
+where the row norm depends on the formation's shape only. This is the
+$\rho^{-q}$ law of the second-order paper, stated for any $k$.
+
+A feature is located by driving some fitted quantity $f$ to zero, and a
+perturbation $\delta f$ moves the estimated zero by
+$\delta n \approx \delta f / |\partial f/\partial n|$ along the direction
+$n$ in which $f$ changes. If $f$ is built from field derivatives of order
+up to $m$, Equation~\eqref{eq:ch8:coef_noise} makes $\delta f$ scale as
+$\rho^{-m}\sigma$ to leading order, so
+\begin{equation}
+    \delta n \;\sim\; \frac{\rho^{-m}\,\sigma}{|\partial f/\partial n|}.
+    \label{eq:ch8:terminal_noise}
+\end{equation}
+For the critical point, $f = \mathbf{v}$ itself ($m = 0$) and its slope is
+$\mathbf{J}$. From $\hat{\mathbf{p}}^* = \mathbf{p}_c -
+\hat{\mathbf{J}}^{-1}\hat{\mathbf{v}}_c$,
+\begin{equation}
+    \delta\hat{\mathbf{p}}^* = -\mathbf{J}^{-1}\,\delta\hat{\mathbf{v}}_c
+        + \mathbf{J}^{-1}\,\delta\hat{\mathbf{J}}\,\mathbf{J}^{-1}\mathbf{v}_c ,
+    \label{eq:ch8:pstar_pert}
+\end{equation}
+and the second term vanishes as the centroid reaches the critical point,
+where $\mathbf{v}_c \to \mathbf{0}$. For any nondegenerate triangle the
+affine interpolant's value at the centroid is the mean of the three
+readings, so $\sigma(\hat{\mathbf{v}}_c) = \sigma_v/\sqrt{3}$ per component
+and Equation~\eqref{eq:ch8:sigma_p} follows, with no dependence on $\rho$.
+For both second-order trackers the zero sought is that of a transverse
+gradient, $\mathbf{w}_2^{\mathsf T}\nabla\hat{D}$ or
+$\mathbf{P}\nabla\hat{s}_1$ (Chapter~\ref{ch:second_order}), which is
+built from second derivatives ($m = 2$) and whose slope is the transverse
+curvature of $D$ or $s_1$. The terminal error of the first-order law is
+therefore independent of formation radius, while that of either
+second-order tracker grows as $\rho^{-2}$. Equation~\eqref{eq:ch8:terminal_noise}
+gives the scaling only; it does not by itself account for the factor of
+four between the two second-order trackers, which share $m = 2$, and
+neither paper runs the sweep over fit order at fixed radius that would
+test it directly.
+
+\section{Formation Size: Truncation Versus Noise}\section{Formation Size: Truncation Versus Noise}
+\label{sec:ch8:formation_size}
+
+% SOURCE: Ch.4 Sec. "Truncation Error and Formation Radius" applied
+% side by side to the first- and second-order results.
+
+The first-order paper states one half of the size trade-off explicitly: on a smooth nonlinear field the plane fit carries a linearization error that scales with the local curvature of the field, and this error decreases as the formation contracts toward the critical point.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. II-B (Distributed Critical Point Estimation), paragraph after eq. 9.
+It does not state the complementary half, that a smaller formation also raises the noise sensitivity of the same fit; the noise formula (\ref{eq:ch8:sigma_p}) is evaluated at one fixed formation size rather than swept, so the paper's own results do not show noise growing as the triangle shrinks. Equation~\eqref{eq:ch8:pstar_pert} explains why: at the critical point
+only the order-zero coefficient enters the location error, so shrinking
+the triangle does not raise the terminal scatter. The radius enters
+through $\delta\hat{\mathbf{J}} \propto \rho^{-1}$ only while the
+centroid is away from the critical point, during approach.
+
+The second-order paper states both halves in closed form on the same page. Truncation error in the quadratic Taylor model is $\mathcal{O}(\lVert\mathbf{p}\rVert^3)$, which grows with the formation radius $\rho$ by construction, while the noise reaching each fitted coefficient scales as $\rho^{-q}$ (Section~\ref{sec:ch8:noise_order}), so a larger $\rho$ suppresses noise at the cost of truncation accuracy, and a smaller $\rho$ does the reverse.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. II-A (eq. quad_model_u/v, the O(||p||^3) truncation term) and Sec. II-C (Estimator Sensitivity, Formation subsection).
+The paper reports a formation radius of $\rho = 0.075$ on the double-gyre benchmark and $\rho = 0.098$ (about $1.3\times$ the nominal radius, 5.0~km on the Santa Barbara Channel grid) on the ocean trial, chosen so the enlarged footprint spans about five cells of the 2~km radar grid rather than under four, but does not report a formal sweep of $\rho$ against either error term.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. III-A (Double-Gyre Benchmark, Setup) and Sec. V-A (Santa Barbara Channel Trial, Setup).
+
+The two papers therefore differ in how completely each states the size trade-off inherent to its own fit order, not in whether the trade-off exists. The first-order paper's Error Analysis and Limitations sections describe the truncation side and leave the noise side implicit; the second-order paper's Estimator Sensitivity section states both sides as closed-form functions of $\rho$. Neither paper runs a formation-radius sweep against the estimation error it reports (Section~\ref{sec:ch8:noise_order}), so this remains a statement about what each source proves, not a joint prediction of an optimal radius.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. VI-C (Limitations), fourth item (affine-model assumption over the cluster's spatial extent).
+
+\section{Formation Conditioning Versus Field Conditioning}
+\label{sec:ch8:conditioning}
+
+Both papers separate two independent sources of error amplification, one set by the geometry of the robots and one set by the field being sampled, and both name each with a condition number, though on different matrices.
+
+On the formation side, the first-order paper reports the condition number $\kappa(\mathbf{A})$ of the position matrix in its plane fit, minimized among formations of a given size by the equilateral triangle used throughout, and diverging as the three robots approach collinearity.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. VI-A (Error Analysis), paragraph on the equilateral triangle and kappa(A).
+The second-order paper reports the condition number $\kappa(\boldsymbol{\Phi})$ of its $6\times 6$ formation matrix, equal to 8.26 at every radius for the pentagon-plus-center formation used throughout, and rising to 564 when the center robot is displaced to $0.99\rho$, within 0.6\% of the ring.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. II-C (Estimator Sensitivity, Formation subsection), the kappa(Phi) = 8.26 and 564 values.
+Both $\kappa(\mathbf{A})$ and $\kappa(\boldsymbol{\Phi})$ are properties of robot placement alone, computable before any field measurement is taken, and both are stated to be under the formation controller's control.
+
+On the field side, the first-order paper names a second, independent condition number, $\kappa(\mathbf{J})$, that measures how the local field structure amplifies coefficient errors into critical-point location errors, growing without bound as $\det(\mathbf{J}) \to 0$, and states explicitly that unlike $\kappa(\mathbf{A})$ this factor is an intrinsic property of the field and not under the designer's control.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. VI-A (Error Analysis), paragraph beginning "Further errors could arise from poor conditioning of the estimated Jacobian."
+The second-order paper does not name a field-side condition number.
+Equation~\eqref{eq:ch8:terminal_noise} identifies what plays that role:
+the field-side amplifier is the inverse of the slope of whatever quantity
+the controller drives to zero. For the critical point that is
+$\lVert\mathbf{J}^{-1}\rVert$, which diverges as $\det\mathbf{J} \to 0$.
+For the $D$ tracker it is $1/|\lambda_2|$, the inverse transverse
+curvature of the fitted $D$ that already divides the across-trench
+command in Equation~(\ref{eq:ch7:d_law}), which diverges as the trench
+flattens; for the $s_1$ tracker it is the inverse transverse curvature of
+$s_1$. The ratio $a_\perp = \kappa_\perp/\hat{\kappa}_\perp$ in the
+second-order stability proposition (Appendix~\ref{app:stability}) is a
+different quantity, the ratio of true to fitted curvature, which measures
+how far the estimated amplifier is from the true one.
+%% NOTE(new-math, checked 2026-09-29): identification of the field-side
+%% amplifier as the inverse slope follows from eq:ch8:terminal_noise.
+
+The chapter keeps $\kappa(\mathbf{A})$, $\kappa(\boldsymbol{\Phi})$, $\kappa(\mathbf{J})$, and $a_\perp$ notationally distinct throughout, since the sources never equate them and use them in different fits.
+
+\section{Instantaneous Estimation and Time-Varying Fields}
+\label{sec:ch8:time_varying}
+
+Both estimators are memoryless. The first-order paper states that its estimation framework uses only instantaneous measurements and carries no state between control cycles, and argues from this that the estimator does not assume field stationarity, so it should in principle apply to a field whose shape or strength changes with time, distinct from a critical point that merely translates while the field's structure around it stays fixed. It states plainly that validating the estimator on a genuinely time-varying field remains future work, and that none of its own trials, on six analytical fields or two static reconstructed fields, exercises this case.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. VI-E (Future Work), second and third paragraphs.
+It separately flags that its robot dynamics respond only to commanded velocity, so a field that physically advects the platform, as an ocean current would, adds a disturbance term the controller does not compensate for, and states that extending the architecture to this case is a future-work priority.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. III-A (Robot Controller Layer) and Sec. VI-E (Future Work), fourth paragraph.
+
+The second-order paper's estimator is instantaneous in the same sense, each cycle's fit seeing only that cycle's measurements, and it runs a trial the first-order paper does not: 29 hourly frames of measured Santa Barbara Channel surface currents over a 28-hour window, with both the $D$ and $s_1$ trackers tracking the same evolving ridge to its bifurcation.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. II-C (Estimator Sensitivity, Measurement Noise subsection) and Sec. V (Santa Barbara Channel Trial).
+It is explicit, however, that this is a finding on one time-varying record rather than a stability guarantee: neither tracker has an analytic guarantee for a time-varying flow, and the field is sampled from the gridded product with no added noise, so the trial does not test the estimator's noise behavior (Section~\ref{sec:ch8:noise_order}) under time variation.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. VI (Limitations and Future Work), third and fourth paragraphs.
+Both papers share the same no-advection premise: the sensed field enters the estimator only as a reading, never as a force or drift term on the robot itself, and both flag this as an idealization rather than a demonstrated property of the physical world. The first-order paper states this is exact on its own printed-map testbed, where no physical flow acts on the robots, and the second-order paper states the same premise is exact for the planned Decabot follow-on of its own method, but is an untested extrapolation on the ocean field it actually ran.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. III-A. Separatrix_and_OW_Paper/Draft_11.tex, Sec. VI (Limitations and Future Work), fourth paragraph.
+
+Read together, the second-order paper carries out the experiment the first-order paper's Future Work section calls for, an instantaneous estimator run against a field that changes in time, but under a weaker field model (real radar currents rather than a controlled sweep of field shape or strength) and without closing the advection gap either paper flags.
+
+\section{Objectivity and Sign References}
+\label{sec:ch8:objectivity}
+
+% SOURCE: Ch.7 "Behavior Under a Rotating Observer," generalized as a
+% cross-cutting statement about what each fit order can and cannot
+% certify under an observer transformation.
+
+The second-order paper decomposes the fitted Jacobian $\hat{\mathbf{J}} = \hat{\mathbf{S}} + \hat{\mathbf{W}}$ into a symmetric rate-of-strain part $\hat{\mathbf{S}}$ and an antisymmetric spin part $\hat{\mathbf{W}}$ carrying the vorticity, and shows that a frame rotating at rate $\Omega$ adds a uniform spin, raising the vorticity by $2\Omega$ and shifting the determinant surrogate by $D' = D + \Omega\omega + \Omega^2$, while the strain eigenvalue $s_1$ is unaffected because $\hat{\mathbf{S}}$ only co-rotates. It runs a rotating-observer trial at $\Omega = 0.23$: the $D$ tracker's rotating-frame run is displaced by up to 0.084 from its inertial-frame run (against 0.010 for the $s_1$ tracker) and loses the straddle for 36 steps across the crest, while the $s_1$ tracker's two runs stay within 0.016 of each other and both capture at the same saddle.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. II-D (Eulerian Surrogates, Relation Between the Fields) and Sec. IV-C (Behavior Under a Rotating Observer).
+It also states which sign references remain valid under this transformation: objectivity rules out the fitted curvature, the measured flow, and a world axis as sign references for the $s_1$ tracker's tangent selection, leaving only the primitive's own prior output, carried in state as $\mathbf{t}_{\mathrm{ref}}$.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. IV-B (Behavior Under Noise), paragraph on the D tracker re-signing w1 against v0-hat versus the s1 tracker carrying sign through t_ref.
+
+%% NOTE(new-math, checked 2026-09-29): extension to the first-order
+%% classification; the first-order paper runs no rotating-observer trial.
+The same transformation acts on the first-order classification, which is
+read off the eigenvalues of the full Jacobian (Table~I of
+Chapter~\ref{ch:first_order}). Writing $\mathbf{J} = \mathbf{S} +
+\tfrac{\omega}{2}\mathbf{E}$ with $\mathbf{E} = \left[\begin{smallmatrix}
+0 & -1\\ 1 & 0\end{smallmatrix}\right]$, an observer rotating at rate
+$\Omega$, signed as in Chapter~\ref{ch:second_order} so that the measured
+vorticity rises by $2\Omega$, replaces $\mathbf{J}$ by $\mathbf{J}' =
+\mathbf{J} + \Omega\mathbf{E}$ in the co-rotating basis. Since $\operatorname{tr}\mathbf{E} = 0$,
+\begin{equation}
+    \operatorname{tr}\mathbf{J}' = \operatorname{tr}\mathbf{J},
+    \qquad
+    \det\mathbf{J}' = \det\mathbf{S} + \bigl(\tfrac{\omega}{2}+\Omega\bigr)^2
+        = \det\mathbf{J} + \Omega\,\omega + \Omega^2 ,
+    \label{eq:ch8:rotating_J}
+\end{equation}
+the second identity being the shift $D' = D + \Omega\omega + \Omega^2$ of
+the second-order paper. The real part of the eigenvalues,
+$\alpha_{\text{eig}} = \tfrac{1}{2}\operatorname{tr}\mathbf{J}$, is
+unchanged, so an observer's rotation cannot turn a sink into a source or
+either into a center. The determinant and the discriminant
+$(\operatorname{tr}\mathbf{J})^2 - 4\det\mathbf{J}$ do change, so a
+sufficiently fast rotation can relabel a saddle ($\det\mathbf{J} < 0$) as
+a node or spiral, or a node as a spiral. The location of the critical
+point is not objective either: the rotating observer's velocity differs
+from $\mathbf{v}$ by a rigid rotation about the rotation center, which
+is nonzero away from that center, so the zeros of the measured field
+move. The first-order paper
+tests none of this, so these are consequences of the shared
+decomposition, not demonstrated failures. The orbital law's tangent,
+obtained by a fixed $-90^\circ$ rotation of the radial vector, is also a
+world-frame sign convention of the kind the second-order paper rules out
+as a reference for a rotating or dead-reckoned cluster.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Table I (field_summary) and Sec. II-D (Adaptive Navigation Control Laws, Orbital Navigation, the -90 degree rotation).
+A reflection of the sensor frame is harsher than a rotation: it reverses
+the sign of $\det\hat{\mathbf{J}}$, so it exchanges saddles with nodes
+while leaving the located critical point in place. The hardware logs
+show this directly (Chapter~\ref{ch:first_order}): with the saddle map's
+frame unregistered, the estimate that located the saddle correctly read
+it as a stable node or spiral in every terminal cycle. Location is insensitive to frame
+conventions that type classification depends on.
+% EVIDENCE: experiments/outputs/classify_hw/summary.json (raw_unregistered_terminal_confusion).
+
+\section{What a Fit of Each Order Can Certify at the Terminal Step}
+\label{sec:ch8:terminal_certify}
+
+% NEW. Per the plan's own note: this is the section most likely to be
+% genuinely new thinking. Draft_11.tex states the quadratic fit can
+% only certify a vanishing gradient; the first-order controller's
+% terminal behavior is stiction-limited. State these side by side.
+
+The zeroth-order primitives (Chapter~\ref{ch:zeroth}) certify nothing about location. The vector-sum and vector-to-scalar primitives compress the sensed field to a heading or a scalar gradient direction and command motion along it, with no mechanism to detect or correct radial error with respect to any point. The first-order paper's own simulated comparison reports both drifting outward in a vortex field and states that in a saddle field the vector-sum controller cannot produce an orbital trajectory at all.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. VI-B (Comparison with Other Primitives).
+A separate hardware study of these two zeroth-order primitives on a 3-robot Decabot cluster (fixed formation $p=q=0.35$~m, $\beta=1.05$~rad), 10 trial runs per environment-primitive combination, found the outward-drift failure mode is not simulation-only: orbiting the fixed vortex with vector-sum produced a stable outward drift at all angles that the source states was not predicted by its own simulation studies and attributes to momentum effects the simulation did not capture, and it states that orbiting a center at a fixed radius with these primitives remains an open problem the testbed is positioned to address. The same study found vector-sum converges when the target field itself supplies inward flow: on a sinking vortex, vector-sum drove the cluster to settle around 0.1~m from center, matching its own simulation prediction. The vector-to-scalar primitive, tested only on the fixed vortex (10 runs, plus a second set of 10 with randomized starts), settled within 0.2~m of center, with a similar steady-state error in the randomized-start set; it was not tested on the sinking vortex.
+% EVIDENCE: PhD Thesis/sources/idetc2025_testbed.txt \cite{39}, Sec. 3.5 (Control Primitive Testing Methodology) and Sec. 4.2 (Control Primitive Results on Testbed).
+
+The first-order attraction and orbital laws (Chapter~\ref{ch:first_order}) certify convergence to the estimated critical point exactly, in closed form, given a stationary estimate: the proportional law's linear error dynamic guarantees global exponential convergence with time constant $\tau = 1/k$. In the idealized limit, no stiction, no velocity cap, and instantaneous actuator response, the reported trials confirm convergence to the controller's $10^{-6}$~m command deadband, with the critical-point estimate itself exact to machine precision on the six analytical fields. What limits the terminal step in every reported physical or physically modeled trial is not the estimator or the control law but actuator stiction: a trial is counted as convergent once the trajectory remains bounded and terminates within the stiction-limited neighborhood of the critical point, and the reported final-position statistics (Section~\ref{sec:ch8:noise_order}) quantify that neighborhood, not a limit on what the linear fit can certify.
+% EVIDENCE: Systems Paper/cwaight_systems_paper.tex, Sec. II-D (eq. 10, the exponential convergence claim), Sec. IV-A (the stiction-limited-neighborhood convergence criterion), and Sec. VI-A (the no-stiction, alpha=0 control experiment).
+
+The second-order trackers (Chapter~\ref{ch:second_order}) certify less than the first-order law does, and say so explicitly. The $s_1$ tracker's capture test is built on the gradient rather than the curvature, because its fitted Hessian $\hat{\mathbf{H}}_{s_1}$ is negative semidefinite for every field and formation by construction, so it cannot itself certify a minimum; the paper states that a vanishing gradient suffices only because the physical target, a flow saddle, happens to be a true two-dimensional minimum of $s_1$, a fact about the structure being tracked rather than a fact the fit can verify on its own. The $D$ tracker's capture test does examine the fitted curvature, firing when the fitted Hessian eigenvalues satisfy $\lambda_1\lambda_2 \geq 0$, a condition the true $D$ meets at a flow saddle; but the paper states directly that a negative-definite fit carries no stability claim, and that near the flow saddles on its own benchmark, second derivatives vanish and truncation error sets the sign of the fitted eigenvalues, so even this sign test is not a certificate away from the one benchmark case it was checked against.
+% EVIDENCE: Separatrix_and_OW_Paper/Draft_11.tex, Sec. III-B (The D Tracker, eq. d_capture and surrounding paragraph) and Sec. III-C (The s1 Tracker, capture-test paragraph).
+
+%% NOTE(new-math, checked 2026-09-29): pattern across the three fit orders; no source paper compares itself to the other two. See eq:ch8:terminal_noise.
+Across the three orders, what the terminal step certifies gets weaker, not stronger, as the fit order rises. The zeroth-order primitives certify nothing about location, only a direction. The first-order law certifies exact convergence to its own estimate in closed form, and the reported terminal error traces entirely to actuator stiction, a limit external to the estimator. The second-order trackers, with a richer fit and two more surrogate quantities available, explicitly cannot certify a minimum from their own curvature estimate at all; their capture rules work only because the physical target being sought is independently known to be the kind of point ($D$: a local minimum of the fitted quantity; $s_1$: a vanishing-gradient point) the rule checks for, a fact supplied from outside the fit rather than recovered by it.
+
+\section{Primitive Library}
+\label{sec:ch8:primitive_library}
+
+% SOURCE: modeled on Hart's Appendix B primitive table. One row per
+% primitive: fit order, minimum robots, feature, surrogate, stability
+% result, verification level (sim only / sim + hardware).
+
+Table~\ref{tab:ch8:primitive_library} collects the primitives discussed in Chapters~\ref{ch:zeroth}, \ref{ch:first_order}, and \ref{ch:second_order} in one place. Stability and verification entries are copied from what each source states; "none stated" marks a primitive whose source paper reports no formal stability result. The zeroth-order rows' hardware entries are drawn from the testbed paper \cite{39}.
+% EVIDENCE: zeroth-order rows from idetc2025_testbed.txt \cite{39} (hardware) and the critical-points paper's primitive comparison (simulation); first- and second-order rows from the sections cited in Sections \ref{sec:ch8:noise_order}--\ref{sec:ch8:terminal_certify} above.
+
+\begin{table}[t]
+  \centering
+  \footnotesize
+  \caption{Primitive library across the three fit orders. Primitives built on fewer robots than the fit's theoretical minimum (vector-sum, vector-to-scalar) instead report the cluster size used in their own trials.}
+  \label{tab:ch8:primitive_library}
+  \begin{center}
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{p{1.5cm}cc p{1.9cm} p{2.2cm} p{2.9cm} p{2.5cm}}
+    \toprule
+    \textbf{Primitive} & \textbf{Order} & \textbf{Min.\ robots} & \textbf{Feature} & \textbf{Surrogate / estimate} & \textbf{Stability result} & \textbf{Verification} \\
+    \midrule
+    Vector-sum & 0 & 3 (as tested) & heading toward mean flow & mean sensed velocity vector & none stated; outward drift orbiting a fixed vortex (sim.\ and hw.), converges on a sinking vortex (hw.), no orbit possible in a saddle (sim.) & simulation \cite{38}; hardware, fixed and sinking vortex, 10 runs each \cite{39} \\
+    Vector-to-scalar & 0 & 3 (as tested) & steepest-ascent / descent direction on flow magnitude & flow magnitude and its finite-difference normal & none stated; converges on fixed vortex (hw.); also drifts when adapted for orbital use in a saddle (sim.) & simulation \cite{38}; hardware, fixed vortex only, 10 runs + 10 randomized-start \cite{39} \\
+    Attraction & 1 & 3 & critical point & $\mathbf{p}^* = -\mathbf{J}^{-1}\mathbf{h}$ from the fitted plane & global exponential convergence to the estimated point, $\tau = 1/k$, given a stationary estimate & hardware, 157 convergence trials, 100\% success \\
+    Orbital & 1 & 3 & fixed-radius standoff about a critical point & $\mathbf{p}^*$ as above, plus radial/tangential decomposition & radial error obeys $\dot{e}_r = -k_r e_r$, exponential convergence to $r_d$; decoupled from angular dynamics & hardware, 12 trials (6 radii $\times$ 2 fields) \\
+    $D$ tracker & 2 & 6 & Okubo--Weiss / determinant separatrix (mountain-pass trench) & $\hat{D}_0 = \det\hat{\mathbf{J}}(\mathbf{p}_c)$ and Hessian $\hat{\mathbf{H}}_{D,0}$ & practically stable transverse to trench, $\limsup|n| \leq \delta/a_\perp$; capture test carries no stability claim on a negative-definite fit & simulation only: double-gyre clean and noise trials ($10^4$/pt) plus 28-h Santa Barbara Channel trial \\
+    $s_1$ tracker & 2 & 6 & objective (rate-of-strain) separatrix & smaller strain eigenvalue $\hat{s}_1$ and $\nabla\hat{s}_1$ & same practical-stability bound as $D$ tracker; fitted Hessian negative semidefinite by construction, cannot certify a minimum & simulation only: double-gyre clean and noise trials ($10^4$/pt) plus 28-h Santa Barbara Channel trial \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+\end{table}

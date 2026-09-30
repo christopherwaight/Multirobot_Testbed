@@ -1,0 +1,499 @@
+% ===================================================================
+% CHAPTER 1: INTRODUCTION
+% ===================================================================
+\chapter{Introduction}
+\label{ch:intro}
+
+\section{Adaptive Navigation in Vector Field Environments}
+\label{sec:ch1:motivation}
+% Ported from: thesis.tex Ch.1 Motivation (lines 332-346); extended with
+% cwaight_systems_paper.tex Sec. I (convergence zones, leaks, eddies) and
+% Draft_11.tex Sec. I (coherent structures, transport barriers).
+
+Many environments of scientific and practical interest are organized by an
+underlying vector field: an ocean current, an atmospheric flow, a diffusing
+plume, a magnetic field. Locating and characterizing the special points and
+structures of such a field, its sinks, sources, vortices, saddles, and the
+separatrices that divide one flow regime from another, is often more useful
+than simply following the field's local direction. A search-and-rescue team
+drifting with an ocean current benefits from knowing where a nearby eddy
+will trap debris; an environmental monitoring team benefits from knowing
+where two water masses meet. In many of these settings no map of the field
+exists in advance, and no single sensor can see the whole field at once. A
+team of mobile robots, each sampling the field locally and sharing
+measurements with its neighbors, can estimate field structure that no
+individual robot could determine alone, and can then use that estimate to
+steer.
+
+The oceanic and atmospheric environments that motivate this work are
+governed by a spatially varying velocity or force, and their transport and
+accumulation behavior is organized by the critical points of the field, the
+coordinates where the flow vanishes \cite{1,2}. A surface
+convergence zone acts as a sink, gathering buoyant debris and drifting
+bodies; this makes such zones high probability search regions after a loss
+at sea \cite{3,4}. Containing a ruptured wellhead or a harbor
+discharge requires reaching the source against its own outward flow
+\cite{5,6}. A mesoscale ocean eddy serves as a center, trapping a
+body of water, along with the plankton bloom inside it, and carrying both
+across a basin for weeks \cite{7,8,9}. Monitoring the bloom
+over its lifetime therefore requires a sensor to orbit the drifting core at
+a fixed standoff; a ground-fixed station would not stay with the eddy.
+
+Beyond critical points, vector fields have curves that are useful for
+navigation. Dynamic ocean flows contain naturally occurring boundaries known
+as coherent structures, the strain-dominated curves across which water
+masses separate and along which floating material collects
+\cite{10,11}. Mapping these curves lets a team deploy resources to a
+targeted search area instead of sampling a much larger basin to find where
+the structure lies \cite{11,12,13,14}.
+
+The gap this dissertation addresses is locating and characterizing these
+features, points and curves alike, from measurements a robot team takes of
+the physical field itself, not from an artificial field constructed to
+guide the team, and not from a heading alone. A heading toward, or along, a
+feature is not the same as knowing where the feature is.
+
+\section{Literature Review}
+\label{sec:ch1:literature}
+
+\subsection{Adaptive Navigation in Scalar Fields}
+\label{sec:ch1:lit-scalar}
+% Ported from: Draft_11.tex Sec. I (lines 94-106), extended with
+% cwaight_systems_paper.tex Sec. I (line 51) for the strategy list and
+% field-deployment citations.
+
+Adaptive navigation (AN) in scalar fields is well developed. Each robot
+contributes one scalar measurement to a policy that reaches and follows a
+feature, and formations are sized so that differential measurements across
+the cluster recover the gradient and curvature that policy consumes
+\cite{15,16}. \"{O}gren, Fiorelli, and Leonard established cooperative
+gradient climbing with a formation of mobile sensors \cite{16}.
+Bri\~{n}\'{o}n-Arranz, Renzaglia, and Schenato extended it to the Hessian,
+five robots on a ring plus one at the center recovering both in closed form
+\cite{15}. Kitts, McDonald, and Neumann developed primitives for extrema
+finding, contour following, ridge/trench following, and saddle point
+station keeping \cite{17}, and verified ridge, trench, saddle, and front
+tracking experimentally on an indoor testbed \cite{18,19}.
+
+Additional strategies extend this line of work to gradient-based cluster
+space navigation \cite{20}, extended information consensus filters
+\cite{21,22}, constrained nonsmooth distributed optimization
+\cite{23}, and bio-inspired search \cite{24}, and several such
+systems have been field-deployed on ground, surface, and aerial vehicles for
+environmental monitoring, pollution tracking, and search and rescue
+\cite{20,14,12,25}.
+
+\subsection{Artificial Vector Fields for Guidance}
+\label{sec:ch1:lit-artificial}
+% Ported from: cwaight_systems_paper.tex Sec. I (line 53), expanded with
+% individual citations, including Liddy et al. from thesis.tex, naming the
+% examples the source sentence only cited as a group.
+
+Much of the broader vector field literature constructs artificial fields
+for path-following and obstacle avoidance, a separate problem from sensing
+a real flow, and field campaigns that track features carried by an actual
+ocean current show the difference \cite{26}. Representative examples
+include vector field path following for miniature air vehicles
+\cite{27}, singularity-free guiding vector fields for robot navigation
+\cite{28}, obstacle avoidance using complex vector fields
+\cite{29}, motion planning and collision avoidance using navigation
+vector fields \cite{30}, and adaptive vector field guidance without a
+priori knowledge of course dynamics and wind \cite{31}. None of these
+fields are sensed; they are specified in advance, and the robot's task is
+to follow one, a different problem from the one this dissertation poses.
+
+\subsection{Robotic Sensing of Physical Flows}
+\label{sec:ch1:lit-sensing}
+% Ported from: Draft_11.tex Sec. I (lines 116-124), extended with
+% cwaight_systems_paper.tex Sec. I (lines 53, 57) for the two-camps framing
+% and the Knizhnik citation.
+
+Work that senses the physical field directly falls into two camps. One
+camp presumes prior knowledge of the environment, a map, a model, or an
+assumed functional form, unavailable in the unmapped settings this
+dissertation targets \cite{32,33}. The other operates online using
+only local measurements. Michini et al. bracket a presumed stable or
+unstable manifold with three robots using only local velocity measurements
+\cite{34}, an approach inspired by the PIM triple procedure, extended
+to $N$ robots \cite{35} and validated experimentally in gyre-like flows
+\cite{36}. Knizhnik et al. address a related setting, flow-based
+control of marine robots in gyre-like environments \cite{37}. In the
+Michini line of work the robots begin on the manifold and are advected by
+the flow, and the manifold's identity is supplied in advance; the saddle
+point itself is treated by neither the controller nor its analysis, and
+\cite{34} reports veering away from the structure near a saddle in
+flow-tank experiments. Kularatne and Hsieh confirm the boundary by
+computing the local finite-time Lyapunov exponent field on board, at the
+cost of a nonzero integration horizon and a commitment to attracting
+structures \cite{1}. In every case the robotic formation pre-straddles
+the structure and does not acquire a structure it does not already occupy.
+
+\section{Problem Statement}
+\label{sec:ch1:problem}
+% Ported from: thesis.tex Ch.1 Problem Statement (lines 365-388).
+
+Existing approaches to multirobot navigation in scalar and vector fields
+generally fall into two categories. The first requires prior knowledge of
+the field, a map, a model, or an assumed functional form, against which a
+robot team's local measurements are compared or fit. The second uses only
+local information but provides directional guidance alone: climb the
+gradient, follow the current, avoid the strain. Neither category directly
+answers the question this dissertation poses: given only local, real-time
+measurements and no prior model, can a robot team estimate the location and
+type of a field's critical points, and, more generally, the field's local
+first- and second-order structure, well enough to navigate with respect to
+it, not just along it.
+
+This dissertation answers that question constructively. It shows that
+three robots are both necessary and sufficient to recover a
+two-dimensional vector field's local linearization (its Jacobian) from
+simultaneous local measurements alone, and that six robots are both
+necessary and (almost always) sufficient to recover the same field's local
+quadratic structure (its Jacobian, Okubo-Weiss parameter, and Hessian). In
+both cases the estimate is exact for the class of fields the robots'
+formation size implies (affine for three robots, quadratic for six),
+assembled without any assumption about the field's global shape, and used
+directly inside a navigation control law whose stability is established
+analytically and validated in simulation and, where hardware permits, on a
+physical testbed.
+
+\section{Thesis Statement: Fit Order Sets the Reachable Feature Class}
+\label{sec:ch1:thesis}
+% New text. States the fit-order ladder, cites cwaight_systems_paper.tex
+% Sec. VI-B (vector-sum/vector-to-scalar drift) and Draft_11.tex Sec. I/VII
+% (linear-fit-at-one-point limitation, cubic future work) as the motivating
+% failures each rung fixes.
+
+This dissertation is organized around one idea: the order of the local
+polynomial a robot team fits to a sensed vector field sets which class of
+field feature that team can locate. A zeroth-order fit returns a single
+vector, the field's local mean. A first-order (affine) fit returns the
+field's local Jacobian. A second-order (quadratic) fit returns the field's
+local Hessian in addition to the Jacobian. A third-order (cubic) fit would
+return the field's local third derivatives. Each order needs more robots,
+sampled at one instant, to determine without assuming information the
+field has not supplied, and each order unlocks a feature class the order
+below cannot represent. Table~\ref{tab:ch1:fit-order-ladder} states the
+ladder used throughout this dissertation.
+
+\begin{table}[h]
+\centering
+\caption{The fit-order ladder used throughout this dissertation.}
+\label{tab:ch1:fit-order-ladder}
+\small
+\begin{tabular}{@{}p{1.3in}cp{1.1in}p{1.7in}c@{}}
+\toprule
+Fit order & Robots per component & Degeneracy & Features reachable & Chapter \\
+\midrule
+Zeroth (mean vector, magnitude) & 1+ & none & heading only; drifts on orbits & \ref{ch:zeroth} \\
+First (affine, Jacobian) & 3 & collinear robots & critical points: location, type, orbit & \ref{ch:first_order} \\
+Second (quadratic) & 6 & robots on a common conic & separatrices, Okubo-Weiss boundaries, saddles as minima & \ref{ch:second_order} \\
+Third (cubic, future) & 10 & robots on a common cubic & true Hessian of $D$, transverse curvature & \ref{ch:limitations} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Chapter~\ref{ch:zeroth} shows why the ladder starts here. A zeroth-order
+primitive steers on the mean of the perceived flow direction across the
+formation (the vector-sum primitive) or on the flow's magnitude alone (the
+vector-to-scalar primitive \cite{38}, here modified to move tangentially
+along the direction of steepest descent). Both supply a heading, not a
+location. Orbiting a vortex under either primitive drifts outward in
+spiral fashion, because neither has a mechanism to detect or correct
+radial error with respect to a specific point, and the vector-sum drift has
+been confirmed in hardware \cite{39}. On a saddle the failure is worse:
+the field vectors do not all point toward the critical point, so the
+vector-sum controller cannot produce an orbital trajectory at all.
+
+A first-order fit removes this failure. Recovering the field's Jacobian at
+a single point gives both the location and the type of an isolated critical
+point, and supports a control law that converges onto it or holds a
+commanded orbit around it (Chapter~\ref{ch:first_order}). But a linear fit
+is a property of one point \cite{40}. It cannot by itself locate an
+extended curve, such as the separatrix or Okubo-Weiss boundary that
+organizes transport in a region no single critical point describes, because
+a one-point fit has no gradient of its own to climb. A second-order fit
+gives the velocity gradient as a field over the formation rather than a
+value at a point, so a quantity built from it, the Jacobian determinant or
+the smaller rate-of-strain eigenvalue, comes with its own gradient in
+closed form and can be climbed to and held on a curve
+(Chapter~\ref{ch:second_order}).
+
+The next rung is not built in this dissertation. Chapter~\ref{ch:limitations}
+describes a cubic fit from ten robots as future work: it would recover the
+field's third derivatives directly, giving the true Hessian of the
+determinant $D$ and the transverse curvature of a rate-of-strain trench,
+quantities the second-order fit can only approximate.
+
+\section{Contributions}
+\label{sec:ch1:contributions}
+% Ported from: thesis.tex Ch.1 Contributions (lines 389-424), rewritten in
+% fit-order terms. The old list's second item, a compositional grammar for
+% general cluster-space kinematics, is not listed here; it is out of this
+% dissertation's outline, which derives only the three-robot and six-robot
+% kinematics used by the first- and second-order chapters (Appendices
+% \ref{app:kin3} and \ref{app:kin6}).
+
+The main contributions of this dissertation are:
+\begin{enumerate}
+  \item A hardware and simulation toolkit for multirobot vector-field
+  navigation: HSV-encoded printed fields and neural-network sensor
+  calibration and recalibration (R\textsuperscript{2}~=~0.96 direction,
+  0.91 magnitude) \cite{39}, robot dynamics identification, and a
+  matching simulator (Chapter~\ref{ch:tools}). The Decabot platform itself
+  is prior work of other members of the Robotic Systems Laboratory; the
+  contribution here is the sensing, calibration, and simulation layer built
+  on it.
+  \item Zeroth-order baseline primitives, vector-sum and vector-to-scalar
+  direction-only navigation from prior work \cite{38}, implemented and
+  evaluated on the hardware testbed of Chapter~\ref{ch:tools}
+  \cite{39}, establishing what direction
+  alone can and cannot certify (Chapter~\ref{ch:zeroth}).
+  \item A distributed, model-free method for three robots to estimate a
+  two-dimensional vector field's local Jacobian from simultaneous local
+  measurements alone, with no prior field knowledge, proven minimal at
+  exactly three robots, enabling closed-form critical point localization,
+  eigenvalue-based type classification, and attraction and orbital control
+  laws; validated in simulation (eight fields, 1000 Monte Carlo trials each,
+  100\% convergence) and on hardware (157 convergence trials plus 12
+  orbital trials, 100\% success, sub-centimeter bias)
+  (Chapter~\ref{ch:first_order}).
+  \item A distributed, model-free method for six robots (pentagon plus
+  center) to estimate a two-dimensional flow's local Jacobian, Okubo-Weiss
+  parameter, and Hessian from simultaneous local measurements, proven
+  minimal at exactly six robots and almost-always sufficient, ruling out
+  the degenerate hexagon and conic trap, enabling two modified-Newton
+  controllers, the $D$ tracker and the $s_1$ tracker, that track the
+  Okubo-Weiss boundary and the separatrix trench respectively, with a
+  proven stability and traversal guarantee and validation on both a
+  canonical double-gyre model and real ocean high-frequency-radar current
+  data (Chapter~\ref{ch:second_order}).
+  \item Findings that hold across fit orders: how estimation noise
+  amplifies with fit order, how formation size trades truncation error
+  against noise sensitivity, and how objectivity under a rotating observer
+  depends on which surrogate field a controller climbs
+  (Chapter~\ref{ch:crosscutting}).
+\end{enumerate}
+
+\section{Publications}
+\label{sec:ch1:publications}
+% Ported from: thesis.tex Ch.1 Publications (lines 426-453), restructured
+% to the four publications behind this dissertation's fit-order chapters.
+% Titles taken verbatim from each source's own title. Statuses left as
+% [TBD] where no source states one; per CLAUDE.md, this dissertation's own
+% submission is intentionally held until the critical-points paper
+% publishes, and that is not a blocker to flag.
+
+Portions of this dissertation have appeared, or are in preparation to
+appear, in the following publications.
+
+\begin{table}[h]
+\centering
+\caption{Mapping of dissertation chapters to publications.}
+\label{tab:ch1:publications}
+\small
+\begin{tabular}{@{}cp{1.9in}p{1.0in}c@{}}
+\toprule
+Chapter & Working title & Venue & Status \\
+\midrule
+\ref{ch:tools}, \ref{ch:zeroth} & A Functional Indoor Testbed for Multirobot Adaptive
+Navigation in Vector Field Environments \cite{39} & ASME IDETC/CIE
+2025, Anaheim (DETC2025-167604) & Published \\
+\ref{ch:first_order} & Adaptive Navigation of Multirobot Systems to
+Critical Points in 2D Vector Fields in Simulation and Experiment & IEEE
+Systems Journal & \textbf{[TBD]} \\
+\ref{ch:second_order} & Second-Order Cooperative Field Estimation for
+Multirobot Tracking of Coherent Flow Structures & IEEE Systems Journal &
+In preparation \\
+\bottomrule
+\end{tabular}
+\end{table}
+%% IDETC 2025 testbed paper: published (author confirmed 2026-09-29; final
+%% PDF in Paper_Writing/Reference Papers/[33]).
+%% The 2024 IDETC submission (DETC2024-142746) was rejected; its early
+%% ideas are not part of this dissertation and it is not cited.
+%% TODO(status): confirm the critical-points paper's submission status.
+
+\section{Dissertation Organization}
+\label{sec:ch1:organization}
+% Ported from: thesis.tex Ch.1 Organization (lines 454-474), rewritten for
+% the ten-chapter, six-appendix fit-order structure.
+
+Chapter~\ref{ch:tools} describes the verification tools this dissertation
+depends on: the Decabot hardware platform (prior work of the Robotic
+Systems Laboratory), the HSV-encoded printed vector fields and
+neural-network sensor calibration developed for it, which converts a
+camera reading to a velocity estimate \cite{39}, robot dynamics
+identification, and the matching simulation environment used throughout
+the rest of this dissertation.
+
+Chapter~\ref{ch:preliminaries} sets out the mathematics common to every fit
+order: the planar vector field, the velocity gradient tensor, critical
+point classification by eigenvalue structure, the rotation-strain
+decomposition and the Okubo-Weiss partition, coherent structures,
+objectivity under a change of observer frame, and the canonical benchmark
+fields used for validation.
+
+Chapter~\ref{ch:estimation} presents the cooperative estimation framework
+shared by every fit order above zeroth: the multilayer control
+architecture, cluster space control for the three-robot and six-robot
+formations, local polynomial field estimation and its minimality,
+estimator sensitivity to noise and truncation, and the fit-order ladder of
+Section~\ref{sec:ch1:thesis} restated with this framework's machinery.
+
+Chapter~\ref{ch:zeroth} presents the zeroth-order baseline: direction-only
+navigation and the vector-sum and vector-to-scalar primitives \cite{38},
+hardware trials on
+fixed and sinking vortices on the testbed of Chapter~\ref{ch:tools}
+\cite{39}, and the argument that direction alone is not location.
+
+Chapter~\ref{ch:first_order} presents the first-order result: three robots
+recovering a vector field's local Jacobian, and the resulting critical
+point estimation, classification, attraction, and orbital control laws,
+validated in simulation and on hardware and compared against the
+zeroth-order primitives of Chapter~\ref{ch:zeroth}.
+
+Chapter~\ref{ch:second_order} presents the second-order result: six robots
+recovering a flow's local Hessian and Okubo-Weiss structure, the $D$
+tracker and $s_1$ tracker built on that estimate, their stability and
+traversal properties, and their validation on a double-gyre benchmark and
+on Santa Barbara Channel radar current data.
+
+Chapter~\ref{ch:crosscutting} collects findings that appear only once
+results from more than one fit order are set side by side: how noise
+amplifies with fit order, how formation size trades truncation error
+against noise sensitivity, formation conditioning versus field
+conditioning, instantaneous estimation on a time-varying field, and
+objectivity and sign references across controllers.
+
+Chapter~\ref{ch:limitations} states this dissertation's limitations by fit
+order and describes future work, including the cubic, ten-robot extension
+that would complete the next rung of the ladder.
+
+Chapter~\ref{ch:conclusion} summarizes the contributions and closes with
+final thoughts.
+
+Appendix~\ref{app:fields} collects the canonical field definitions used in
+simulation throughout this dissertation. Appendix~\ref{app:kin3} derives
+the three-robot cluster's kinematics in full. Appendix~\ref{app:kin6}
+derives the six-robot pentagon-plus-center cluster's kinematics in full.
+Appendix~\ref{app:frame_equivariance} proves the frame equivariance of the
+$s_1$ tracker. Appendix~\ref{app:stability} collects the transverse
+stability proofs for the controllers of Chapters~\ref{ch:first_order}
+and~\ref{ch:second_order}. Appendix~\ref{app:stats} documents the
+statistical methods used to report simulation and hardware results.
+
+\section{Notation}
+\label{sec:ch1:notation}
+% Ported from: thesis.tex Ch.1 "Notation and Definitions" (lines 476-586),
+% chapter cross-references updated to the ten-chapter structure and
+% trimmed of notation tied to material not in this dissertation's outline
+% (the consensus orientation gauge and the composition-tree spine angle,
+% both part of the compositional-grammar work excluded per Section
+% \ref{sec:ch1:contributions}). The full symbol reference is the Glossary
+% of Terms in the front matter.
+
+Throughout this dissertation, bold lowercase letters denote vectors, e.g.,
+$\mathbf{p} \in \mathbb{R}^2$, and bold uppercase letters denote matrices,
+e.g., $\mathbf{J} \in \mathbb{R}^{m \times n}$. The studies collected in
+this dissertation were originally written as independent papers, and their
+notations were never cross-checked against one another. Most symbols
+already agree; a small number collide and are resolved here, once, for the
+whole document. Chapter-specific notation not covered here is introduced
+where it is first used.
+
+\subsection*{The bold-\texorpdfstring{$\mathbf{p}$}{p} versus scalar-\texorpdfstring{$p$}{p} rule}
+
+Bold $\mathbf{p}$ always denotes a two-dimensional position,
+$\mathbf{p} = (x,y)$, and is never written unbolded when used as a
+position. Scalar $p$ always denotes the side-length formation parameter
+inherited from the Kitts-lab cluster-space lineage, introduced in
+Chapter~\ref{ch:estimation} and used through Appendices~\ref{app:kin3} and
+\ref{app:kin6}: the distance from robot 1 to robot 2 in a side-angle-side
+(SAS) triangular formation. There is no unbolded $p$ for position and no
+bold $\mathbf{p}$ for side length. This rule is carried unchanged from the
+source papers and holds throughout every chapter of this dissertation.
+
+\subsection*{The bold-\texorpdfstring{$\mathbf{q}$}{q} versus scalar-\texorpdfstring{$q$}{q} rule}
+
+Chapter~\ref{ch:estimation} introduces bold $\mathbf{q}$ as the general
+cluster-space state vector (pose and shape stacked, dimension $2N$ for $N$
+robots), while scalar $q$, following the same inherited SAS convention as
+scalar $p$, denotes the triangle's second side length (the 2--3 distance).
+These two uses never appear in the same equation and are distinguished
+exactly as bold $\mathbf{p}$ and scalar $p$ are: there is no unbolded
+$\mathbf{q}$ for the state vector and no bold $q$ for the side length.
+
+\subsection*{The alpha collision}
+
+The symbol $\alpha$ is used for three unrelated quantities across the
+source materials. Each is disambiguated with a subscript in this
+dissertation and must never be written as bare $\alpha$ after this point.
+
+\begin{itemize}
+\item $\alpha_{\text{eig}}$: the real part of a complex eigenvalue pair of
+  the field Jacobian $\mathbf{J}$, written $\alpha_{\text{eig}} \pm
+  i\omega$. This is a property of the vector field's linearization at a
+  critical point and classifies spiral-type critical points
+  (Chapter~\ref{ch:first_order}).
+\item $\alpha_{\text{mom}}$: the discrete first-order momentum filter
+  coefficient for robot dynamics, $\alpha_{\text{mom}} = \exp(-\Delta
+  t/\tau)$. At 10~Hz with $\tau \approx 0.28$~s, $\alpha_{\text{mom}} \approx
+  0.70$. This is characterized in Chapter~\ref{ch:tools} and appears
+  identically in the robot dynamics of Chapters~\ref{ch:first_order} and
+  \ref{ch:second_order}.
+\item $\phi_1, \phi_3$: the two SAS-triangle vertex angles at robots 1 and
+  3, used only in the triangle's law-of-cosines derivation
+  (Appendix~\ref{app:kin3}). These were originally written as $\alpha$ and
+  $\gamma$ in one source paper's appendix; they are renamed here since they
+  are otherwise unused and the original choice collided with both
+  $\alpha_{\text{eig}}$ and $\alpha_{\text{mom}}$.
+\end{itemize}
+
+\subsection*{The \texorpdfstring{$r$}{r} collision}
+
+Three meanings of $r$ appear across the source materials: the orbital
+radial vector/magnitude $\mathbf{r} = \mathbf{p}^* - \mathbf{p}_c$
+(Chapter~\ref{ch:first_order}), the SAS triangle's third side length (the
+1--3 diagonal), and the polar radius used in several canonical field
+definitions. This dissertation keeps $r$ for the orbital radial quantity,
+since it appears in a named control law. The triangle's third side is
+renamed $s$, and the polar radius in field definitions is renamed $\rho$,
+matching the pentagon ring radius already used in
+Chapter~\ref{ch:second_order} and Appendix~\ref{app:kin6}, so that
+``radius of a circular construction'' reads consistently throughout.
+
+\subsection*{The \texorpdfstring{$\mathbf{J}$}{J} collision}
+
+Bold $\mathbf{J}$ denotes the field Jacobian, $\mathbf{J} =
+\left[\begin{smallmatrix} u_x & u_y \\ v_x & v_y \end{smallmatrix}\right]$,
+throughout this dissertation: it is defined in
+Chapter~\ref{ch:preliminaries}, recovered from measurements in
+Chapter~\ref{ch:estimation}, and is the central object of
+Chapter~\ref{ch:first_order} (first order) and Chapter~\ref{ch:second_order}
+(embedded in the second-order estimator). Every kinematic or cluster-space
+Jacobian, mapping shape-parameter velocities to individual robot
+velocities, is written $\mathbf{J}_c$ instead, whether it is the $6\times
+6$ triangle Jacobian or the $12\times 12$ pentagon Jacobian, both presented
+in Chapter~\ref{ch:estimation} and derived in full in
+Appendices~\ref{app:kin3} and~\ref{app:kin6}.
+
+\subsection*{Other symbols}
+
+The full symbol reference for field and estimation notation, critical
+point classification, control laws, robot dynamics, and formation
+parameters is the Glossary of Terms in the front matter, extended with the
+Chapter~\ref{ch:estimation} and Chapter~\ref{ch:second_order} additions
+listed there. Of particular note: capital $\boldsymbol{\Phi}$ (the
+six-robot formation matrix, Chapter~\ref{ch:second_order}) is visually
+close to lowercase $\phi_1, \phi_3$ (the triangle vertex angles,
+Appendix~\ref{app:kin3}) in some fonts; the two never appear in the same
+chapter, but the reader should not assume a relationship between them.
+Similarly, $\rho$ appears in two guises across this dissertation, the field
+definitions' polar radius (Chapter~\ref{ch:preliminaries},
+Appendix~\ref{app:fields}) and the pentagon formation's ring radius
+(Chapter~\ref{ch:second_order}, Appendix~\ref{app:kin6}).
+
+As in Chapter~\ref{ch:first_order}, this dissertation writes a critical
+point of a flow, including a saddle point of the Okubo-Weiss field in
+Chapter~\ref{ch:second_order}, as $\mathbf{p}^*$.

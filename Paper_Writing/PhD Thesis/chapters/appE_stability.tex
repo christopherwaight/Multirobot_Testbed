@@ -1,0 +1,69 @@
+\chapter{Transverse Stability Proofs}
+\label{app:stability}
+% Ported from: Draft_11.tex Appendix "Stability of the Trackers" (its
+% only stability appendix), in full. thesis.tex's older Sec. "Stability
+% Analysis" (a superset of proofs for an earlier, three-mode controller
+% design that Draft_11 replaced with the simpler D/s1 tracker pair) is
+% NOT ported here; see the task report for the list of proofs it drops.
+
+Both arguments assume the cluster realizes $\dot{\mathbf{p}}_c$
+\cite{17,53} and neglect robot lag. Near a trench, with $n$ the
+distance across it and $\ell$ the arclength along it, the surrogate is
+$f = h(\ell) + \tfrac12\kappa_\perp(\ell)n^2$ to second order, with
+$\kappa_\perp > 0$.
+
+On a quadratic model with Hessian eigenpair $(\lambda_j,\mathbf{w}_j)$,
+the gradient component $g_j = \mathbf{w}_j^\top\nabla f$ obeys
+$\dot g_j = \lambda_j\mathbf{w}_j^\top\dot{\mathbf{p}}_c$, so the
+saturated Newton channel
+$\mathbf{w}_j^\top\dot{\mathbf{p}}_c = -k\,\operatorname{sat}(x_j)$,
+$x_j = g_j/\lambda_j$, gives
+\begin{equation}
+\frac{d}{dt}\,\tfrac12g_j^2 = -k\,\lambda_j^2\,x_j\,\operatorname{sat}(x_j) \leq 0
+\label{eq:appE:newton_lyap}
+\end{equation}
+for either sign of $\lambda_j$, with equality only at $g_j=0$. A full
+Newton step would therefore halt at the crest, so the $D$ tracker keeps
+only the across-trench channel.
+
+\begin{proposition}
+\label{prop:appE:transverse}
+Let $\dot n = -k\,\operatorname{sat}(a_\perp n + e)$ with $a_\perp > 0$
+and $|e| \leq \delta$. Then $\limsup_{t\to\infty}|n| \leq \delta/a_\perp$.
+If $e=0$, $|n|$ falls below $c_{\max}/a_\perp$ in finite time, then decays
+at rate at least $k\,a_\perp\tanh 1$.
+\end{proposition}
+
+\begin{proof}
+With $V = \tfrac12n^2$, $\dot V = -k\,n\,\operatorname{sat}(a_\perp n+e) <
+0$ for $|n| > \delta/a_\perp$, where the argument of $\operatorname{sat}$
+has the sign of $n$. With $e=0$, $|\dot n| \geq k\,c_{\max}\tanh 1$ while
+$a_\perp|n| \geq c_{\max}$, and $|\tanh x| \geq |x|\tanh 1$ for $|x|\leq1$
+gives the rate.
+\end{proof}
+
+Let the fitted transverse gradient be $\kappa_\perp n + \epsilon$,
+$|\epsilon| \leq \delta_g$. In the $D$ tracker's law (Chapter
+\ref{ch:second_order}, Eq.~\ref{eq:ch7:d_law}), $a_\perp =
+\kappa_\perp/\hat\kappa_\perp$ and $e = \epsilon/\hat\kappa_\perp$. In the
+$s_1$ tracker's law (Eq.~\ref{eq:ch7:s1_law}), $a_\perp = g_\perp\kappa_\perp$
+and $e = g_\perp\epsilon$. Both bounds equal $\delta_g/\kappa_\perp$,
+independent of gain and fitted curvature, but only the $D$ tracker needs
+$\hat\kappa_\perp > 0$. Where $\kappa_\perp$ vanishes over a length
+$\Delta\ell$, as at the fold, the $s_1$ ride crosses it in time
+$\Delta\ell/(k\,c_{\max}\tanh 1)$ and $|n|$ grows by at most
+$\Delta\ell/\tanh 1$. A frame rotating at $\Omega$ perturbs its $\dot n$
+by at most $\Omega\lVert\mathbf{p}\rVert$, leaving $n$ bounded while
+$\Omega\lVert\mathbf{p}\rVert < k\,c_{\max}$
+(Appendix~\ref{app:frame_equivariance}).
+
+Both branches of the $D$ tracker's along-trench speed law
+(Eq.~\ref{eq:ch7:vpar}) are nonnegative, so the $D$ tracker never reverses
+along the trench. If $\operatorname{sat}(v_\parallel) \geq v_{\min} > 0$
+outside the flow-saddle neighborhoods where its capture test
+(Eq.~\ref{eq:ch7:d_capture}) applies, it crosses a segment of length
+$L_\Gamma$ within $L_\Gamma/(k\,v_{\min})$.
+%% NOTE: the \ref{eq:ch7:d_law}, \ref{eq:ch7:s1_law}, \ref{eq:ch7:vpar},
+%% and \ref{eq:ch7:d_capture} cross-references above match the
+%% eq:ch7:-prefixed labels currently defined in ch07_second_order.tex;
+%% re-check them if that chapter's labels change.

@@ -1,0 +1,84 @@
+\chapter{Six-Robot Cluster Kinematics}
+\label{app:kin6}
+% Ported from: thesis.tex "Cluster Kinematics for the Formations Used in
+% This Dissertation", Sec. "Six-Robot Pentagon Plus Center" (the
+% pentagon-of-pairs forward/inverse kinematics and inverse Jacobian).
+% Draft_11.tex does not give these formulas explicitly (its estimator
+% reads only the six measured robot positions, Chapter~\ref{ch:second_order}); checked
+% against src/control/pentagon_kinematics.py, which implements the same
+% pair-midpoint parameterization.
+
+This appendix gives the forward kinematics, inverse kinematics, and
+inverse kinematic Jacobian for the six-robot formation-control layer used
+by Chapter~\ref{ch:second_order}, distinct from that chapter's estimator,
+which reads only the six measured robot positions and does not depend on
+this parameterization. The six robots are grouped into three rigid pairs,
+and the pair midpoints form a triangle; this is the pentagon-\emph{of-pairs}
+configuration, which generates the nominal pentagon-plus-center formation
+only at the specific ring-radius setpoint used in that chapter's
+simulations.
+
+\section{Forward Kinematics}
+\label{sec:appC:forward}
+
+The pentagon-of-pairs cluster has six robots indexed $i=1,\ldots,6$,
+arranged as three pairs. Pair $k$ ($k=1,2,3$) consists of robots $2k-1$
+and $2k$. The midpoint of pair $k$ is
+$\mathbf{m}_k = (\mathbf{p}_{2k-1}+\mathbf{p}_{2k})/2$. The three
+midpoints form a triangle; the centroid of that triangle is
+\begin{equation}
+\mathbf{p}_c = \frac{\mathbf{m}_1+\mathbf{m}_2+\mathbf{m}_3}{3}.
+\label{eq:appC:centroid}
+\end{equation}
+The SAS parameters of the midpoint triangle are defined as in the
+three-robot case of Appendix~\ref{app:kin3}:
+$p_1 = \lVert \mathbf{m}_2-\mathbf{m}_1 \rVert$,
+$q_1 = \lVert \mathbf{m}_3-\mathbf{m}_2 \rVert$, and $\beta_1$ is the
+interior angle at $\mathbf{m}_2$. The cluster heading is
+\begin{equation}
+\theta_c = \operatorname{atan2}(m_{2,y}-m_{1,y},\, m_{2,x}-m_{1,x}).
+\label{eq:appC:theta_c}
+\end{equation}
+Each pair is described by its half-length $L_k/2$ and orientation angle
+$\psi_k$, so the two robots in pair $k$ are at
+$\mathbf{m}_k \pm (L_k/2)(\cos\psi_k,\sin\psi_k)^{\mathsf T}$.
+
+The full twelve-state cluster configuration is
+\begin{equation}
+(x_c,y_c,\theta_c,\,p_1,\beta_1,q_1,\,L_2,\psi_2,\,L_3,\psi_3,\,L_4,\psi_4),
+\label{eq:appC:state}
+\end{equation}
+where pair 1 uses $L_1$ fixed and $\psi_1 = \theta_c$ by convention.
+
+\section{Inverse Kinematics}
+\label{sec:appC:inverse}
+
+Given the twelve-state cluster configuration, the six robot positions are
+recovered by: constructing the midpoint triangle from $(p_1,\beta_1,q_1)$
+in a local frame, following the same procedure as the three-robot
+triangle of Appendix~\ref{app:kin3}; rotating and translating to the
+global frame using $\theta_c$, $x_c$, $y_c$; and placing each pair of
+robots by offsetting from its midpoint along $(\cos\psi_k,\sin\psi_k)$ by
+$L_k/2$ in each direction.
+
+\section{Inverse Kinematic Jacobian}
+\label{sec:appC:jacobian}
+
+The $12\times12$ inverse kinematic Jacobian maps desired cluster state
+velocities $\dot{\boldsymbol{\xi}}$ to robot velocity commands
+$(\dot x_1,\dot y_1,\ldots,\dot x_6,\dot y_6)^{\mathsf T}$:
+\begin{equation}
+\begin{bmatrix} \dot x_1\\\dot y_1\\\vdots\\\dot x_6\\\dot y_6 \end{bmatrix}
+= \mathbf{J}_{c,\text{pentagon}}^{-1}
+\begin{bmatrix} \dot x_c\\\dot y_c\\\dot\theta_c\\\dot p_1\\\dot\beta_1\\\dot q_1\\\dot L_2\\\dot\psi_2\\\dot L_3\\\dot\psi_3\\\dot L_4\\\dot\psi_4 \end{bmatrix},
+\label{eq:appC:inv_kin_jac}
+\end{equation}
+where $\mathbf{J}_{c,\text{pentagon}}^{-1}$ is a $12\times12$ matrix of
+partial derivatives $\partial(x_i,y_i)/\partial\xi_j$ computed
+analytically from the inverse kinematics above.
+The entries are not listed here. In the simulation software they are
+assembled from analytic partial derivatives of the pair-midpoint
+construction above (\texttt{compute\_inverse\_jacobian} in
+\texttt{src/control/pentagon\_kinematics.py}), and the
+\texttt{cluster\_builder} tool generates them in closed symbolic form
+(\texttt{clusterbuilder.py} with the \texttt{--symbolic} option).

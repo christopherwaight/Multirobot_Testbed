@@ -1,0 +1,531 @@
+% ===================================================================
+% CHAPTER 2: VERIFICATION TOOLS
+% ===================================================================
+\chapter{Verification Tools}
+\label{ch:tools}
+
+This chapter presents the hardware and simulation tools used to verify
+the estimation and control results of the rest of this dissertation. It
+separates what these tools inherit from prior lab work from what this
+dissertation adds to them; Section~\ref{sec:ch2:summary} states that
+division plainly.
+
+\section{Decabots (Prior Work)}
+% Ported from: thesis.tex Ch.2 Introduction (lines 593-622); Systems
+% paper Sec. V-A hardware description; bib_sources.tex sys:52, sys:47.
+\label{sec:ch2:decabots}
+
+Every hardware result in this dissertation runs on the Decabot testbed,
+a platform built by prior members of the Santa Clara University Robotic
+Systems Laboratory and reused here without modification to the robots
+or the motion capture system. The Decabot is a low-cost omnidirectional
+rover developed for hardware verification of cluster-space control
+schemes \cite{41}. A prior generation of this testbed encoded
+vector field readings directly in RGB color and printed the result on
+the floor as a map for the robots to sense, following an indoor testbed
+feasibility study for vector-field adaptive navigation \cite{42}.
+That RGB approach suffered a persistent limitation: interference between
+color channels in the robots' undercarriage-mounted sensors degraded the
+system's ability to recover accurate direction and magnitude
+information, and the discrete color palette limited the effective
+sampling rate to roughly 0.15~Hz, too slow to support the continuous,
+closed-loop control laws developed in
+Chapters~\ref{ch:first_order} and~\ref{ch:second_order}.
+
+The remainder of this chapter describes what this dissertation adds on
+top of this inherited platform: an HSV-based field encoding, a
+neural-network sensor calibration that corrects for the channel
+interference the RGB approach could not, a characterization of robot
+dynamics and velocity response, and the simulation environment used
+throughout the rest of this dissertation.
+
+\section{Decabot Testbed and Motion Capture}
+% Ported from: thesis.tex Ch.2 "Testbed Overview" (lines 662-671) and
+% Control Architecture Overview (lines 645-661); Systems paper Sec. V-A
+% for the workspace footprint used in current hardware trials; DETC2025-167604
+% (thesis:33) Sec. 3.1 "Testbed Overview" and Sec. 5 "System Limitations"
+% for the floor-map area and physical constraint figures.
+\label{sec:ch2:testbed}
+
+The physical testbed consists of three omnidirectional Decabot rovers
+operating on 2.3~m\textsuperscript{2} multicolored printed floor maps,
+an OptiTrack motion capture system providing centimeter-level position
+accuracy via reflective markers on each robot's roof, and a central
+computer running the control architecture in MATLAB/Simulink
+\cite{39}. Robots communicate with the central computer over
+WiFi at 10~Hz: at each control cycle the central computer receives
+OptiTrack positions and sensor readings, computes the control laws, and
+returns velocity commands, which each robot's onboard controller
+converts into drive motor commands. Physical constraints include a
+maximum 3~m~$\times$~6~m work area and approximately one hour of
+battery life per robot \cite{39}; thesis.tex additionally reports
+a lower bound of roughly 1~m~$\times$~1~m, a collision-clearance minimum
+for a multirobot team. The three-robot hardware trials reported in
+Chapter~\ref{ch:first_order} used a 1.6~m~$\times$~1.6~m printed map
+within this range.
+
+Each Decabot carries a downward-facing TCS34725 RGB color sensor,
+enclosed in a light-shrouded housing to minimize external lighting
+effects, whose channels are not fully isolated from one another per its
+datasheet, the source of the interference problem
+Section~\ref{sec:ch2:decabots} describes. Correcting for this
+interference is the subject of Section~\ref{sec:ch2:nn_calibration}.
+
+The robot controller layer, the cluster-space controller layer, and the
+adaptive navigation layer that this testbed runs are described in full
+in Chapter~\ref{ch:estimation}; this chapter is concerned only with the
+physical and sensing tools those layers run on.
+
+\section{Vector Field Encoding in HSV Color Space}
+\label{sec:ch2:hsv}
+
+\subsection{Limitations of RGB Encoding}
+% Ported from: thesis.tex Ch.2 Introduction (lines 599-607); DETC2025-167604
+% (thesis:33) Sec. 1 Introduction and Sec. 3.2 for detail thesis.tex dropped.
+
+Encoding a vector field reading directly in RGB color, as the prior
+testbed generation did, ties the sensor's three color channels directly
+to the field's own two independent components (direction and
+magnitude), with no channel held in reserve to detect or correct for
+cross-talk between them. Approaches using red and green to represent
+orthogonal vector components suffered from sensor channel interference
+on the robots' RGB sensors, leaving only a small portion of the color
+spectrum usable once high-interference regions were eliminated
+\cite{39}. This interference made accurate decoding of direction
+and magnitude information difficult, and was particularly severe for
+vectors of small magnitude, where minor sensor value changes could
+produce large apparent direction shifts \cite{39}. The TCS34725's
+red, green, and blue channels are not fully isolated per its own
+specification sheet \cite{39}, and this effect persisted even
+after conversion to an HSV color space; traditional calibration methods
+neither significantly improved performance nor supported effective
+scaling across multiple robots \cite{39}, motivating the
+supervised-learning calibration of Section~\ref{sec:ch2:nn_calibration}.
+The resulting discrete color palette also limited sampling to roughly
+0.15~Hz, too slow for continuous robot motion \cite{39}.
+
+\subsection{Hue as Direction, Saturation as Magnitude}
+% Ported from: thesis.tex Ch.2 "Modeling Vector Fields in Color Space"
+% (lines 665-671); DETC2025-167604 (thesis:33) Sec. 3.2 for the
+% value-versus-saturation reasoning thesis.tex dropped.
+\label{sec:ch2:hue_sat}
+
+A vector field reading has two components at each point: a direction
+and a magnitude. This dissertation's testbed encodes direction in hue
+and magnitude in saturation, allowing a two-dimensional vector field to
+be represented as a printed image and sensed by a simple color sensor
+rather than requiring active field generation. Hue runs from 0 to
+$2\pi$ and represents flow direction; hue's circular topology is a
+natural match for vector direction \cite{39}. Saturation, rather
+than value, was chosen to encode magnitude, running from 0 to 1, after
+early tests showed the value channel to be highly sensitive to printer
+ink variation, ambient lighting, and shadow effects \cite{39}.
+This separates the field's two physical components onto two different,
+independently interpretable channels of the color space, rather than
+overloading three RGB channels with two quantities.
+
+\subsection{Printed Field Construction}
+% Ported from: DETC2025-167604 (thesis:33) Sec. 3.2-3.3 for the field
+% construction and scaling detail; Systems paper Sec. V-A (lines 328-345)
+% for the current-work restatement of the same scaling.
+
+This methodology was used to construct two vector fields for the
+first-iteration testbed trials of \cite{39}: a fixed vortex and,
+by adding a sinking component to the same vortex, a sinking vortex, both
+centered on the printed map. Once computed on the print grid, vector
+magnitudes were scaled to the 0.3--1.0 saturation range: values below
+0.3 do not produce a commanded velocity strong enough to overcome
+stiction (Section~\ref{sec:ch2:sat_velocity}), and values below 0.2 were
+excluded from calibration training entirely
+(Section~\ref{sec:ch2:nn_calibration}) \cite{39}. In the current
+critical-points work, saturation is remapped to 0--1 in software, with
+saturation 1.0 corresponding to the maximum robot velocity of 0.3~m/s
+(the same cap given in Section~\ref{sec:ch2:dynamics}). Together with
+the sensor shroud and the sensor's own illumination, this encoding is
+minimally affected by overhead lighting variations; a test of turning
+the overhead lab lights on and off confirmed no effect on readings from
+the calibration palette \cite{39}. The robots' RGB sensors are
+calibrated against a printed palette spanning hue 0 to $2\pi$ and
+saturation 0 to 1 at 24 intervals in each dimension; each robot records
+raw RGB and clear-channel counts over every palette cell. This printed-map
+method has imperfections in both printing and sensing, addressed by the
+calibration procedure of Section~\ref{sec:ch2:nn_calibration} and
+revisited as a simulation noise source in
+Section~\ref{sec:ch2:noise_model}.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.75\textwidth]{ch2_measurement_error_comparison.png}
+  \caption{Analytical fields, sensor-based reconstructions, and
+  reconstruction error for vortex and saddle fields.}
+  \label{fig:ch2:hsv_field}
+\end{figure}
+% FIGURE SOURCE: Paper_Writing/Systems Paper/cwaight_systems_paper/measurement_error_comparison.png
+
+\section{Neural Network Sensor Calibration}
+\label{sec:ch2:nn_calibration}
+% Ported from: DETC2025-167604, "A Functional Indoor Testbed for
+% Multirobot Adaptive Navigation in Vector Field Environments" (Waight
+% and Kitts, 2025), cited throughout as thesis:33, Sec. 3.3-3.4 and
+% Table 1, for the first-iteration methodology and numbers, verified
+% directly against the extracted text at
+% PhD Thesis/sources/idetc2025_testbed.txt; Systems paper Sec. V-A
+% (lines 328-345) for the current, recalibrated numbers.
+%
+% Resolved: an earlier pass cited PhD Thesis/sources/idetc_paper.txt
+% (DETC2024-142746, a control-primitives paper with no HSV/NN content)
+% for this section by mistake; thesis:33 is the correct source and all
+% numbers below are now checked directly against it.
+
+\subsection{Calibration Palette and Data Collection}
+% Ported from: thesis:33 Sec. 3.3.
+
+The undercarriage color sensor's raw channels, red, green, blue, and a
+clear channel, do not map cleanly to hue and saturation because the
+channels are not fully isolated from one another. A calibration palette
+with hues spanning 0 to $2\pi$ and saturations spanning 0 to 1, spaced at
+24 equal intervals in each dimension, was printed, and three robots were
+positioned above each palette cell to record RGB and clear-channel (K)
+measurements alongside the intended hue and saturation values
+\cite{39}. The three-robot dataset was combined and augmented by
+adding $\pm 1\%$ noise to the RGB readings for model robustness. Raw
+RGBK values were normalized to $[0,1]$, converted to hue, saturation,
+and value using standard libraries, and appended to the original data,
+giving a seven-dimensional input space $(R,G,B,K,H,S,V)$. Data points
+with saturation below 0.2 were removed to improve model performance
+(the same threshold noted in Section~\ref{sec:ch2:hsv}), and all inputs
+and targets were normalized to $[-1,1]$ before training
+\cite{39}.
+
+\subsection{Network Architecture and Training}
+% Ported from: thesis:33 Sec. 3.3.
+
+This dissertation's solution is a pair of neural networks, trained per
+robot (or, for a generalization test, trained on three robots and
+validated on a fourth held out), that map the sensor's raw
+seven-dimensional input $(R,G,B,K,H,S,V)$ to corrected hue and saturation
+estimates. Both networks use two fully connected hidden layers with Tanh
+activations; the saturation network has a single output neuron for
+direct magnitude prediction, while the hue network has two output
+neurons, sine and cosine of hue, to respect hue's circular topology
+\cite{39}. A random search determined hidden layer sizes (2--12
+units in the first layer, 4--10 in the second); patience and
+augmentation parameters were also randomized, while the
+Levenberg-Marquardt optimizer and default learning rate were held fixed.
+Data was split 70/15/15 into training, validation, and test sets
+\cite{39}. Candidate models were evaluated on eight validation
+sets (the calibration and verification plots of all four robots,
+Section~\ref{sec:ch2:generalization}); selection used a min-max
+criterion, identifying each candidate's lowest $R^2$ score across all
+eight sets and keeping the candidate with the highest such minimum, for
+each network independently \cite{39}. The current calibration in
+Chapter~\ref{ch:first_order}'s critical-points work uses a simplified
+pair of feedforward networks, each with two hyperbolic-tangent hidden
+layers and a four-dimensional $(R,G,B,K)$ input, with the saturation
+network regressing a single output and the hue network outputting sine
+and cosine of hue as above.
+
+\subsection{Cross-Robot Generalization}
+\label{sec:ch2:generalization}
+% Ported from: thesis:33 Sec. 4.1 and Table 1, checked directly against
+% the extracted paper text (PhD Thesis/sources/idetc2025_testbed.txt,
+% lines 328-416). Replaces an earlier, coarser two-table summary drawn
+% from thesis.tex that rounded off the per-dataset spread; the values
+% below are the paper's own per-robot, per-dataset breakdown.
+
+Summarizing across all validation sets, the cross-trained model achieves
+an overall $R^2$ of 0.96 in direction (hue) and 0.91 in magnitude
+(saturation) \cite{39}. The full per-robot, per-dataset breakdown
+is given in Table~\ref{tab:ch2:calibration}: robots 1 through 3 supply
+both a calibration (Cal) and verification (Ver) validation set each,
+used in training the cross-robot model, while robot 4 (R4) is held out
+of training entirely and used only to test generalization. Across the
+six validation sets from robots 1--3, the cross-trained model's hue
+$R^2$ ranges from 0.966 to 0.998 and saturation $R^2$ from 0.935 to
+0.998. On the held-out robot 4, the cross-trained model achieves hue
+$R^2 = 0.993$ (RMSE 0.024) and saturation $R^2 = 0.908$ (RMSE 0.073) on
+its calibration set, and hue $R^2 = 0.964$ (RMSE 0.054) and saturation
+$R^2 = 0.925$ (RMSE 0.079) on its verification set \cite{39}.
+Individually tuned per-robot models improve further, typically to hue
+$R^2 > 0.99$ and saturation $R^2 > 0.95$, at the cost of several hours
+of per-robot calibration that the cross-trained model avoids
+\cite{39}; individual models are not available for the held-out
+robot 4 by construction.
+
+\begin{table}[h]
+\centering
+\caption{First-iteration calibration model performance, cross-trained
+versus individually tuned, on each robot's calibration (Cal) and
+verification (Ver) validation set. Robot 4 was held out of training
+entirely.}
+\label{tab:ch2:calibration}
+\begin{tabular}{llcccc}
+\toprule
+Robot-set & Model & Hue $R^2$ & Hue RMSE & Sat.\ $R^2$ & Sat.\ RMSE \\
+\midrule
+R1-Cal & Cross & 0.966 & 0.017 & 0.950 & 0.054 \\
+       & Indiv & 0.999 & 0.009 & 0.972 & 0.040 \\
+R1-Ver & Cross & 0.969 & 0.050 & 0.950 & 0.064 \\
+       & Indiv & 0.995 & 0.020 & 0.963 & 0.055 \\
+R2-Cal & Cross & 0.998 & 0.013 & 0.935 & 0.061 \\
+       & Indiv & 0.996 & 0.018 & 0.968 & 0.043 \\
+R2-Ver & Cross & 0.967 & 0.052 & 0.943 & 0.069 \\
+       & Indiv & 0.991 & 0.027 & 0.952 & 0.063 \\
+R3-Cal & Cross & 0.998 & 0.014 & 0.948 & 0.055 \\
+       & Indiv & 0.999 & 0.007 & 0.980 & 0.034 \\
+R3-Ver & Cross & 0.991 & 0.027 & 0.953 & 0.062 \\
+       & Indiv & 0.997 & 0.015 & 0.976 & 0.044 \\
+R4-Cal & Cross & 0.993 & 0.024 & 0.908 & 0.073 \\
+       & Indiv & -- & -- & -- & -- \\
+R4-Ver & Cross & 0.964 & 0.054 & 0.925 & 0.079 \\
+       & Indiv & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Recalibration After Maintenance}
+% Ported from: Systems paper Sec. V-A (lines 328-345), the current,
+% authoritative recalibration.
+
+All robots were recalibrated after receiving preventive maintenance and
+servicing for the critical-points work of Chapter~\ref{ch:first_order}.
+This recalibration is the authoritative, current numbers referenced
+throughout the rest of this dissertation; the numbers of
+Table~\ref{tab:ch2:calibration} above are the first-iteration figures
+they superseded. Using two feedforward networks trained on the
+four-dimensional $(R,G,B,K)$ feature vector, with training pooled across
+robots so a single model transfers to an uncalibrated unit without
+per-robot tuning, the current calibration achieves hue RMSE of 0.17~rad
+(9.7\textdegree, $R^2 = 0.991$) and saturation RMSE of 4.4\%
+($R^2 = 0.951$) across the operational range
+(Table~\ref{tab:ch2:recalibration}).
+
+\begin{table}[h]
+\centering
+\caption{Sensor calibration accuracy, first iteration versus current
+recalibration.}
+\label{tab:ch2:recalibration}
+\begin{tabular}{lcc}
+\toprule
+ & Hue & Saturation \\
+\midrule
+First iteration, cross-robot model overall & $R^2 = 0.96$ & $R^2 = 0.91$ \\
+Current recalibration & RMSE 0.17 rad (9.7\textdegree), $R^2 = 0.991$ & RMSE 4.4\%, $R^2 = 0.951$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{ch2_color_sensor_hsv_predictions.png}
+  \caption{Neural network predictions for HSV field encoding on
+  unit-normalized axes. Hue RMSE = 0.027 (0.17~rad, 9.7\textdegree),
+  saturation RMSE = 0.044 (4.4\%).}
+  \label{fig:ch2:hue_predictions}
+\end{figure}
+% FIGURE SOURCE: Paper_Writing/Systems Paper/cwaight_systems_paper/color_sensor_hsv_predictions.png
+
+\section{Saturation-to-Velocity Characterization}
+% Ported from: thesis.tex Ch.2 "Robot Velocity from Saturation"
+% (lines 729-736); DETC2025-167604 (thesis:33) Sec. 3.4 "Robot Velocity
+% from Saturation Testing" for the methodology and the corrected
+% threshold thesis.tex had rounded down to 0.2 (that is the separate
+% training-data-exclusion threshold of Section~\ref{sec:ch2:hsv}, not
+% the velocity-linearity threshold).
+\label{sec:ch2:sat_velocity}
+
+Because saturation encodes field magnitude, and a robot's commanded
+velocity in the navigation primitives of Chapter~\ref{ch:estimation}
+scales with sensed magnitude, this testbed also validates that robot
+velocity responds linearly to sensed saturation above the stiction
+floor (Section~\ref{sec:ch2:dynamics}). To test this, lanes of constant
+hue at varying saturation were printed, each robot was placed on each
+lane and commanded to follow the hue direction at the velocity indicated
+by that lane's saturation, and each robot's position was tracked over a
+3-second period per lane \cite{39}. Across all four robots,
+velocity scaled linearly with saturation above 0.3; saturation values
+below 0.3 did not produce a commanded velocity strong enough to overcome
+static friction \cite{39}. This 0.3 velocity-linearity threshold
+is separate from the 0.2 saturation threshold below which readings were
+excluded from calibration training (Section~\ref{sec:ch2:hsv}).
+
+\section{Robot Dynamics Identification}
+\label{sec:ch2:dynamics}
+% Ported from: Systems paper Sec. III-A (robot controller layer, lines
+% 192-206) for the identified values; thesis.tex Ch.4 Sec.
+% "Robot and Cluster Dynamics" (around lines 2015-2058) for the same
+% values as previously drafted; Draft_11.tex Sec. III (lines 553-559)
+% and Table I (lines 561-590) for the pentagon-code operating point;
+% omnibot.py docstring and constructor defaults for the code values.
+% The first-order lag MODEL equations belong to Chapter 4
+% (\ref{ch:estimation}); this section reports only identification and
+% measured values.
+
+Each robot is modeled, in both simulation and the control law derivation
+of Chapter~\ref{ch:estimation}, as a single omnidirectional point mass
+with a first-order actuator lag response, discretized at control period
+$\Delta t$ as
+\begin{equation}
+\mathbf{v}[k+1] = \alpha_{\text{mom}}\mathbf{v}[k] + (1-\alpha_{\text{mom}})\mathbf{v}_{\text{des}}[k],
+\qquad \alpha_{\text{mom}} = e^{-\Delta t/\tau},
+\label{eq:ch2:momentum}
+\end{equation}
+where $\tau$ is the actuator time constant identified on the Decabot
+hardware. The full continuous-time model this discretization comes from
+is given in Chapter~\ref{ch:estimation}.
+
+Robots are limited to a maximum speed of 0.3~m/s, and require a minimum
+commanded speed to overcome static friction (stiction) below which
+commanded motion does not produce actual motion.
+
+The robot parameters were identified twice, once for the testbed paper
+\cite{39} and again after the sensors and drive were recalibrated for
+the critical-points work of Chapter~\ref{ch:first_order}. The current
+identification gives a time constant $\tau \approx 0.28$~s, so
+$\alpha_{\text{mom}} \approx 0.70$ at the 10~Hz control rate; earlier
+drafts used a rounder $\tau = 0.3$~s ($\alpha_{\text{mom}} \approx
+0.717$). The simulator uses the fixed value $\alpha_{\text{mom}} = 0.7$.
+%% Note: omnibot.py uses the constant 0.7, which does not rescale if dt
+%% changes (its docstring audit note, 2026-07-03).
+
+The stiction floor is $v_{\text{stiction}} = 0.025$~m/s after
+recalibration, the value used by the simulator; the testbed paper's
+characterization, before recalibration, reported a usable velocity range
+of 0.05 to 0.3~m/s \cite{39}. Draft
+11's pentagon-formation operating point (Table~\ref{tab:ch2:params})
+carries the same 0.025~m/s stiction floor and 0.3~m/s speed cap for its
+double-gyre benchmark, lowering stiction to 0.002 (in the field's own
+non-dimensional length units) and setting $\alpha_{\text{mom}} = 0$ for
+its ocean HFR trial, where one control cycle corresponds to ten
+real-world minutes and any physically reasonable vessel time constant is
+negligible by comparison.
+
+\begin{table}[h]
+\centering
+\caption{Robot dynamics operating points identified on Decabot hardware
+and used across simulation trials. Double-gyre and ocean columns are
+the second-order operating points of Chapter~\ref{ch:second_order}, in
+non-dimensional length/time units; the Decabot column is the identified
+hardware value used by the first-order work.}
+\label{tab:ch2:params}
+\begin{tabular}{lccc}
+\toprule
+Parameter & Decabot (identified) & Double gyre & Ocean \\
+\midrule
+$v_{\max}$ & 0.3~m/s & 0.3 & 0.3 \\
+$v_{\text{stiction}}$ & 0.025~m/s & 0.025 & 0.002 \\
+$\alpha_{\text{mom}}$ & 0.70 & 0.7 & 0 \\
+$\tau$ (s) & 0.28 & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+%% Verified 2026-09-29 against Draft_11.tex Table I (tab:params). Double-gyre
+%% and ocean columns are in non-dimensional length/time units.
+
+\section{Field Reconstruction as a Simulation Noise Model}
+\label{sec:ch2:noise_model}
+% Ported from: Systems paper Sec. V-A (lines 344-345) and Sec. IV
+% (lines 239-244) for the reconstructed-field noise source; thesis.tex
+% Ch.5 "Noise Model" (around lines 4031-4057) for the two-channel
+% measurement/position noise formulation; src/control/pentagon_primitives.py
+% docstring (lines 393-411) for the current code-level noise hooks.
+
+The printed-map encoding of Section~\ref{sec:ch2:hsv} has imperfections
+in both printing and sensing. Rather than model this error abstractly,
+the critical-points work of Chapter~\ref{ch:first_order} reconstructed
+two fields (a vortex and a saddle) directly from robot-sensed
+measurements collected on the hardware testbed, and used these
+reconstructed fields, and the interpolation models fit to them, as a
+realistic noise condition for simulation, alongside the six analytical,
+noise-free canonical fields. This ties the simulator's "noisy" condition
+to a measured quantity, the same sensed reconstruction error shown in
+Fig.~\ref{fig:ch2:hsv_field}, rather than to an assumed noise
+distribution.
+
+The second-order (pentagon) simulation code generalizes this into two
+independent, parametric noise channels rather than one measured
+reconstruction. Measurement noise is additive on each robot's sensed
+$(u,v)$ reading; position noise perturbs the location at which a robot
+samples the field, leaving its true, controlled position untouched. In
+the current simulator these are exposed as \texttt{cluster.measurement\_noise\_std}
+and \texttt{cluster.position\_noise\_std} on the six-robot cluster
+object, both defaulting to zero. The three-robot simulator has no
+parametric channel; its noisy condition is the reconstructed field itself
+(\texttt{NNField}, \texttt{RBFField}, and \texttt{BlendedField} in
+\texttt{src/fields/field\_types.py}). The derivation of how each channel
+propagates into the fitted coefficients is given in
+Chapter~\ref{ch:second_order}.
+
+%% Verified 2026-09-29: pentagon_primitives.py lines 417-418 read both
+%% attributes with default 0.0; AnalyticalField takes no noise argument.
+
+\section{Simulation Environment}
+\label{sec:ch2:simulator}
+% Ported from: thesis.tex Ch.5 "Simulation Program" (around lines
+% 3934-3957); Systems paper Sec. IV (lines 239-244); src/robot/omnibot.py,
+% src/simulation/runner.py, src/fields/field_types.py.
+
+Simulation trials throughout this dissertation use a Python framework
+under \texttt{trunk/Python\_Simulations/Vector\_Fields/VF\_Robot/}, whose
+entry point is \texttt{experiments/main\_omni.py}, configured by editing
+module-level constants rather than command-line flags. Each robot is
+represented as an \texttt{Omnibot} object implementing the first-order
+momentum dynamics of Eq.~\eqref{eq:ch2:momentum}
+(Section~\ref{sec:ch2:dynamics}), together with the maximum-speed and
+stiction constraints of Table~\ref{tab:ch2:params}. The integrator is
+explicit Euler at the robots' native 10~Hz control rate
+($\Delta t = 0.1$~s); a simulation loop
+(\texttt{src/simulation/runner.py}) advances each robot's commanded
+velocity, integrates position, and, for time-varying fields, advances
+the field's internal clock once per control step.
+
+Vector fields are represented through a common interface,
+\texttt{get\_value(x, y)}, implemented by an \texttt{AnalyticalField}
+wrapper around a closed-form field function for the canonical fields of
+Appendix~\ref{app:fields}, and by neural-network and reconstructed-field
+classes for the hardware-derived fields of
+Section~\ref{sec:ch2:noise_model}. The same interface, together with the
+noise channels of Section~\ref{sec:ch2:noise_model} and the cluster-space
+kinematics of Chapter~\ref{ch:estimation}, is reused unchanged across the
+three-robot and six-robot formations studied in this dissertation.
+
+\section{Summary of Prior and New Contributions}
+\label{sec:ch2:summary}
+% New text, modeled on Hart (2023) Ch. 2.4's pattern of crediting prior
+% tools before listing new contributions.
+
+Table~\ref{tab:ch2:contributions} separates what this chapter's tools
+inherit from prior Robotic Systems Laboratory work from what this
+dissertation adds to them.
+
+\begin{table}[h]
+\centering
+\caption{Prior versus new contributions among this dissertation's
+verification tools.}
+\label{tab:ch2:contributions}
+\begin{tabular}{ll}
+\toprule
+Prior work & New in this dissertation \\
+\midrule
+Decabot rovers \cite{41} & HSV field encoding \\
+Low-cost indoor testbed \cite{42} & Neural-network sensor calibration \\
+OptiTrack motion capture & Post-maintenance recalibration \\
+Three-layer control architecture & Saturation-to-velocity characterization \\
+ & Robot dynamics identification ($\tau$, stiction) \\
+ & Field-reconstruction simulation noise model \\
+ & Simulation environment (Omnibot, noise channels) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The platform, the Decabot rovers and the indoor testbed they operate in,
+is prior work. This dissertation's contribution to that platform is the
+HSV encoding that replaces direct RGB field representation, the
+neural-network calibration that corrects for the resulting sensor's
+channel interference, and the recalibration, dynamics identification, and
+simulation tooling built on top of it. These tools are used without
+further comment for the remainder of this dissertation: the estimation
+framework of Chapter~\ref{ch:estimation} and the zeroth-, first-, and
+second-order results of Chapters~\ref{ch:zeroth}
+through~\ref{ch:second_order} all run on the testbed and simulator
+described here.

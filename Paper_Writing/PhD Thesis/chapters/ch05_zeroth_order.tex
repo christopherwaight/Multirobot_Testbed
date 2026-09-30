@@ -1,0 +1,316 @@
+% ===================================================================
+% CHAPTER 5: ZEROTH-ORDER BASELINES
+% ===================================================================
+\chapter{Zeroth-Order Baselines}
+\label{ch:zeroth}
+
+% Ported from DETC2025-167604, "A Functional Indoor Testbed for Multirobot
+% Adaptive Navigation in Vector Field Environments" (ref. 39), text at
+% PhD Thesis/sources/idetc2025_testbed.txt. Its HSV encoding and NN
+% calibration content is Chapter~\ref{ch:tools}'s. The unpublished 2024
+% DETC2024-142746 manuscript is deliberately not used (author decision,
+% 2026-09-29).
+
+\section{Direction-Only Navigation}
+\label{sec:ch5:direction_only}
+% Ported from: idetc2025_testbed.txt Secs. 1, 2.5; opening paragraph new.
+
+This chapter presents the zeroth-order control primitives of this
+dissertation: primitives that command a cluster's heading from an
+instantaneous, unweighted read of the team's vector-field measurements,
+without fitting any spatial derivative of the field. Each robot returns a
+single instantaneous vector reading of the local field, and the adaptive
+navigation layer combines these readings into a commanded cluster
+velocity, using the multilayer control architecture and cluster-space
+formation control introduced in Chapters~\ref{ch:tools}
+and~\ref{ch:estimation}. Robots are treated as omnidirectional; robot
+orientation is not used, and the cluster's own orientation pose is not
+commanded by any primitive in this chapter.
+
+Two zeroth-order primitives from prior work \cite{38} are examined here:
+the vector-sum technique, which uses the direction of the summed
+readings, and the vector-to-scalar technique, which discards direction
+and uses only the magnitude of each reading. Both were first validated
+in simulation, with known limitations documented \cite{38}, and were
+the first control primitives run on the Decabot testbed of
+Chapter~\ref{ch:tools} \cite{39}
+(Section~\ref{sec:ch5:hardware_trials}). Both are purely reactive: each
+commands a velocity from the current instantaneous readings alone, with
+no state carried between control cycles.
+
+\section{Vector-Sum Primitive}
+\label{sec:ch5:vector_sum}
+% Ported from: idetc2025_testbed.txt Sec. 2.5.
+
+The vector-sum technique combines the vectors sensed by each robot into
+a resultant vector. The normalized direction of this resultant then
+specifies the commanded cluster velocity $(\dot{x}_c,\dot{y}_c)$
+\cite{39}. Because the readings are not normalized before summing, a
+reading with larger magnitude carries proportionally more weight in the
+resultant direction.
+
+\section{Vector-to-Scalar Primitive}
+\label{sec:ch5:vector_to_scalar}
+% Ported from: idetc2025_testbed.txt Sec. 2.5, Eqs. 2-7.
+
+In the vector-to-scalar technique, only the magnitude of each robot's
+vector reading is used, reducing navigation to a scalar-field gradient
+problem. Treating each robot's reading magnitude as a $z$-coordinate over
+its $(x,y)$ position, the differences between robots' readings determine
+the normal to the plane through the three points, which is then projected
+to give the direction of steepest change. For robots $1$, $2$, $3$ at
+positions $(x_i,y_i)$ with reading magnitudes $z_i$,
+\begin{equation}
+\vec{R}_{12} = \begin{pmatrix} x_2-x_1 \\ y_2-y_1 \\ z_2-z_1 \end{pmatrix}, \qquad
+\vec{R}_{13} = \begin{pmatrix} x_3-x_1 \\ y_3-y_1 \\ z_3-z_1 \end{pmatrix},
+\label{eq:ch5:R_edges}
+\end{equation}
+\begin{equation}
+\vec{N} = -\vec{R}_{13} \times \vec{R}_{12},
+\label{eq:ch5:normal}
+\end{equation}
+\begin{equation}
+b_{\text{grad}} = \operatorname{ATAN2}(N_y, N_x) + \frac{\pi}{2},
+\label{eq:ch5:bgrad}
+\end{equation}
+and the angle is converted to a commanded cluster velocity \cite{39},
+\begin{equation}
+\dot{x}_c = \cos(b_{\text{grad}}), \qquad
+\dot{y}_c = \sin(b_{\text{grad}}).
+\label{eq:ch5:vel_cmd}
+\end{equation}
+%% Corrected from source Eq. 7 (cos -> sin): as printed in
+%% idetc2025_testbed.txt / DETC2025-167604, the pair reads
+%% $\dot{x}_c = \cos(b_{\text{grad}})$ (Eq. 6, correct) and
+%% $\dot{y}_c = \cos(b_{\text{grad}})$ (Eq. 7, printed with cos where sin
+%% is needed for $(\dot{x}_c,\dot{y}_c)$ to be a unit vector at angle
+%% $b_{\text{grad}}$). The affected equation is source Eq. 7, immediately
+%% following the correctly-printed Eq. 6.
+
+The gradient becomes ill-defined if the three robots are collinear.
+Equation~\eqref{eq:ch5:bgrad} gives the direction of steepest ascent; the
+technique navigates to a local extremum by moving in this direction
+(source-seeking, or maximum-seeking) or its negation (sink-seeking, or
+minimum-seeking, used for the hardware trials of
+Section~\ref{sec:ch5:hardware_trials}), and orbits an extremum by moving
+perpendicular to it.
+
+\section{Hardware Trials on Fixed and Sinking Vortices}
+\label{sec:ch5:hardware_trials}
+% Ported from: idetc2025_testbed.txt Secs. 2.4-2.5 (trial cluster and
+% primitive setup), 3.2 (Eqs. 8-13, field definitions), 3.5 (trial
+% methodology), 4.2 (results); DETC2025-167604 \cite{39}. The
+% Decabot testbed itself (HSV encoding, NN calibration, architecture) is
+% Chapter~\ref{ch:tools}'s.
+
+The vector-sum and vector-to-scalar primitives of
+Sections~\ref{sec:ch5:vector_sum} and~\ref{sec:ch5:vector_to_scalar},
+previously demonstrated only in simulation, were demonstrated on the
+Decabot hardware testbed of Chapter~\ref{ch:tools} in \cite{39}, on
+a fixed vortex and a sinking vortex field. The commanded formation was a
+three-robot cluster with a constant shape policy, $p = q = 0.35$~m and
+$\beta = 1.05$~rad, forming an equilateral triangle.
+
+The first-order trials of Chapter~\ref{ch:first_order} used a smaller,
+$0.33$~m equilateral formation.
+
+Both fields are built from a fixed vortex centered at
+$(\mathrm{center}_x,\mathrm{center}_y)$: with
+$r = \sqrt{(x-\mathrm{center}_x)^2+(y-\mathrm{center}_y)^2}$ and
+$\theta = \operatorname{atan2}(y-\mathrm{center}_y,\, x-\mathrm{center}_x)$,
+\begin{equation}
+u = r\sin\theta, \qquad v = -r\cos\theta.
+\label{eq:ch5:fixed_vortex}
+\end{equation}
+The sinking vortex adds a radially inward term to this fixed vortex,
+\begin{equation}
+u \mathrel{+}= -\frac{c_s(x-\mathrm{center}_x)}{r^2+10^{-6}}, \qquad
+v \mathrel{+}= -\frac{c_s(y-\mathrm{center}_y)}{r^2+10^{-6}},
+\label{eq:ch5:sinking_vortex}
+\end{equation}
+a point sink of strength $c_s = 0.2$ whose inward speed decays as $1/r$, with
+the $10^{-6}$ term added only to avoid division by zero at the center. After construction, both fields are rescaled so that vector
+magnitude falls in $[0.3,1]$ for printing; magnitudes below 0.2 were
+excluded from calibration, and below 0.3 did not produce a robot velocity
+sufficient to overcome static friction.
+%% Sign: DETC2025-167604 Eqs. 12-13 print the sink term with a plus sign
+%% (outward), a typo; the hardware plotting script
+%% trunk/robots_3/saddle_tests/plotter_avg_run_Sinking_Vortex.m uses the
+%% inward form above, and the trials spiral inward.
+%% c_s = 0.2 follows the testbed paper's own plotting package
+%% (trunk/robots_3/Results_for TestBed_Paper/plotting_package/
+%% plotter_avg_run_Sinking_Vortex.m); the published equations print 0.1.
+%% Author decision 2026-09-29: use the code value.
+%% This 1/r sink differs from the linear sinking vortex of
+%% Chapter~\ref{ch:first_order} (Appendix~\ref{app:fields}).
+
+Testing used a fixed 10~Hz OptiTrack sampling rate and 10 trial runs per
+environment-primitive combination. The fixed vortex was tested with both
+the vector-sum and vector-to-scalar (minimum-seeking) primitives; the
+sinking vortex was tested only with vector-sum. Both fixed and randomized
+starting positions were used for the vector-to-scalar trials on the fixed
+vortex. Performance was evaluated by trajectory shape relative to the
+expected path, steady-state error between final and target cluster
+position, and formation-shape maintenance (Section~\ref{sec:ch5:formation_stats}).
+
+On the fixed vortex, the vector-sum primitive produced a consistent
+outward drift across all 10 runs, with the drift rate stable at all
+angles, a behavior not predicted in simulation. Section~\ref{sec:ch5:why_not_location}
+returns to this result. On the sinking vortex, the same primitive settled
+the cluster to within approximately 0.1~m of the true center, with the
+target location falling within the triangle connecting the three robots.
+%% NOTE: the 0.2 m value comes from the text of DETC2025-167604 (third test
+%% set, vector-to-scalar, fixed vortex, its Fig. 18), but that paper's Fig. 18
+%% caption says "sinking vortex". Text and caption disagree in the published
+%% paper; the text is followed here. Check against the Fig. 18 data.
+The vector-to-scalar (minimum-seeking) primitive on the fixed vortex
+settled the cluster within approximately 0.2~m of center, following an
+approximately straight-line path with some deviation attributed to
+printing noise and to variance in the saturation-to-magnitude estimate;
+performance was essentially unchanged when starting positions were
+randomized rather than fixed, since the velocity command is computed from
+the local gradient of saturation rather than from saturation itself, and
+near the center this gradient commands speeds below 0.05~m/s, too low
+to overcome static friction as the robots were characterized at the
+time (the floor was later remeasured at 0.025~m/s after recalibration,
+Chapter~\ref{ch:tools}), regardless of where the cluster started. Neither orbiting nor saddle-point navigation, the subjects of
+Chapter~\ref{ch:first_order}, was demonstrated on hardware at this stage;
+both require the Jacobian-based estimation developed there.
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{ch5_fixed_vortex_vector_sum.png}
+    \caption{Vector-sum, fixed vortex.}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{ch5_sinking_vortex_vector_sum.png}
+    \caption{Vector-sum, sinking vortex.}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.32\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{ch5_fixed_vortex_vector_to_scalar.png}
+    \caption{Vector-to-scalar, fixed vortex.}
+  \end{subfigure}
+  \caption{Average robot and cluster-center trajectories over 10 hardware
+  runs per case, shaded to one standard deviation \cite{39}.}
+  \label{fig:ch5:hardware_trial}
+\end{figure}
+% FIGURE SOURCE: trunk/robots_3/Results_for TestBed_Paper/ (Figs. 14, 15,
+% 17 of DETC2025-167604): Fixed_vortex_Vector_Sum/average_trajectories.png,
+% Sinking_Vortex_Vector_Sum/average_trajectories.png,
+% Fixed_vortex_Vector_Sum/Fixed_Vortex_mag_Descent_consistent_Start/average_trajectories.png
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{ch5_sinking_vortex_distance.png}
+    \caption{Vector-sum, sinking vortex.}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{ch5_vector_to_scalar_distance.png}
+    \caption{Vector-to-scalar, fixed vortex.}
+  \end{subfigure}
+  \caption{Average distance of the cluster center from the field center
+  over time, 10 hardware runs per case \cite{39}.}
+  \label{fig:ch5:hardware_distance}
+\end{figure}
+% FIGURE SOURCE: Figs. 16 and 18 of DETC2025-167604; average_distance_vs_time.png
+% in the same two folders.
+
+\section{Formation Maintenance Statistics}
+\label{sec:ch5:formation_stats}
+% Ported from: idetc2025_testbed.txt Sec. 4.3, Table 2 \cite{39}.
+
+Formation shape was held close to its commanded values throughout the
+hardware trials of Section~\ref{sec:ch5:hardware_trials}
+(Table~\ref{tab:ch5:formation}) \cite{39}, with deviations on the
+order of 1~cm in $p$ and $q$, consistent with the resolution limits of
+the OptiTrack motion capture system itself (Chapter~\ref{ch:tools}).
+
+\begin{table}[h]
+  \centering
+  \caption{Cluster formation-holding accuracy across control primitive
+  trials, commanded $p=q=0.35$~m, $\beta=1.05$~rad, 10 trial runs per
+  column \cite{39}.}
+  \label{tab:ch5:formation}
+  \begin{tabular}{lccc}
+    \toprule
+     & $p$ (m) & $q$ (m) & $\beta$ (rad) \\
+    \midrule
+    Fixed vortex, vector-sum & $0.36 \pm 0.028$ & $0.36 \pm 0.032$ & $1.03 \pm 0.122$ \\
+    Fixed vortex, vector-to-scalar & $0.35 \pm 0.015$ & $0.36 \pm 0.009$ & $1.02 \pm 0.045$ \\
+    Sinking vortex, vector-sum & $0.35 \pm 0.019$ & $0.35 \pm 0.015$ & $1.02 \pm 0.056$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Why Direction Is Not Location}
+\label{sec:ch5:why_not_location}
+% New text.
+
+Every primitive in this chapter commands a heading. None of them
+estimates a position: nothing in Sections~\ref{sec:ch5:vector_sum}
+or~\ref{sec:ch5:vector_to_scalar} produces a coordinate for the feature
+being sought, only a direction to move in on the current control cycle.
+On a purely rotational field component, this is a structural limitation
+rather than a tuning problem. A vortex's field vectors are everywhere
+tangential to circles about its center, so a primitive that follows the
+locally sensed direction, as vector-sum does, tracks that tangential direction with no term correcting
+for radial distance from the center. The fixed-vortex hardware result of
+Section~\ref{sec:ch5:hardware_trials}, a consistent outward drift for the
+vector-sum primitive across all 10 runs and stable at all angles, is this
+failure mode observed directly, and on hardware it was worse than
+simulation predicted: \cite{39} attributes the drift to the robots
+always moving tangent to the circle while momentum effects, not captured
+in the simulation model, carry them further outward on each cycle.
+Orbiting at a fixed radius is reported there as an open problem the
+testbed is positioned to address, not one these primitives solve.
+
+The same qualitative failure appears in the critical-points paper's own
+comparison of primitives (Figure~\ref{fig:ch6:primitive_comparison}): both the
+vector-sum and vector-to-scalar primitives exhibit outward spiral drift
+in a vortex field when compared against a Jacobian-based orbital
+controller, because neither has a mechanism to detect or correct radial
+error with respect to a specific point. In a saddle field the comparison
+is more decisive still: the field vectors do not all point toward the
+critical point, so the vector-sum primitive cannot produce an orbital
+trajectory at all.
+
+
+This is why direction-only control cannot certify arrival at a point:
+arrival is a statement about position, and a heading command carries no
+position information to certify it with. The vector-to-scalar primitive
+comes closest, since it converts the problem to scalar-field gradient
+ascent or descent and can locate an extremum of the magnitude field, but
+it still has no notion of the field's vector structure away from that
+extremum, and so cannot classify what kind of critical point it has
+found or navigate to a saddle. Recovering that structure requires
+estimating the field's local Jacobian, which is what makes a critical
+point's location, rather than merely its uphill direction, computable
+(Chapter~\ref{ch:first_order}). The same three-robot cluster suffices
+for that estimate; the change is that the readings are fitted to an
+affine model instead of summed.
+
+\section{Summary}
+\label{sec:ch5:summary}
+% New text.
+
+This chapter presented two zeroth-order control primitives: vector-sum,
+built from the direction of the summed readings, and vector-to-scalar,
+built from their magnitudes alone. On 10 hardware trial runs per
+environment-primitive combination \cite{39}, vector-sum settled near the
+center of a sinking vortex and vector-to-scalar settled near the center
+of a fixed vortex, with commanded formation shape held to within about
+1~cm. What they cannot do is certify that the cluster has arrived
+anywhere: with no position estimate, a rotational field component drives
+a steady outward drift that these primitives have no mechanism to
+correct, worse on hardware than simulation predicted.
+Chapter~\ref{ch:first_order} takes the next step in the ladder of local
+polynomial fit order, estimating the field's Jacobian from the same
+three robots to recover a critical point's location and type rather than
+only its local uphill direction.

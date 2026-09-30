@@ -1,0 +1,225 @@
+% ===================================================================
+% CHAPTER 3: VECTOR FIELD PRELIMINARIES
+% ===================================================================
+\chapter{Vector Field Preliminaries}
+\label{ch:preliminaries}
+
+\section{Planar Vector Fields}
+\label{sec:ch3:planar_fields}
+% Ported from: Systems paper Sec. II-A (opening) and Draft_11.tex
+% Sec. II-A (Local Vector Field Polynomials, opening). New synthesis
+% text joins the two and frames the chapter.
+
+A planar vector field assigns a velocity $\mathbf{v}(\mathbf{p}) = (u(\mathbf{p}), v(\mathbf{p})) \in \mathbb{R}^2$ to each position $\mathbf{p} = (x,y)$ in a domain $\mathcal{D} \subset \mathbb{R}^2$. In the applications this dissertation targets, $\mathbf{v}$ is a physical fluid velocity, a surface ocean current, a printed laboratory analogue, or a simulated benchmark flow, sensed by robots that occupy points of $\mathcal{D}$ and record the local flow.
+
+A critical point $\mathbf{p}^* \in \mathcal{D}$ is a location where the field vanishes, $\mathbf{v}(\mathbf{p}^*) = \mathbf{0}$. Critical points organize the surrounding flow. A sink gathers floating material into a convergence zone; a source models an outflow or a leak; a vortex traps and carries a body of fluid, such as the plankton bloom inside a mesoscale ocean eddy, across a basin. Beyond isolated critical points, a flow can carry extended boundaries, the separatrices and coherent structures of Section~\ref{sec:ch3:coherent}, along which floating material collects or separates.
+
+This chapter collects the field-theoretic definitions used in the rest of this dissertation: the velocity gradient tensor (Section~\ref{sec:ch3:jacobian}), the classification of critical points by its eigenvalues (Section~\ref{sec:ch3:critical_points}), the rotation-strain decomposition and the Okubo-Weiss partition it induces (Section~\ref{sec:ch3:ow}), the two families of coherent structure that motivate tracking a boundary rather than only a point (Section~\ref{sec:ch3:coherent}), what it means for a quantity built from the field to be objective (Section~\ref{sec:ch3:objectivity}), and the benchmark fields used throughout (Section~\ref{sec:ch3:benchmarks}).
+
+\section{The Velocity Gradient Tensor}
+\label{sec:ch3:jacobian}
+% Ported from: thesis.tex Ch.4 "Flow Fields and Local Polynomial
+% Models" (lines 2723-2757), Jacobian definition only; the polynomial
+% estimator itself belongs to Chapter \ref{ch:estimation}.
+
+The velocity gradient tensor, or field Jacobian, of $\mathbf{v}$ at $\mathbf{p}$ is
+\begin{equation}
+\mathbf{J}(\mathbf{p}) = \begin{bmatrix} \partial u/\partial x & \partial u/\partial y \\ \partial v/\partial x & \partial v/\partial y \end{bmatrix},
+\label{eq:ch3:jacobian}
+\end{equation}
+abbreviated $u_x, u_y, v_x, v_y$ for the four partial derivatives where the point of evaluation is clear from context. This dissertation reserves bold $\mathbf{J}$ for the field Jacobian throughout. A kinematic Jacobian relating robot velocities to formation shape-parameter velocities is written $\mathbf{J}_c$ instead.
+
+Two scalar invariants of $\mathbf{J}$ recur throughout this dissertation. The trace is the divergence of the field, $\operatorname{tr}(\mathbf{J}) = u_x + v_y = \nabla \cdot \mathbf{v}$, and is zero for an incompressible flow. The determinant,
+\begin{equation}
+D(\mathbf{p}) = \det(\mathbf{J}(\mathbf{p})) = u_x v_y - u_y v_x,
+\label{eq:ch3:D_def}
+\end{equation}
+locates and classifies critical points (Section~\ref{sec:ch3:critical_points}) and, read as a field over a region rather than a value at a single point, marks the boundary between rotation-dominated and strain-dominated flow (Section~\ref{sec:ch3:ow}).
+
+\section{Critical Points and Their Classification}
+\label{sec:ch3:critical_points}
+% Ported from: Systems paper Sec. II-A (lines 71-79, 88-104), Table I;
+% thesis.tex Ch.3 "Vector Field Environments and Critical Points"
+% (lines 1863-1879) for the Hartman-Grobman caveat on centers. New
+% text for the trace-determinant plane derivation.
+
+Near a critical point $\mathbf{p}^*$, the field is well approximated by its linearization, and the local topology is determined by $\mathbf{J}$ evaluated at $\mathbf{p}^*$. For a $2\times2$ system with $D(\mathbf{p}^*) \neq 0$, a hyperbolic or elliptic critical point, the eigenvalues of $\mathbf{J}(\mathbf{p}^*)$ fix the type. The characteristic equation is
+\begin{equation}
+\lambda^2 - \operatorname{tr}(\mathbf{J})\,\lambda + D = 0,
+\label{eq:ch3:char_eq}
+\end{equation}
+with roots
+\begin{equation}
+\lambda = \frac{\operatorname{tr}(\mathbf{J}) \pm \sqrt{\operatorname{tr}(\mathbf{J})^2 - 4D}}{2}.
+\label{eq:ch3:eig_roots}
+\end{equation}
+The sign of $D$, and where $D>0$ the sign of the discriminant $\operatorname{tr}(\mathbf{J})^2 - 4D$, partition the trace-determinant plane into the six types listed in Table~\ref{tab:ch3:field_summary} and shown in Fig.~\ref{fig:ch3:allfield}. A negative determinant gives real eigenvalues of opposite sign, a saddle. A positive determinant with a nonnegative discriminant gives real eigenvalues of the same sign, a node, stable for $\operatorname{tr}(\mathbf{J})<0$ and unstable for $\operatorname{tr}(\mathbf{J})>0$. A positive determinant with a negative discriminant gives a complex conjugate pair $\lambda = \alpha_{\text{eig}} \pm i\omega$, a spiral for $\alpha_{\text{eig}} \neq 0$ (stable if $\alpha_{\text{eig}}<0$, unstable if $\alpha_{\text{eig}}>0$) and a center for $\alpha_{\text{eig}}=0$.
+
+\begin{table}[!t]
+\centering
+\caption{Classification of critical points by Jacobian eigenvalue structure ($\lambda$ = eigenvalue; a complex pair $\alpha_{\text{eig}} \pm i\omega$ has real part $\alpha_{\text{eig}}$, imaginary part $\omega$).}
+\label{tab:ch3:field_summary}
+\begin{tabular}{lll}
+\toprule
+\textbf{Field Type} & \textbf{Critical Point} & \textbf{Eigenvalues} \\
+\midrule
+Vortex & Center & $\lambda = \pm i\omega$ \\
+Sinking Vortex & Stable Spiral & $\lambda = \alpha_{\text{eig}} \pm i\omega$, $\alpha_{\text{eig}} < 0$ \\
+Sink & Stable Node & $\lambda_1, \lambda_2 < 0$ \\
+Source & Unstable Node & $\lambda_1, \lambda_2 > 0$ \\
+Spewing Vortex & Unstable Spiral & $\lambda = \alpha_{\text{eig}} \pm i\omega$, $\alpha_{\text{eig}} > 0$ \\
+Saddle & Saddle Point & $\lambda_1 < 0 < \lambda_2$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.75\textwidth]{ch3_six_vector_fields.png}
+% FIGURE SOURCE: Paper_Writing/Systems Paper/cwaight_systems_paper/six_vector_fields.png
+\caption{Six linear vector field types with critical points.}
+\label{fig:ch3:allfield}
+\end{figure}
+
+This classification holds rigorously for hyperbolic critical points. The center is the exception: a nonlinear perturbation of a linear center can produce a spiral, since the Hartman-Grobman theorem does not apply at $\alpha_{\text{eig}} = 0$, and under measurement noise an estimated center's real eigenvalue part hovers near zero, making center-versus-weak-spiral discrimination ill-posed in practice. $D(\mathbf{p}^*) = 0$ identifies degenerate cases, non-hyperbolic critical points or regions of near-uniform flow, that fall outside the scope of the estimation and control results in Chapters~\ref{ch:zeroth} through~\ref{ch:second_order}.
+
+\section{Rotation, Strain, and the Okubo-Weiss Partition}
+\label{sec:ch3:ow}
+% Ported from: Draft_11.tex Sec. II-D (Eulerian Surrogates, lines
+% 362-401, strain eigenvalue field and relation between the fields,
+% excluding the observer-frame content); thesis.tex Ch.4 "The
+% Okubo-Weiss Field and det(J)" (lines 2789-2805) for the Q formula.
+
+The velocity gradient tensor decomposes into a symmetric and an antisymmetric part,
+\begin{equation}
+\mathbf{J} = \mathbf{S} + \mathbf{W}, \qquad \mathbf{S} = \tfrac{1}{2}(\mathbf{J}+\mathbf{J}^\top), \qquad \mathbf{W} = \tfrac{1}{2}(\mathbf{J}-\mathbf{J}^\top).
+\label{eq:ch3:S_W_decomp}
+\end{equation}
+$\mathbf{S}$ is the rate-of-strain tensor. $\mathbf{W}$ is the spin tensor and carries the vorticity $\omega = v_x - u_y$ as $\mathbf{W} = \begin{bmatrix} 0 & -\omega/2 \\ \omega/2 & 0 \end{bmatrix}$.
+
+Write the mean, deviatoric normal, and shear strain as $\mu = (u_x+v_y)/2$, $s_n = (u_x-v_y)/2$, and $s_s = (u_y+v_x)/2$. The eigenvalues of $\mathbf{S}$ are
+\begin{equation}
+s_{1,2} = \mu \mp \sqrt{s_n^2+s_s^2}, \qquad s_1 \le s_2,
+\label{eq:ch3:s1s2}
+\end{equation}
+with eigenvectors $\mathbf{e}_1$ (the compression direction) and $\mathbf{e}_2$ (the stretching direction). For an incompressible flow $\mu = 0$, so $s_2 = -s_1$.
+
+The Okubo-Weiss parameter partitions a flow into rotation-dominated and strain-dominated regions using only the local velocity gradient,
+\begin{equation}
+Q = \tfrac{1}{4}(s_n^2+s_s^2-\omega^2) = \tfrac{1}{4}(\nabla\cdot\mathbf{v})^2 - D,
+\label{eq:ch3:Q_def}
+\end{equation}
+proposed by Okubo and, independently, Weiss \cite{43,44}. Hunt, Wray, and Moin generalized the same second-invariant idea to three dimensions as the Q-criterion for identifying eddies, streams, and convergence zones in turbulent flow \cite{45}. Hua and Klein revisited the two-dimensional criterion for oceanographic use, sharpening the conditions under which it separates elliptic and hyperbolic regions of a nearly two-dimensional turbulent flow \cite{46}, and the criterion has since been applied at scale in mesoscale eddy censuses \cite{7}.
+
+For the incompressible flows considered in this dissertation, $\nabla\cdot\mathbf{v}=0$ and $Q=-D$ exactly, so $D$ carries the same partition with the opposite sign. The convention used throughout this dissertation is $D>0$ marking a rotation-dominated (elliptic) region and $D<0$ a strain-dominated (hyperbolic) region, with the zero level set $D=0$ the Okubo-Weiss boundary between them.
+
+Where the vorticity vanishes, $\mathbf{J} = \mathbf{S}$ and $D = s_1 s_2$, which is $-s_1^2$ in incompressible flow: along such a curve the two fields share the same trench. Elsewhere the spin $\mathbf{W}$, which carries the vorticity, separates them, and it also separates them across observers (Section~\ref{sec:ch3:objectivity}).
+
+Chapter~\ref{ch:second_order} uses trenches of $D$ and $s_1$ inside strain-dominated regions as surrogates for a separatrix or other coherent-structure boundary, estimated from a six-robot quadratic fit rather than computed from a known field; the argument for why those trenches mark the boundary, how the surrogates are estimated, and how a tracker rides one, is developed there.
+
+\section{Coherent Structures}
+\label{sec:ch3:coherent}
+
+A coherent structure is a boundary that organizes material transport in a flow. Two frameworks define one, a Lagrangian framework built from particle trajectories and an instantaneous Eulerian framework built from the local velocity gradient.
+
+\subsection{Lagrangian Coherent Structures and FTLE}
+\label{sec:ch3:lcs_ftle}
+% Ported from: Draft_11.tex Introduction (lines 112-114) and
+% thesis.tex Ch.4 "Lagrangian Coherent Structures and the Objectivity
+% Question" (lines 2541-2559, 2566-2572), citations converted to
+% sep:N.
+
+A separatrix in a steady flow is the union of the stable and unstable manifolds of a saddle point, partitioning the domain into regions whose trajectories do not mix. In a flow whose structure varies in time, the analogous object is a Lagrangian coherent structure (LCS), a distinguished material surface that organizes tracer transport over a finite time horizon \cite{47}. Haller's review frames the resulting body of theory as the search for the Lagrangian skeleton of a flow, and states the property such a skeleton must have to be physically meaningful: objectivity, invariance under the time-dependent Euclidean frame changes that a material response cannot depend on (Section~\ref{sec:ch3:objectivity}) \cite{48}. Shadden, Lekien, and Marsden gave the standard computable definition, an LCS as a ridge of the finite-time Lyapunov exponent (FTLE) field \cite{49}.
+
+Computing an FTLE ridge requires integrating dense grids of particle trajectories over a finite time horizon, which presumes knowledge of the field's future evolution, in advance, over the whole region the tracers travel. A robot team that measures the flow only at its own footprint, at the current instant, cannot evaluate it. Nolan, Serra, and Ross show that FTLE fields converge to Eulerian rate-of-strain quantities as the integration horizon shrinks to zero \cite{50}, and Harms, Brunton, and McKeon show that standard gradient-based LCS diagnostics degrade on the sparse tracer trajectories typical of ocean drifters, proposing a regression-based alternative that linearizes in time rather than in space to recover usable gradients from sparse data \cite{51}.
+
+\subsection{Objective Eulerian Coherent Structures}
+\label{sec:ch3:oecs}
+% Ported from: Draft_11.tex Sec. II-D (Eulerian Surrogates, lines
+% 386-392) and Introduction (line 114); thesis.tex Ch.4 "Eulerian
+% Surrogates" (lines 2601-2609) for the Cooper et al. magnitude-only
+% comparison.
+
+The second route to a coherent structure is instantaneous: a scalar or tensor field built from the local velocity gradient alone, evaluated at a single point in time, with no trajectory integration. The Okubo-Weiss parameter of Section~\ref{sec:ch3:ow} is one such criterion. Because these criteria are properties of the instantaneous field rather than of material transport, Haller's review excludes them from the Lagrangian framework: they can frame a coherent feature of the velocity field, but on their own they are not objective \cite{48}. Reducing a sensed field to a scalar this way can also lose the information needed to tell structures apart; Cooper et al.'s initial multirobot study of vector field navigation reduced each measurement to its magnitude, which yields a descent direction but cannot distinguish a sink from a saddle from a vortex, since the magnitude vanishes at every critical point regardless of type \cite{38}.
+
+Serra and Haller placed an instantaneous criterion on objective footing by defining objective Eulerian coherent structures (OECS) from the eigenvalues and eigenvectors of the rate-of-strain tensor $\mathbf{S}$ rather than from the raw velocity gradient, and showed that OECS are the limit LCS approach as the integration horizon shrinks to zero \cite{52}. An attracting OECS is a trench of $s_1$ tangent to the stretching eigenvector $\mathbf{e}_2$; floating material has been observed at sea to collect onto such curves \cite{11}. A repelling OECS is a ridge of $s_2$ tangent to the compression eigenvector $\mathbf{e}_1$, along which neighboring material separates. In incompressible flow $s_2=-s_1$, so a repelling structure is also a trench of $s_1$, and a single tracker built on $s_1$ can ride both (Chapter~\ref{ch:second_order}).
+
+\section{Objectivity and Observer Frames}
+\label{sec:ch3:objectivity}
+% Ported from: Draft_11.tex Sec. II-D (Eulerian Surrogates, lines
+% 400-411, general transformation law and which quantities are
+% objective) and Sec. VI-C ("Behavior Under a Rotating Observer",
+% lines 946-947, frame transformation) for the operational definition.
+% The rotating-observer trial results belong to Chapter
+% \ref{ch:second_order}, not this chapter.
+
+Objectivity, also called frame-indifference, requires a physical quantity computed from the flow to take the same value for any two observers related by a time-dependent Euclidean transformation, a rotation and a translation, since such a transformation changes nothing about the material motion itself \cite{48}. This matters for a robot cluster whose heading is dead-reckoned rather than directly measured: the cluster is, in effect, a rotating observer of the field it senses.
+
+For an observer rotating at rate $\Omega$ with rotation matrix $\mathbf{Q}$, the observed field is
+\begin{equation}
+\mathbf{v}'(\mathbf{p}', t) = \mathbf{Q}\,\mathbf{v}(\mathbf{Q}^\top\mathbf{p}') + \Omega\,(-y', x')^\top,
+\label{eq:ch3:rotating_frame}
+\end{equation}
+the field rotated into the moving frame plus the frame's own solid-body rotation.
+
+Not every quantity built from $\mathbf{J}$ is objective under this transformation. The rate-of-strain tensor $\mathbf{S}$ co-rotates with the frame, so its eigenvalues, including $s_1$, are objective. The spin tensor $\mathbf{W}$ and the vorticity are not: the observed vorticity is $\omega' = \omega + 2\Omega$, the true vorticity plus the frame's own rotation rate. Because $D$ mixes $\mathbf{S}$ and $\mathbf{W}$, it is not objective either. Expanding $D$ in the rotating frame,
+\begin{equation}
+D' = D + \Omega\,\omega + \Omega^2,
+\label{eq:ch3:D_not_objective}
+\end{equation}
+so two observers rotating relative to each other disagree about where the trenches of $D$ lie, while they agree about the trenches of $s_1$ \cite{52}. This is the tradeoff Chapter~\ref{ch:second_order} evaluates between the two surrogates of Section~\ref{sec:ch3:ow}.
+
+\section{Benchmark Fields}
+\label{sec:ch3:benchmarks}
+
+\subsection{Canonical Linear Fields}
+\label{sec:ch3:linear_fields}
+% Ported from: Systems paper Sec. VII "Vector Field Environments"
+% (lines 510-526); thesis.tex Appendix A (lines 5066-5107) for the
+% $\rho,\theta$ renaming.
+
+Six linear vector field environments, shown in Fig.~\ref{fig:ch3:allfield} and classified in Table~\ref{tab:ch3:field_summary}, are used as simulation benchmarks in this dissertation. Centered at the origin, with $\rho=\sqrt{x^2+y^2}$ and $\theta=\operatorname{atan2}(y,x)$, the base fields are the vortex (pure rotational flow), the sink (radial inward flow), whose negation is the source (radial outward flow), and a saddle rotated $45^\circ$ so its stable and unstable directions lie along the diagonals $y=x$ and $y=-x$. The sinking vortex (spiraling inward) and spewing vortex (spiraling outward) are linear combinations of the vortex and sink fields. Full closed forms are given in Appendix~\ref{app:fields}.
+
+\subsection{The Steady Double Gyre}
+\label{sec:ch3:double_gyre}
+% Ported from: Draft_11.tex Sec. II-E "The Double-Gyre Example" (lines
+% 413-491), near verbatim; internal section references retargeted to
+% this chapter's labels.
+
+The double gyre is a benchmark flow on which both surrogates of Section~\ref{sec:ch3:ow} mark the material transport structure exactly, and every quantity of interest has a closed form. The flow is two counter-rotating gyres in a closed basin, separated by a separatrix that runs between two saddle points on the basin walls. This dissertation uses the steady member of the Shadden family \cite{49}, shifted from the canonical domain $[0,2]\times[0,1]$ to $[-1,1]\times[-0.5,0.5]$ to center it on the origin. The shift is $x_f = x+1$, $y_f = y+0.5$, where $(x_f,y_f)$ are field-frame and $(x,y)$ world-frame coordinates. Both are non-dimensional throughout the double-gyre benchmark. The field is
+\begin{equation}
+u = -\pi A \sin(\pi x_f)\cos(\pi y_f), \quad v = \pi A \cos(\pi x_f)\sin(\pi y_f),
+\label{eq:ch3:dg_u}
+\end{equation}
+with $A=0.1$. The separatrix is the line $x=0$, the saddle points are $\mathbf{p}_1^* = (0,-0.5)$ and $\mathbf{p}_2^* = (0,0.5)$, and the gyre centers are $(\pm0.5, 0)$.
+
+The analytical Jacobian entries are $u_x = -\pi^2 A \cos\pi x_f \cos\pi y_f = -v_y$ and $u_y = \pi^2 A \sin\pi x_f \sin\pi y_f = -v_x$. The flow is therefore incompressible, and its determinant and Hessian are
+\begin{equation}
+\begin{aligned}
+D(\mathbf{p}) &= -\tfrac{1}{2}\pi^4 A^2 \left(\cos 2\pi x_f + \cos 2\pi y_f\right), \\
+\mathbf{H}_D &= 2\pi^6 A^2 \begin{bmatrix} \cos 2\pi x_f & 0 \\ 0 & \cos 2\pi y_f \end{bmatrix}.
+\end{aligned}
+\label{eq:ch3:det_analytic}
+\end{equation}
+The Hessian is diagonal everywhere, so its eigenvectors lie on the coordinate axes.
+
+The landscape of $D$ is a grid of trenches around rotation-dominated gyres, each inside an Okubo-Weiss diamond $x_f \pm y_f \in \tfrac{1}{2}+\mathbb{Z}$ where $D>0$. The trenches lie on the lines $x \in \{-1,0,1\}$ and $y=\pm0.5$, the separatrix and the four basin walls, which cross at right angles at $\mathbf{p}_1^*$, $\mathbf{p}_2^*$, and the four domain corners.
+
+Along the separatrix $D = -\pi^4 A^2 \sin^2\pi y$. The trench is deepest at the two saddles and rises to a crest, $D=0$, at the origin (Fig.~\ref{fig:ch3:dg_fields}(b)). The crest divides the separatrix into an upper and a lower segment. On $x=0$ the Hessian reduces to $\mathbf{H}_D = 2\pi^6 A^2\,\operatorname{diag}(1,-\cos2\pi y)$. The transverse curvature $2\pi^6 A^2$ is the same along the whole separatrix. The along-trench curvature is negative for $|y|<0.25$ and positive beyond, so each segment is concave along its length on its inner half and convex on its outer half. At a saddle both curvatures are positive, and $D$ has a local minimum where the separatrix crosses the wall.
+
+The vorticity ties the $s_1$ field to the $D$ field on this flow. It is $\omega = -2\pi^2 A \sin\pi x_f \sin\pi y_f$, which vanishes where $x_f$ or $y_f$ is an integer, exactly on the trench grid of $D$. There $\mathbf{J} = \mathbf{S}$ and $D=-s_1^2$ (Section~\ref{sec:ch3:ow}), so the two fields share every trench. The shear strain vanishes identically, so $\mathbf{S} = \operatorname{diag}(u_x,-u_x)$ everywhere. This gives
+\begin{equation}
+s_1 = -\pi^2 A \left|\cos\pi x_f \cos\pi y_f\right|,
+\label{eq:ch3:s1_analytic}
+\end{equation}
+with minima $s_1 = -\pi^2 A$ where the grid lines cross, at $\mathbf{p}_1^*$, $\mathbf{p}_2^*$, and the four domain corners. The eigenvectors of $\mathbf{S}$ lie on the coordinate axes except on the lines $x=\pm0.5$ and $y=0$ through the gyre centers, where $u_x=0$, $\mathbf{S}$ vanishes, and both eigenvectors are undefined. The line $y=0$ meets the separatrix at the origin, an isotropic point of $\mathbf{S}$ at the $D$ crest.
+
+On the upper segment $u_x<0$, so the stretching eigenvector $\mathbf{e}_2$ is tangent to the trench. On the lower segment $u_x>0$, and the compression eigenvector $\mathbf{e}_1$ is tangent. By the OECS definition of Section~\ref{sec:ch3:oecs}, the upper segment is an attracting OECS and the lower a repelling OECS. The two meet at the isotropic point, where the tangent swaps (Fig.~\ref{fig:ch3:dg_fields}(c)).
+
+\begin{figure}[!tb]
+\centering
+\includegraphics[width=0.75\textwidth]{ch3_double_gyre_fields.png}
+% FIGURE SOURCE: Paper_Writing/Separatrix_and_OW_Paper/figures/double_gyre_fields.png
+\caption{Steady double gyre. (a) Streamlines, with the separatrix $x=0$ (dashed), the saddle points (crosses), and the gyre centers (dots). (b) Signed $D$ as an elevation surface. The gyre centers rise as peaks ($D>0$), and the separatrix (bold) is a trench of $D$, deepest at the saddles and rising to $D=0$ at the origin. (c) $s_1$ over the same domain. The separatrix is a trench on both segments, deepest at the saddles. The trench tangent is $\mathbf{e}_2$ on the upper, attracting segment and $\mathbf{e}_1$ on the lower, repelling segment, and the two swap at the isotropic point of $\mathbf{S}$ at the origin, where the $D$ crest of (b) sits.}
+\label{fig:ch3:dg_fields}
+\end{figure}
