@@ -19,7 +19,7 @@ simulation.
 % Ported from: cwaight_systems_paper.tex
 Chapter~\ref{ch:first_order} presented a distributed framework for multirobot navigation in vector fields containing critical points. A Jacobian-based approach uses instantaneous measurements from three robots to identify critical point locations without prior field knowledge, supporting an attraction control law and an orbital control law built on these estimates. Simulation across six canonical field types confirmed convergence of these control primitives. In 157 hardware convergence trials, the system achieved a 100\% success rate with average position errors of 0.012~m or less. Orbital control experiments maintained commanded radii within 0.25~m error at small radii and 0.1~m at larger radii.
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Chapter~\ref{ch:second_order} showed that a second-order fit of the local flow, from six
 robots sampling at once, is enough to acquire and ride the instantaneous
 coherent structures of a planar flow. The fit gives the velocity gradient
@@ -27,7 +27,7 @@ as a field over the formation, and the two adaptive navigation primitives
 built on it use only synchronous local velocity measurements, with no
 map, no forecast, and no assumption about the structure's identity.
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The experiments give an operational selection rule. With a noisy sensor
 the $D$ tracker withstands about four times the noise the $s_1$ tracker does. Under a rotating observer the
 ranking reverses. Above a heading drift of about 7$^\circ$/h the $D$ tracker's formation
@@ -38,6 +38,32 @@ heading, or overhead tracking, should carry the $D$ tracker, which
 tolerates a noisier sensor. One whose heading is dead-reckoned, and so
 drifts, should carry the $s_1$ tracker, which is objective past its one
 seed step.
+
+% New text. Primitive library, moved from Chapter 8 on 2026-09-30.
+Table~\ref{tab:ch10:library} collects every primitive in this
+dissertation with its fit order, the smallest cluster it was run with,
+the quantity it steers on, its stability result, and how it was verified.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Primitive library. Stability entries are as stated in the
+chapter that defines each primitive.}
+\label{tab:ch10:library}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.0cm} c c >{\raggedright\arraybackslash}p{2.7cm} >{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}p{3.0cm}}
+\hline
+Primitive & Order & Robots & Steers on & Stability & Verification \\
+\hline
+Vector-sum & 0 & 3 & mean sensed vector & none stated & hardware, fixed and sinking vortex, 10 runs each \\
+Vector-to-scalar & 0 & 3 & slope of the sensed magnitude & none stated & hardware, fixed vortex, 10 runs plus randomized starts \\
+Attraction & 1 & 3 & $\hat{\mathbf{p}}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{h}}$ & exponential convergence to a stationary estimate, $\tau = 1/k$ & simulation, 8 fields; hardware, 157 trials \\
+Orbital & 1 & 3 & $\hat{\mathbf{p}}^*$ with radial and tangential terms & radial error $\dot{e}_r = -k_r e_r$ & simulation, 8 fields; hardware, 12 trials \\
+$D$ tracker & 2 & 6 & $\hat{D}$ and $\hat{\mathbf{H}}_{D,0}$ & transverse practical stability, $\limsup|n| \leq \delta/a_\perp$ & simulation, double gyre and Santa Barbara Channel \\
+$s_1$ tracker & 2 & 6 & $\hat{s}_1$ and $\nabla\hat{s}_1$ & same transverse bound, frame equivariant past its seed step & simulation, double gyre and Santa Barbara Channel \\
+\hline
+\end{tabular}
+\end{table}
 
 \section{Final Thoughts}
 \label{sec:ch10:final}

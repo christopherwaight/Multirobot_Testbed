@@ -335,7 +335,7 @@ P('sys', 'The sensed field $\\mathbf{v}(\\mathbf{p}_i)$ enters only the estimati
          'Section~\\ref{sec:ch9:advection} discusses the extension to flows that advect the robot directly.')]),
 
 T(r"""
-\section{Field Reconstruction as a Simulation Noise Model}
+\section{Field Reconstruction as a Noise Model}
 \label{sec:ch2:reconstruction}
 """),
 P('sys', 'This method of representing vector fields in printed floor maps has imperfections',

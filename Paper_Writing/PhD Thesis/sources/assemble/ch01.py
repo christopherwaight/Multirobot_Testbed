@@ -162,7 +162,8 @@ Chapters~\ref{ch:zeroth}, \ref{ch:first_order}, and~\ref{ch:second_order}
 climb that ladder one rung at a time, from direction-only primitives on
 hardware, to critical point estimation and control on hardware, to
 separatrix tracking in simulation. Chapter~\ref{ch:crosscutting} compares
-the rungs directly, on noise, formation size, and observer frames.
+the rungs directly, on the scalar fields each makes available, on
+formation geometry, on noise, and on the number of robots.
 Chapter~\ref{ch:limitations} states the limitations and future work, and
 Chapter~\ref{ch:conclusion} concludes. The appendices give the field
 definitions, the cluster kinematics for three and six robots, the frame

@@ -105,7 +105,7 @@ ridge/trench following, and saddle point station keeping \cite{3}, and
 verified ridge, trench, saddle, and front tracking experimentally on an
 indoor testbed \cite{4,7}.
 
-Some environments are better modeled as vector fields, which contain features without scalar field equivalents. Critical points, such as sinks, sources, and vortices, can model convergence zones \cite{8} and subsurface leaks \cite{9}.  In \cite{10} a three-robot cluster
+Some environments are better modeled as vector fields, which contain features without scalar field equivalents. Critical points, such as sinks, sources, and spewing vortices can be used to model convergence zones \cite{8} and subsurface leaks \cite{9}.  In \cite{10} a three-robot cluster
 estimated the location and type of one from a linear fit of
 simultaneous local velocity measurements and used this estimate to adaptively navigate towards and around them. 
 
@@ -140,8 +140,8 @@ $s_1$ \cite{19};
 navigate to the structure and ride along it without pre-straddling;
 \item a tradeoff between them, in which the $D$ tracker tolerates more
 measurement noise while the $s_1$ tracker, being objective, holds its
-path under a rotating observer, which matters when the measured flow
-carries the observer's own rotation.
+path under a rotating observer, which matters for a cluster whose heading
+is dead-reckoned rather than measured.
 \end{itemize}
 
 Both primitives run on a simulated double gyre and on measured Santa
@@ -543,21 +543,8 @@ and heading $\theta_c$ place the formation, and nine shape variables set
 its geometry. The robots form three pairs whose midpoints define an SAS
 triangle $(p, \beta, q)$ (Fig.~\ref{fig:pentagon}). The cluster controller layer maps the
 cluster-space velocity vector to robot velocities through the analytic
-inverse Jacobian $\mathbf{J}^{-1}$ of the cluster kinematics
-(Fig.~\ref{fig:control_architecture}), not the velocity gradient of
-Section~\ref{sec:sensitivity}, and returns measured robot positions to
+inverse Jacobian $\mathbf{J}^{-1}$ and returns measured robot positions to
 the layer above through the forward kinematics.
-
-\begin{figure}[!tb]
-    \centering
-    \includegraphics[width=0.32\textwidth]{figures/control_architecture.png}
-    \caption{Three-layer control architecture. The adaptive navigation
-    layer (left) estimates the field and generates the cluster command, the
-    cluster controller layer (center) maps between cluster and robot space,
-    and the robot controller layer (right) actuates each robot and reports
-    its position and field sample.}
-    \label{fig:control_architecture}
-\end{figure}
 
 \begin{figure}[!tb]
     \centering
@@ -608,6 +595,19 @@ $r_{\text{band}}$       & 0.05  & 0.05   & 1/time \\
 \hline
 \end{tabular}
 \end{table}
+
+\begin{figure}[!tb]
+    \centering
+    \includegraphics[width=0.32\textwidth]{figures/control_architecture.png}
+    \caption{Three-layer control architecture. The adaptive navigation
+    layer (left) estimates the field and generates the cluster command, the
+    cluster controller layer (center) maps between cluster and robot space,
+    and the robot controller layer (right) actuates each robot and reports
+    its position and field sample.}
+    \label{fig:control_architecture}
+\end{figure}
+
+% ###### I have proofread everything above this line ######
 
 \subsection{The $D$ Tracker}
 \label{sec:sep_controller}
@@ -830,18 +830,18 @@ in the Monte Carlo sweeps and zero in the noise-free runs.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.78\columnwidth]{figures/traverse_vs_logic_c.png}
+    \includegraphics[width=0.85\columnwidth]{figures/traverse_vs_logic_c.png}
     \caption{$s_1$ tracker versus $D$ tracker from six matched starts
     ($\bullet$), noise-free. Both traverse the same network through the
     isotropic point at the origin. The $s_1$ tracker captures at the far saddle ($\times$), while the
     $D$ tracker continues onto the crossing wall trench past each saddle
-    it reaches, ending at the squares. }
+    it reaches, ending at the square markers. }
     \label{fig:traverse_vs_logic_c}
 \end{figure}
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.72\columnwidth]{figures/separatrix_formation.png}
+    \includegraphics[width=0.85\columnwidth]{figures/separatrix_formation.png}
     \caption{The six robots from start S1 (star) under both trackers,
     zoomed to the separatrix $x = 0$ (dashed). Thin lines are robot
     paths and the heavy line is the centroid. Outlines mark the
@@ -850,15 +850,15 @@ in the Monte Carlo sweeps and zero in the noise-free runs.
     \label{fig:formation}
 \end{figure}
 
-These runs test acquisition, traversal, and the terminal step. On the double gyre the two fields share every trench (Section~\ref{sec:dg_example}). Clean trials
+These runs test acquisition, traversal, and the terminal step for both primitives. On the double gyre the two fields share every trench (Section~\ref{sec:dg_example}). Clean trials
 run 400 to 600 steps and stop at domain exit or, for the $D$ tracker,
 150 steps after first saddle contact.
 
 Both ran noise-free from six matched starts
 (Fig.~\ref{fig:traverse_vs_logic_c}), spanning both gyre halves, the origin, and points up to $2.7\rho$ off the structure, acquiring the network from all six in 0 to 13 steps for the $D$ tracker and 0 to 14 for the $s_1$ tracker. They then ride the same segments in the same direction and cross the isotropic point at the origin, with the formation straddling the separatrix throughout (Fig.~\ref{fig:formation}). A run
 acquiring above the origin therefore rides an attracting OECS to that
-point and continues onto a repelling one, on the same primitive and scalar
-trench throughout. Neither needs a dedicated rule at the
+point and continues onto a repelling one, on the same primitive and the
+same scalar trench throughout. Neither needs a dedicated rule at the
 crossing, and the $s_1$ tracker rides through the origin on ordinary
 tangent selection.
 
@@ -875,7 +875,7 @@ truncation, so (\ref{eq:d_capture}) fires only intermittently
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.55\columnwidth]{figures/flip_resolution.png}
+    \includegraphics[width=0.6\columnwidth]{figures/flip_resolution.png}
     \caption{Far-saddle success of both trackers from the straddling start
     $(0, 0.35)$, $10^4$ trials per point, with each tracker's straddle
     retention (counted on successful trials) dashed. The dotted line marks
@@ -909,11 +909,12 @@ new measurement checks it, rather than to per-cycle estimation accuracy.
 The $D$
 tracker re-signs $\mathbf{w}_1$ against $\hat{\mathbf{v}}_0$ every cycle,
 while the $s_1$ tracker carries the sign in state through
-$\mathbf{t}_{\mathrm{ref}}$. Objectivity rules out the fitted curvature
+$\mathbf{t}_{\mathrm{ref}}$. That reliance follows from objectivity and
+traversal together. Objectivity rules out the fitted curvature
 (Section~\ref{sec:surrogates}), the measured flow
 (Section~\ref{sec:rotating}), and a world axis as sign references, and
 traversal rules out the along-trench component of $\nabla\hat{s}_1$, which
-reverses at the along-trench maximum the ride must cross, so we use the
+reverses at the along-trench maximum the ride must cross, leaving the
 primitive's own prior output.
 Straddle retention stays within five points of success for the $D$
 tracker but falls further below it for the $s_1$ tracker, 47.6\% against
@@ -926,7 +927,7 @@ transverse curvature (Section~\ref{sec:s1_controller}).
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.88\columnwidth]{figures/objectivity_traverser.png}
+    \includegraphics[width=0.95\columnwidth]{figures/objectivity_traverser.png}
     \caption{Objectivity trial, both primitives started from
     $(0.05, 0.40)$ and run in the inertial frame (solid) and in a
     frame rotating at $\Omega = 0.23$ (dashed, pulled back to
@@ -940,20 +941,15 @@ transverse curvature (Section~\ref{sec:s1_controller}).
 
 Both primitives were run from $(0.05, 0.40)$, just inside the upper
 saddle, on the same physical double gyre in two observer
-frames, the inertial one and a frame rotating clockwise at $\Omega = 0.23$, a rate of
-$\Omega/(\pi^2 A) \approx 0.23$ against the flow's peak strain rate,
-where the field is $\mathbf{v}'(\mathbf{p}', t) =
+frames, the inertial one and a frame rotating clockwise at $\Omega = 0.23$, a heading
+drift of about $8^\circ$/h at the ocean time unit of
+Section~\ref{sec:ocean_sim}, where the field is $\mathbf{v}'(\mathbf{p}', t) =
 \mathbf{Q}\mathbf{v}(\mathbf{Q}^\top \mathbf{p}') + \Omega\,(-y',
-x')^\top$. This is the flow a cluster measures when each robot senses
-water velocity relative to itself and adds its own velocity from position
-fixes expressed in the drifting axes. A cluster whose sensors instead
-report $\mathbf{Q}\mathbf{v}$ while its relative positions stay in true
-axes fits $\mathbf{Q}\mathbf{J}$, which leaves the $D$ field unchanged but
-tilts the strain eigenframe. The rate keeps the structure's apparent speed
+x')^\top$. The rate keeps the structure's apparent speed
 along the tracked path, $\Omega\lVert\mathbf{p}\rVert \leq 0.11$, inside the command
 authority $k\,c_{\max} = 0.12$, the condition the appendix requires.
 Rotating-frame trajectories are pulled back to inertial coordinates and
-compared with that primitive's inertial run.
+compared with the inertial run of the same primitive.
 
 Between acquisition and the far saddle, the $s_1$ tracker stays within
 0.016 of the separatrix in the rotating frame, against 0.010 in the
@@ -991,7 +987,7 @@ $\Omega\lVert\mathbf{p}_{\text{seed}}\rVert <
 
 The ocean experiment uses hourly surface-current frames for the Santa
 Barbara Channel from the HFRNet U.S.~West~Coast Radial-to-Total Vector
-product \cite{34}, on the $2$~km grid, which is public. The record is the one \cite{26} uses, the same network over the same 28-h window, 29 frames from May 16, 2012 08:00 GMT to May 17, 2012 12:00 GMT. Kularatne and Hsieh track a time-reversed attracting boundary in the same channel's May 2012 currents \cite{29}.
+product \cite{34}, on the $2$~km grid, which is public. The record is the one \cite{26} uses, the same network over the same 28-h window, 29 frames from May 16, 2012 08:00 GMT to May 17, 2012 12:00 GMT, so these results are interpretable against prior work on it. Kularatne and Hsieh track a time-reversed attracting boundary in the same channel's May 2012 currents \cite{29}.
 Frames are interpolated linearly in time. World
 coordinates on $[-0.65, 0.65]^2$ map affinely onto a region centered on
 $(34.2^{\circ}\mathrm{N}, 120.4^{\circ}\mathrm{W})$.
@@ -1013,7 +1009,7 @@ $2$~km grid rather than under four, and starts at heading $335^\circ$. At
 one control cycle per ten minutes any vessel time constant is negligible,
 so $\alpha_{\text{mom}} = 0$. The gain and radius set when the cluster
 reaches the bifurcation of the evolving ridge, and so which branch it
-meets. The latch depth $s_{\mathrm{trim}} = 0.3$ is set from this field's
+meets. The latch depth $s_{\mathrm{trim}} = 0.3$ is set from this field's own
 $s_1$ scale. No
 noise level is estimated, since the exactly determined fit leaves no
 residual, so the noise model is validated on the double gyre only.
@@ -1114,14 +1110,14 @@ map, no forecast, and no assumption about the structure's identity.
 
 The experiments give an operational selection rule. With a noisy sensor
 the $D$ tracker withstands about four times the noise the $s_1$ tracker does. Under a rotating observer the
-ranking reverses. Above a rotation rate of about a fifth of the flow's peak strain rate the $D$ tracker's formation
+ranking reverses. Above a heading drift of about 7$^\circ$/h the $D$ tracker's formation
 no longer straddles the structure, while the $s_1$ tracker keeps the
 straddle and returns the same material curve in both frames. On Santa Barbara Channel currents both followed the same transport corridor
-to its bifurcation, at mean distances of 1.5 and 2.1~km from an FTLE ridge. A cluster with an absolute heading reference, such as a compass, GNSS
+to its bifurcation, at mean distances of 1.5 and 2.1~km from an FTLE ridge neither could see. A cluster with an absolute heading reference, such as a compass, GNSS
 heading, or overhead tracking, should carry the $D$ tracker, which
-tolerates a noisier sensor. One whose flow estimate carries its own rotation, as when robot
-velocities are differenced from position fixes in drifting axes, should
-carry the $s_1$ tracker, which is objective past its one seed step.
+tolerates a noisier sensor. One whose heading is dead-reckoned, and so
+drifts, should carry the $s_1$ tracker, which is objective past its one
+seed step.
 
 \appendices
 

@@ -105,8 +105,8 @@ P('sep', 'Cluster space control treats a multirobot formation as a virtual rigid
         ('through the forward kinematics.', 'through the forward kinematics (Appendix~\\ref{app:kin6}).')]),
 P('sep', '\\caption{Pentagon-plus-center formation. Robot 1 sits at the centroid',
   end='\\end{figure}', back=3,
-  subs=[('figures/pentagon_formation.png', 'ch4_pentagon_formation.png'),
-        ('width=0.5\\columnwidth', 'width=0.45\\textwidth')]),
+  subs=[('figures/pentagon_formation.png', 'ch4_pentagon_formation.png')],
+  width='0.45\\textwidth'),
 
 T(r"""
 \subsection{Adaptive Navigation Layer}
@@ -204,9 +204,9 @@ Chapter~\ref{ch:limitations} leaves it as future work.
 (\ref{eq:ch4:nk}), and the degeneracy is the curve on which that many
 robots cannot support the fit.}
 \label{tab:ch4:ladder}
-\begin{tabular}{p{1.3cm} p{1.4cm} p{2.0cm} p{4.6cm} p{1.3cm}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.6cm} c >{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}p{5.2cm} c}
 \hline
-Fit order & Minimum robots & Degeneracy & Features reachable & Chapter \\
+Fit order & Robots & Degenerate on & Features reachable & Chapter \\
 \hline
 Zeroth & 1 & none & heading only, which drifts on orbits & \ref{ch:zeroth} \\
 First & 3 & common line & critical points, with location, type, and orbit & \ref{ch:first_order} \\

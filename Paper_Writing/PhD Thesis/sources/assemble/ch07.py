@@ -6,10 +6,10 @@ DG = ('(Section~\\ref{sec:dg_example})', '(Section~\\ref{sec:ch3:dg_example})')
 
 def FIG(cap, old, new, width, star=False, more=()):
     env = 'figure*' if star else 'figure'
-    subs = [(f'figures/{old}', new), width] + list(more)
+    subs = [(f'figures/{old}', new)] + list(more)
     if star:
         subs += [('\\begin{figure*}', '\\begin{figure}'), ('\\end{figure*}', '\\end{figure}')]
-    return P('sep', cap, end='\\end{' + env + '}', back=3, subs=subs)
+    return P('sep', cap, end='\\end{' + env + '}', back=3, subs=subs, width=width[1].split('=',1)[1])
 
 parts = [
 T(r"""
@@ -126,8 +126,8 @@ P('sep', 'The $s_1$ landscape has the same two minima, and between them the',
         DG,
         ('(Section~\\ref{sec:surrogates}), squaring rounds',
          '(Section~\\ref{sec:ch3:relation}), squaring rounds'),
-        ('figures/s1_channels.png', 'ch7_s1_channels.png'),
-        ('width=0.48\\textwidth', 'width=0.95\\textwidth')]),
+        ('figures/s1_channels.png', 'ch7_s1_channels.png')],
+  width='0.95\\textwidth'),
 
 T(r"""
 \section{Double-Gyre Benchmark}

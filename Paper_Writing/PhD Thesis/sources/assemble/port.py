@@ -14,6 +14,11 @@ SRC = {
     'sys': ROOT + 'Systems Paper/cwaight_systems_paper/cwaight_systems_paper.tex',
     'sep': ROOT + 'Separatrix_and_OW_Paper/Draft_11.tex',
 }
+# Draft_11 was mid-revision on 2026-09-30 (Reviewer 1 response). Until the
+# author says to re-port, chapters are built from the committed snapshot
+# (git 6ec7e51), which reproduces the chapters reviewed that day. Delete
+# this line to port from the live Draft_11.tex.
+SRC['sep'] = ROOT + 'PhD Thesis/sources/snapshots/Draft_11_6ec7e51.tex'
 CH = ROOT + 'PhD Thesis/chapters/'
 _cache = {}
 
@@ -35,10 +40,12 @@ def _prefix(text, pre):
         return f'\\{cmd}{{{kind}:{pre}:{name}}}'
     return re.sub(r'\\(label|ref|eqref)\{(eq|fig|tab|sec):([^:}]+)\}', fix, text)
 
-def P(src, start, end=None, subs=(), cites=True, tag=None, back=0, extra=0):
+def P(src, start, end=None, subs=(), cites=True, tag=None, back=0, extra=0, width=None):
     """Copy lines from the one containing `start` through the first line
     at or after it containing `end` (default: the start line only).
-    `back` and `extra` widen the passage by whole lines."""
+    `back` and `extra` widen the passage by whole lines. `width` replaces
+    the width of every \\includegraphics in the passage, whatever the
+    source says, so layout edits in a paper do not abort the port."""
     L = _lines(src)
     hits = [i for i, l in enumerate(L) if start in l]
     if len(hits) != 1:
@@ -52,6 +59,10 @@ def P(src, start, end=None, subs=(), cites=True, tag=None, back=0, extra=0):
         j = js[0]
     text = '\n'.join(L[i - back:j + 1 + extra])
     text = text.replace('[!t]', '[htbp]').replace('[!tb]', '[htbp]')
+    if width is not None:
+        text, n = re.subn(r'(\\includegraphics\[)width=[^\],]*', lambda m: m.group(1) + 'width=' + width, text)
+        if n == 0:
+            raise PortError(f'{src}: width given but no includegraphics in passage')
     for old, new in subs:
         n = text.count(old)
         if n == 0:

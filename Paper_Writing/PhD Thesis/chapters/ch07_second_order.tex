@@ -12,13 +12,13 @@ Chapter~\ref{ch:first_order} located isolated critical points from a
 first-order fit. This chapter moves to the second rung of the ladder of
 Section~\ref{sec:ch4:ladder}, where the features are curves.
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Beyond critical points, vector fields have curves that are useful for navigation. For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulate or separate \cite{55,50}. Mapping these exact curves allows teams to strategically deploy resources in highly targeted search areas \cite{50,23,56,22}. Without adaptive navigation, a large scale team must sample a much larger basin to determine where these structures lie.
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Coherent structures are typically identified through two primary methods. The first relies on Lagrangian coherent structures (LCS) \cite{57}, typically computed as ridges in the finite-time Lyapunov exponent field \cite{51}, with ongoing research addressing the Lagrangian/Eulerian tradeoff and sparse-trajectory gradient recovery \cite{58,49,59,60}. The second method uses instantaneous Eulerian criteria, such as the Okubo-Weiss parameter, to partition flows based solely on the local velocity gradient \cite{6,48}. This instantaneous approach has been generalized to three dimensions \cite{61}, refined to second order \cite{62}, and applied at scale in mesoscale eddy censuses \cite{13}. However, both of these methods characterize these structures offline using a reconstructed field, which is not well suited to real-time adaptive navigation of a field that evolves in time.  
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 New work is being done on using AN techniques with MRS in these scenarios. Michini et al. bracket a presumed stable or
 unstable manifold with three robots using only local velocity
 measurements \cite{29}, an approach inspired by the PIM triple
@@ -29,7 +29,7 @@ supplied in advance. The saddle point is treated by neither the
 controller nor its analysis, and that work reports veering away from
 the structure near a saddle in flow-tank experiments. Kularatne and Hsieh confirm the boundary by computing the local FTLE field on board, at the cost of a nonzero integration horizon and a commitment to attracting structures \cite{8}. In both cases, the robotic formation pre-straddles the structure, and does not acquire a structure it does not already occupy.
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 This chapter shows that a second-order fit of the local flow is enough to
 acquire and track such a structure from instantaneous measurements. A
 linear fit, as in Chapter~\ref{ch:first_order}, gives the velocity gradient at one point. A
@@ -51,14 +51,14 @@ path under a rotating observer, which matters for a cluster whose heading
 is dead-reckoned rather than measured.
 \end{itemize}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Both primitives run on a simulated double gyre and on measured Santa
 Barbara Channel radar currents.
 
 \section{Six-Robot Quadratic Estimation}
 \label{sec:ch7:estimation}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The critical point estimator of Chapter~\ref{ch:first_order} fits a plane to each
 component of the vector field and solves for the point where $\mathbf{v} = \mathbf{0}$. 
 
@@ -114,7 +114,7 @@ sampled by robot $i$.
 \subsection{Minimality}
 \label{sec:ch7:minimality}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Six robots is the minimum for recovery of the unconstrained local
 quadratic model of a two-component planar field from one synchronized set of measurements. Each robot contributes one equation per component to
 (\ref{eq:ch7:solve}), and each system has six unknowns, so fewer than six
@@ -140,7 +140,7 @@ the fit here independent of formation heading.
 \subsection{Estimator Sensitivity}
 \label{sec:ch7:sensitivity}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The accuracy of the estimator is affected by the formation of the
 robots, the noise on each robot's measurements, and the error in each
 robot's position.
@@ -215,7 +215,7 @@ sources gives one effective noise level
 \section{Eulerian Surrogates from the Fit}
 \label{sec:ch7:surrogates}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Lagrangian methods locate coherent structures by integrating particle
 trajectories over a finite time window \cite{57,51}. This chapter instead
 reads them from the instantaneous geometry of the velocity field, as
@@ -227,7 +227,7 @@ part.
 \subsection{Determinant Field}
 \label{sec:ch7:det_field}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The fitted coefficients define the velocity gradient at every point of
 the footprint. Differentiating the quadratic model gives a Jacobian whose
 entries are affine in position,
@@ -268,7 +268,7 @@ separates strain-dominated from rotation-dominated flow.
 \subsection{Strain Eigenvalue Field}
 \label{sec:ch7:s1_field}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The second surrogate comes from the rate-of-strain tensor
 $\hat{\mathbf{S}} = \tfrac{1}{2}(\hat{\mathbf{J}} + \hat{\mathbf{J}}^{\top})$,
 the symmetric part of the same fitted Jacobian.
@@ -306,7 +306,7 @@ The cluster runs on the three-layer architecture of
 Section~\ref{sec:ch4:architecture}, with the pentagon-plus-center
 formation of Section~\ref{sec:ch4:pentagon}.
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The adaptive navigation layer has three functional blocks. The feature
 estimation block fits the local quadratic model (\ref{eq:ch7:solve}) to the
 six field samples and robot positions. The navigation controller evaluates
@@ -319,7 +319,7 @@ commands combine into one cluster-space velocity vector. Swapping
 trackers changes only the navigation controller, since the other blocks and
 layers keep their interfaces.
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Each robot follows its velocity command through a first-order lag,
 discretized at control period $\Delta t$ as the update
 $\mathbf{v} \leftarrow \alpha_{\text{mom}}\mathbf{v} + (1 -
@@ -332,7 +332,7 @@ $\tau \approx 0.28$~s, consistent with the identified lag. Each robot also
 carries a speed limit and a stiction floor. Table~\ref{tab:ch7:params} gives
 the two operating points, fixed across all experiments unless noted.
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 \begin{table}[htbp]
 \caption{Operating points. The double-gyre column is non-dimensional,
 with one time unit equal to one second of the Decabot's identified
@@ -363,7 +363,7 @@ $r_{\text{band}}$       & 0.05  & 0.05   & 1/time \\
 \section{The $D$ Tracker}
 \label{sec:ch7:sep_controller}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 On the benchmark the $D$ landscape around the separatrix is a mountain
 pass (Fig.~\ref{fig:ch3:dg_fields}(b)). Two minima of $D$ sit at the flow
 saddles, and the separatrix is the path of steepest descent to each from
@@ -458,7 +458,7 @@ never reverses (Appendix~\ref{app:stability}).
 \section{The $s_1$ Tracker}
 \label{sec:ch7:s1_controller}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The $s_1$ landscape has the same two minima, and between them the
 separatrix is again a trench (Fig.~\ref{fig:ch3:dg_fields}(c)). Where the $D$
 trench crosses a mountain pass, the $s_1$ trench crosses a sharp fold. In
@@ -571,7 +571,7 @@ the measured flow and is guaranteed only under exact estimates.
 
 \subsection{Setup}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The double-gyre experiments use the steady field of
 Section~\ref{sec:ch3:dg_example} ($A = 0.1$) on $[-1, 1] \times
 [-0.5, 0.5]$. All trials use the nominal
@@ -581,7 +581,7 @@ in the Monte Carlo sweeps and zero in the noise-free runs.
 \subsection{Clean Runs}
 \label{sec:ch7:disc_clean}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{ch7_traverse_vs_logic_c.png}
@@ -593,7 +593,7 @@ in the Monte Carlo sweeps and zero in the noise-free runs.
     \label{fig:ch7:traverse_vs_logic_c}
 \end{figure}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.8\textwidth]{ch7_separatrix_formation.png}
@@ -605,7 +605,7 @@ in the Monte Carlo sweeps and zero in the noise-free runs.
     \label{fig:ch7:formation}
 \end{figure}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 These runs test acquisition, traversal, and the terminal step for both primitives. On the double gyre the two fields share every trench (Section~\ref{sec:ch3:dg_example}). Clean trials
 run 400 to 600 steps and stop at domain exit or, for the $D$ tracker,
 150 steps after first saddle contact.
@@ -628,7 +628,7 @@ truncation, so (\ref{eq:ch7:d_capture}) fires only intermittently
 \subsection{Behavior Under Noise}
 \label{sec:ch7:disc_noise}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.65\textwidth]{ch7_flip_resolution.png}
@@ -640,7 +640,7 @@ truncation, so (\ref{eq:ch7:d_capture}) fires only intermittently
     \label{fig:ch7:flip_resolution}
 \end{figure}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Both primitives sweep measurement and position noise separately from one
 straddling start, $(0, 0.35)$, at 10\,000 trials per noise level from
 independent headings. Noise-sweep trials run up to 500
@@ -682,7 +682,7 @@ transverse curvature (Section~\ref{sec:ch7:s1_controller}).
 \subsection{Behavior Under a Rotating Observer}
 \label{sec:ch7:rotating}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.95\textwidth]{ch7_objectivity_traverser.png}
@@ -697,7 +697,7 @@ transverse curvature (Section~\ref{sec:ch7:s1_controller}).
     \label{fig:ch7:oecs_objectivity}
 \end{figure}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 Both primitives were run from $(0.05, 0.40)$, just inside the upper
 saddle, on the same physical double gyre in two observer
 frames, the inertial one and a frame rotating clockwise at $\Omega = 0.23$, a heading
@@ -744,7 +744,7 @@ $\Omega\lVert\mathbf{p}_{\text{seed}}\rVert <
 \subsection{Setup}
 \label{sec:ch7:ocean_sim}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The ocean experiment uses hourly surface-current frames for the Santa
 Barbara Channel from the HFRNet U.S.~West~Coast Radial-to-Total Vector
 product \cite{66}, on the $2$~km grid, which is public. The record is the one \cite{29} uses, the same network over the same 28-h window, 29 frames from May 16, 2012 08:00 GMT to May 17, 2012 12:00 GMT, so these results are interpretable against prior work on it. Kularatne and Hsieh track a time-reversed attracting boundary in the same channel's May 2012 currents \cite{8}.
@@ -777,7 +777,7 @@ residual, so the noise model is validated on the double gyre only.
 \subsection{Results}
 \label{sec:ch7:disc_ocean}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=\textwidth]{ch7_ocean_progression_2km.png}
@@ -792,7 +792,7 @@ residual, so the noise model is validated on the double gyre only.
     \label{fig:ch7:ocean_ftle}
 \end{figure}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 The field is divergent and not vorticity-free, so $s_2 = -s_1$ does not
 hold and the two surrogates need not share trenches. Both were run with no
 changes to the primitives, at the ocean operating point of
@@ -820,7 +820,7 @@ never engages.
 \section{Summary}
 \label{sec:ch7:summary}
 
-% Ported from: Draft_11.tex
+% Ported from: Draft_11_6ec7e51.tex
 This chapter has shown that a second-order fit of the local flow, from six
 robots sampling at once, is enough to acquire and ride the instantaneous
 coherent structures of a planar flow. The fit gives the velocity gradient

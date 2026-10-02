@@ -30,6 +30,32 @@ P('sep', 'This paper has shown that a second-order fit of the local flow, from s
 P('sep', 'The experiments give an operational selection rule.', end='seed step.'),
 
 T(r"""
+% New text. Primitive library, moved from Chapter 8 on 2026-09-30.
+Table~\ref{tab:ch10:library} collects every primitive in this
+dissertation with its fit order, the smallest cluster it was run with,
+the quantity it steers on, its stability result, and how it was verified.
+
+\begin{table}[htbp]
+\centering
+\footnotesize
+\caption{Primitive library. Stability entries are as stated in the
+chapter that defines each primitive.}
+\label{tab:ch10:library}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{>{\raggedright\arraybackslash}p{2.0cm} c c >{\raggedright\arraybackslash}p{2.7cm} >{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}p{3.0cm}}
+\hline
+Primitive & Order & Robots & Steers on & Stability & Verification \\
+\hline
+Vector-sum & 0 & 3 & mean sensed vector & none stated & hardware, fixed and sinking vortex, 10 runs each \\
+Vector-to-scalar & 0 & 3 & slope of the sensed magnitude & none stated & hardware, fixed vortex, 10 runs plus randomized starts \\
+Attraction & 1 & 3 & $\hat{\mathbf{p}}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{h}}$ & exponential convergence to a stationary estimate, $\tau = 1/k$ & simulation, 8 fields; hardware, 157 trials \\
+Orbital & 1 & 3 & $\hat{\mathbf{p}}^*$ with radial and tangential terms & radial error $\dot{e}_r = -k_r e_r$ & simulation, 8 fields; hardware, 12 trials \\
+$D$ tracker & 2 & 6 & $\hat{D}$ and $\hat{\mathbf{H}}_{D,0}$ & transverse practical stability, $\limsup|n| \leq \delta/a_\perp$ & simulation, double gyre and Santa Barbara Channel \\
+$s_1$ tracker & 2 & 6 & $\hat{s}_1$ and $\nabla\hat{s}_1$ & same transverse bound, frame equivariant past its seed step & simulation, double gyre and Santa Barbara Channel \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Final Thoughts}
 \label{sec:ch10:final}
 

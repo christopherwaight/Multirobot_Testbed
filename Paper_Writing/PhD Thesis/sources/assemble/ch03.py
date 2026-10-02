@@ -72,7 +72,7 @@ P('sep', 'Serra and Haller define objective Eulerian coherent structures (OECS)'
   subs=[('trenches of $s_1$, and one tracker rides both.', 'trenches of $s_1$.')]),
 
 T(r"""
-\section{Relation Between the Fields and Observer Frames}
+\section{Relation Between the Fields}
 \label{sec:ch3:relation}
 """),
 P('sep', 'Both fields are read from the same fitted Jacobian, so moving between',
@@ -102,8 +102,8 @@ P('sep', 'The double gyre is', end='\\label{fig:dg_fields}', extra=1,
          '(Section~\\ref{sec:ch3:relation}), so\nthe two fields share every trench.'),
         ('OECS definition of Section~\\ref{sec:surrogates}',
          'OECS definition of Section~\\ref{sec:ch3:oecs}'),
-        ('figures/double_gyre_fields.png', 'ch3_double_gyre_fields.png'),
-        ('width=0.75\\columnwidth', 'width=0.7\\textwidth')]),
+        ('figures/double_gyre_fields.png', 'ch3_double_gyre_fields.png')],
+  width='0.7\\textwidth'),
 ]
 
 write('ch03_preliminaries.tex', parts)
