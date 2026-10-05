@@ -1411,6 +1411,13 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
                     channels
         s_trim:     attraction-dominance threshold marking first contact
                     (s1 < -s_trim latches `banded`)
+                    Paper name: the Separatrix paper (Draft_11.tex, Table I
+                    and Sec. III-C) calls this the latch depth s_latch. The
+                    name "trim" is inherited from Primitive 10's TRIM mode,
+                    which this primitive does not have; here the threshold
+                    only latches the ride (s1 < -s_trim), gates CAPTURE
+                    (s1 < -4*s_trim), and releases it (s1 > -s_trim).
+                    Kept as s_trim in code so existing callers still work.
         r_band:     strain-magnitude threshold below which the eigenframe is
                     treated as unreliable and CROSS takes over
         g_capture:  full-gradient-magnitude threshold below which CAPTURE
