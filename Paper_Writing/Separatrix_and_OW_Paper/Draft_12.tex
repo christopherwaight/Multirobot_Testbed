@@ -62,8 +62,8 @@ such surrogate fields, the Jacobian determinant and the smaller
 rate-of-strain eigenvalue. Each locates a separating boundary and navigates to and along
 it from instantaneous measurements, with no integration horizon and no
 pre-straddling. The choice of surrogate sets a tradeoff. Monte Carlo
-sweeps show the determinant tracker withstands about four times
-more measurement noise than the strain tracker, while in a rotating-frame trial only the strain
+sweeps from seven starts, four of them off the structure, show that the determinant tracker withstands
+more measurement noise than the strain tracker from every start. In a rotating-frame trial only the strain
 tracker, which is objective, holds the same material path. On Santa
 Barbara Channel radar currents, both primitives follow the same dominant
 transport corridor.
@@ -847,11 +847,11 @@ $\pi^2 A \approx 0.987$.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.88\columnwidth]{figures/traverse_vs_logic_c.png}
-    \caption{$s_1$ tracker versus $D$ tracker from six matched starts
-    ($\bullet$), noise-free, at S1 $(-0.15, 0.30)$, S2 $(0.05, 0.40)$, S3 $(0, 0)$,
-    S4 $(0.10, -0.20)$, S5 $(0.15, 0.25)$, and S6 $(-0.20, -0.30)$. Both traverse the same network through the
-    isotropic point at the origin. The $s_1$ tracker captures at the far saddle ($\times$), while the
+    \includegraphics[width=0.88\columnwidth]{figures/traverse_vs_logic_c_seven.png}
+    \caption{$s_1$ tracker versus $D$ tracker from seven matched starts
+    ($\bullet$), noise-free, at S1 $(-0.10, 0.30)$, S2 $(0.15, 0.25)$, S3 $(0, 0.35)$,
+    S4 $(0, 0)$, S5 $(0, -0.25)$, S6 $(0.15, -0.15)$, and S7 $(0.10, -0.20)$. From above the origin both
+    traverse the same network through the isotropic point there. The $s_1$ tracker captures at the far saddle ($\times$), while the
     $D$ tracker continues onto the crossing wall trench past each saddle
     it reaches, ending at the squares. }
     \label{fig:traverse_vs_logic_c}
@@ -859,7 +859,7 @@ $\pi^2 A \approx 0.987$.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.82\columnwidth]{figures/separatrix_formation.png}
+    \includegraphics[width=0.82\columnwidth]{figures/separatrix_formation_seven.png}
     \caption{The six robots from start S1 (star) under both trackers,
     zoomed to the separatrix $x = 0$ (dashed). Thin lines are robot
     paths and the heavy line is the centroid. Outlines mark the
@@ -873,8 +873,8 @@ run 400 to 600 steps and stop at domain exit or, for the $D$ tracker,
 150 steps after first saddle contact. A run acquires the network at the first of ten
 consecutive steps with its centroid within 0.05 of the separatrix $x = 0$.
 
-Both ran noise-free from six matched starts
-(Fig.~\ref{fig:traverse_vs_logic_c}), spanning both gyre halves, the origin, and points up to $2.7\rho$ off the structure, acquiring the network from all six in 0 to 13 steps for the $D$ tracker and 0 to 14 for the $s_1$ tracker. They then ride the same segments in the same direction and cross the isotropic point at the origin, with the formation straddling the separatrix throughout (Fig.~\ref{fig:formation}). A run
+Both ran noise-free from seven matched starts
+(Fig.~\ref{fig:traverse_vs_logic_c}). Three lie on the separatrix, at heights 0.35, 0, and $-0.25$. Four lie off it by $1.3\rho$ or $2\rho$, two above the origin and two below, and none of these straddles the separatrix at the first step. Both trackers acquire the network from all seven in 0 to 10 steps. Runs from above the origin then ride the same segments in the same direction and cross the isotropic point at the origin, with the formation straddling the separatrix throughout (Fig.~\ref{fig:formation}). A run
 acquiring above the origin therefore rides an attracting OECS to that
 point and continues onto a repelling one, on the same primitive and scalar
 trench throughout. On this field neither needs a dedicated rule at the
@@ -882,7 +882,7 @@ crossing, and the $s_1$ tracker rides through the origin on ordinary
 tangent selection.
 
 The primitives part only at the terminal step. The $s_1$ tracker settles within 0.011 to 0.022 of
-$\mathbf{p}^*_1 = (0, -0.5)$ in all six runs. The
+$\mathbf{p}^*_1 = (0, -0.5)$ in all seven runs. The
 $D$ tracker passes within 0.02 of $\mathbf{p}^*_1$ and continues onto the
 crossing wall trench. Over the outer half of each segment the true
 $\mathbf{H}_D$ is positive definite, but
@@ -895,48 +895,98 @@ sign of the fitted eigenvalues, so the test fires only intermittently.
 \subsection{Behavior Under Noise}
 \label{sec:disc_noise}
 
-\begin{figure}[!tb]
+\begin{figure*}[!p]
     \centering
-    \includegraphics[width=\columnwidth]{figures/flip_resolution.png}
-    \caption{Far-saddle success of both trackers from the straddling start
-    $(0, 0.35)$, $10^4$ trials per point, with each tracker's straddle
-    retention (counted on successful trials) dashed. The dotted line marks
-    50\% and the ticks each tracker's crossing. (a) Against $\sigma_{uv}$,
-    $\sigma_p = 0$. (b) Against $\sigma_p$, $\sigma_{uv} = 0$.}
+    \includegraphics[width=\textwidth]{figures/noise_seven_starts.png}
+    \caption{Far-saddle success of both trackers from the seven starts of
+    Fig.~\ref{fig:traverse_vs_logic_c}, one per row, $10^4$ trials per point,
+    with each tracker's straddle retention (counted on successful trials)
+    dashed. S1 and S2 start off the separatrix above the origin, S3, S4, and S5
+    on it, and S6 and S7 off it below the origin. Each inset marks the start
+    (dot) in the basin, with the separatrix dashed and the far saddle
+    $\mathbf{p}^*_1$ starred. The dotted line marks 50\% and the ticks each
+    tracker's crossing. (a) Against $\sigma_{uv}$, $\sigma_p = 0$. (b) Against
+    $\sigma_p$, $\sigma_{uv} = 0$.}
     \label{fig:flip_resolution}
-\end{figure}
+\end{figure*}
 
-Both primitives sweep measurement and position noise separately from one
-straddling start, $(0, 0.35)$, at 10\,000 trials per noise level from
-independent headings. Noise-sweep trials run up to 500
-steps and stop at task completion or domain exit. Success is contact within 0.06 of the far saddle $\mathbf{p}^*_1 = (0, -0.5)$, which a noise-free run from this
-start reaches under either primitive; each trial
-also records straddle retention. A trial straddles when the robots fall on both sides of the separatrix,
-and retention requires it never stop once started, the failure
-\cite{26} reports. Holding one target fixed makes a settle at the near saddle a
-directional failure rather than a loss of the structure. Both succeed in every noise-free trial. Noise favors the $D$ tracker, whose 50\% crossing is about four times the $s_1$ tracker's.
+Both primitives sweep measurement and position noise separately from the
+seven starts of Fig.~\ref{fig:traverse_vs_logic_c}, at $10^4$ trials per
+noise level from independent headings (Fig.~\ref{fig:flip_resolution}).
+Noise-sweep trials run up to 500 steps and stop at task completion or domain
+exit. Success is contact within 0.06 of the far saddle
+$\mathbf{p}^*_1 = (0, -0.5)$, and each trial also records straddle retention.
+A trial straddles when the robots fall on both sides of the separatrix, and
+retention requires it never stop once started, the failure \cite{26}
+reports. An off-separatrix start counts retention from its first straddle.
+Holding one target fixed makes a settle at the near saddle a directional
+failure rather than a loss of the structure. Without noise, both reach
+$\mathbf{p}^*_1$ in all $10^4$ trials from every start, except the $s_1$
+tracker from the origin, at 99.2\%.
 
-The $D$ tracker crosses 50\% at $\sigma_{uv} \approx 0.0077$, where
+Above the origin, noise favors the $D$ tracker by about four times, whether
+the start lies on the separatrix or off it. The $D$ tracker crosses 50\% at
+$\sigma_{uv} \approx 0.0076$ to $0.0078$ from S1 through S4, where
 $\nabla\hat{D}$ stops being informative along the separatrix
-($\sigma_{uv} \approx 0.0047$ to $0.0085$), and the $s_1$ tracker at
-$\sigma_{uv} \approx 0.0019$ (Fig.~\ref{fig:flip_resolution}(a)). Under
-position noise the ordering holds, $\sigma_p \approx 0.0081$ against
-0.0023 (Fig.~\ref{fig:flip_resolution}(b)). We attribute the $s_1$
-tracker's fragility to how long a sign decision persists before a
-new measurement checks it, rather than to per-cycle estimation accuracy.
-The $D$
-tracker re-signs $\mathbf{w}_1$ against $\hat{\mathbf{v}}_0$ every cycle,
-while the $s_1$ tracker carries the sign in state through
-$\mathbf{t}_{\mathrm{ref}}$. Objectivity rules out the fitted curvature
-(Section~\ref{sec:surrogates}), the measured flow
+($\sigma_{uv} \approx 0.0047$ to $0.0085$). The $s_1$ tracker crosses at
+$\sigma_{uv} \approx 0.0019$ to $0.0021$ from S1, S2, and S3
+(Fig.~\ref{fig:flip_resolution}(a)). Under position noise the ordering
+holds, $\sigma_p \approx 0.0081$ to $0.0082$ against $0.0023$ to $0.0032$
+(Fig.~\ref{fig:flip_resolution}(b)).
+
+At the origin and below it the margin narrows. From the origin the $s_1$
+tracker crosses at $\sigma_{uv} \approx 0.0041$. Below it, the $s_1$ tracker's
+success flattens between 50 and 80\% while its retention keeps falling,
+because a trial that loses the straddle on a short ride often still reaches
+$\mathbf{p}^*_1$. Retention is therefore the measure there. Its 50\%
+crossings give the $D$ tracker 1.5 to 2.6 times the $s_1$ tracker's
+tolerance below the origin, 3.1 at it, and 4.4 to 4.7 above it. The $D$
+tracker itself tolerates more noise on the short ride from S5,
+$\sigma_{uv} \approx 0.0114$, and less from S6 and S7, $\sigma_{uv} \approx
+0.0043$ and $0.0047$.
+
+The $D$ tracker loses tolerance below the origin only where it must acquire
+the separatrix there. By (\ref{eq:det_analytic_main}), $\mathbf{H}_D$ is
+indefinite only for $|y| < 0.25$, and over the outer half of each segment
+only truncation keeps the fitted Hessian indefinite
+(Section~\ref{sec:disc_clean}). S6 and S7 drift downstream while acquiring
+and reach the separatrix near $y = -0.30$, inside that outer half. At
+$\sigma_{uv} = 0.005$ the fit turns definite before acquisition in 83\% and
+75\% of their trials, and the tracker reverts to the signed Newton step
+(Section~\ref{sec:sep_controller}). Those trials reach $\mathbf{p}^*_1$ in
+27\% and 36\% of cases, against 68\% for the rest. S1 and S2 revert in 68\%
+and 51\% of trials but reach the separatrix near $y = 0.24$ and $0.14$,
+inside the indefinite band, and succeed as often either way. No noise-free
+trial reverts.
+
+We attribute the $s_1$ tracker's fragility to how long a sign decision
+persists before a new measurement checks it, rather than to per-cycle
+estimation accuracy. The $D$ tracker re-signs $\mathbf{w}_1$ against
+$\hat{\mathbf{v}}_0$ every cycle, while the $s_1$ tracker carries the sign in
+state through $\mathbf{t}_{\mathrm{ref}}$. Objectivity rules out the fitted
+curvature (Section~\ref{sec:surrogates}), the measured flow
 (Section~\ref{sec:rotating}), and a world axis as sign references, and
 traversal rules out the along-trench component of $\nabla\hat{s}_1$, which
 reverses at the along-trench maximum the ride must cross, so we use the
 primitive's own prior output.
-Straddle retention stays within five points of success for the $D$
+
+Where the sign is lost depends on height. On the trench, tangent selection
+rests on the along-trench slope $|\partial s_1/\partial y| = \pi^3 A|\cos\pi
+y|$ from (\ref{eq:s1_analytic_main}), which vanishes at both saddles. One
+step that selects the transverse eigenvector leaves $\mathbf{t}_{\mathrm{ref}}$
+across the trench, and the next step's sign is then arbitrary. At
+$\sigma_{uv} = 0.002$ the rate of first reversals per riding step is 0.002 to
+0.004 for $|y| < 0.2$ and rises to 0.06 to 0.20 within 0.1 of either saddle.
+A reversal carries the cluster back toward $\mathbf{p}^*_2$, and 91 to 94\% of
+failures end within 0.06 of it. A start near $\mathbf{p}^*_2$ therefore begins
+in the high-rate band. Success at this level falls with start height, from
+0.70 to 0.78 at and below the origin to 0.54, 0.51, and 0.44 from S2, S1, and
+S3.
+
+From S3, straddle retention stays within five points of success for the $D$
 tracker but falls further below it for the $s_1$ tracker, 47.6\% against
-71.5\% at $\sigma_{uv} = 0.0015$. Most $s_1$ trials that lose the straddle
-do so within 0.1 of the origin, where the $s_1$ trench loses its
+71.5\% at $\sigma_{uv} = 0.0015$. Most $s_1$ trials from S3 that lose the
+straddle do so within 0.1 of the origin, where the $s_1$ trench loses its
 transverse curvature (Section~\ref{sec:s1_controller}).
 
 \subsection{Behavior Under a Rotating Observer}
@@ -1140,7 +1190,8 @@ carry it out of the band. Its
 capture at a minimum is also intermittent. Near a flow saddle truncation
 error sets the sign of the fitted eigenvalues, and on the benchmark the
 cluster passes the saddle and continues onto the wall trench
-(Section~\ref{sec:disc_clean}).
+(Section~\ref{sec:disc_clean}). Acquisition where the true $\mathbf{H}_D$ is definite rests on the same
+truncation, and under measurement noise it fails there more often (Section~\ref{sec:disc_noise}).
 
 No controlled head-to-head against the straddle family \cite{26,27,28} or the onboard-FTLE strategy of \cite{29} was run. Running those methods from an off-structure start is outside their stated problems, and their robots are advected while this paper's are not, so one simulator cannot host both.
 All results are simulated, and the ocean run samples the gridded product without added noise. The ocean agreement is a finding on one time-varying record, where
@@ -1167,7 +1218,7 @@ built on it use only synchronous local velocity measurements, with no
 map, no forecast, and no assumption about the structure's identity.
 
 The experiments give an operational selection rule. With a noisy sensor
-the $D$ tracker withstands about four times the noise the $s_1$ tracker does. Under a rotating observer the
+the $D$ tracker withstands more noise than the $s_1$ tracker from every start tested, more than four times as much upstream of the isotropic point and about twice as much downstream of it. Under a rotating observer the
 ranking reverses. Above a rotation rate of about a fifth of the flow's peak strain rate the $D$ tracker's formation
 no longer straddles the structure, while the $s_1$ tracker keeps the
 straddle and returns the same material curve in both frames. On Santa Barbara Channel currents both followed the same transport corridor

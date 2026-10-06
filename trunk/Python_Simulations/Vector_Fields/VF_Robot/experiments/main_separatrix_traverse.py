@@ -2,17 +2,18 @@
 main_separatrix_traverse.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_11.tex
-  Makes:  the path-match figure for the objective separatrix traverser
-          (figures/traverse_vs_logic_c.png); review copy and per-run CSV in
-          experiments/outputs/oecs/.
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_12.tex
+  Makes:  the path-match figure for the objective separatrix traverser,
+          fig:traverse_vs_logic_c, from the seven starts. Writes
+          experiments/outputs/oecs/traverse_vs_logic_c_seven.png and .csv,
+          installed by hand as figures/traverse_vs_logic_c_seven.png.
 
 EXPERIMENT
   6-robot pentagon cluster running Primitive 11 (oecs_separatrix_step, the
   objective / frame-invariant traverser of the full separatrix network) on
   the steady double gyre, overlaid against Primitive 7 (separatrix_logic_c_step,
-  the non-objective D-trench tracker) from the SAME six starts used in
-  separatrix_clean_runs.py, so the two families are directly comparable.
+  the non-objective D-trench tracker) from the SAME seven starts, so the two
+  families are directly comparable.
 
   Expected result (design target, see plan): the two paths coincide on this
   field, because omega = 0 along the entire double-gyre separatrix x = 0, so
@@ -57,18 +58,26 @@ BAND_HOLD = 10          # consecutive steps required
 POST_SADDLE_STEPS = 150
 SADDLE_CONTACT_D = 0.06
 
-# Both controllers run from identical starts. S1 and S5 were moved in from
-# (-0.45, 0.30) and (0.25, 0.42), which acquired the top wall trench rather
-# than the separatrix; all six now ride x = 0. S6 stays the farthest start.
+# Both controllers run from identical starts: the seven-start set of
+# 2026-10-06, named from the top of the domain and shared with the noise sweeps
+# (mc_sweep_noise_both_trackers.py, plot_flip_resolution_rows.py). It replaced
+# the six starts of Draft_11/12, (-0.15, 0.30), (0.05, 0.40), (0, 0),
+# (0.10, -0.20), (0.15, 0.25), (-0.20, -0.30), some of which sat on the edge
+# of the noise-free convergence zone or straddled x = 0 at step 0.
 STARTS = [
-    ("S1", -0.15,  0.30),
-    ("S2",  0.05,  0.40),
-    ("S3",  0.00,  0.00),
-    ("S4",  0.10, -0.20),
-    ("S5",  0.15,  0.25),
-    ("S6", -0.20, -0.30),
+    ("S1", -0.10,  0.30),   # upper, 0.10 off
+    ("S2",  0.15,  0.25),   # upper, 0.15 off
+    ("S3",  0.00,  0.35),   # upper, on the line
+    ("S4",  0.00,  0.00),   # origin
+    ("S5",  0.00, -0.25),   # lower, on the line
+    ("S6",  0.15, -0.15),   # lower, 0.15 off
+    ("S7",  0.10, -0.20),   # lower, 0.10 off
 ]
-COLORS = ["#2a78d6", "#1baf7a", "#4a3aa7", "#e34948", "#eb6834", "#e87ba4"]
+COLORS = ["#2a78d6", "#1baf7a", "#4a3aa7", "#e34948", "#eb6834", "#e87ba4", "#8c6d1f"]
+# Label offsets (points) where the default would sit on another start's path.
+LABEL_OFFSETS = {"S5": (-12, -2), "S7": (4, -7)}
+# Output stem suffix, so these runs do not overwrite the six-start outputs.
+SUFFIX = "_seven"
 
 OUT_DIR = os.path.join(project_root, "experiments", "outputs", "oecs")
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -223,7 +232,7 @@ def main():
                     zorder=7)
             ax.plot(h[-1, 0], h[-1, 1], marker="s", color=col, ms=3.5, mec="k",
                     mew=0.5, zorder=7)
-            dx, dy = (-12, 2) if sx < 0 else (3, 2)
+            dx, dy = LABEL_OFFSETS.get(name, (-12, 2) if sx < 0 else (3, 2))
             ax.annotate(name, (sx, sy), textcoords="offset points",
                         xytext=(dx, dy), fontsize=5.5, color=col)
 
@@ -244,12 +253,12 @@ def main():
     # No suptitle: the paper's caption carries the description, and a
     # title inside the image duplicates it.
     fig.tight_layout()
-    out_png = os.path.join(OUT_DIR, "traverse_vs_logic_c.png")
+    out_png = os.path.join(OUT_DIR, f"traverse_vs_logic_c{SUFFIX}.png")
     fig.savefig(out_png, dpi=400, bbox_inches="tight", pad_inches=0.01)
     print(f"\nSaved: {out_png}")
 
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    csv_path = os.path.join(OUT_DIR, "traverse_vs_logic_c.csv")
+    csv_path = os.path.join(OUT_DIR, f"traverse_vs_logic_c{SUFFIX}.csv")
     with open(csv_path, "w") as f:
         f.write(f"# generated_by: experiments/main_separatrix_traverse.py\n"
                 f"# git_commit: {commit}\n# date: {stamp}\n"

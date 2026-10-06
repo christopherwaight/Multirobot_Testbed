@@ -29,6 +29,10 @@ EXPERIMENT
 Run:
   cd trunk/Python_Simulations/Vector_Fields/VF_Robot
   venv/bin/python3 experiments/mc_sweep_noise_both_trackers.py --trials 10000 --workers 7
+
+  Off-separatrix start (writes noise_both_<tag>.csv, leaves noise_both.csv alone):
+  venv/bin/python3 experiments/mc_sweep_noise_both_trackers.py --trials 10000 \
+      --start -0.15 0.30 --tag S1
 """
 import argparse
 import os
@@ -76,12 +80,12 @@ def _worker(spec):
     return mc.run_trial(spec)
 
 
-def cell_specs(tracker, sigma_uv, sigma_p, n_trials):
+def cell_specs(tracker, sigma_uv, sigma_p, n_trials, start):
     base = int(1e6 * (sigma_uv or sigma_p) * 1000) % (2**31)
     specs = []
     for t in range(n_trials):
         s = {"tracker": tracker, "sigma_uv": sigma_uv, "sigma_p": sigma_p,
-             "start": mc.FIXED_START, "seed": (base + 7919 * t) % (2**31)}
+             "start": start, "seed": (base + 7919 * t) % (2**31)}
         if tracker == "s1":
             s["target"] = S1_TARGET
             s["y_exit"] = S1_Y_EXIT
@@ -93,7 +97,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--trials", type=int, default=100)
     ap.add_argument("--workers", type=int, default=7)
+    ap.add_argument("--start", type=float, nargs=2, default=None,
+                    metavar=("X", "Y"),
+                    help="start point; default mc.FIXED_START (0, 0.35)")
+    ap.add_argument("--tag", default="",
+                    help="suffix for the checkpoint and output files, so a "
+                         "new start does not overwrite or resume noise_both.csv")
     args = ap.parse_args()
+    start = tuple(args.start) if args.start else mc.FIXED_START
+    if args.start and not args.tag:
+        ap.error("--tag is required with --start")
+    suffix = f"_{args.tag}" if args.tag else ""
 
     try:
         commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"],
@@ -102,7 +116,7 @@ def main():
         commit = "unknown"
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    ckpt_path = os.path.join(OUT_DIR, "checkpoint_noise_both.csv")
+    ckpt_path = os.path.join(OUT_DIR, f"checkpoint_noise_both{suffix}.csv")
     done = {}
     if os.path.exists(ckpt_path):
         with open(ckpt_path) as f:
@@ -123,7 +137,8 @@ def main():
                 succ, strad, sign = done[key]
             else:
                 out = list(pool.imap_unordered(
-                    _worker, cell_specs(tr, s_uv, s_p, args.trials), chunksize=16))
+                    _worker, cell_specs(tr, s_uv, s_p, args.trials, start),
+                    chunksize=16))
                 n = len(out)
                 hits = hits_strad = sign_ok = 0
                 for r in out:
@@ -142,11 +157,11 @@ def main():
             print(f"  {tr:>2} sigma_{ax:<2}={s:<8} success={succ:6.1%} "
                   f"straddle={strad:6.1%} sign={sign:6.1%}", flush=True)
 
-    out_path = os.path.join(OUT_DIR, "noise_both.csv")
+    out_path = os.path.join(OUT_DIR, f"noise_both{suffix}.csv")
     with open(out_path, "w") as f:
         f.write(f"# generated_by: experiments/mc_sweep_noise_both_trackers.py\n"
                 f"# git_commit: {commit}\n# date: {stamp}\n"
-                f"# trials_per_cell: {args.trials}  start: {mc.FIXED_START}\n"
+                f"# trials_per_cell: {args.trials}  start: {start}\n"
                 f"# target: single far saddle {SADDLE_FAR}, contact_d={SADDLE_CONTACT_D}\n")
         f.write("tracker,axis,sigma_uv,sigma_p,success,success_straddle,far_saddle_sign_rate\n")
         for r in rows:

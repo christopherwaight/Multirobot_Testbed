@@ -1,0 +1,336 @@
+\documentclass[10.5pt]{article}
+\usepackage[letterpaper,margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,tabularx,longtable}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\setlist{itemsep=2pt,topsep=3pt}
+\captionsetup{font=small,labelfont=bf}
+\newcommand{\shat}{\hat{s}_1}
+\newcommand{\sat}{\mathrm{sat}}
+\newcommand{\satv}{\mathrm{sat}_{\mathrm{vec}}}
+\definecolor{boxgray}{gray}{0.95}
+\newsavebox{\pcbox}
+\newenvironment{pcode}[1]
+  {\par\smallskip\noindent\begin{lrbox}{\pcbox}\begin{minipage}{\dimexpr\linewidth-2\fboxsep}\small\textbf{#1}\par\smallskip\begin{tabbing}\hspace*{1.2em}\=\hspace*{1.2em}\=\hspace*{1.2em}\=\kill}
+  {\end{tabbing}\end{minipage}\end{lrbox}\colorbox{boxgray}{\usebox{\pcbox}}\par\smallskip}
+
+\begin{document}
+\emergencystretch=3em
+
+\begin{center}
+{\Large\bfseries Reviewer 3 Report}\\[4pt]
+Manuscript: ``Second-Order Cooperative Field Estimation for Multirobot Tracking of Coherent Flow Structures'' (Draft\_12)\\
+Target venue: IEEE Systems Journal\\ Reviewer 3 (lab-internal review), October 5, 2026
+\end{center}
+
+\medskip
+\noindent\fcolorbox{black}{boxgray}{\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule}
+\textbf{Recommendation: Major revision.}
+
+The estimator and the surrogate algebra are correct. I re-derived every equation I checked, and every number I could recompute agrees with the draft. The problems are in what the experiments show. Four findings drive the recommendation.
+\begin{enumerate}[leftmargin=1.4em]
+\item The noise sweep's task is solved by a controller that ignores both surrogates. Following the measured flow reaches the far saddle in 100\% of trials at $\sigma_{uv}=0.0077$, where the $D$ tracker falls to 50.8\% and the $s_1$ tracker to 0\%.
+\item The $D$ tracker's traversal of the benchmark, and its entire noise curve, depend on the fitted Hessian of $D$ being wrong. With the true $\mathbf{H}_D$ substituted, the $D$ tracker parks at the near saddle from the noise-sweep start in every trial.
+\item The ocean start, heading, gain, speed cap, and radius were chosen from about $10^4$ runs scored on distance to the same FTLE ridge the paper then reports. From the published start, a flow follower scores 2.43~km against the $s_1$ tracker's 2.10~km.
+\item The controllers are written around the benchmark's topology. On other fields they show failure modes the draft does not report, including a stall at a crest outside the band and a 2.4$\rho$ excursion of the $s_1$ tracker on a mildly perturbed gyre.
+\end{enumerate}
+None of these is fatal. Each has a fix that uses code already in the repository, and the acquisition result, which is the draft's real contribution, survives every test I ran.
+\end{minipage}}
+
+\section{What the paper claims}
+
+Six robots in a pentagon-plus-center formation fit a full quadratic model to each velocity component from one synchronized set of readings. Two scalar surrogates follow in closed form, the Jacobian determinant $D$ and the smaller strain eigenvalue $s_1$, each with its gradient. A $D$ tracker and an $s_1$ tracker steer on these fields to acquire a separatrix and ride it. On a steady double gyre the $D$ tracker tolerates about four times more noise, while the $s_1$ tracker is objective and holds its path under a rotating observer. On Santa Barbara Channel radar currents both follow the same transport corridor.
+
+\section{What I did}
+
+\begin{itemize}[leftmargin=1.2em]
+\item Re-derived Eqs.~(8)--(16) symbolically and recomputed the conditioning, noise-gain, bias, and rotating-frame numbers (Table~\ref{tab:math}).
+\item Ran the repository's own simulator and primitives unchanged (\texttt{PentagonCluster} and the two primitive functions). Monte Carlo cells use the paper's own trial runner (\texttt{experiments/\_mc\_common.run\_trial}) with its start, heading draw, stopping rules, and success test, at 1000 trials per cell. My $D$ and $s_1$ cells reproduce \texttt{noise\_both.csv} within sampling error. For example, $s_1$ at $\sigma_{uv}=0.002$ gives 43.6\% in both.
+\item Added three controllers the paper does not have. These are a flow follower, $\dot{\mathbf p}_c = k\,\satv(\hat{\mathbf v}_0)$, a $D$ tracker with the true $\mathbf{H}_D$ substituted for the fitted one, and an $s_1$ tracker whose tangent sign is re-taken from $\hat{\mathbf v}_0$ every cycle.
+\item Ran both trackers unchanged on a linear saddle, on an exactly quadratic flow whose $D$ is a hyperbolic paraboloid, and on frozen snapshots of the forced double gyre.
+\item Re-scored the ocean run and a flow follower with the paper's ridge metric, and read the ocean parameter-search logs.
+\end{itemize}
+I did not calibrate the decision against other IEEE Systems Journal papers in the corpus (skipped at the author's request), and I did not write an implementation of the controllers from the text alone. I checked the code against the equations instead. All scripts and the raw sweep table are in \texttt{reviews/reviewer3\_checks/}. Sweep cells have a standard error of at most 1.6 percentage points.
+
+\section{Hypothesis testing}
+
+\subsection{What are the hypotheses?}
+The draft has four, and it never says which is primary. I read H2 as primary, since the title and abstract lead with it.
+\begin{description}[leftmargin=1.2em,style=nextline]
+\item[H1, estimation.] Six synchronized readings recover the local quadratic model, six is the minimum, and the fit fails only on a common conic.
+\item[H2, navigation.] Steering on a surrogate from that fit acquires a separating structure and rides it from instantaneous measurements, with no integration horizon and no pre-straddling.
+\item[H3, tradeoff.] The $D$ tracker tolerates about four times more noise, and the $s_1$ tracker, being objective, holds its path under a rotating observer.
+\item[H4, transfer.] On real radar currents both primitives follow the same transport corridor.
+\end{description}
+
+\subsection{H1}
+Tested by the minimality argument and the conditioning numbers. The test fits the claim, and the claim is confirmed (Table~\ref{tab:math}). One addition belongs in Sec.~II-C. $\hat D$ is unbiased under measurement noise, but $\shat$ is biased low because it subtracts a norm. The $s_1$ tracker latches, captures, and releases on thresholds of $\shat$, so the bias matters.
+
+\subsection{H2}
+Tested by six noise-free starts at heading zero on the steady gyre, and by one ocean run. The test covers acquisition well and traversal only partly.
+
+\textbf{Acquisition works, and the draft under-reports it.} From S1, 2.7$\rho$ off the structure, the $D$ tracker reaches the far saddle in 91.1\% of trials at $\sigma_{uv}=0.002$ and 53.2\% at 0.0077. A flow follower from the same start scores 0\% and 18.3\% (Table~\ref{tab:offstart}). This is the one place where the second-order surrogate clearly does work the flow cannot. The noise sweep never shows it, because it starts on the structure.
+
+\textbf{The heading-zero clean runs overstate robustness.} From S6 with random headings and no noise, the $D$ tracker reaches the far saddle in 27\% of 300 trials and the $s_1$ tracker in 50\%. Under noise from S6 the $D$ tracker falls to 0.2\% and 0\%, while the $s_1$ tracker scores 58\% and 72\%. The ranking of the two primitives depends on the start.
+
+\textbf{The $D$ tracker's traversal comes from estimation error.} Sec.~IV-B says this in one sentence (``the traversal relies on that'') but does not draw the consequence. On the separatrix the fitted Hessian is $2\pi^6A^2\sin^2(\pi y_f)\,\mathrm{diag}(1,-1)$. It is indefinite everywhere, and it stays so as $\rho\to0$. The true Hessian is positive definite for $|y|>0.25$ (Table~\ref{tab:math}). I substituted the true $\mathbf{H}_D$ and reran the clean starts (Table~\ref{tab:oracle}). From S1, S2, and $(0,0.35)$ the tracker parks at the near saddle $(0,0.5)$. From S3 to S6 it captures at the far saddle and holds it, which the fitted version never does. The law as designed is therefore a primitive that goes to the nearest downstream minimum of $D$ once the cluster is in the concave region. The traverser shown in Fig.~4 is that law driven by a Hessian whose sign is wrong.
+
+\textbf{Verdict.} H2 is confirmed for acquisition. For traversal it is confirmed only as a description of the code on this field, and it is confounded with truncation error and with the single heading.
+
+\subsection{H3}
+\textbf{Noise half.} Tested from one start, $(0,0.35)$, which lies on the separatrix. On the steady gyre the separatrix is itself a streamline. Following the flow alone solves this task (Table~\ref{tab:noise}). The flow follower scores 100\% for $\sigma_{uv}$ up to 0.0077, 98.6\% at 0.015, and 100\% under position noise up to 0.015. The sweep therefore measures how much each tracker's surrogate machinery degrades a task the measured flow already solves. The $D$ tracker re-signs its along-trench motion from the flow every cycle and degrades less. The $s_1$ tracker deliberately avoids the flow and degrades more. The true-Hessian row sharpens the point. With an exact Hessian, the $D$ tracker scores 0\% at $\sigma_{uv}=0.002$ and $0.0077$.
+
+\textbf{The attribution sentence in Sec.~IV-C is half supported.} I re-signed the $s_1$ tangent from $\hat{\mathbf v}_0$ every cycle. At $\sigma_{uv}=0.002$ this lifts $s_1$ from 43.6\% to 95.2\%, which supports sign persistence as the cause at low noise. At $\sigma_{uv}=0.0077$ it lifts $s_1$ only from 0\% to 9.5\%, against the $D$ tracker's 50.8\%. Per-cycle estimation accuracy therefore matters at the noise level that defines the four-times ratio. The unreported \texttt{far\_saddle\_sign\_rate} column of \texttt{noise\_both.csv} supports the low-noise half. Almost every $s_1$ failure ends in the upper half, so it is a direction failure, while $D$ failures end in the lower half.
+
+\textbf{Rotating-observer half.} The test fits the claim, and the result follows from the paper's own Eq.~(14). The predicted trench shift at the origin is $\Omega/(\pi^3A)=0.074$, against 0.084 observed. The shift reaches $\rho$ at $\Omega=\rho\pi^3A=0.233$, against first straddle loss at 0.21. The draft should state both predictions, because they turn an observation into a confirmed prediction. One gap remains. On the testbed scale $\Omega=0.23$ is about 13$^\circ$/s. The draft should name a sensing arrangement that produces a frame drift of that order relative to the flow's strain rate.
+
+\subsection{H4}
+Tested by one run from one start. As reported, the test does not test the claim.
+\begin{itemize}[leftmargin=1.2em]
+\item The start (given to $10^{-14}$ degrees), heading $335.087^\circ$, $k=1.9404$, $c_{\max}=0.03326$, and radius scale 0.9342 come from \texttt{ocean\_param\_search.csv} (10{,}507 configurations) and a refinement in \texttt{ocean\_param\_mc.csv} (19{,}529 rows). The search's stated score is ``mean ridge distance over both trackers.''
+\item Across the first search the median ridge distance is 2.42~km for $D$ and 2.91~km for $s_1$. 13\% of configurations meet both 1.5 and 2.1~km.
+\item \texttt{main\_ocean\_hfr\_2km\_shared\_start.py} records that within $\pm5\%$ of the chosen settings the $s_1$ path reaches the bifurcation on the channel ridge in about 3 of 841 runs.
+\item From the published start a flow follower with the same gain and cap scores 2.43~km, and random water points in the channel score 4.14~km (Table~\ref{tab:ocean}).
+\end{itemize}
+``That ridge was available to neither'' is true of the controllers at run time but not of the experimenter. H4 needs either disclosure with the distribution, or a protocol fixed in advance, such as double-gyre parameters and a grid of starts.
+
+\section{Polynomial modelling}
+
+\textbf{Is the polynomial model clear?} Yes. Eqs.~(1)--(5) are clean, every coefficient is named, and the one-half factors are explained. One sentence would help. With exactly six robots the fit has no residual, so the truncation error is invisible online.
+
+\textbf{Is surrogate 1 ($D$) clear?} The algebra is clear and correct. What is missing is the size of the gap between the fitted and true Hessian, which decides how the $D$ tracker behaves. The draft states the cause correctly (third derivatives) but gives no numbers. At $y=0.35$ on the separatrix the fitted eigenvalues are $(-4.5,\,3.9)$ and the true ones $(11.3,\,19.2)$. A short table or one panel would let a reader see why the tracker traverses.
+
+\textbf{Is surrogate 2 ($s_1$) clear?} Yes, and the concavity remark is the most useful sentence in Sec.~II. Its consequence should be stated. For any exactly quadratic flow $\shat$ has no trench at all. $s_1$ trenches exist only through third-order structure the fit cannot represent, and the tracker sees them only as sign changes of $\nabla\shat$ between cycles.
+
+\textbf{Is the separatrix equivalent on the surrogate fields clear?} No, and one statement is incorrect.
+\begin{itemize}[leftmargin=1.2em]
+\item ``In the flows studied here, separatrices run along the trenches of $D$'' describes one flow, and the reader needs the condition. The linear saddle $\mathbf v=(x,-y)$, the gradient of a hyperbolic paraboloid, has textbook separatrices, yet $D=-1$ and $s_1=-1$ everywhere, so neither surrogate marks anything. The surrogates mark curves of extremal strain. These coincide with the separatrix in cellular flows such as the double gyre.
+\item ``Along such a curve the two fields share their trenches'' (Sec.~II-D, for $\omega=0$) holds in one direction only. For incompressible flow $D=-s_1^2+\omega^2/4$, and on a curve where $\omega=0$
+\[
+\frac{\partial^2 D}{\partial n^2} = -2s_1\kappa_{s_1} - 2\Bigl(\frac{\partial s_1}{\partial n}\Bigr)^2 + \tfrac12\Bigl(\frac{\partial \omega}{\partial n}\Bigr)^2 .
+\]
+An $s_1$ trench with $\omega=0$ is therefore a $D$ trench. A $D$ trench with $\omega=0$ need not be an $s_1$ trench, because the $\omega^2$ term can supply all of the curvature. The flow $u=\beta(x^2+y^2)/2+cy+u_0$, $v=-\beta xy+cx$ is an example, with a $D$ trench along $y=0$ while $s_1$ is constant across it.
+\item On the forced gyre the $D$ and $s_1$ trenches sit 0.010 to 0.035 off the true separatrix (0.13 to 0.47$\rho$). At $\varepsilon=0.25$ the $s_1$ trench vanishes near the crest.
+\end{itemize}
+
+\textbf{Are the visualizations of the two fields clear?} Fig.~1 conveys the topology well. Panels (b) and (c) are 3-D surfaces, which hide the two quantities the controllers use, the transverse curvature and the band. I suggest adding 1-D profiles along $x=0$ and across at $y=0.35$, with true and fitted $D$ and the band $|y|<0.225$ shaded. In Fig.~3 the $\nabla\shat$ arrows are too small to read and the background has no colorbar. In Fig.~9 several formation outlines look visibly non-regular, so report $\kappa(\boldsymbol\Phi)$ along the ocean runs. The $\mathbf J^{-1}$ in Fig.~2 collides with the velocity gradient. The text flags this, but a different letter would be cleaner.
+
+\section{The controllers}
+
+\textbf{Does each stand alone?} The $s_1$ tracker mostly does. The $D$ tracker does not. Its description is written around the benchmark's topology (``a mountain pass in $D$,'' minima at the flow saddles), and the band ``surrounds the zero set of $D$, so detection assumes the crest lies within it.'' Its along-trench direction comes from the measured flow, so it is a $D$-and-flow controller. The draft should say so in Sec.~III-B rather than leave it for the noise discussion.
+
+\textbf{Could I build it from the text?} Yes. I checked the code against Eqs.~(17)--(24) term by term and found them consistent. The code's SLIDE/ATTRACT split reduces to Eq.~(18). Below is my reconstruction, with $\sat(c)=c_{\max}\tanh(c/c_{\max})$ per channel and $\satv(\mathbf a)=c_{\max}\tanh(\|\mathbf a\|/c_{\max})\,\mathbf a/\|\mathbf a\|$.
+
+\begin{pcode}{D tracker, one control cycle}
+Fit $\hat{\boldsymbol\theta}_u,\hat{\boldsymbol\theta}_v$ from $\boldsymbol\Phi$; compute $\hat D_0$, $\hat{\mathbf g}_0$ by (9), $\hat{\mathbf H}_{D,0}$ by (10), $\hat{\mathbf v}_0\leftarrow(\hat a_1,\hat b_1)$\\
+$(\lambda_1\le\lambda_2,\ \mathbf w_1,\mathbf w_2)\leftarrow \mathrm{eig}(\hat{\mathbf H}_{D,0})$; flip $\mathbf w_1$ so that $\hat{\mathbf v}_0^\top\mathbf w_1\ge0$\\
+$B\leftarrow |\hat D_0|<\varepsilon_{\mathrm{raw}}$ or $|\hat D_0|/\|\hat{\mathbf H}_{D,0}\|_F<\varepsilon_{\dim}$\\
+If $\lambda_1\lambda_2\ge0$:\quad(no trench frame)\\
+\>If $B$: return $k\,\satv(\hat{\mathbf v}_0)$\\
+\>Else: return $k\sum_j \sat(-\mathbf w_j^\top\hat{\mathbf g}_0/\lambda_j)\,\mathbf w_j$\quad(Newton to fitted extremum; this is the capture)\\
+If $B$: $v_\parallel\leftarrow\hat{\mathbf v}_0^\top\mathbf w_1$\quad Else: $v_\parallel\leftarrow|\mathbf w_1^\top\hat{\mathbf g}_0|/|\lambda_1|$\\
+Return $k\,[\,\sat(v_\parallel)\,\mathbf w_1+\sat(-\mathbf w_2^\top\hat{\mathbf g}_0/\lambda_2)\,\mathbf w_2\,]$
+\end{pcode}
+
+\begin{pcode}{$s_1$ tracker, one control cycle (state: latched, captured, $\mathbf t_{\mathrm{prev}}$)}
+Fit; compute $\hat\mu,\hat s_n,\hat s_s$, $\hat r$, $\shat\leftarrow\hat\mu-\hat r$, $\nabla\shat$ by (12), $\mathbf e_1,\mathbf e_2$, $\hat{\mathbf v}_0$\\
+If not latched and $\shat<-s_{\mathrm{latch}}$: latched $\leftarrow$ true\\
+If not latched: return $-k\,\satv(g_\perp\nabla\shat)$\quad(acquire)\\
+If captured and $\shat>-s_{\mathrm{latch}}$: captured $\leftarrow$ false\\
+If captured or ($\hat r>r_{\mathrm{band}}$ and $\|\nabla\shat\|<g_{\mathrm{capture}}$ and $\shat<-4s_{\mathrm{latch}}$):\\
+\>captured $\leftarrow$ true; return $-k\,\satv(g_\perp\nabla\shat)$\\
+If $\mathbf t_{\mathrm{prev}}$ undefined and $\hat r<r_{\mathrm{band}}$: $\mathbf t\leftarrow\hat{\mathbf v}_0/\|\hat{\mathbf v}_0\|$\quad(code adds unprojected descent here)\\
+Else: $\mathbf t_{\mathrm{raw}}\leftarrow\arg\max_{\mathbf e\in\{\mathbf e_1,\mathbf e_2\}}|\nabla\shat^\top\mathbf e|$;\ ref $\leftarrow\mathbf t_{\mathrm{prev}}$ if defined, else $\hat{\mathbf v}_0$;\ $\mathbf t\leftarrow\mathrm{sgn}(\mathrm{ref}^\top\mathbf t_{\mathrm{raw}})\,\mathbf t_{\mathrm{raw}}$\\
+$\mathbf t_{\mathrm{prev}}\leftarrow\mathbf t$;\ $\mathbf P\leftarrow\mathbf I-\mathbf t\mathbf t^\top$\\
+Return $k\,[\,c_{\max}\tanh(1)\,\mathbf t-\satv(g_\perp\mathbf P\nabla\shat)\,]$
+\end{pcode}
+
+These details were missing from the text or hard to find.
+\begin{itemize}[leftmargin=1.2em]
+\item The units of $k$ differ between the laws. In the $D$ law $k$ multiplies a Newton step, a length, so it is a rate in 1/time. In the $s_1$ law it multiplies a speed and is dimensionless. Table~I lists it as ``none.''
+\item The band is described as a crest detector, yet on the benchmark it covers $|y|<0.225$, 45\% of the separatrix.
+\item The noise-sweep stopping rules differ by tracker. The $D$ tracker stops at first far-saddle contact with $|y|$ exit at 0.52. The $s_1$ tracker stops at either saddle with exit at 0.60. The text says ``task completion.''
+\item The clean runs use heading zero only, and the ocean search is not mentioned.
+\end{itemize}
+
+\textbf{Does it make sense without the benchmark?} The $s_1$ tracker does. The $D$ tracker's band logic does not, since it assumes the crest sits near $D=0$, which is a property of this benchmark.
+
+\textbf{How would it work on a hyperbolic paraboloid?} The question has two readings, and I ran both (Table~\ref{tab:generic}).
+\begin{itemize}[leftmargin=1.2em]
+\item \emph{The flow is the gradient of a hyperbolic paraboloid}, the linear saddle $\mathbf v=(x,-y)$. Both trackers are blind. Noise-free, the $D$ tracker sits in its definite-Hessian fallback with zero gradient and never moves. Its capture test $\lambda_1\lambda_2\ge0$ is met everywhere. The $s_1$ tracker passes its capture test at the start ($\|\nabla\shat\|=0$, $\hat r=1$, $\shat=-1$) and holds there. With $\sigma_{uv}=0.002$ both wander on noise.
+\item \emph{The surrogate $D$ is a hyperbolic paraboloid}, a mountain pass with no end minima. The flow above with $\beta=\pi^3A$ gives $D=\beta^2(y^2-x^2)-c^2$ exactly, so the fit is exact. With the crest in the band ($D_c=-0.3$) the $D$ tracker crosses on the flow and then accelerates downstream. With the crest outside the band ($D_c=-1$ or $-3$) the off-band along speed is $k|x|$, a Newton approach to the crest. With $\alpha_{\mathrm{mom}}=0.7$ the actuator lag makes that approach underdamped (damping ratio about 0.55), and the tracker crosses by overshoot. With $\alpha_{\mathrm{mom}}=0$, the ocean setting, it stops 0.006 from the crest and stays there for 400 steps. The draft predicts this stall in Sec.~III-B, but the benchmark never shows it because its crest sits at $D=0$. The $s_1$ tracker has nothing to follow on this field, since $\shat$ is concave for every quadratic flow, and it rides off along an eigenvector.
+\end{itemize}
+
+\textbf{How does it work on a generic field?} I used frozen snapshots of the forced double gyre, Shadden's own family at phase $\pi/2$. The separatrix is still a straight line, but shear strain and vorticity on it no longer vanish. During the ride the $D$ tracker stays within 0.047 of the separatrix, with mean offset 0.011 to 0.026, which matches its trench offset. From the upper starts at $\varepsilon=0.1$ the $s_1$ tracker drifts off the separatrix near the crest. The offset grows from 0.026 at $y=0.19$ to 0.177 ($2.4\rho$) at $y=-0.02$, and the cluster loses the straddle for 21 to 22 steps before it recovers and captures. This is the failure the limitations section predicts and calls untested. It should go in the paper.
+
+\textbf{A logic gap in the $s_1$ capture test.} The draft says ``Each end of the trench is a true two-dimensional minimum of $s_1$, so a vanishing gradient suffices.'' A smooth crest also has a vanishing gradient. On the benchmark the crest is isotropic, so $\hat r<r_{\mathrm{band}}$ excludes it. On a flow whose crest has $\hat r>r_{\mathrm{band}}$ and $\shat<-4s_{\mathrm{latch}}$, the test fires at the crest, and descent from a saddle can send the cluster back upstream. The forced-gyre crests have $\shat\approx-0.03$ to $-0.08$, so I did not observe this. It is a gap in the argument, not an observed failure.
+
+\section{Repeatability}
+
+\textbf{Do I have the outline to repeat it?} For the double gyre, yes, with the gaps listed in Sec.~5. For the ocean, no, because the selection procedure is not described and the result is narrow (3 of 841 nearby settings for $s_1$).
+
+\textbf{Does the math check out?} Yes. Every check I ran passes (Table~\ref{tab:math}).
+
+\section{Results}
+
+\textbf{Results tied to theory.} The rotating-frame result ties to Eq.~(14) well. The draft should quote the predictions (0.074 shift, onset 0.233) next to the observations. The conditioning and minimality results tie to Sec.~II-B. The transverse Lyapunov argument ties to the clean runs, but it assumes the cluster realizes the command. With $\alpha_{\mathrm{mom}}=0.7$ the along channel is underdamped, so the argument should be labeled kinematic.
+
+\textbf{Observations that read as unsupported.}
+\begin{enumerate}[leftmargin=1.4em]
+\item ``where $\nabla\hat D$ stops being informative along the separatrix ($\sigma_{uv}\approx0.0047$ to $0.0085$)'' has no defined measure behind it.
+\item The attribution of the $s_1$ tracker's fragility to sign persistence holds at low noise only (Sec.~3.4).
+\item ``Most $s_1$ trials that lose the straddle do so within 0.1 of the origin'' needs a number or a histogram. I did not check it.
+\item ``Objectivity rules out the fitted curvature (Section~II-D)'' cites a section that rules it out by concavity, not objectivity.
+\item ``holds the same material path'' (abstract) and ``returns the same material curve'' (conclusion). An OECS is instantaneous, so it is objective but not material.
+\item The $\mathbf Q\mathbf v$ sensor case ``leaves the $D$ field unchanged but tilts the strain eigenframe.'' It also changes the strain eigenvalues. For $\mathbf J$ a pure rotation and $\mathbf Q$ a quarter turn, $\mathrm{sym}(\mathbf Q\mathbf J)=-\mathbf I$ while $\mathrm{sym}(\mathbf J)=\mathbf 0$.
+\item ``Both follow the dominant ridge \ldots closely'' has no baseline (Table~\ref{tab:ocean}). Forward FTLE ridges mark repelling structures, so the draft should say which trench type it expects to align with them.
+\item ``withstands about four times more measurement noise'' is 4.1$\times$ for $\sigma_{uv}$ and 3.5$\times$ for $\sigma_p$, from one start only.
+\end{enumerate}
+
+\section{Decision}
+
+\textbf{Major revision.} I did not compare against venue norms, so this rests on internal evidence, namely whether the experiments test the claims. Being simulation-only is not my reason.
+
+\textbf{Why not reject.} H1 is correct and cleanly argued. Acquisition from off-structure starts is a real result that a flow follower cannot reproduce. The objectivity result agrees with the draft's own theory to within 10\%.
+
+\textbf{Why not minor.} The comparative claim (four times the noise) and the ocean claim do not survive simple baselines, and the $D$ tracker's headline behavior depends on its estimation error.
+
+\textbf{What would move it to minor revision, in priority order.}
+\begin{enumerate}[leftmargin=1.4em]
+\item Add the flow follower to Fig.~6. Run the noise sweep from off-structure starts (S1, S5, S6) with random headings and report per start. Lead the results with acquisition, the result the flow cannot produce.
+\item Report the true-Hessian result and reframe the $D$ tracker's traversal as estimator-dependent. Alternatively, redesign its along channel so traversal does not depend on the sign of $\lambda_1$, for example a flow-signed direction at a speed independent of $\lambda_1$.
+\item Disclose the ocean search. Report the ridge distance over a grid of starts at parameters fixed in advance, alongside the flow follower.
+\item Add the forced-gyre test and the linear-saddle limitation, and state when surrogate trenches coincide with separatrices.
+\item Fix the trench-sharing statement and the $s_1$ capture statement. State the units of $k$, the band's extent, and the per-tracker stopping rules.
+\end{enumerate}
+
+\textbf{Where I would start my own work.} The combination these tests point to is the flow for direction plus the $D$ trench for transverse correction and acquisition. A cubic fit from ten robots would remove the Hessian sign error, at which point the $D$ tracker becomes a clean ``go to the downstream minimum'' primitive. A hysteresis band and a crest test that does not assume $D_c\approx0$ would make it field-independent.
+
+\clearpage
+\section*{Tables}
+
+\begin{table}[h]
+\centering\small
+\caption{Math checks. Symbolic checks use sympy on the general quadratic model and the analytic double gyre.}
+\label{tab:math}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright}p{4.4cm}>{\raggedright}p{3.6cm}>{\raggedright}Xl@{}}
+\toprule
+Item & Draft & Recomputed & Verdict\\
+\midrule
+Eq.~(8) $\hat{\mathbf J}(\mathbf p)$; Eq.~(9) $\nabla D$; Eq.~(10) $\mathbf H_D$ & as printed & symbolic, identical; $\mathbf H_D$ constant over footprint & match\\
+Eqs.~(12)--(13) $\nabla s_1$ & as printed & symbolic, identical & match\\
+Eq.~(15) $D$, $\mathbf H_D$; $\omega$; zero shear strain & as printed & symbolic, identical & match\\
+Eq.~(14) $D'=D+\Omega\omega+\Omega^2$ & as printed & symbolic, identical & match\\
+Normalized $\kappa(\boldsymbol\Phi)$ & 8.26 at every radius & 8.259 for $\rho=0.01$ to 1, all headings & match\\
+Center robot at $0.99\rho$ & 564; within 0.6\% of a circle & 563.9 to 565.1; 0.63\% & match\\
+Noise gains independent of heading & stated & $(1,\,0.632,\,0.632,\,1.265,\,2.530,\,2.530)\,\sigma/\rho^{q}$ at every heading & match\\
+$\hat D$ bias, measurement noise & not stated & $+3.1\times10^{-5}\pm4.6\times10^{-5}$ at $\sigma_{uv}=0.002$ & unbiased\\
+$\shat$ bias, measurement noise & not stated & $-1.26\times10^{-3}\pm1.4\times10^{-4}$ at $\sigma_{uv}=0.0077$ & biased low\\
+Fitted vs true $\mathbf H_D$ eigenvalues, $(0,0.35)$ & ``indefinite where true is definite'' & fitted $(-4.52,\,3.88)$; true $(11.30,\,19.23)$ & match\\
+Band extent on the separatrix & not stated & $|y|<0.225$ (fitted, heading 0) & add\\
+$D'$ trench shift at origin, $\Omega=0.23$ & 0.084 observed & 0.074 predicted & consistent\\
+$\Omega$ at which the shift equals $\rho$ & 0.21 observed & 0.233 predicted & consistent\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{Success (\%) from the straddling start $(0,0.35)$, 1000 trials per cell, random heading, paper's trial runner and success test. ``True $\mathbf H_D$'' substitutes the analytic Hessian into the $D$ tracker. ``Re-signed'' takes the $s_1$ tangent sign from $\hat{\mathbf v}_0$ every cycle. The flow follower is $k\,\satv(\hat{\mathbf v}_0)$.}
+\label{tab:noise}
+\begin{tabular}{@{}lrrrr@{\qquad}lrrrr@{}}
+\toprule
+$\sigma_{uv}$ & 0.002 & 0.0077 & 0.015 & 0.03 & $\sigma_p$ & 0.0023 & 0.0081 & 0.015 & 0.03\\
+\midrule
+$D$ tracker & 90.7 & 50.8 & 30.8 & 19.9 & $D$ tracker & 90.7 & 53.8 & 39.8 & 26.7\\
+$D$, true $\mathbf H_D$ & 0.0 & 0.0 & 12.1 & 38.4 & & & & &\\
+$s_1$ tracker & 43.6 & 0.0 & 0.0 & 0.1 & $s_1$ tracker & 50.3 & 0.1 & 0.0 & 0.0\\
+$s_1$, re-signed & 95.2 & 9.5 & 8.9 & 18.6 & & & & &\\
+Flow follower & 100.0 & 100.0 & 98.6 & 75.3 & Flow follower & 100.0 & 100.0 & 100.0 & 94.6\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{Success (\%) from off-structure starts, 1000 trials per cell, random heading. The noise-free S6 row uses 300 trials.}
+\label{tab:offstart}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+Start & $\sigma_{uv}$ & $D$ tracker & $s_1$ tracker & Flow follower\\
+\midrule
+S1 $(-0.15,\,0.30)$ & 0.002 & 91.1 & 36.2 & 0.0\\
+ & 0.0077 & 53.2 & 0.0 & 18.3\\
+S5 $(0.15,\,0.25)$ & 0.002 & 90.8 & 56.2 & 28.8\\
+ & 0.0077 & 48.9 & 0.1 & 47.6\\
+S6 $(-0.20,\,-0.30)$ & 0 & 26.7 & 49.7 & --\\
+ & 0.002 & 0.2 & 58.3 & 100.0\\
+ & 0.0077 & 0.0 & 71.5 & 100.0\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{Noise-free clean runs at heading 0. Numbers are the closest approach to the far saddle $\mathbf p_1^*=(0,-0.5)$.}
+\label{tab:oracle}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright}X>{\raggedright}X>{\raggedright}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+Start & $D$ tracker, fitted $\hat{\mathbf H}_D$ & $D$ tracker, true $\mathbf H_D$ & $s_1$ tracker & Flow follower\\
+\midrule
+S1 & passes $\mathbf p_1^*$ (0.003), exits along wall & parks at near saddle & captures at $\mathbf p_1^*$ & ends at near saddle\\
+S2 & passes (0.001), exits & parks at near saddle & captures & passes (0.047), exits\\
+S3 & passes (0.007), exits & captures at $\mathbf p_1^*$ & captures & stops at $\mathbf p_1^*$\\
+S4 & passes (0.003), exits & captures & captures & ends at near saddle\\
+S5 & passes (0.008), exits & captures & captures & ends at near saddle\\
+S6 & passes (0.019), exits & captures & captures & stops at $\mathbf p_1^*$ after circling\\
+$(0,0.35)$ & passes (0.002), exits & parks at near saddle & captures & stops at $\mathbf p_1^*$\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{Primitives unchanged on other fields. Forced gyre rows cover seven starts (S1 to S6 and $(0,0.35)$, shifted with the separatrix $x_s$) and report the ride from acquisition to first far-saddle contact.}
+\label{tab:generic}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright}p{4.2cm}>{\raggedright}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+Field & $D$ tracker & $s_1$ tracker\\
+\midrule
+Linear saddle $(x,-y)$, noise-free & no motion; fallback with zero gradient & captures at start and holds\\
+Same, $\sigma_{uv}=0.002$ & wanders on noise, path 2.5 & wanders on noise, path 1.5\\
+Hyperbolic-paraboloid $D$, $D_c=-0.3$ (in band) & crosses on the flow & no trench; rides off along an eigenvector\\
+Same, $D_c=-1$ or $-3$, $\alpha_{\mathrm{mom}}=0.7$ & crosses by lag overshoot & as above\\
+Same, $D_c=-1$ or $-3$, $\alpha_{\mathrm{mom}}=0$ & stalls 0.006 from crest & as above\\
+Forced gyre $\varepsilon=0.1$ & 6/7 reach $\mathbf p_1^*$ (S6 fails); max offset 0.047; straddle never lost & 6/7 (S6 fails); max offset 0.177 near crest; straddle lost 21--22 steps from upper starts\\
+Forced gyre $\varepsilon=0.25$ & 5/7 (S1, S6 fail); max offset 0.046 & 5/7 (S1, S6 fail); max offset 0.112; straddle lost 17--18 steps\\
+Trench offset from separatrix & 0.010--0.018 ($\varepsilon=0.1$); 0.018--0.033 ($\varepsilon=0.25$) & 0.010--0.019; 0.026--0.035, absent near crest at $\varepsilon=0.25$\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[h]
+\centering\small
+\caption{Santa Barbara Channel, mean distance from the centroid path to the nearest 24-h forward FTLE point at or above the 95th percentile over water (repo cache, paper's metric). My $D$ run continues for all 168 steps without a landfall stop, which explains 1.39 against 1.5.}
+\label{tab:ocean}
+\begin{tabular}{@{}lr@{}}
+\toprule
+Run & km\\
+\midrule
+$D$ tracker, published configuration (draft: 1.5) & 1.39\\
+$s_1$ tracker, published configuration (draft: 2.1) & 2.10\\
+Flow follower, same start, $k$, $c_{\max}$, formation & 2.43\\
+Random water points in the channel box & 4.14\\
+Parameter search, median over 10{,}507 configurations, $D$ & 2.42\\
+Parameter search, median, $s_1$ & 2.91\\
+Share of configurations with $D\le1.5$ and $s_1\le2.1$ & 13\%\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

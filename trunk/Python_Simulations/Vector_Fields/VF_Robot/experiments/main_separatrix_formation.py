@@ -2,13 +2,13 @@
 main_separatrix_formation.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_11.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_12.tex
   Makes:  fig:formation, the six robots of the pentagon-plus-center cluster
-          from start S1 under the D tracker and the s1 tracker, with robot
-          paths and formation outlines at a few instants, zoomed to the
-          separatrix corridor. Output experiments/outputs/oecs/
-          separatrix_formation.png, installed by hand as
-          figures/separatrix_formation.png.
+          from start S1 of the seven-start set, (-0.10, 0.30), under the D
+          tracker and the s1 tracker, with robot paths and formation outlines
+          at a few instants, zoomed to the separatrix corridor. Output
+          experiments/outputs/oecs/separatrix_formation_seven.png, installed
+          by hand as figures/separatrix_formation_seven.png.
 
 The runs are those of main_separatrix_traverse.py (same start, gains, and
 primitive settings, imported from it), so this figure shows the robots behind
@@ -98,7 +98,7 @@ def main():
         ax.tick_params(length=2, pad=1)
     axes[0].set_ylabel("$y$", labelpad=1)
 
-    out = os.path.join(M.OUT_DIR, "separatrix_formation.png")
+    out = os.path.join(M.OUT_DIR, f"separatrix_formation{M.SUFFIX}.png")
     fig.savefig(out, dpi=400)
     print(f"Saved: {out}")
 
