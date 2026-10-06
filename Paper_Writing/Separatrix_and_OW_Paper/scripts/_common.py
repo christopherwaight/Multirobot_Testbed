@@ -35,7 +35,7 @@ import numpy as np
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 PAPER_DIR    = _SCRIPTS_DIR.parent
 FIGURES_DIR  = PAPER_DIR / "figures"
-TEX_FILE     = PAPER_DIR / "Draft_11.tex"
+TEX_FILE     = PAPER_DIR / "Draft_12.tex"
 
 # Walk up to find <repo>/trunk/Python_Simulations/Vector_Fields/VF_Robot/
 _REPO_ROOT = PAPER_DIR.parent.parent

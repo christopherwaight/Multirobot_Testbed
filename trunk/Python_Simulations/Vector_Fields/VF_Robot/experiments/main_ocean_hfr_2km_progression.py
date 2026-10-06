@@ -31,6 +31,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.lines import Line2D
 import matplotlib.patheffects as pe
+import matplotlib.ticker
 
 import main_ocean_hfr_2km_shared_start as S
 from src.robot.pentagon_cluster import PentagonCluster
@@ -120,10 +121,12 @@ def main():
                      vmax=float(np.percentile(water, COLOR_PCT[1])))
     outline = [pe.Stroke(linewidth=1.5, foreground="black"), pe.Normal()]
 
-    plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
-                         "xtick.labelsize": 6, "ytick.labelsize": 6})
-    fig, axes = plt.subplots(1, 4, figsize=(7.16, 2.0), sharey=True)
-    fig.subplots_adjust(left=0.065, right=0.915, bottom=0.25, top=0.92, wspace=0.05)
+    plt.rcParams.update({"font.size": 8, "axes.labelsize": 8,
+                         "xtick.labelsize": 7, "ytick.labelsize": 7})
+    # Colourbar sits below the panels with the legend, so the four maps take
+    # the full text width.
+    fig, axes = plt.subplots(1, 4, figsize=(7.16, 2.08), sharey=True)
+    fig.subplots_adjust(left=0.06, right=0.995, bottom=0.279, top=0.986, wspace=0.03)
 
     for ax, hours, tag in zip(axes, SNAPSHOT_HOURS, "abcd"):
         n_t = hours * 60 // STEP_MINUTES
@@ -153,7 +156,7 @@ def main():
             ax.plot(P[:, 1], P[:, 0], "o", color=col, ms=2.0, mec="black",
                     mew=0.4, ls="none", zorder=12)
         ax.text(0.04, 0.96, f"({tag}) $t$ = {hours} h", transform=ax.transAxes,
-                va="top", ha="left", fontsize=6.5,
+                va="top", ha="left", fontsize=7.5,
                 bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="0.4", lw=0.4))
         ax.set_xlim(*VIEW_LON)
         ax.set_ylim(*VIEW_LAT)
@@ -164,11 +167,16 @@ def main():
         ax.tick_params(length=2, pad=1)
     axes[0].set_ylabel("Latitude (deg)", labelpad=1)
 
-    cax = fig.add_axes([0.925, 0.25, 0.012, 0.67])
-    cb = fig.colorbar(im, cax=cax, extend="min")
-    cb.set_label(r"FTLE [s$^{-1}$]", labelpad=2)
-    cb.ax.tick_params(labelsize=5.5)
-    cb.ax.yaxis.get_offset_text().set_fontsize(5.5)
+    # Horizontal colourbar drops matplotlib's offset text, so the power of
+    # ten goes in the label and the ticks are scaled by hand.
+    expo = int(np.floor(np.log10(norm.vmax)))
+    cax = fig.add_axes([0.745, 0.062, 0.245, 0.036])
+    cb = fig.colorbar(im, cax=cax, orientation="horizontal", extend="min")
+    cb.ax.xaxis.set_major_formatter(
+        matplotlib.ticker.FuncFormatter(lambda v, _: f"{v / 10**expo:g}"))
+    cb.ax.tick_params(labelsize=6.5, length=2, pad=1)
+    fig.text(0.735, 0.080, rf"FTLE [$10^{{{expo}}}$ s$^{{-1}}$]", ha="right",
+             va="center", fontsize=7.5)
 
     proxies = [
         Line2D([], [], color="white", lw=0.8, label="$D$ tracker",
@@ -180,8 +188,9 @@ def main():
         Line2D([], [], color="0.55", marker="p", ls="none", ms=5, mfc="none",
                mec="black", mew=0.7, label="Formation at $t$"),
     ]
-    fig.legend(handles=proxies, loc="lower center", ncol=4, frameon=False,
-               fontsize=6.5, bbox_to_anchor=(0.49, -0.02))
+    fig.legend(handles=proxies, loc="lower left", ncol=4, frameon=False,
+               fontsize=7.5, bbox_to_anchor=(0.03, -0.03), columnspacing=1.2,
+               handletextpad=0.4)
 
     out_path = os.path.join(S.OUT_DIR, "ocean_progression_2km.png")
     fig.savefig(out_path, dpi=400)
