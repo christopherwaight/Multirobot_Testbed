@@ -575,7 +575,7 @@ the layer above through the forward kinematics.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.85\columnwidth]{figures/pentagon_formation.png}
+    \includegraphics[width=0.81\columnwidth]{figures/pentagon_formation.png}
     \caption{Pentagon-plus-center formation. Robot 1 sits at the centroid
     $\mathbf{p}_c$ and robots 2 to 6 on a ring (dotted). The cluster
     variables shown are the pair separations $L_2$, $L_3$, $L_4$, a pair
@@ -701,13 +701,15 @@ $\sum_j \mathrm{sat}(-\mathbf{w}_j^\top\hat{\mathbf{g}}_0/
 \lambda_j)\mathbf{w}_j$ off the band and to the saturated flow on it.
 That step settles at the fitted extremum, a minimum on a
 positive-definite fit and a maximum on a negative-definite one. Since $D$
-curves upward across a trench, no maximum lies on the pass, and the same
-sign test is the capture condition,
+curves upward across a trench, no maximum lies on the pass, and the true $D$
+meets the same sign test,
 \begin{equation}
     \lambda_1 \lambda_2 \geq 0,
     \label{eq:d_capture}
 \end{equation}
-which the true $D$ meets at each minimum of the pass.
+at each minimum of the pass. The test carries no latch, so the tracker
+has no terminal step. It holds a minimum only while the fit stays
+definite and otherwise rides on.
 
 Near the trench, with $n$ the signed distance across it, the across-trench
 channel of (\ref{eq:d_law}) reduces to
@@ -895,9 +897,9 @@ sign of the fitted eigenvalues, so the test fires only intermittently.
 \subsection{Behavior Under Noise}
 \label{sec:disc_noise}
 
-\begin{figure*}[!p]
+\begin{figure}[!tb]
     \centering
-    \includegraphics[width=\textwidth]{figures/noise_seven_starts.png}
+    \includegraphics[width=\columnwidth]{figures/noise_seven_starts_col.png}
     \caption{Far-saddle success of both trackers from the seven starts of
     Fig.~\ref{fig:traverse_vs_logic_c}, one per row, $10^4$ trials per point,
     with each tracker's straddle retention (counted on successful trials)
@@ -908,7 +910,7 @@ sign of the fitted eigenvalues, so the test fires only intermittently.
     tracker's crossing. (a) Against $\sigma_{uv}$, $\sigma_p = 0$. (b) Against
     $\sigma_p$, $\sigma_{uv} = 0$.}
     \label{fig:flip_resolution}
-\end{figure*}
+\end{figure}
 
 Both primitives sweep measurement and position noise separately from the
 seven starts of Fig.~\ref{fig:traverse_vs_logic_c}, at $10^4$ trials per
@@ -982,12 +984,6 @@ failures end within 0.06 of it. A start near $\mathbf{p}^*_2$ therefore begins
 in the high-rate band. Success at this level falls with start height, from
 0.70 to 0.78 at and below the origin to 0.54, 0.51, and 0.44 from S2, S1, and
 S3.
-
-From S3, straddle retention stays within five points of success for the $D$
-tracker but falls further below it for the $s_1$ tracker, 47.6\% against
-71.5\% at $\sigma_{uv} = 0.0015$. Most $s_1$ trials from S3 that lose the
-straddle do so within 0.1 of the origin, where the $s_1$ trench loses its
-transverse curvature (Section~\ref{sec:s1_controller}).
 
 \subsection{Behavior Under a Rotating Observer}
 \label{sec:rotating}
@@ -1107,7 +1103,8 @@ The pentagon is enlarged to $\rho = 0.098$, $1.3\times$ the nominal radius
 and $5.0$~km at this site, so the footprint spans about five cells of the
 $2$~km grid rather than under four, and starts at heading $335^\circ$. At
 one control cycle per ten minutes any vessel time constant is negligible,
-so $\alpha_{\text{mom}} = 0$. The gain and radius set when the cluster
+so $\alpha_{\text{mom}} = 0$. The gain and radius, tuned
+against the FTLE reference, set when the cluster
 reaches the bifurcation of the evolving ridge, and so which branch it
 meets. The latch depth $s_{\mathrm{latch}} = 0.3$ is set from this field's
 $s_1$ scale. No
@@ -1149,64 +1146,51 @@ dominant ridge from the channel entrance to the bifurcation closely. Mean
 distance from the centroid path to the nearest ridge point
 is 1.5~km for the $D$ tracker and 2.1~km for the $s_1$ tracker. Past the
 bifurcation the $D$ tracker continues to follow the FTLE ridge. The grid is
-2~km and the formation radius 5.0~km. That ridge was available to neither,
+2~km and the formation radius 5.0~km. That ridge was available to neither controller,
 and FTLE recomputed at four anchor times shows it persisting while the
 finer structure downstream evolves.
 
 \section{Limitations and Future Work}
 \label{sec:disc_limits}
 
-Cluster space control is centralized, requires global state, becomes intractable
-for suitably large clusters, and is impractical without reliable
-high-bandwidth communication among the robots \cite{30}. Distributed
-consensus protocols share state only among neighbors, and event-triggered
-ones only when a trigger condition fires \cite{35}, but the estimator as
-built gathers all six readings on one processor each step. The claims here
-are for small clusters in a limited workspace with ample bandwidth, the
-regime the six-robot estimator occupies.
+Cluster space control is centralized and needs global state and reliable
+high-bandwidth communication \cite{30}, and unlike distributed or
+event-triggered consensus protocols \cite{35}, the estimator gathers all six
+readings on one processor each step. The claims here are for small clusters
+in a limited workspace with ample bandwidth.
 
-Two limitations sit in the estimator and its band logic. The fit is
-ill-conditioned whenever the six sampling points drift toward a common
-conic, and no field tested here drives the formation toward one, so the
-estimator is untested in the regime its own conditioning limit
-describes; the mitigation, monitoring $\kappa(\boldsymbol{\Phi})$ with a
-shape-maintenance term, is not implemented. The band test carries no
-hysteresis, so noise can chatter the $D$ tracker across its boundary,
-which costs speed alone, since both branches share the same transverse
-dynamics.
+The fit is ill-conditioned as the six robots near a common conic, a
+regime no field here reached. The band test has no hysteresis, so noise
+can chatter the $D$ tracker across its boundary, at a cost in speed
+only.
 
-The eigenvector comparison of
-Section~\ref{sec:s1_controller} weakens near the saddles. The residual risk
-of a wrong branch under heavy noise is damped but not excluded by the
-capture latch.
+The $s_1$ tracker's tangent selection weakens near the saddles, and its
+passage through the origin rests on the benchmark's vanishing shear
+strain (Section~\ref{sec:dg_example}). Without it the strain eigenvector
+can tilt off the trench, the open-loop ride along $\mathbf{t}$ then
+pushes the cluster across it, and the crest becomes a smooth saddle where
+tangent selection rests on a weak signal.
 
-The $s_1$ tracker's passage through the origin rests on a symmetry of the benchmark and is untested without it. Its shear strain vanishes identically (Section~\ref{sec:dg_example}), so a strain eigenvector lies along the trench at every point and the trench rises to an isotropic point. Without the symmetry the eigenvector can tilt away from the trench, and the open-loop travel along $\mathbf{t}$ then pushes the cluster across it (Section~\ref{sec:s1_controller}). The crest also becomes a smooth saddle, where the tangent selection rests on a weak signal (Section~\ref{sec:s1_controller}).
+The $D$ tracker assumes the crest lies in the band
+(Section~\ref{sec:sep_controller}), untested off the benchmark, and a
+rotating observer can carry it out by (\ref{eq:D_not_objective}). Its
+traversal, and its acquisition where the true $\mathbf{H}_D$ is
+definite, rest on truncation error in the fitted Hessian
+(Sections~\ref{sec:disc_clean} and~\ref{sec:disc_noise}).
 
-The $D$ tracker assumes the crest lies in the band, where strain and vorticity nearly
-balance (Section~\ref{sec:sep_controller}), since off the band the
-along-trench drive vanishes at the crest. That assumption is untested off the benchmark. A rotating observer shifts the
-crest by $\Omega\omega + \Omega^2$ (\ref{eq:D_not_objective}), which can
-carry it out of the band. Its
-capture at a minimum is also intermittent. Near a flow saddle truncation
-error sets the sign of the fitted eigenvalues, and on the benchmark the
-cluster passes the saddle and continues onto the wall trench
-(Section~\ref{sec:disc_clean}). Acquisition where the true $\mathbf{H}_D$ is definite rests on the same
-truncation, and under measurement noise it fails there more often (Section~\ref{sec:disc_noise}).
-
-No controlled head-to-head against the straddle family \cite{26,27,28} or the onboard-FTLE strategy of \cite{29} was run. Running those methods from an off-structure start is outside their stated problems, and their robots are advected while this paper's are not, so one simulator cannot host both.
-All results are simulated, and the ocean run samples the gridded product without added noise. The ocean agreement is a finding on one time-varying record, where
-neither primitive has an analytic guarantee, not a guarantee for arbitrary
-flows. Neither instantaneous field is guaranteed to mark the material
+No head-to-head against \cite{26,27,28} or \cite{29} was run, since
+their robots are advected and one simulator cannot host both. All results
+are simulated, the ocean run is one record sampled without added noise,
+and neither instantaneous field is guaranteed to mark the material
 transport structure \cite{18}. The no-advection premise is exact for the
-planned Decabot follow-on, where the field is encoded and read rather
-than physically experienced \cite{32}, but on the ocean field it is an
-extrapolation, untested against real advection.
+planned Decabot follow-on, where the field is encoded rather than
+physically experienced \cite{32}, but untested on the ocean field.
 
-Ongoing and future work targets a) extending the stability argument to
-time-varying fields; b) online formation reshaping, to protect the
-conditioning of $\boldsymbol{\Phi}$; c) a cubic fit from ten robots off any common cubic curve, which
-recovers the third derivatives on which the true $\mathbf{H}_D$ and the
-transverse curvature of an $s_1$ trench depend; d) testing both primitives on the Decabot testbed, then on surface vessels; and e) detecting a faulty robot. The exactly determined six-robot fit absorbs a bad reading without residual, but a seventh robot leaves one that a threshold test could flag, as in residual-based fault detection for multiagent consensus \cite{36}.
+Future work targets a capture latch for the $D$ tracker and a cubic fit
+from ten robots off any common cubic curve. The cubic fit would take the
+progression from the linear fit of \cite{10} to the quadratic fit here one
+order further, recovering the third derivatives on which the true
+$\mathbf{H}_D$ and the transverse curvature of an $s_1$ trench depend.
 
 \section{Conclusion}
 
