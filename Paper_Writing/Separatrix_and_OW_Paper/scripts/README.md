@@ -1,12 +1,12 @@
 # scripts/
 
-Figure generation pipeline for `Draft_11.tex`.
+Figure generation pipeline for the working draft, the file `TEX_FILE` names in `_common.py`.
 
 Each script in this directory produces one figure, writes a JSON sidecar, and
 (by default) recompiles the paper. All scripts are run from the paper root:
 
 ```
-cd "Paper_Writing/Separatrix and OW Paper"
+cd Paper_Writing/Separatrix_and_OW_Paper
 ```
 
 ---
@@ -20,7 +20,7 @@ python3 scripts/fig_double_gyre_streamlines.py
 Outputs:
 - `figures/double_gyre_streamlines.png` -- overwrites the stub
 - `figures/double_gyre_streamlines.meta.json` -- provenance record
-- `Draft_11.pdf` -- recompiled (two-pass pdflatex)
+- the working draft PDF -- recompiled (two-pass pdflatex)
 
 To regenerate without recompiling the paper:
 

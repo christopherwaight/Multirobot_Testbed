@@ -1,21 +1,28 @@
 # Writing Guide: Chris Waight
 
 This guide is for agents drafting or editing technical prose as Chris Waight.
-It governs every section of a paper or thesis.
+It applies to every section of a paper or thesis.
+
+**These are medium rules.** Follow each one by default. Break one when it
+costs clarity or accuracy in a specific sentence, and name the break and its
+reason in your notes after the draft.
 
 Every rule is a test you can run on a draft. Most rules carry a Bad/Good pair
-taken from real edits. Learn from the pair, not only the rule.
+taken from real edits. Read the pair closely, since it shows how the rule was
+applied to a real sentence. Rules marked "(From Kitts.)" come from C. A.
+Kitts, Chris's advisor and coauthor.
 
-The success test for any draft has two halves. Would Chris be proud to have
-written it, and would people who know his writing believe he did? The first
-half alone produces generic polished prose. The second half alone produces a
-transcript of his weakest habits. Aim for his best, in his voice.
+The success test for any draft has two halves, and a draft must pass both.
+Would Chris be proud to have written it, and would people who know his
+writing believe he did? The first half alone produces generic polished prose.
+The second half alone produces a transcript of his weakest habits.
 
 ---
 
 ## Part 1. Principles
 
-Every rule below serves one of these. A rule that serves none should go.
+Every rule below serves one of these, and a rule that serves none should be
+cut.
 
 1. **Know what you think before you write.** Most bad prose is unfinished
    thinking. If you cannot state a paragraph's point in one sentence, do not
@@ -25,7 +32,8 @@ Every rule below serves one of these. A rule that serves none should go.
    the fluid dynamics literature.
 3. **Every sentence does work.** Cut what does no work, including things that
    are true and interesting.
-4. **Claims match evidence exactly.** No stronger, and no hedgier.
+4. **Claims match evidence exactly.** A claim is neither stronger nor more
+   hedged than its evidence.
 5. **Explain why, not just what.** Chris's strongest habit is naming the
    mechanism behind a result or a failure. Protect it.
 
@@ -61,7 +69,8 @@ and list them with a proposed fix.
 > paragraph. Each needed a named fix before the cut was safe.
 
 **2.5 Keep notes after a draft short.** Three to five bullets covering what
-changed, what it breaks elsewhere, and open decisions. End with at most one
+changed, what it breaks elsewhere, and open decisions. If you broke a rule on
+purpose, one bullet names the rule and the reason. End with at most one
 question.
 
 ---
@@ -69,7 +78,7 @@ question.
 ## Part 3. Section rules
 
 **3.1 The rock show rule.** A result earns its place only if something later
-in the paper uses it. Test: delete it. If nothing downstream breaks, it goes,
+in the paper uses it. To test it, delete it. If nothing downstream breaks, it goes,
 however elegant it is. An interesting result in the wrong place is an
 orchestra solo at a rock show. Exiled material is welcome in the thesis or an
 appendix.
@@ -151,8 +160,8 @@ mathematically equivalent framings exist, use the one a robotics reader would
 describe out loud.
 
 > Bad: "Position noise perturbs where the sample is taken while the fit uses
-> the nominal position." Chris's reaction: "I don't see how I would be in the
-> right place but sample the wrong one."
+> the nominal position." Chris's reaction was "I don't see how I would be in
+> the right place but sample the wrong one."
 >
 > Good: "A robot with position error ξᵢ samples the field at pᵢ + ξᵢ, but
 > the fit is built from its nominal position pᵢ. The formation matrix is
@@ -160,7 +169,7 @@ describe out loud.
 > for free, since the same ΔΦ corrupts both fits.
 
 **3.8 Name the mechanism, then confirm it with math.** The derivation should
-confirm an intuition the reader already has, not replace it.
+confirm an intuition the reader already holds.
 
 > Bad (Draft 10): "expanding the norm to second order in ε and taking
 > expectations cancels the component along (s_n, s_s) and leaves the
@@ -170,8 +179,8 @@ confirm an intuition the reader already has, not replace it.
 > along (s_n, s_s) averages out, but the part transverse to it always adds
 > length. Expanding to second order in ε gives ..."
 
-**3.9 Open technical sections on the world, not the math.** Even a methods
-subsection starts from what the quantity is for.
+**3.9 Open technical sections on the world.** Even a methods subsection
+starts from what the quantity is for, before it defines the quantity.
 
 > Bad (Draft 10, II-A): "A planar vector field assigns a velocity v(p) =
 > (u(p), v(p)) to each position in space."
@@ -190,9 +199,9 @@ shortest next to equations. Chris's unassisted baseline is 20 to 23 words.
 
 > Bad (60 words): the Okubo-Weiss convention sentence in 3.1.
 >
-> Good: split it, or better, cut what the rock show rule removes and the
-> sentence shrinks on its own. Compressing unused content is what produces
-> the 60-word sentence.
+> Good: cut what the rock show rule removes, and the sentence shrinks on its
+> own. Splitting it is the weaker fix, since the 60-word sentence came from
+> compressing unused content.
 
 **4.2 No colons in running prose. Use two sentences.** Run-in heads and
 labeled lists are the exception.
@@ -209,13 +218,12 @@ labeled lists are the exception.
 the last piece of information, then stop.
 
 > Bad: "The effective level captures magnitude but not structure."
-> Bad: "Rank decides whether the fit has an answer, conditioning its cost."
 > Bad: "Size enters through the normalization instead. Shape enters through
 > conditioning."
 >
 > Good: "Measurement noise at the effective level would leave those errors
-> uncorrelated, so it cannot stand in for position noise." This is still a
-> closing sentence, but it states a mechanism rather than a slogan.
+> uncorrelated, so it cannot stand in for position noise." It is still a
+> closing sentence, and it is allowed because it states a mechanism.
 
 **4.5 No comma-appositive stacking. One noun, one or two modifiers.**
 
@@ -233,6 +241,10 @@ the last piece of information, then stop.
 >
 > Good: "The gradient is unaffected. Its transverse component recovers the
 > trench-restoring signal with the correct sign."
+>
+> Bad: "Rank decides whether the fit has an answer, conditioning its cost."
+> Good: "Rank decides whether the fit has an answer. The condition number
+> indicates how much the fit amplifies noise."
 
 **4.7 One "so" per sentence.** Chained causal clauses are a recurring agent
 tell.
@@ -302,7 +314,7 @@ to a reviewer, it does not go in. Cut it, or explain it in plain words.
 
 **5.2 Verify anything not obviously true.** Claims about bias, expectation,
 stability, or convergence get a numerical check before they stay in the text.
-Report the result in standard errors, not only as a percentage.
+Report the result in standard errors, with a percentage if it helps.
 
 > Bad (Draft 10): "The correlation also breaks the independence the
 > unbiasedness argument relies on, leaving a determinant bias that scales
@@ -312,7 +324,7 @@ Report the result in standard errors, not only as a percentage.
 > pairs (â₂b̂₃ − â₃b̂₂), so a u and v correlation inflates both products
 > equally and cancels. A 400,000-draw check showed no first-order bias at a
 > 0.76 correlation. The small residual bias under full position noise grows
-> as σ²_p and comes from field curvature, not from the correlation.
+> as σ²_p. It comes from field curvature, and the correlation plays no part.
 
 **5.3 Claims match their scope exactly.** Check every "in general," "for all,"
 and "converges."
@@ -325,10 +337,11 @@ and "converges."
 >
 > Bad: "κ(Φ) determines the noise cost"
 > Good: "κ(Φ) indicates how much the fit amplifies noise." κ is a worst-case
-> bound, not the realized cost.
+> bound, and the realized cost can be much smaller.
 
 **5.4 Scope a claim once, at the claim.** State "to first order" or "for
-incompressible flow" where the claim is made, not on every sentence after it.
+incompressible flow" where the claim is made. The sentences after it inherit
+the scope.
 
 > Good: "The D estimates are therefore unbiased under measurement noise, and
 > under position noise to first order."
@@ -343,11 +356,11 @@ assumption that is not physically guaranteed, say so in one clause.
 **5.6 Concede specifically, then pivot on "however."** Name the exact
 weakness in technical terms. Never concede vaguely. (From Kitts.)
 
-> Good (Draft 10): "The band test carries no hysteresis, so noise can chatter
-> the D tracker across its boundary, which costs speed alone, since both
-> branches share the same transverse dynamics."
+> Good (revised from Draft 10): "The band test carries no hysteresis, so
+> noise can chatter the D tracker across its boundary. Both branches share
+> the same transverse dynamics, however, so the chatter costs speed alone."
 >
-> Template: "The controllers are admittedly simple, reactive, and minimal.
+> Template: "The primitives are admittedly simple, reactive, and minimal.
 > Even in their current form, however, they demonstrate ..."
 
 **5.7 Comparisons are descriptive. Let the verification level carry the
@@ -363,10 +376,10 @@ conditions, verified how. (From Kitts.)
 **5.8 Name tradeoffs with quantities.** Never write "we chose X." Say what
 was traded against what. (From Kitts.)
 
-> Good (Draft 10): "The pentagon is enlarged to ρ = 0.105, 1.4× the nominal
-> radius and 5.4 km at this site, trading truncation bias for noise
-> suppression so the footprint spans about five cells of the 2 km grid
-> rather than under four."
+> Good (revised from Draft 10): "The pentagon is enlarged to ρ = 0.105, 1.4×
+> the nominal radius. At this site that is 5.4 km, so the footprint spans
+> about five cells of the 2 km grid instead of fewer than four. The
+> enlargement trades truncation bias for noise suppression."
 
 **5.9 Claim novelty on the demonstration, not the theory.** Use "to our
 knowledge" and scope the claim. (From Kitts.)
@@ -377,12 +390,12 @@ knowledge" and scope the claim. (From Kitts.)
 
 **5.10 Cite stability, do not derive it.** If a derivation is needed, put it
 in an appendix and cite it in one sentence. This is the rock show rule
-applied to proofs. (From Kitts.)
+applied to proofs. A short derivation that confirms a mechanism, as in 3.8,
+stays in the text. (From Kitts.)
 
 ---
 
 ## Part 6. Paper-level rules
-
 
 **6.1 Open the introduction on a capability defined as a process, set against
 the conventional approach.** "Adaptive navigation is the process of modifying
@@ -399,13 +412,14 @@ contributions.
 **6.4 No roadmap sentence in papers.** Go from the contribution list straight
 into the technical section. A thesis keeps its full reader's guide.
 
-**6.5 Describe the architecture bottom-up in four named layers.** These are
-the robot control, cluster space control, adaptive navigation, and state
-control layers. Say what each consumes and emits, and include the figure.
+**6.5 Describe the architecture in three named layers.** These are the
+adaptive navigation, cluster controller, and robot controller layers. Say
+what each consumes and emits, and include the figure.
 
-**6.6 Close on the program, not the result.** Summarize what was
-demonstrated, concede minimality once more, then list "Ongoing and future
-work" as a) b) c) inside a sentence. Use that exact phrase.
+**6.6 Close on the program.** Summarize what was demonstrated, concede
+minimality once more, then list "Ongoing and future work" as a) b) c) inside
+a sentence. Use that exact phrase. This list keeps a) b) c), unlike the
+contribution list in 6.3.
 
 **6.7 Use the house phrases.** Write "land, sea, air, and space" for domains,
 and describe cluster space control as "an operational space control approach
@@ -459,6 +473,7 @@ Run this on every draft before returning it.
 - [ ] No equation number as a sentence subject?
 - [ ] Terminology matches the table in 4.12?
 - [ ] If anything was cut, is every downstream reference listed with a fix?
+- [ ] Is every rule broken on purpose named in the notes, with its reason?
 
 ---
 
@@ -485,4 +500,6 @@ LLM-drafted. Do not mine it for voice.
 
 Most of the Bad/Good pairs in this guide come from the September 2026
 rewrite of Sections II-C and II-D of the IEEE Systems Journal draft on
-multirobot tracking of separatrices and OECS (Draft 10).
+multirobot tracking of separatrices and OECS (Draft 10). A label such as
+"Draft 10" names the draft an example came from. Later drafts may have
+changed or cut the quoted text.

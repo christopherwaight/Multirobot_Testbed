@@ -1,5 +1,6 @@
 """
-regen_all.py  --  regenerate all (or a subset of) figures for Draft_11.tex.
+regen_all.py  --  regenerate all (or a subset of) figures for the working draft
+(TEX_FILE in _common.py).
 
 Reads figures.yaml, runs each figure script in order, and prints a summary
 table when done.
@@ -36,7 +37,7 @@ def _python_exe():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Regenerate all figures for Draft_11.tex.",
+        description="Regenerate all figures for the working draft (TEX_FILE).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--skip-slow", action="store_true",

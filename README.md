@@ -1,187 +1,66 @@
 # Multi-Robot Field Navigation Testbed
 
-A research platform for distributed multi-robot systems that explore and navigate vector and scalar fields using formation-based control.
+Simulation, hardware, and paper sources for multirobot adaptive navigation in 2D vector fields, from Santa Clara University's Robotic Systems Laboratory.
 
-## Overview
+A cluster of robots samples a field at several points at once, fits a local model of the field, and steers on that model. It needs no prior map of the field and no measurement history. Three robots fit a plane and find critical points (sources, sinks, vortices, saddles). Six robots fit a quadratic, which makes the Jacobian determinant and its gradient available, and track the separatrices and coherent structures that divide a flow.
 
-This repository contains simulation and hardware validation code for multi-robot critical point detection in 2D fields. Robots form geometric clusters, sample the field simultaneously at multiple locations, estimate the Jacobian via plane fitting, and navigate to or orbit around critical points (sources, sinks, vortices, saddles).
-
-**Core contribution:** Robots locate and navigate to field critical points using only local measurements -- no prior field knowledge, no measurement history, and no global positioning required beyond a shared coordinate frame.
-
----
-
-## Repository Structure
+## Repository layout
 
 ```
 Multirobot_Testbed/
 ├── trunk/
 │   ├── Python_Simulations/
-│   │   ├── Vector_Fields/VF_Robot/     # Main simulation codebase
-│   │   └── Archive/                    # Deprecated experiments (incl. old Scalar Fields)
-│   ├── robots_3/                       # 3-robot hardware experiment data
-│   ├── robots_4/                       # 4-robot hardware experiment data
-│   └── Deep_Learning/                  # MATLAB sensor calibration
+│   │   ├── Vector_Fields/VF_Robot/      # Main simulation codebase (3-, 4-, and 6-robot clusters)
+│   │   ├── Vector_Fields/ocean_data/    # Santa Barbara Channel HF radar data and plots
+│   │   ├── Separatrix_Control_testing/  # Notebook prototypes for the six-robot work
+│   │   └── Archive/                     # Retired experiments, including scalar fields
+│   ├── robots_3/, robots_4/             # 3- and 4-robot hardware data and MATLAB analysis
+│   └── Deep_Learning/                   # MATLAB color-sensor calibration
 ├── Paper_Writing/
-│   ├── T-Mech Paper/                   # Main paper (canonical: Paper_Draft_5A.tex)
-│   ├── Separatrix_and_OW_Paper/        # Separatrix / Okubo-Weiss paper (canonical: Draft_5c.tex)
-│   └── Master's Thesis/
-└── docs/                               # Notation reference
+│   ├── Systems Paper/                   # Vector field paper (3- and 4-robot, hardware)
+│   ├── Separatrix_and_OW_Paper/         # Separatrix paper (6-robot, simulation), Draft_12.tex
+│   ├── PhD Thesis/                      # Generated from the papers by sources/assemble/
+│   └── mcp_paper_search/                # Vector-store search over the reference corpus
+├── Manim_Viz/                           # Manim animations of the fields and controllers
+├── docs/notation.md                     # Symbol reference
+├── CLAUDE.md                            # Working rules for AI agents
+└── Waight_style.md                      # Writing guide for paper and thesis prose
 ```
 
----
-
-## Python Simulation
-
-### Entry Point
+## Running the simulation
 
 ```bash
-cd "trunk/Python_Simulations/Vector_Fields/VF_Robot"
-source venv/bin/activate
-python3 experiments/main_omni.py
+cd trunk/Python_Simulations/Vector_Fields/VF_Robot
+venv/bin/python3 experiments/main_omni.py
 ```
 
-### Key Source Files
+`main_omni.py` is configured by the constants in its CONFIGURATION SECTION, such as the number of robots, the field, and the control primitive. Key modules:
 
-| File | Role |
-|------|------|
-| `src/robot/omnibot.py` | Robot dynamics: momentum model, stiction, velocity limits |
-| `src/robot/omni_cluster.py` | 3-robot cluster |
-| `src/robot/quad_cluster.py` | 4-robot cluster |
-| `src/control/primitives.py` | 3-robot control laws |
-| `src/control/quad_primitives.py` | 4-robot control laws |
-| `src/control/kinematics.py` | 3-robot kinematics |
-| `src/fields/environments/` | 12 field-definition modules (sink, source, vortex, saddle, spirals, double gyre, separatrix, ocean HFR, etc.) |
+| Path | Role |
+|---|---|
+| `src/robot/` | Robot dynamics (`omnibot.py`) and the 3-, 4-, and 6-robot clusters |
+| `src/control/` | Primitives and kinematics per cluster size. `pentagon_primitives.py` holds the six-robot trackers |
+| `src/fields/environments/` | 13 analytical and data-driven fields, including the double gyre and ocean HF radar |
 | `src/simulation/runner.py` | Simulation loop |
-| `cluster_builder/clusterbuilder.py` | Formation geometry tool: SAS parameterization, symbolic Jacobian, YAML visualization |
+| `cluster_builder/clusterbuilder.py` | Formation geometry, SAS parameterization (p, q, beta), symbolic Jacobians |
 
-### Configuration
-
-Edit `experiments/main_omni.py`:
-
-```python
-NUM_ROBOTS = 3
-FIELD_MODE = "analytical"          # "nn", "rbf", or "blended"
-ENVIRONMENT = "sinking_vortex1"    # sink1-3, source1-3, vortex1, saddle, etc.
-CONTROL_PRIMITIVE_3 = "critical_point_orbiter_plane_fitting"
-```
-
-### Separatrix / Okubo-Weiss Simulation
-
-The six-robot separatrix and Okubo-Weiss tracking experiments live under
-`trunk/Python_Simulations/Separatrix_Control_testing/`. See
-`Paper_Writing/Separatrix_and_OW_Paper/` and the repo-root `plan.md` for the current
-campaign.
-
-> Note: the earlier scalar-field / Newton saddle-finding line of work is deprecated.
-> Its simulation code is archived at `trunk/Python_Simulations/Archive/Scalar Fields/`.
-
----
+Tests run from VF_Robot with `venv/bin/python3 -m pytest cluster_builder/tests/ tests/test_oecs_separatrix.py`.
 
 ## Hardware
 
-**Robots:** Decabots (omnidirectional platforms with RGB color sensors)
+Decabots, omnidirectional robots with RGB color sensors, run in a 1.6 m by 1.6 m arena under OptiTrack motion capture at 10 Hz. The field is a printed floor map in which hue encodes flow direction and saturation encodes magnitude. MATLAB analysis scripts live beside the data in `trunk/robots_3/` and `trunk/robots_4/`.
 
-**Testbed:** 1.6 x 1.6 m arena, OptiTrack motion capture, 10 Hz control rate (SCU Robotics Systems Laboratory)
+## Papers
 
-**Field representation:** Printed floor maps using HSV color encoding. Hue encodes flow direction, saturation encodes magnitude.
+Both target IEEE Systems Journal. Authors are Christopher Waight and Christopher A. Kitts.
 
-**MATLAB analysis:**
-
-```matlab
-% 3-robot results
-cd trunk/robots_3/vortex_tests
-orbiter_plotter        % visualize orbits
-
-cd trunk/robots_3
-calculate_resting_point_stats
-
-% 4-robot results
-cd trunk/robots_4
-allrunplotter
-```
-
----
-
-## Research Results
-
-### Vector Field Paper (Paper_Draft_5A.tex, canonical)
-
-**Hardware validation (169 experiments):**
-- 157 convergence trials: 100% success rate
-- 12 orbital trials: radius maintained within tolerance
-- 6 field types: sink, source, vortex, saddle, sinking vortex, spewing vortex
-- Average error: 0.012 m (vortex), 0.005 m (saddle)
-
-**Simulation validation:**
-- 8 fields, 1000 Monte Carlo trials per field, 100% convergence
-
-### Separatrix / Okubo-Weiss Paper (Draft_5c.tex, active draft)
-
-- Six-robot formation (regular pentagon plus center robot) estimates the field
-  Jacobian and traverses the separatrix / Okubo-Weiss trench network using only local
-  measurements.
-- Body complete (20 pages); target venue IEEE Transactions on Robotics (T-RO).
-- Verified symbolically, in Monte Carlo (10,000 trials/cell), and in closed-loop
-  simulation, and validated on a real ocean HFR field. See the repo-root `plan.md`
-  for the working tracker.
-
----
-
-## Key Concepts
-
-### Why Three Robots
-
-A linear field model has 6 coefficients (3 per component). Each robot provides one measurement per component. Three robots give exactly 3 equations per component -- a determined system. Fewer robots leave it underdetermined; more robots allow least-squares overdetermination.
-
-### SAS Formation Parameterization
-
-3-robot clusters are described by six state variables: (x_c, y_c, theta_c, p, q, beta), where p is robot 1 to 2 distance, q is robot 2 to 3 distance, and beta is the included angle at robot 2. The `clusterbuilder` tool generates valid formation configurations and computes symbolic Jacobians from this parameterization.
-
-### Control Laws
-
-The centroid velocity command is:
-
-```
-p_c_dot = k * r + k_t * r_hat_perp + k_r * (r_d - ||r||) * r_hat
-```
-
-where r = p* - p_c is the radial vector to the estimated critical point, r_d is the desired orbital radius, and k_t controls orbit direction.
-
----
-
-## Publications
-
-**Vector field navigation:**
-- "Adaptive Navigation of Multirobot Systems to Critical Points in 2D Vector Fields"
-- Christopher Waight, Christopher A. Kitts
-- Status: Near submission
-
-**Separatrix / Okubo-Weiss navigation:**
-- Distributed separatrix and Okubo-Weiss trench tracking with a six-robot formation
-- Christopher Waight, Christopher A. Kitts
-- Status: Draft complete (Draft_5c.tex), T-RO target
-
----
+- **Adaptive Navigation of Multirobot Systems to Critical Points in 2D Vector Fields in Simulation and Experiment.** Three- and four-robot clusters, validated in 169 hardware experiments. The cluster converged in all 157 convergence trials, with average position errors of 0.012 m or less. Source in `Paper_Writing/Systems Paper/cwaight_systems_paper/`.
+- **Second-Order Cooperative Field Estimation for Multirobot Tracking of Coherent Flow Structures.** A six-robot pentagon-plus-center formation fits a quadratic field model and tracks separatrices on a double gyre benchmark and on Santa Barbara Channel HF radar data. Source in `Paper_Writing/Separatrix_and_OW_Paper/`.
 
 ## Dependencies
 
-**Python** (venv at `trunk/Python_Simulations/Vector_Fields/VF_Robot/venv/`):
-- numpy, matplotlib, scipy, torch, scikit-learn, pandas, pyyaml
-
-**MATLAB:**
-- Deep Learning Toolbox
-- Image Processing Toolbox
-
----
-
-## Documentation
-
-- `CLAUDE.md` -- style rules, notation hard rules, file map, and workflow for AI assistants
-- `docs/notation.md` -- full symbol reference (field, estimation, control, dynamics, SAS)
-
----
+Python 3.13 with numpy, scipy, matplotlib, pandas, pyyaml, torch, and scikit-learn, installed in the VF_Robot venv. LaTeX builds use BasicTeX. The MATLAB code needs the Deep Learning and Image Processing toolboxes.
 
 ## Contact
 
-Christopher Waight, Christopher A. Kitts (Advisor)
-Santa Clara University, Robotic Systems Laboratory
+Christopher Waight and Christopher A. Kitts (advisor), Robotic Systems Laboratory, Santa Clara University.

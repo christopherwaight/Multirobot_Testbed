@@ -219,7 +219,7 @@ def main(args):
         },
     )
     print("  NOTE: no pdflatex recompile; run regen_all.py to compile "
-          "Draft_11.tex.\n")
+          "the working draft.\n")
 
 
 if __name__ == "__main__":
