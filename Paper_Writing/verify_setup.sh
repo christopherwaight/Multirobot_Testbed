@@ -4,7 +4,7 @@ echo "========================================"
 echo "Verifying RAG Chatbot Setup"
 echo "========================================"
 
-cd "/Users/christopherwaight/Desktop/Multirobot_Testbed/Paper_Writing"
+cd "$(dirname "$0")"  # Paper_Writing/
 
 echo ""
 echo "1. Checking venv exists..."

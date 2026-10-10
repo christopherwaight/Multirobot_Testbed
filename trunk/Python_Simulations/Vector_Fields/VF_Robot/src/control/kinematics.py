@@ -10,7 +10,10 @@ Centroid parameters: (x_c, y_c, theta_c)
 - x_c, y_c: centroid position
 - theta_c: orientation angle
 
-Paper mapping: Appendix B of Paper_Draft_4A.tex (forward kinematics
+Paper mapping: the appendix "Three-Robot Cluster Controller Equations" of
+Paper_Writing/Systems Paper/cwaight_systems_paper/cwaight_systems_paper.tex.
+The equation numbers here are from the earlier Appendix B of
+Paper_Writing/Systems Paper/Archive/Paper_Draft_4A.tex (forward kinematics
 Eqs. 20-27, inverse kinematics Eqs. 28-32, inverse Jacobian Eq. 33).
 
 Convention caveats (audit 2026-07-03), shared by the paper's Appendix B:

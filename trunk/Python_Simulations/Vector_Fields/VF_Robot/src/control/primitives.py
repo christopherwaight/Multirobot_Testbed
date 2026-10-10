@@ -4,7 +4,10 @@ Control primitives for OmniCluster.
 All primitives have signature: primitive(cluster) -> (vx_c, vy_c)
 Returns desired centroid velocity.
 
-Paper mapping (Paper_Writing/Vector Field Paper/Paper_Draft_4A.tex):
+Paper mapping: Section II (Critical Point Detection and Control) of
+Paper_Writing/Systems Paper/cwaight_systems_paper/cwaight_systems_paper.tex.
+The equation numbers below are from the earlier
+Paper_Writing/Systems Paper/Archive/Paper_Draft_4A.tex.
 - critical_point_plane_fitting          -> Eqs. 4-9 (estimation) + Eq. 10 (attraction)
 - critical_point_orbiter_plane_fitting  -> Eqs. 4-9 (estimation) + Eq. 11 (orbit)
 """

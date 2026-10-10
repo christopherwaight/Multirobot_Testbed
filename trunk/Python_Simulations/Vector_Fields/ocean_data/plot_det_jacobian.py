@@ -1,4 +1,5 @@
-#!/Users/christopherwaight/Desktop/Multirobot_Testbed/trunk/Python_Simulations/Vector_Fields/VF_Robot/venv/bin/python3
+#!/usr/bin/env python3
+# Run with the VF_Robot venv: ../VF_Robot/venv/bin/python3 plot_det_jacobian.py
 """
 Plot raw velocity, det(J), and FTLE from HF radar surface current data.
 Data: May 16-17 2012, Santa Barbara Channel (Michini et al. [34] window).

@@ -9,8 +9,8 @@ import sys
 
 import numpy as np
 
-EXP = ("/Users/christopherwaight/Desktop/Multirobot_Testbed/trunk/Python_Simulations"
-       "/Vector_Fields/VF_Robot/experiments")
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+EXP = os.path.join(REPO, "trunk", "Python_Simulations", "Vector_Fields", "VF_Robot", "experiments")
 sys.path.insert(0, os.path.dirname(EXP))
 sys.path.insert(0, EXP)
 

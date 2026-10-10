@@ -2,7 +2,9 @@
 plot_flip_resolution_rows.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_12.tex (candidate, not yet in the draft)
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_12.tex, Fig. fig:flip_resolution.
+          The paper figure is figures/noise_seven_starts_col.png, the --paper
+          --column layout, built by primitive11_simplification/overnight/fig7_regen.py.
   Makes:  seven-row, two-column versions of the noise figure, one row per start
           (S1 to S7, from the top of the domain). Left column is the sweep against
           sigma_uv (sigma_p = 0), right column against sigma_p (sigma_uv = 0). Each row

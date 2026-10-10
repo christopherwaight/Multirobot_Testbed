@@ -2,7 +2,7 @@
 ocean_hfr_2km_ftle_snapshots.py
 
 
-  cd "/Users/christopherwaight/Desktop/Multirobot_Testbed/trunk/Python_Simulations/Vector_Fields/VF_Robot"
+  cd trunk/Python_Simulations/Vector_Fields/VF_Robot
   MPLBACKEND=Agg ./venv/bin/python3 experiments/ocean_hfr_2km_ftle_snapshots.py
 
 

@@ -136,6 +136,8 @@ def _cache_key(cfg):
         "ocean_data", "hfr_uswc_2012may"
     )
     data_dir = cfg.get("data_dir", default_data)
+    if not os.path.isabs(data_dir):  # relative paths are from the repo root
+        data_dir = os.path.join(repo_root, data_dir)
     return f"{data_dir}|{bool(cfg.get('enable_time_interp', False))}"
 
 
@@ -160,6 +162,8 @@ def _load_dataset(cfg):
         "ocean_data", "hfr_uswc_2012may"
     )
     data_dir = cfg.get("data_dir", default_data)
+    if not os.path.isabs(data_dir):  # relative paths are from the repo root
+        data_dir = os.path.join(repo_root, data_dir)
 
     files = sorted(glob.glob(os.path.join(data_dir, frame_glob)))
     if not files:

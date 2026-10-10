@@ -3,7 +3,7 @@
 title. Writes chapters/bibliography.tex and sources/bib_key_map.txt, and
 rewrites the \\cite keys in the chapter files."""
 import re, os
-TH = '/Users/christopherwaight/Desktop/Multirobot_Testbed/Paper_Writing/PhD Thesis/'
+TH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..')) + '/'  # PhD Thesis/
 ORDER = ['ch01_introduction', 'ch02_verification_tools', 'ch03_preliminaries',
          'ch04_estimation_framework', 'ch05_zeroth_order', 'ch06_first_order',
          'ch07_second_order', 'ch08_crosscutting', 'ch09_limitations',

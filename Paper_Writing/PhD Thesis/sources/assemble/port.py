@@ -9,7 +9,7 @@ environments, or IDETC text transcribed from the published PDF).
 """
 import os, re, sys
 
-ROOT = '/Users/christopherwaight/Desktop/Multirobot_Testbed/Paper_Writing/'
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..')) + '/'  # Paper_Writing/
 SRC = {
     'sys': ROOT + 'Systems Paper/cwaight_systems_paper/cwaight_systems_paper.tex',
     'sep': ROOT + 'Separatrix_and_OW_Paper/Draft_11.tex',

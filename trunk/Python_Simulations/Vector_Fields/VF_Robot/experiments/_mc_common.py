@@ -1,10 +1,12 @@
 """
 _mc_common.py
 
-Shared Monte Carlo trial runner for the noise sweeps of
-Paper_Writing/Separatrix_and_OW_Paper/Draft_5c.tex (Testing Plan /
-Results sections). Used by mc_sweep_separatrix.py (and later
-mc_sweep_ow.py). Not an entry point.
+Shared Monte Carlo trial runner for the Separatrix paper's noise sweeps
+(the working draft is TEX_FILE in Paper_Writing/Separatrix_and_OW_Paper/
+scripts/_common.py). Written for Draft_5c; now used by
+mc_sweep_noise_both_trackers.py, mc_mechanism_starts.py,
+mc_zone_of_convergence.py, traverse_objectivity_demo.py, and the
+primitive11_simplification checks. Not an entry point.
 
 One trial = one (controller, sigma_uv, sigma_p, seed) tuple:
   - start drawn uniformly over START_BOX (basin structure recoverable by
@@ -12,7 +14,8 @@ One trial = one (controller, sigma_uv, sigma_p, seed) tuple:
   - random initial heading via reset(heading_offset=U[0, 2pi))
   - measurement/position noise via cluster.measurement_noise_std /
     cluster.position_noise_std (Eqs. meas_noise / pos_noise of the paper)
-  - metrics per the merged test plan (plan.md Phase 4).
+  - metrics per the Draft_5c-era merged test plan (Phase 4 of a plan.md
+    that is no longer in the repo).
 """
 import io
 import contextlib
