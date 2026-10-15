@@ -52,9 +52,10 @@ PARAMS = {
 
 def _run_trial(p, start_x, start_y):
     np.random.seed(p["seed"])
-    field   = AnalyticalField(double_gyre_static, noise_std=p["sigma_uv"])
+    field   = AnalyticalField(double_gyre_static)
     cluster = PentagonCluster(p["formation_config"], field)
     cluster.position_noise_std = p["sigma_p"]
+    cluster.measurement_noise_std = p["sigma_uv"]
     cluster.reset(start_x, start_y)
 
     gain = p["control_gain"]
@@ -83,7 +84,7 @@ def _background_stream(ax, n=50, A=0.1):
     V = np.zeros_like(Y)
     for i in range(n):
         for j in range(n):
-            u, v = double_gyre_static(X[i, j], Y[i, j], A=A)
+            u, v = double_gyre_static(X[i, j], Y[i, j], config={"A": A})
             U[i, j] = u
             V[i, j] = v
     speed = np.sqrt(U**2 + V**2)

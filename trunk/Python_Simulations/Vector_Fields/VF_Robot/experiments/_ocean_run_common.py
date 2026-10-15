@@ -45,6 +45,9 @@ FIELD_CONFIG_NAME = "ocean_hfr_2km_timevarying"
 
 V_MAX, SIM_STEPS, CONTROL_GAIN = 0.04, 168, 1.8
 MOMENTUM_ALPHA, STICTION_THRESHOLD, TIME_WARP = 0.0, 0.002, 6000.0
+# The trackers ignore EPS_RAW, EPS_DIM, S_TRIM, R_BAND, and G_CAPTURE since the
+# 2026-10-09 rewrite (see experiments/primitive11_simplification/README.md).
+# They are kept here because older scripts import them.
 EPS_RAW, EPS_DIM = 1e-3, 0.025
 G_PERP, S_TRIM, R_BAND, G_CAPTURE = 1.0, 0.3, 0.05, 0.15
 
@@ -106,12 +109,11 @@ def build_trial(isotropic_map=None, v_max=V_MAX, gain=CONTROL_GAIN):
                               stiction_threshold=STICTION_THRESHOLD)
 
     def prim_d(c):
-        vx, vy = separatrix_logic_c_step(c, v_max=v_max, eps_raw=EPS_RAW, eps_dim=EPS_DIM)
+        vx, vy = separatrix_logic_c_step(c, v_max=v_max)
         return vx * gain, vy * gain
 
     def prim_s1(c):
-        vx, vy = oecs_separatrix_step(c, v_max=v_max, g_perp=G_PERP, s_trim=S_TRIM,
-                                      r_band=R_BAND, g_capture=G_CAPTURE, s_capture=None)
+        vx, vy = oecs_separatrix_step(c, v_max=v_max, g_perp=G_PERP)
         return vx * gain, vy * gain
 
     return field, cluster, prim_d, prim_s1

@@ -63,9 +63,10 @@ def _det_j_grid(X, Y, A=0.1):
 
 def _run_trial(p, start_x, start_y):
     np.random.seed(p["seed"])
-    field   = AnalyticalField(double_gyre_static, noise_std=p["sigma_uv"])
+    field   = AnalyticalField(double_gyre_static)
     cluster = PentagonCluster(p["formation_config"], field)
     cluster.position_noise_std = p["sigma_p"]
+    cluster.measurement_noise_std = p["sigma_uv"]
     cluster.reset(start_x, start_y)
 
     gain     = p["control_gain"]

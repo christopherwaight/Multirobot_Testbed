@@ -136,20 +136,11 @@ def main(args):
     norm_s = plt.Normalize(S1.min(), 0.0)
     ax_c = _surface(fig, [0.00, 0.04, 0.84, 0.36], S1, X, Y, cm.viridis,
                     norm_s, r"$s_1$", p, zlim=(S1.min() * 1.02, 0.06))
-    y_up = np.linspace(0.0, y1, 120)
-    y_dn = np.linspace(y0, 0.0, 120)
-    ax_c.plot(np.zeros_like(y_up), y_up, _s1(0.0, y_up, A), color="black",
-              lw=1.6, zorder=10, label=r"Attracting, $\mathbf{e}_2$ tangent")
-    ax_c.plot(np.zeros_like(y_dn), y_dn, _s1(0.0, y_dn, A), color="black",
-              lw=1.6, ls=(0, (4, 2)), zorder=10,
-              label=r"Repelling, $\mathbf{e}_1$ tangent")
+    ax_c.plot(np.zeros_like(yl), yl, _s1(0.0, yl, A), color="black",
+              lw=1.6, zorder=10)
     ax_c.scatter([0.0], [0.0], [_s1(0.0, 0.0, A)], color="crimson", s=18,
-                 depthshade=False, zorder=12, label="Isotropic point")
+                 depthshade=False, zorder=12)
     _colorbar(fig, [0.83, 0.11, 0.022, 0.20], cm.viridis, norm_s, r"$s_1$")
-    h, lab = ax_c.get_legend_handles_labels()
-    fig.legend(h, lab, fontsize=6, ncol=3, loc="lower center",
-               bbox_to_anchor=(0.5, 0.0), frameon=False, handlelength=2.0,
-               columnspacing=0.8, handletextpad=0.4)
 
     _panel_label(fig, 0.01, 0.995, "(a)")
     _panel_label(fig, 0.01, 0.735, "(b)")

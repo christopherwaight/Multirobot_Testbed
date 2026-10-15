@@ -11,9 +11,9 @@ Figure: how the s1 tracker's two channels are built, in the plane.
     and |grad.e1| carries it below, the other projection being 0.
 
 (b) The velocity command. The along-trench term is open loop at cruise
-    speed c_max tanh(1) along t; the transverse term is gradient descent
-    through the projector P = I - t t^T, which deletes the along-trench
-    component of grad s1. Travel does not depend on the trench-floor
+    speed sat(c_max) = c_max tanh(1) along t; the transverse term is
+    gradient descent along the unit normal t_perp, which keeps only the
+    across-trench component of grad s1. Travel does not depend on the trench-floor
     slope, which is why the cluster does not slide to a saddle.
 
 Canonical output: figures/s1_channels.png
@@ -130,11 +130,11 @@ def main(args):
     t, _ = _tangent(0.0, yv, A)
     if t[1] > 0:
         t = -t                      # ride down-trench, with the flow on x = 0
-    P = np.eye(2) - np.outer(t, t)
+    t_perp = np.array([-t[1], t[0]])
     # start off-trench so the transverse term is visible
     x0, y0 = 0.075, yv
     g = _grad_s1(x0, y0, A)
-    perp = -P @ g
+    perp = -(t_perp @ g) * t_perp
     perp = perp / np.linalg.norm(perp) * 0.115
     ride = t * 0.105
 
@@ -146,11 +146,11 @@ def main(args):
                 zorder=8,
                 arrowprops=dict(arrowstyle="-|>", color="orangered", lw=2.4))
     ax.text(x0 + ride[0] + 0.022, y0 + ride[1] - 0.01,
-            r"$c_{\max}\tanh(1)\,\mathbf{t}$",
+            r"$\mathrm{sat}(c_{\max})\,\mathbf{t}$",
             color="white", fontsize=8, ha="center", va="top", zorder=9)
-    ax.text(x0 + perp[0] - 0.02, y0 - 0.075,
-            r"$-\mathrm{sat}(g_\perp \mathbf{P}\nabla \hat{s}_1)$",
-            color="orangered", fontsize=8, ha="center", zorder=9)
+    ax.text(x0 - 0.02, y0 + 0.035,
+            r"$\mathrm{sat}(-g_\perp \mathbf{t}_\perp^\top\nabla \hat{s}_1)\,\mathbf{t}_\perp$",
+            color="orangered", fontsize=8, ha="right", zorder=9)
     ax.set_title(r"(b) ride along $\mathbf{t}$, descend across it",
                  fontsize=9)
 

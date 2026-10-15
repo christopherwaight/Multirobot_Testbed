@@ -64,9 +64,10 @@ def _analytic_det(x, y, A=0.1):
 
 def _run_sep(p, sx, sy):
     np.random.seed(p["seed"])
-    field   = AnalyticalField(double_gyre_static, noise_std=p["sigma_uv"])
+    field   = AnalyticalField(double_gyre_static)
     cluster = PentagonCluster(p["formation_config"], field)
     cluster.position_noise_std = p["sigma_p"]
+    cluster.measurement_noise_std = p["sigma_uv"]
     cluster.reset(sx, sy)
     gain = p["control_gain"]; vmax = p["v_max"]
     eps_raw = p["eps_raw"]; eps_dim = p["eps_dim"]
@@ -89,9 +90,10 @@ def _run_sep(p, sx, sy):
 
 def _run_ow(p, sx, sy):
     np.random.seed(p["seed"])
-    field   = AnalyticalField(double_gyre_static, noise_std=p["sigma_uv"])
+    field   = AnalyticalField(double_gyre_static)
     cluster = PentagonCluster(p["formation_config"], field)
     cluster.position_noise_std = p["sigma_p"]
+    cluster.measurement_noise_std = p["sigma_uv"]
     cluster.reset(sx, sy)
     gain = p["control_gain"]; vmax = p["v_max"]; eps_grad = p["eps_grad"]
 

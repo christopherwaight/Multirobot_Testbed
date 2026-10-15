@@ -11,10 +11,10 @@ Checks:
    (the along-track one), not the smaller one, on both separatrix halves.
 2. Transverse and tangent channels partition the same two dot products
    (no third quantity is computed).
-3. CAPTURE fires unconditionally near a 2D stationary point of s1 (a flow
-   saddle) and does not fire away from one, even where |grad_s1| dips on an
-   ordinary trench point transversally (it does not dip in EVERY direction
-   there, only CAPTURE's full-gradient test distinguishes the two).
+3. The full |grad_s1| is small near a 2D stationary point of s1 (a flow
+   saddle) and large on an ordinary trench point, where only its transverse
+   component vanishes. CAPTURE's footprint test q = rho |grad_s1| / |s1|
+   relies on this.
 4. Closed loop: six starts on the double gyre all reach and hold their
    nearest saddle (matches the path-match experiment,
    experiments/main_separatrix_traverse.py, at a coarser tolerance for
@@ -93,11 +93,9 @@ def test_tangent_prefers_separatrix_over_wall_at_crossing():
 
 
 def test_capture_fires_only_near_a_2d_stationary_point():
-    # Full |grad_s1| must be small near a saddle (2D minimum of s1) and
-    # large on an ordinary trench point, even though the TRANSVERSE
-    # component of grad_s1 is zero at BOTH (by definition of being on the
-    # trench). This is what makes the CAPTURE test (on the full gradient)
-    # distinct from the transverse-only channel.
+    # Full |grad_s1| is small near a saddle (2D minimum of s1) and large on
+    # an ordinary trench point, although its transverse component is zero at
+    # both. CAPTURE's footprint test depends on this.
     theta_u, theta_v = _fit_at(0.0, 0.495)  # 5 mm from the top saddle
     _, grad_s1, _, _, _ = _strain_quantities(theta_u, theta_v)
     assert np.linalg.norm(grad_s1) < 0.15
@@ -113,9 +111,7 @@ def _run_traverser(sx, sy, steps=700):
     cl.reset(sx, sy)
 
     def prim(c):
-        vx, vy = oecs_separatrix_step(c, v_max=0.04, g_perp=1.0, s_trim=0.05,
-                                      r_band=0.05, g_capture=0.15,
-                                      s_capture=None)
+        vx, vy = oecs_separatrix_step(c, v_max=0.04, g_perp=1.0)
         return vx * 3.0, vy * 3.0
 
     for _ in range(steps):

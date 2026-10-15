@@ -2,7 +2,7 @@
 main_ocean_hfr_2km_progression.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_11.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_12.tex
   Makes:  fig:ocean_ftle, four snapshots of the shared-start Santa Barbara
           Channel trial, each showing both tracker paths up to that time.
           Output: ocean_data/det_jacobian_plots/ocean_progression_2km.png,
@@ -58,14 +58,11 @@ def main():
                               stiction_threshold=S.STICTION_THRESHOLD)
 
     def prim_d(c):
-        vx, vy = separatrix_logic_c_step(c, v_max=S.V_MAX, eps_raw=S.EPS_RAW,
-                                         eps_dim=S.EPS_DIM)
+        vx, vy = separatrix_logic_c_step(c, v_max=S.V_MAX)
         return vx * S.CONTROL_GAIN, vy * S.CONTROL_GAIN
 
     def prim_s1(c):
-        vx, vy = oecs_separatrix_step(c, v_max=S.V_MAX, g_perp=S.G_PERP,
-                                      s_trim=S.S_TRIM, r_band=S.R_BAND,
-                                      g_capture=S.G_CAPTURE, s_capture=None)
+        vx, vy = oecs_separatrix_step(c, v_max=S.V_MAX, g_perp=S.G_PERP)
         return vx * S.CONTROL_GAIN, vy * S.CONTROL_GAIN
 
     def robots_latlon():

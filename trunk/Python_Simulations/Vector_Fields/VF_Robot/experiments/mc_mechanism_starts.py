@@ -14,9 +14,10 @@ EXPERIMENT
   Same harness, trackers, seeds and stop rules as mc_sweep_noise_both_trackers.py,
   10,000 trials per start and tracker, random heading per trial.
   D tracker at sigma_uv = 0.005 (sigma_p = 0), plus a noise-free control.
-    Logs the branch separatrix_logic_c_step takes each step. ATTRACT_FALLBACK is the
-    branch taken when the fitted Hessian of D is definite (lambda_1 lambda_2 >= 0),
-    which drops the trench frame for the signed Newton step. Per start: success,
+    Logs each TRACK step of separatrix_logic_c_step at which the fitted Hessian of
+    D is definite (lambda_1 lambda_2 >= 0), where no trench exists and the across
+    step can climb D (the "fallback" columns, named for the removed
+    ATTRACT_FALLBACK mode that covered these steps before). Per start: success,
     acquisition (centroid within 0.05 of x = 0 for 10 consecutive steps before the
     stop), median height at acquisition, fraction of trials with any fallback step
     before acquisition, and success with and without such a step.
@@ -80,7 +81,9 @@ def trial(args):
         cx, cy = cl.get_centroid()
         xs.append(cx)
         ys.append(cy)
-        modes.append(cl.diagnostics[-1]["mode"] if cl.diagnostics else "")
+        dg = cl.diagnostics[-1] if cl.diagnostics else {}
+        modes.append("DEFINITE" if tr == "D" and dg.get("mode") == "TRACK" and dg["lam1"] * dg["lam2"] >= 0
+                     else dg.get("mode", ""))
         t = getattr(cl, "_oecs_prev_tangent", None)
         ty.append(float(t[1]) if t is not None else 0.0)
         if min(np.hypot(cx - a, cy - b) for a, b in targets) < mc.SADDLE_CONTACT_D:
@@ -96,7 +99,7 @@ def trial(args):
     pre = modes[:t_band] if t_band >= 0 else modes
     out = {"far": far, "top": top, "t_band": t_band,
            "y_band": float(ys[t_band]) if t_band >= 0 else None,
-           "fb_pre": int(sum(m == "ATTRACT_FALLBACK" for m in pre))}
+           "fb_pre": int(sum(m == "DEFINITE" for m in pre))}
     if tr == "s1":
         dwell = np.zeros(len(BINS) - 1, dtype=int)
         rev_y, stop = None, len(ys)

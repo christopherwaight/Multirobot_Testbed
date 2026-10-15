@@ -1,6 +1,11 @@
 """
 margin_gate_sweep.py
 
+DOES NOT RUN since 2026-10-09. oecs_separatrix_step no longer accepts the
+diagnostic arguments this script passes (margin_gate, sigma_eff, rho). To reproduce, import the
+pre-rewrite primitives from
+experiments/primitive11_simplification/overnight/pentagon_primitives_pre_rewrite.py.
+
 Implements and sweeps the s1 margin gate from Draft_6a's future-work list
 (sec:limitations): hold the TRACK tangent identity when
 ||grad(s1).e1| - |grad(s1).e2|| falls below gamma_2*sigma_eff/rho^2 (the

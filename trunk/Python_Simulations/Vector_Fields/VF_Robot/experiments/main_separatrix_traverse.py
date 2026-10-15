@@ -49,14 +49,23 @@ from src.control.pentagon_primitives import (
 
 FORMATION_CONFIG = "config/formations/pentagon_small.yaml"
 V_MAX, GAIN = 0.04, 3.0
+# The trackers ignore EPS_RAW, EPS_DIM, S_TRIM, R_BAND, and G_CAPTURE since the
+# 2026-10-09 rewrite (see experiments/primitive11_simplification/README.md).
+# They are kept here because older scripts import them.
 EPS_RAW, EPS_DIM = 1e-3, 0.025
 G_PERP, S_TRIM, R_BAND = 1.0, 0.05, 0.05
-SIM_STEPS = 600
+SIM_STEPS = 500
 A = 0.1
 BAND_X = 0.05          # |x_c| threshold for time-to-band
 BAND_HOLD = 10          # consecutive steps required
-POST_SADDLE_STEPS = 150
 SADDLE_CONTACT_D = 0.06
+# A run ends once the centroid has stayed within SADDLE_CONTACT_D of a flow
+# saddle for HOLD_STEPS consecutive steps (2026-10-09; it replaced "stop 150
+# steps after contact" for the D tracker and "stop at domain exit" for the s1
+# tracker). Y_EXIT was 0.52, which cut runs off during the ~0.02 overshoot past
+# the saddle on arrival.
+HOLD_STEPS = 20
+Y_EXIT = 0.60
 
 # Both controllers run from identical starts: the seven-start set of
 # 2026-10-06, named from the top of the domain and shared with the noise sweeps
@@ -83,29 +92,31 @@ OUT_DIR = os.path.join(project_root, "experiments", "outputs", "oecs")
 os.makedirs(OUT_DIR, exist_ok=True)
 
 
+def run_until_held(cl, prim):
+    """Step until a saddle has been held HOLD_STEPS steps, or the domain exit."""
+    held = 0
+    for _ in range(SIM_STEPS):
+        cl.move(prim)
+        cx, cy = cl.get_centroid()
+        if abs(cx) > 1.0 or abs(cy) > Y_EXIT:
+            break
+        near = min(np.hypot(cx - a, cy - b) for a, b in (SADDLE_BOTTOM, SADDLE_TOP))
+        held = held + 1 if near < SADDLE_CONTACT_D else 0
+        if held >= HOLD_STEPS:
+            break
+    return cl
+
+
 def run_logic_c(sx, sy):
     field = AnalyticalField(double_gyre_static)
     cl = PentagonCluster(FORMATION_CONFIG, field)
     cl.reset(sx, sy)
 
     def prim(c):
-        vx, vy = separatrix_logic_c_step(c, v_max=V_MAX,
-                                         eps_raw=EPS_RAW, eps_dim=EPS_DIM)
+        vx, vy = separatrix_logic_c_step(c, v_max=V_MAX)
         return vx * GAIN, vy * GAIN
 
-    contact = -1
-    for k in range(SIM_STEPS):
-        cl.move(prim)
-        cx, cy = cl.get_centroid()
-        if abs(cx) > 1.0 or abs(cy) > 0.52:
-            break
-        if contact < 0:
-            d = np.hypot(cx - SADDLE_BOTTOM[0], cy - SADDLE_BOTTOM[1])
-            if d < SADDLE_CONTACT_D:
-                contact = k
-        elif k - contact >= POST_SADDLE_STEPS:
-            break
-    return cl
+    return run_until_held(cl, prim)
 
 
 def run_traverser(sx, sy):
@@ -114,24 +125,10 @@ def run_traverser(sx, sy):
     cl.reset(sx, sy)
 
     def prim(c):
-        vx, vy = oecs_separatrix_step(c, v_max=V_MAX, g_perp=G_PERP,
-                                      s_trim=S_TRIM, r_band=R_BAND,
-                                      s_capture=None)
+        vx, vy = oecs_separatrix_step(c, v_max=V_MAX, g_perp=G_PERP)
         return vx * GAIN, vy * GAIN
 
-    contact = -1
-    for k in range(SIM_STEPS):
-        cl.move(prim)
-        cx, cy = cl.get_centroid()
-        if abs(cx) > 1.0 or abs(cy) > 0.52:
-            break
-        if contact < 0:
-            d = np.hypot(cx - SADDLE_BOTTOM[0], cy - SADDLE_BOTTOM[1])
-            if d < SADDLE_CONTACT_D:
-                contact = k
-        elif k - contact >= POST_SADDLE_STEPS:
-            break
-    return cl
+    return run_until_held(cl, prim)
 
 
 def analyze(cl):
@@ -263,7 +260,8 @@ def main():
         f.write(f"# generated_by: experiments/main_separatrix_traverse.py\n"
                 f"# git_commit: {commit}\n# date: {stamp}\n"
                 f"# steps: {SIM_STEPS}  v_max: {V_MAX}  gain: {GAIN}  "
-                f"r_band: {R_BAND}  s_trim: {S_TRIM}\n")
+                f"stop: held {HOLD_STEPS} steps within {SADDLE_CONTACT_D} of a saddle, "
+                f"or |y| > {Y_EXIT}\n")
         f.write("run,start_x,start_y,"
                 "logicc_t_band,logicc_final_x,logicc_final_y,logicc_continued,"
                 "trav_t_band,trav_final_x,trav_final_y,trav_continued,"

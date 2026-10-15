@@ -190,6 +190,97 @@ starts from what the quantity is for, before it defines the quantity.
 > instead reads them from the instantaneous geometry of the velocity field,
 > which the six-robot fit already provides."
 
+**3.10 Keep the focus.** The reader follows one subject and one claim at a
+time. Lose either and the prose reads as a string of facts. The rule has
+three parts.
+
+*Between paragraphs, a transition keeps the claim and changes the
+subject.* When a paragraph extends or contrasts with the one before it
+("Beyond X," "Another," "Additionally," "While X," "Unlike X," "However"),
+it keeps the claim that the previous paragraph's first sentence made and
+changes only the subject. Take the claim from that first sentence (3.5),
+not from the previous paragraph's last sentence or from the paper's thesis.
+Agents drift toward the thesis word, usually "navigation," because it is
+the paper's theme and often ends the previous paragraph.
+
+*Within a paragraph, no asides.* Every sentence serves the paragraph's
+job. A true fact that serves another job goes to the paragraph that uses
+it, gets its own paragraph, or is cut. When an aside exists to head off a
+confusion, remove the cause of the confusion instead.
+
+*A paragraph opens on its main point.* A results paragraph opens on the
+result. An explanation sits beside the thing it explains, even when the
+explanation is the logical premise.
+
+> Previous paragraph opens: "Some environments are better modeled as
+> vector fields..." and ends "...used this estimate to adaptively navigate
+> towards and around them."
+>
+> Bad (Draft 12): "Beyond critical points, vector fields have curves that
+> are useful for navigation." The subject carries over, but the claim
+> switches from modeling to navigation. The paragraph's own next sentence,
+> about where debris and larvae accumulate, supports modeling.
+>
+> Good: "Beyond critical points, vector fields have curves that are useful
+> for modeling other naturally occurring phenomena."
+
+> Contrast (Draft 12): "AN in scalar fields is well developed" is followed
+> by "Some environments are better modeled as vector fields." Vector fields
+> are the direct contrast to scalar fields, so the subject change is right,
+> but the claim switches from adaptive navigation to modeling. The fix
+> brings the vector-field AN work up, so that the contrast paragraph opens
+> on AN in vector fields.
+
+> Good (thesis, 2016): "The need for finding the inverse Jacobian is not
+> unique to developing cluster space controllers."
+>
+> Good (thesis, 2016): "While finding the Jacobian can be challenging on its
+> own, several problems can arise when inverting the Jacobian Matrix."
+>
+> Good (IDETC 2025): after a paragraph on the limitations of previous
+> testbeds, "Additionally, the limited discrete sampling speed of 0.15 Hz
+> made continuous motion of the robots impossible, limiting the study of
+> motion dynamics."
+
+> Bad (Draft 12, IV-C): A paragraph opens "The D tracker tolerates more
+> noise than the s₁ tracker" and ends "neither tracker retains more than
+> 65%." The next opens "Both trackers fail at high noise for the same
+> reason," keyed to that last sentence. The two after it return to how the
+> trackers differ.
+>
+> Good: Shared behavior first, then the differences. Both degrade smoothly,
+> both fail at high noise for the same reason, then the D tracker tolerates
+> more, then the s₁ tracker's failure modes, then the D tracker's.
+
+> Aside (Draft 12, III-A): "The cluster controller layer maps the
+> cluster-space velocity vector to robot velocities through the analytic
+> inverse Jacobian J⁻¹ of the cluster kinematics, not the velocity
+> gradient, and returns ..." The clause exists only because J also names
+> the velocity gradient. Chris: "I see why it's there, but it sounds like
+> an ADHD moment."
+>
+> Good: Drop the symbol. "...through the analytic inverse Jacobian of the
+> cluster kinematics, and returns ..." Nothing downstream uses J⁻¹.
+
+> Aside (Draft 12, III-A): "Each robot follows its velocity command
+> through a first-order lag ... A Python simulation integrates each robot's
+> position by explicit Euler at the same period. This momentum model was
+> identified in [10] ..." The simulation sentence interrupts the momentum
+> model, which then resumes.
+>
+> Good: The momentum model finishes its paragraph. The simulation sentence
+> joins the table pointer in a short paragraph of its own.
+
+> Bad (Draft 12, V-B): The results subsection opens "The field is
+> divergent and not vorticity-free, so s₂ = −s₁ does not hold and the two
+> surrogates need not share trenches." True, but it explains a result the
+> reader has not seen yet.
+>
+> Good: Open on the result, "Both trackers follow the dominant ridge of the
+> forward FTLE field from the channel entrance to the bifurcation and take
+> the same branch past it." The divergence sentence follows as the reason
+> the agreement is not built in.
+
 ---
 
 ## Part 4. Sentence rules
@@ -462,6 +553,10 @@ Run this on every draft before returning it.
 - [ ] Is every symbol defined before use, with no forward references?
 - [ ] Does each section stay at one level of abstraction?
 - [ ] Does each paragraph's first sentence name its job?
+- [ ] Does each transition keep the previous paragraph's claim and change
+      only the subject?
+- [ ] Does every sentence serve its paragraph's job, with no asides, and
+      does each paragraph open on its main point?
 - [ ] Does the physical reason come before each formula?
 - [ ] Is each non-obvious claim about bias, stability, or convergence checked?
 - [ ] Is each claim scoped exactly once?

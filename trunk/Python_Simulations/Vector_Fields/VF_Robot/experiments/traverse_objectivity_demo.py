@@ -15,11 +15,11 @@ regenerates fig:oecs_objectivity with the traverser's own path.
 What this verifies: Primitive 11 selects TRACK's tangent as whichever of
 e1, e2 has the LARGER |grad s1 . e_i|, using no flow at all; continuity with
 the previous tangent fixes only the residual sign. The ambient flow enters
-the primitive in exactly one place, the CROSS fallback, reachable only on
-the first tracking step if the eigenframe is degenerate there with no
-tangent yet. So the closed loop is frame-objective past that single instant,
-which is what Proposition (frame equivariance) claims and what the gaps
-measured here confirm.
+the primitive in one place, as the sign of the first tangent (the CROSS
+fallback was removed in the 2026-10-09 rewrite). So the closed loop is
+frame-objective past that single step, and the gaps measured here confirm
+it. The D tracker's capture reads the flow, so in the rotating frame it
+does not fire.
 
 An earlier design did select TRACK's tangent by best alignment with the
 ambient flow at every step, matching Logic C's own flow-projection test.
@@ -36,7 +36,7 @@ Paper traceability: writes both outputs into experiments/outputs/oecs/,
 
 The paper copy is installed by hand as
   Paper_Writing/Separatrix_and_OW_Paper/figures/objectivity_traverser.png
-which is fig:oecs_objectivity in Draft_5d.tex. That copy is NOT automatic.
+which is fig:oecs_objectivity in Draft_12.tex. That copy is NOT automatic.
 Until 2026-07-30 the paper instead embedded figures/oecs_objectivity.png,
 the Primitive 10 core-seeker output, whose path parks at the upper saddle
 and reports final gap 0.018, while the prose and caption quoted this
@@ -85,15 +85,16 @@ DT         = 0.1
 V_MAX      = 0.04
 CONTROL_GAIN = 3.0
 
+# The trackers ignore EPS_RAW, EPS_DIM, S_TRIM, R_BAND, and G_CAPTURE since the
+# 2026-10-09 rewrite (see experiments/primitive11_simplification/README.md).
+# They are kept here because older scripts import them.
 G_PERP, S_TRIM, R_BAND, G_CAPTURE = 1.0, 0.05, 0.05, 0.15
 
 OUT_DIR = os.path.join(project_root, "experiments", "outputs", "oecs")
 
 
 def traverser_primitive(c):
-    vx, vy = oecs_separatrix_step(c, v_max=V_MAX, g_perp=G_PERP, s_trim=S_TRIM,
-                                  r_band=R_BAND, g_capture=G_CAPTURE,
-                                  s_capture=None)
+    vx, vy = oecs_separatrix_step(c, v_max=V_MAX, g_perp=G_PERP)
     return vx * CONTROL_GAIN, vy * CONTROL_GAIN
 
 

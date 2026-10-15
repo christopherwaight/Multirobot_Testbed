@@ -61,7 +61,7 @@ def main(args):
     D = np.zeros_like(X)
     for i in range(n):
         for j in range(n):
-            u, v = double_gyre_static(X[i, j], Y[i, j], A=A)
+            u, v = double_gyre_static(X[i, j], Y[i, j], config={"A": A})
             U[i, j] = u
             V[i, j] = v
             D[i, j] = _det_j(X[i, j], Y[i, j], A=A)

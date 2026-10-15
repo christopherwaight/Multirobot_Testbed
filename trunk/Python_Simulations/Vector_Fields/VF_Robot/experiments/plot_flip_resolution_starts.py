@@ -51,17 +51,9 @@ START_TITLES = {
     "S6": "S6  (0.15, -0.15)\n0.15 off, not prestraddled",
     "S7": "S7  (0.10, -0.20)\n0.10 off, not prestraddled",
 }
-# Column name -> CSV in NOISE_DIR. The seven-start numbering of 2026-10-06 does not
-# match the tags of the older runs, so four columns read files with another name.
-CSV_FILES = {
-    "S1": "noise_both_P1.csv",
-    "S2": "noise_both_S5.csv",   # run earlier as S5
-    "S3": "noise_both.csv",      # the straddling start of Draft_12
-    "S4": "noise_both_S3.csv",   # run earlier as S3
-    "S5": "noise_both_P5.csv",
-    "S6": "noise_both_P6.csv",
-    "S7": "noise_both_S4.csv",   # run earlier as S4
-}
+# Column name -> CSV in NOISE_DIR: the three-mode D tracker set of 2026-10-10
+# (s1 rows carried over from the _final set, whose tracker is unchanged).
+CSV_FILES = {f"S{i}": f"noise_both_S{i}_d3.csv" for i in range(1, 8)}
 DEFAULT_STARTS = "S1,S2,S3,S4,S5,S6,S7"
 
 

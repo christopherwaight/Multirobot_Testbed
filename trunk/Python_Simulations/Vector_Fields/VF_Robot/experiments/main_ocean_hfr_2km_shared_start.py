@@ -65,6 +65,9 @@ MOMENTUM_ALPHA     = 0.0
 STICTION_THRESHOLD = 0.002
 TIME_WARP    = 6000.0
 
+# The trackers ignore EPS_RAW, EPS_DIM, S_TRIM, R_BAND, and G_CAPTURE since the
+# 2026-10-09 rewrite (see experiments/primitive11_simplification/README.md).
+# They are kept here because older scripts import them.
 EPS_RAW, EPS_DIM = 1e-3, 0.025
 G_PERP, S_TRIM, R_BAND, G_CAPTURE = 1.0, 0.3, 0.05, 0.15
 
@@ -127,12 +130,11 @@ def main():
                               stiction_threshold=STICTION_THRESHOLD)
 
     def prim_d(c):
-        vx, vy = separatrix_logic_c_step(c, v_max=V_MAX, eps_raw=EPS_RAW, eps_dim=EPS_DIM)
+        vx, vy = separatrix_logic_c_step(c, v_max=V_MAX)
         return vx * CONTROL_GAIN, vy * CONTROL_GAIN
 
     def prim_s1(c):
-        vx, vy = oecs_separatrix_step(c, v_max=V_MAX, g_perp=G_PERP, s_trim=S_TRIM,
-                                      r_band=R_BAND, g_capture=G_CAPTURE, s_capture=None)
+        vx, vy = oecs_separatrix_step(c, v_max=V_MAX, g_perp=G_PERP)
         return vx * CONTROL_GAIN, vy * CONTROL_GAIN
 
     print(f"Running D and s1 trackers from shared start ({START[0]:.4f}N, {-START[1]:.4f}W)...")

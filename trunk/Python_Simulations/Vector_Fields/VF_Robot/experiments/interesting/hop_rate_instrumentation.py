@@ -1,6 +1,11 @@
 """
 hop_rate_instrumentation.py
 
+DOES NOT RUN since 2026-10-09. oecs_separatrix_step no longer accepts the
+diagnostic arguments this script passes (override_seed, override_argmax). To reproduce, import the
+pre-rewrite primitives from
+experiments/primitive11_simplification/overnight/pentagon_primitives_pre_rewrite.py.
+
 Regenerates the Draft_6a sec:disc_noise numbers that had no committed
 generator (revision/items.yaml HOP_RATE_PROVENANCE): the channel-wise
 clean-value injection ladder (42.7% -> 45.0% -> 100% / 95.7%) and the

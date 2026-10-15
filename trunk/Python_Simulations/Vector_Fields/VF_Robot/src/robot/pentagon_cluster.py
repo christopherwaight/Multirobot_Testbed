@@ -240,13 +240,15 @@ class PentagonCluster:
         self.velocity_history = []
         self.diagnostics = []
 
-        # OECS controller state (Primitives 10/11, pentagon_primitives.py):
-        # tangent continuity and mode latches stashed directly on the
-        # cluster. These must not survive a reset, or a reused cluster
-        # object returns a different trajectory on the second call from an
-        # identical start (the first call's ending tangent/mode leaks in as
-        # a false initial condition for the second).
-        for _attr in ("_oecs_prev_tangent", "_oecs_banded", "_oecs_captured"):
+        # Controller state stashed directly on the cluster: the OECS tangent
+        # continuity and mode latches (Primitives 10/11) and the D tracker's
+        # capture latch (Primitive 7), all in pentagon_primitives.py. These
+        # must not survive a reset, or a reused cluster object returns a
+        # different trajectory on the second call from an identical start
+        # (the first call's ending tangent/mode leaks in as a false initial
+        # condition for the second).
+        for _attr in ("_oecs_prev_tangent", "_oecs_banded", "_oecs_captured",
+                      "_logicc_captured"):
             if hasattr(self, _attr):
                 delattr(self, _attr)
 

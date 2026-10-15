@@ -2,7 +2,7 @@
 mc_sweep_noise_both_trackers.py
 
 PAPER TRACEABILITY
-  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_11.tex
+  Paper:  Paper_Writing/Separatrix_and_OW_Paper/Draft_12.tex
   Makes:  the data behind Fig. fig:flip_resolution (Behavior Under Noise), which
           after the Draft 10 Part A pass shows BOTH trackers' far-saddle success
           against sigma_uv (panel a) and sigma_p (panel b) on one log axis, plus
@@ -54,6 +54,9 @@ from experiments.rescore_single_target import SADDLE_FAR, SADDLE_CONTACT_D
 SIGMAS = [0.0005, 0.00075, 0.001, 0.0015, 0.002, 0.0025, 0.003, 0.004, 0.005,
           0.006, 0.0075, 0.01, 0.0125, 0.015, 0.02, 0.03]
 
+# The trackers ignore EPS_RAW, EPS_DIM, S_TRIM, R_BAND, and G_CAPTURE since the
+# 2026-10-09 rewrite (see experiments/primitive11_simplification/README.md).
+# They are kept here because older scripts import them.
 G_PERP, S_TRIM, R_BAND, G_CAPTURE = 1.0, 0.05, 0.05, 0.15
 S1_TARGET = [(0.0, 0.5), (0.0, -0.5)]
 S1_Y_EXIT = 0.60
@@ -63,15 +66,12 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 
 def _prim_d(c):
-    vx, vy = separatrix_logic_c_step(c, v_max=mc.V_MAX, eps_raw=mc.EPS_RAW,
-                                     eps_dim=mc.EPS_DIM)
+    vx, vy = separatrix_logic_c_step(c, v_max=mc.V_MAX)
     return vx * mc.GAIN, vy * mc.GAIN
 
 
 def _prim_s1(c):
-    vx, vy = oecs_separatrix_step(c, v_max=mc.V_MAX, g_perp=G_PERP,
-                                  s_trim=S_TRIM, r_band=R_BAND,
-                                  g_capture=G_CAPTURE, s_capture=None)
+    vx, vy = oecs_separatrix_step(c, v_max=mc.V_MAX, g_perp=G_PERP)
     return vx * mc.GAIN, vy * mc.GAIN
 
 

@@ -1,50 +1,40 @@
 """
 Control primitives for the 6-robot pentagon cluster.
 
-Scalar-field primitives (1-6) are ported from the notebook:
-  trunk/Python_Simulations/Separatrix_Control_testing/saddle_point_6_robot2.ipynb
-Each takes a PentagonCluster and returns (vx_c, vy_c).  They call
-cluster.sample_field_at_robots() to get 6 scalar readings, then fit a full
-second-order model recovering the gradient and Hessian at the centroid.
+Each primitive takes a PentagonCluster and returns the centroid velocity
+(vx_c, vy_c). The six robots sample the field and a full quadratic is fit
+about the centroid, recovering first and second derivatives.
 
-Primitive 7 is a vector-field primitive ported from:
-  trunk/Python_Simulations/separatrix_interactive_v6r.ipynb
-It queries cluster.field.get_value() directly to obtain (u, v) readings and
-fits two independent quadratics (one per component) to estimate the Jacobian
-and its det(J) landscape.
+Scalar primitives (1-6) are ported from
+trunk/Python_Simulations/Separatrix_Control_testing/saddle_point_6_robot2.ipynb.
+They fit one quadratic to cluster.sample_field_at_robots() and act on its
+gradient and Hessian.
 
-Primitive summary:
-  1. newton_step              -- scalar: plain Newton, straight-line approach
-  2. sign_decomposed_step     -- scalar: per-component sign control (chatters on trench)
-  3. anisotropic_newton_step  -- scalar: per-eigendirection gains, no chatter
-  4. tanh_sliding_step        -- scalar: boundary-layer SMC, smooth reach
-  5. adaptive_eigen_step      -- scalar: single v_max, automatic curvature normalization,
-                                 cubic convergence near saddle (recommended)
-  6. adaptive_eigen_step_abs  -- scalar: |lambda_i| in denominator: snap perp,
-                                 descend along trench (Dauphin-style)
-  7. separatrix_logic_c_step  -- vector: hybrid trench navigator with FLOW-band override
-                                 on the separatrix (Logic C from separatrix_interactive_v6r)
-  8. logic_g_zero_flow_pentagon -- vector: heuristic Logic G port; tracks det(J)=0
-                                 Okubo-Weiss diamond using gradient/flow blend.
-                                 Fixed orientation (no omega).
-  9. logic_g_newton_contour_pentagon -- vector: Newton-step Logic G; drives
-                                 det(J) -> 0 via Newton step along gradient +
-                                 perp-gradient tangential drift. Fixed orientation.
- 10. oecs_trap_step            -- vector: objective (frame-invariant) tracker of
-                                 attracting OECS/TRAP curves built from the
-                                 rate-of-strain tensor S = (J + J^T)/2. Rides
-                                 trenches of the smaller strain eigenvalue s1
-                                 using S's own eigenframe; one knob (s_capture)
-                                 switches ride-along vs core-seek-and-park.
- 11. oecs_separatrix_step      -- vector: objective (frame-invariant) traverser of
-                                 the FULL separatrix network, the S-based analogue
-                                 of separatrix_logic_c_step (Primitive 7). Rides the
-                                 transverse trench of s1 with the snap taken
-                                 orthogonal to the direction of travel (not a fixed
-                                 eigenvector), so one law holds both the attracting
-                                 and repelling halves; a flow-assisted CROSS mode
-                                 carries the team through isotropic points (S = 0)
-                                 where the eigenframe itself is undefined.
+Vector primitives (7-11) are ported from separatrix_interactive_v6r.ipynb
+and separatrix_interactive_v002.ipynb. They query cluster.field.get_value()
+for (u, v), fit one quadratic per component, and act on det(J) or on the
+rate-of-strain tensor S = (J + J^T)/2.
+
+  1. newton_step                  plain Newton, straight-line approach
+  2. sign_decomposed_step         per-component sign, chatters on the trench
+  3. anisotropic_newton_step      per-eigendirection gains, no chatter
+  4. tanh_sliding_step            boundary-layer SMC, smooth reach
+  5. adaptive_eigen_step          one knob v_max, Newton near the saddle
+                                  (recommended)
+  6. adaptive_eigen_step_abs      |lambda| denominator, snap then descend
+                                  the trench (Dauphin-style)
+  7. separatrix_logic_c_step      det(J) trench navigator, FLOW at a crest,
+                                  flow-saddle capture
+     separatrix_logic_park_step   Logic C plus PARK at a det(J) well
+  8. logic_g_zero_flow_pentagon   heuristic det(J) = 0 tracker
+  9. logic_g_newton_contour_pentagon  Newton step onto det(J) = 0 plus
+                                  tangent drift
+ 10. oecs_trap_step               objective tracker of attracting OECS/TRAP
+                                  curves, the trenches of s1 (smaller
+                                  eigenvalue of S)
+ 11. oecs_separatrix_step         objective traverser of the full separatrix
+                                  network along the s1 trench (S analogue
+                                  of 7)
 """
 import numpy as np
 
@@ -54,49 +44,28 @@ import numpy as np
 # -----------------------------------------------------------------------
 
 def _quadratic_basis(rx, ry):
-    """Basis vector for a single relative position (rx, ry).
+    """Basis [1, x, y, x^2/2, xy, y^2/2] at relative position (rx, ry).
 
-    Paper cross-reference (Draft_5c.tex, Eq. 7): the paper writes the
-    fitted coefficients as a_1..a_6 for u and b_1..b_6 for v, in place of
-    the derivative-style names used here:
-
-        u0, ux, uy, uxx, uxy, uyy  ->  a_1, a_2, a_3, a_5, a_4, a_6
-        v0, vx, vy, vxx, vxy, vyy  ->  b_1, b_2, b_3, b_5, b_4, b_6
-
-    Note the slot order differs. This basis is [1, x, y, x^2/2, xy, y^2/2],
-    so the xy term sits in slot 5; the paper's basis is
-    [1, x, y, xy, x^2/2, y^2/2], with xy in slot 4. Both are internally
-    consistent and give identical fits, but a_4 is the xy coefficient
-    while theta[4] here is also xy, whereas theta[3] is xx and maps to
-    a_5. Mind the swap when comparing code against the paper's Eq. 8-9.
-
-    The one-half factors on x^2 and y^2 (absent on xy) are load-bearing in
-    both conventions: they make the recovered coefficients equal the Taylor
-    derivatives directly, and Lemma 1's noise gains (8/sqrt(10) for the
-    pure second-order terms, 4/sqrt(10) for the mixed one) assume them.
+    The paper (Draft_5c.tex, Eq. 7) names the coefficients a_1..a_6 for u
+    and b_1..b_6 for v and orders its basis [1, x, y, xy, x^2/2, y^2/2], so
+    theta[3] (xx) is a_5 and theta[4] (xy) is a_4. Mind the swap against
+    Eq. 8-9. The one-half factors make the coefficients equal the Taylor
+    derivatives, and Lemma 1's noise gains (8/sqrt(10) pure, 4/sqrt(10)
+    mixed) assume them.
     """
     return np.array([1.0, rx, ry, rx**2 / 2.0, rx * ry, ry**2 / 2.0])
 
 
 def _fit_quadratic(relative_positions, readings):
     """
-    Fit a local quadratic scalar field model to 6 robot readings.
+    Fit a quadratic to 6 scalar readings at (6, 2) centroid-relative
+    positions. Returns theta ordered as in _quadratic_basis.
 
-    Well-posedness: the 6x6 Phi matrix is singular exactly when the six
-    sample points lie on a common conic (circle, ellipse, line pair, ...).
-    Six robots on one ring (e.g. a regular hexagon) is therefore always
-    singular; the pentagon-plus-center formation is not, because the only
-    conic through the five ring robots is their circumcircle, which
-    misses the center robot. Conditioning degrades smoothly as the
-    formation deforms toward a conic, hence the det check below.
-
-    Args:
-        relative_positions: (6, 2) array of (rx, ry) relative to centroid
-        readings: (6,) array of scalar field values
-
-    Returns:
-        theta: (6,) coefficient vector [phi_c, dphi/dx, dphi/dy,
-                                        d2phi/dx2, d2phi/dxdy, d2phi/dy2]
+    Phi is singular exactly when the six points lie on a common conic, so
+    six robots on one ring always fail. The pentagon-plus-center formation
+    does not, since the ring's circumcircle misses the center robot.
+    Conditioning degrades as the formation deforms toward a conic, hence
+    the det check.
     """
     Phi = np.array([_quadratic_basis(relative_positions[j, 0],
                                      relative_positions[j, 1])
@@ -109,13 +78,7 @@ def _fit_quadratic(relative_positions, readings):
 
 
 def _extract_grad_hessian(theta):
-    """
-    Extract gradient and Hessian from quadratic fit coefficients.
-
-    Returns:
-        grad: (2,) gradient vector [dphi/dx, dphi/dy]
-        H:    (2, 2) Hessian matrix
-    """
+    """Return (grad, H) from quadratic fit coefficients."""
     grad = theta[1:3].copy()
     H = np.array([[theta[3], theta[4]],
                   [theta[4], theta[5]]])
@@ -145,13 +108,9 @@ def _estimate(cluster):
 
 def _trench_frame(H):
     """
-    Decompose H into saddle eigenbasis.
-
-    Returns:
-        ((lambda_perp, v_perp), (lambda_along, v_along))
-          where lambda_perp > 0 (convex, across trench)
-          and   lambda_along < 0 (concave, along trench)
-        or None if H does not have mixed-sign eigenvalues.
+    Split H into ((lambda_perp, v_perp), (lambda_along, v_along)) with
+    lambda_perp > 0 across the trench and lambda_along < 0 along it.
+    Returns None if H is not a saddle.
     """
     eigenvalues, eigenvectors = np.linalg.eigh(H)
     lam0, lam1 = eigenvalues
@@ -172,10 +131,8 @@ def _trench_frame(H):
 
 def newton_step(cluster, step_size=0.02, max_step=1.0):
     """
-    Plain Newton step: delta = -H^{-1} * grad, scaled by step_size.
-
-    Converges in a straight line but does not preferentially collapse
-    onto the trench.
+    Plain Newton step -H^{-1} grad, scaled by step_size. Converges in a
+    straight line but does not collapse onto the trench first.
     """
     grad, H = _estimate(cluster)
     try:
@@ -197,10 +154,8 @@ def newton_step(cluster, step_size=0.02, max_step=1.0):
 
 def sign_decomposed_step(cluster, step_size=0.02):
     """
-    Per-component sign of the Newton step.
-
-    Reaches the trench quickly but chatters (sign flipping) once on it.
-    First-order sliding mode in the standard x/y basis.
+    Per-component sign of the Newton step (first-order sliding mode in
+    x/y). Reaches the trench quickly but chatters once on it.
     """
     grad, H = _estimate(cluster)
     try:
@@ -218,16 +173,10 @@ def sign_decomposed_step(cluster, step_size=0.02):
 
 def anisotropic_newton_step(cluster, gain_perp=0.2, gain_along=0.02, max_step=1.0):
     """
-    Decompose Newton step into trench eigenbasis and apply separate gains.
-
-    gain_perp:  gain for the convex (across-trench) direction -- large value
-                for fast snap to the trench.
-    gain_along: gain for the concave (along-trench) direction -- small value
-                for gentle climb to the saddle.
-
-    No chatter. Eigenvector sign flips are harmless because the step
-    direction is determined by the signed curvature-normalized component.
-    Falls back to plain newton_step if H is not a saddle.
+    Newton step in the trench eigenbasis with separate gains, a large
+    gain_perp for a fast snap onto the trench and a small gain_along for a
+    gentle climb to the saddle. No chatter, and eigenvector sign flips are
+    harmless. Falls back to newton_step if H is not a saddle.
     """
     grad, H = _estimate(cluster)
     frame = _trench_frame(H)
@@ -255,13 +204,10 @@ def anisotropic_newton_step(cluster, gain_perp=0.2, gain_along=0.02, max_step=1.
 def tanh_sliding_step(cluster, reach_gain=0.1, boundary=0.2,
                       gain_along=0.02, max_step=1.0):
     """
-    Saturated reaching law in the trench eigenbasis.
-
-    Far from trench: tanh saturates -> bounded constant-speed reach.
-    Near trench (|s| < boundary): linear region -> exponential decay.
-    Along-trench direction: gentle Newton step.
-
-    Falls back to plain newton_step if H is not a saddle.
+    Saturated reaching law in the trench eigenbasis. Across the trench,
+    tanh gives a bounded constant-speed reach far out and exponential decay
+    inside |s| < boundary. Along the trench, a gentle Newton step. Falls
+    back to newton_step if H is not a saddle.
     """
     grad, H = _estimate(cluster)
     frame = _trench_frame(H)
@@ -288,24 +234,14 @@ def tanh_sliding_step(cluster, reach_gain=0.1, boundary=0.2,
 
 def adaptive_eigen_step(cluster, v_max=0.04):
     """
-    Self-tuning eigenstep with a single parameter v_max.
+    Self-tuning eigenstep with one parameter v_max. For each eigendirection
 
-    For each eigendirection i:
-      c_i = -(v_i . grad) / lambda_i    (curvature-normalized Newton step)
-      s_i = v_max * tanh(c_i / v_max)   (hyperbolic saturation)
-      delta += s_i * v_i
+      c_i = -(v_i . grad) / lambda_i,   delta += v_max tanh(c_i / v_max) v_i
 
-    Behavior:
-      Far from saddle (|c_i| >> v_max): s_i ~ v_max * sign(c_i)
-        -> bounded constant-speed reach, no gain tuning.
-      Near saddle (|c_i| << v_max): tanh(x) ~ x, so s_i ~ c_i
-        -> recovers exact Newton with cubic convergence (superlinear).
-
-    One parameter (v_max) sets both the reach speed far out and the
-    boundary-layer width near the saddle. No separate per-direction gains.
-
-    Falls back to plain newton_step (with step_size=v_max) if H is not
-    a clean saddle.
+    Far out the step saturates at v_max. Near the saddle tanh is linear and
+    the step recovers Newton. v_max sets both the reach speed and the
+    boundary-layer width. Falls back to newton_step(step_size=v_max) if H
+    is not a saddle.
     """
     grad, H = _estimate(cluster)
     frame = _trench_frame(H)
@@ -331,29 +267,12 @@ def adaptive_eigen_step(cluster, v_max=0.04):
 
 def adaptive_eigen_step_abs(cluster, v_max=0.04):
     """
-    Case 5 with |lambda_i| in the denominator (Dauphin-style).
-
-    For each eigendirection i:
-      c_i = -(v_i . grad) / |lambda_i|    (sign-flipped along trench)
-      s_i = v_max * tanh(c_i / v_max)
-      delta += s_i * v_i
-
-    Under the local quadratic model g ~ H r:
-      perpendicular (lambda > 0):  c_perp  ~ -r_perp   (snap to trench)
-      along trench  (lambda < 0):  c_along ~ +r_along  (descend away from saddle)
-
-    Replaces the saddle attractor of adaptive_eigen_step with a snap-then-
-    descend controller: perp direction still attracts the formation to the
-    trench (the positive-eigenvalue eigendirection of H), the along direction
-    repels from the saddle and slides the formation down the trench toward
-    whatever it leads to.
-
-    On fields whose trench has no finite minimum (the bimodal Gaussian used
-    in main_mod_dauph.py is one), the formation descends along the trench
-    indefinitely; v_max bounds the per-step velocity.
-
-    Falls back to plain newton_step (with step_size=v_max) if H is not a
-    clean saddle, matching adaptive_eigen_step's fallback.
+    adaptive_eigen_step with |lambda_i| in the denominator (Dauphin-style).
+    Under g ~ H r this gives c_perp ~ -r_perp, a snap onto the trench, and
+    c_along ~ +r_along, descent along the trench away from the saddle. On
+    fields whose trench has no finite minimum (the bimodal Gaussian in
+    main_mod_dauph.py) the team descends indefinitely at a speed bounded by
+    v_max. Falls back to newton_step(step_size=v_max) if H is not a saddle.
     """
     grad, H = _estimate(cluster)
     frame = _trench_frame(H)
@@ -376,42 +295,38 @@ def adaptive_eigen_step_abs(cluster, v_max=0.04):
 # -----------------------------------------------------------------------
 # Primitive 7: Separatrix Logic C (vector field)
 # -----------------------------------------------------------------------
-# Ported from separatrix_interactive_v6r.ipynb, classes HybridStepperBase
-# and LogicCStepper.  Operates on a VECTOR field: queries cluster.field
-# directly rather than cluster.sample_field_at_robots().
+# Ported from separatrix_interactive_v6r.ipynb (HybridStepperBase,
+# LogicCStepper). Two quadratics, one for u and one for v, give the
+# Jacobian, and det(J) is a scalar field whose trench is the separatrix.
+# The local flow chooses between Logic A (signed lambda, attract toward the
+# trench saddle) and Logic B (|lambda|, descend along the trench), with a
+# FLOW override at a crest of det(J).
 #
-# The core idea: fit two independent 6-coef quadratics (one for u, one for v)
-# to recover the Jacobian and its determinant landscape.  det(J) is a scalar
-# field whose trench is the separatrix.  Logic C then navigates this scalar
-# landscape using the local flow direction (theta_u[0], theta_v[0]) to
-# choose between two eigenstep bodies:
-#   Logic A: signed lambda denominator -> attracts toward the trench saddle.
-#   Logic B: |lambda| denominator      -> descends along the trench.
-# A FLOW-band override kicks in when det(J) is near zero (on the separatrix).
+# 2026-10-09 rewrite. The FLOW band |D| < eps_raw or |D|/||H_D|| < eps_dim
+# (both tuned to the field and formation) became a crest test: the fitted
+# saddle of det(J) lies within c_crest * rho of the centroid. FLOW_DRIFT
+# was removed. A latched CAPTURE was added, entered when the fitted flow has
+# a saddle inside the footprint; before it the tracker never held a flow
+# saddle and rode on along the wall trench. Later the same day the modes
+# went from five to three: CAPTURE takes the Newton step to the fitted
+# stagnation point instead of descending det(J), which holds the saddle
+# under noise (the descent drifted off), and SLIDE, ATTRACT and the
+# definite-Hessian fallback merged into TRACK with a signed across-trench
+# Newton step, which keeps the Santa Barbara run on the main FTLE ridge.
+# Tests and maps are in experiments/primitive11_simplification/.
 # -----------------------------------------------------------------------
 
 
 def _sample_vector_at_robots(cluster):
     """
-    Sample (u, v) from the vector field at each robot's position.
+    Sample (u, v) at each robot. Returns (u_arr, v_arr), each (6,).
 
-    Noise model (Paper_Draft_2A, Section VI Noise Model; both hooks default
-    to 0 for backward compatibility):
-
-    Position noise `cluster.position_noise_std`: Gaussian N(0, sigma_p^2)
-    is added independently to each robot's (x, y) before querying the field,
-    i.e. the field is sampled at a perturbed location while the quadratic
-    fit uses the nominal robot positions.  True robot state is unchanged.
-
-    Measurement noise `cluster.measurement_noise_std`: Gaussian
-    N(0, sigma_uv^2) is added independently to each robot's u and v reading
-    after the field query.  Same additive-sensor-noise model as the
-    `noise_std` hook in the archived 3-robot field_types.py and as
-    Michini et al. 2014 (T-RO), Eq. (6).
-
-    Returns:
-        u_arr: (6,) array of u-component readings
-        v_arr: (6,) array of v-component readings
+    Two noise hooks (Paper_Draft_2A Sec. VI), both 0 by default.
+    cluster.position_noise_std perturbs each robot's (x, y) before the field
+    query, while the fit uses the nominal positions and the true state is
+    unchanged. cluster.measurement_noise_std adds Gaussian noise to each u
+    and v reading, the same model as the archived 3-robot field_types.py
+    and Michini et al. 2014 (T-RO), Eq. (6).
     """
     coords = cluster.get_robot_positions()
     pos_sigma  = getattr(cluster, 'position_noise_std', 0.0)
@@ -429,21 +344,7 @@ def _sample_vector_at_robots(cluster):
 
 
 def _fit_vector_quadratic(rel_pos, u_readings, v_readings):
-    """
-    Fit a 6-parameter quadratic to each field component independently.
-
-    Uses the same _quadratic_basis already defined above.  Builds the 6x6
-    design matrix once, solves for theta_u and theta_v separately.
-
-    Args:
-        rel_pos:     (6, 2) relative robot positions (rx, ry) w.r.t. centroid
-        u_readings:  (6,)  u-component samples
-        v_readings:  (6,)  v-component samples
-
-    Returns:
-        theta_u, theta_v: each (6,) coefficient vectors
-                          [f_c, df/dx, df/dy, d2f/dx2, d2f/dxdy, d2f/dy2]
-    """
+    """Fit _quadratic_basis to u and v separately. Returns (theta_u, theta_v)."""
     Phi = np.array([_quadratic_basis(rel_pos[j, 0], rel_pos[j, 1])
                     for j in range(6)])
     if abs(np.linalg.det(Phi)) > 1e-10:
@@ -481,64 +382,47 @@ def _det_hessian(theta_u, theta_v):
     return np.array([[D_xx, D_xy], [D_xy, D_yy]])
 
 
-def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025,
-                            guard='sign'):
-    """
-    Logic C: flow-projected-on-trench selector for vector fields.
+LOGIC_C_LEGACY = ('eps_raw', 'eps_dim', 'guard')
 
-    Fits two quadratics to recover the local Jacobian, then navigates the
-    det(J) landscape.  On the separatrix (det(J) ~ 0) a FLOW step follows
-    the local vector field tangent to the trench.  Away from it, the local
-    flow direction at the centroid (theta_u[0], theta_v[0]) is projected
-    onto the along-trench eigenvector of H_det to select:
-      flow points along descent -> Logic B (slide along trench)
-      flow points against descent -> Logic A (attract toward saddle)
+
+def separatrix_logic_c_step(cluster, v_max=0.04, c_crest=0.1, **legacy):
+    """
+    Logic C, the D tracker. Three modes, checked in order each cycle:
+
+      CAPTURE  the fitted flow has a saddle within rho of the centroid
+               (det J0 < 0 and |J0^-1 v0| < rho, the critical point test of
+               the 3-robot work). Latched: for the rest of the run, the
+               Newton step -J0^-1 v0 to the fitted stagnation point, the
+               attraction law of the 3-robot work.
+      FLOW     fitted H_det a saddle whose stationary point lies within
+               c_crest * rho of the centroid, i.e. the team sits on a crest
+               of det(J). Follow the flow along w1 and Newton-snap across.
+      TRACK    otherwise. w1 (smaller eigenvalue of H_det) is oriented with
+               the flow, v0 . w1 >= 0. Along w1 move |w1 . g| / |lambda1|,
+               across w2 take the signed Newton step -w2 . g / lambda2.
+
+    TRACK merges the earlier SLIDE and ATTRACT, which differed only in the
+    sign of the along-trench step, and needs no fallback where H_det is
+    definite. rho is the formation's mean ring radius, measured each step.
+    The capture reads the measured flow, so like the rest of Logic C it is
+    not objective. Per-run state (_logicc_captured) lives on the cluster and
+    is cleared by building a fresh PentagonCluster per run. The previous
+    version's band thresholds (eps_raw, eps_dim) are accepted and ignored.
+    guard='transverse' is rejected.
 
     Args:
         cluster:  PentagonCluster with a vector field attached
         v_max:    per-direction saturation speed (m/s)
-        eps_raw:  raw det(J) threshold for the FLOW band
-        eps_dim:  dimensionless det(J)/||H_det||_F threshold for FLOW band
-        guard:    'sign' (default, unchanged from every published number).
-                  'transverse' is an EXPERIMENTAL, NOT WORKING alternative
-                  -- see revision/items.yaml B1 before touching it again.
-                  The degenerate-frame guard below tests lam[0]*lam[1] >= 0,
-                  i.e. whether the fitted H_det is indefinite -- a genuine
-                  saddle of det(J) has one positive and one negative
-                  eigenvalue. On the double-gyre benchmark the TRUE H_det is
-                  positive definite over the outer half of each separatrix
-                  segment (|y| > 0.25), so this guard's hypothesis and
-                  Theorem 1's exact-estimate hypothesis are mutually
-                  exclusive there; the law only traverses because the
-                  FITTED H_det is traceless (a finite-radius truncation
-                  artifact, Section sensitivity) and therefore artificially
-                  indefinite. 'transverse' attempted to replace the sign
-                  test with a test on which eigenvector is transverse to the
-                  trench (larger |grad(D) . w|, independent of eigenvalue
-                  sign) so the law's hypothesis would hold everywhere on the
-                  benchmark rather than only where truncation fakes
-                  indefiniteness. Checked against the clean six-start
-                  benchmark 2026-08-04: 0 of 6 traverse under 'transverse',
-                  against 6 of 6 under 'sign' with the closest-approach
-                  values matching the published 0.0003-0.0194 range exactly.
-                  Fixing the magnitude-vs-sign bug in the restoring term
-                  (r_perp) did not resolve it, meaning at least one more
-                  sign/role assumption elsewhere in this function (likely
-                  the tangent-side v_neg sign-stabilization or the SLIDE/
-                  ATTRACT split) still implicitly depends on i_pos carrying
-                  the positive eigenvalue. This needs a fuller re-derivation
-                  than a same-session patch. Resolution adopted instead:
-                  keep this guard exactly as published, and qualify Theorem
-                  1's statement in the text (state it for the class of
-                  fields where Sigma is concave along Gamma, note the double
-                  gyre is not in that class for D over |y| > 0.25, and
-                  reframe Section disc_clean's traversal as "what the fitted
-                  law does" rather than "what Theorem 1 predicts") -- v1's
-                  own documented fallback for exactly this outcome.
+        c_crest:  crest radius as a fraction of rho (dimensionless)
 
     Returns:
         (vx_c, vy_c): centroid velocity command
     """
+    unknown = set(legacy) - set(LOGIC_C_LEGACY)
+    if unknown:
+        raise TypeError(f"separatrix_logic_c_step no longer accepts {sorted(unknown)}")
+    if legacy.get('guard', 'sign') != 'sign':
+        raise ValueError("guard='transverse' was removed with the 2026-10-09 rewrite")
     eps = 1e-9
 
     # -- Estimation --------------------------------------------------------
@@ -549,169 +433,369 @@ def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025,
     det_val  = _det_value(theta_u, theta_v)
     grad_det = _det_gradient(theta_u, theta_v)
     H_det    = _det_hessian(theta_u, theta_v)
+    H_norm   = np.linalg.norm(H_det, 'fro')
+    rho = float(np.mean(np.sort(np.linalg.norm(rel_pos, axis=1))[1:]))
+    f = np.array([theta_u[0], theta_v[0]])
+    lam, V = np.linalg.eigh(H_det)
 
-    # -- FLOW-band check ---------------------------------------------------
-    H_norm = np.linalg.norm(H_det, 'fro')
-    on_raw = abs(det_val) < eps_raw
-    on_dim = (abs(det_val) / max(H_norm, 1e-12)) < eps_dim
-
-    # Per-step mode logging (2026-07-02): if the cluster carries a
-    # `diagnostics` list (PentagonCluster does; reset() clears it), record
-    # which selector branch fired and the quantities that decided it.
-    # Backward compatible: silent when the attribute is absent/None.
+    # Per-step mode log, recorded only if the cluster has a `diagnostics` list.
     def _log(mode):
         diag = getattr(cluster, 'diagnostics', None)
         if diag is not None:
-            lam_d = np.linalg.eigvalsh(H_det)
             diag.append({
                 'mode': mode, 'det': float(det_val),
                 'det_ratio': float(abs(det_val) / max(H_norm, 1e-12)),
-                'lam1': float(lam_d[0]), 'lam2': float(lam_d[1]),
+                'lam1': float(lam[0]), 'lam2': float(lam[1]),
             })
 
-    def _roles(lam, V):
-        """
-        Identify which eigenvector of H_det is transverse to the trench and
-        which is tangent. 'sign' (default): transverse = the eigenvalue of
-        each sign, so callers use lam[i]'s own sign to distinguish them, and
-        this function reports None to signal "use the old sign-based path."
-        'transverse': grad(D) is normal to the D=0 level set wherever it is
-        nonzero, so identify transverse as the eigenvector with the LARGER
-        |grad(D) . w|, independent of eigenvalue sign -- consistent with the
-        benchmark's true geometry (H_det positive definite over the outer
-        half of each segment) rather than relying on the fitted Hessian's
-        truncation-induced indefiniteness. Degenerate only when the two
-        alignments are both negligible (grad(D) itself vanishes) or the
-        eigenframe is isotropic (lam[0] == lam[1]).
-        """
-        if guard == 'sign':
-            return None
-        proj = np.array([abs(float(grad_det @ V[:, 0])), abs(float(grad_det @ V[:, 1]))])
-        if np.max(proj) < eps or abs(lam[0] - lam[1]) < eps:
-            return 'degenerate'
-        i_trans = 0 if proj[0] > proj[1] else 1
-        i_tan = 1 - i_trans
-        return i_tan, i_trans
+    def _sat(c):
+        return v_max * np.tanh(c / v_max)
 
-    if on_raw or on_dim:
-        # FLOW step: follow local field along trench, snap perp to trench.
-        f = np.array([theta_u[0], theta_v[0]])
-        lam, V = np.linalg.eigh(H_det)
-        roles = _roles(lam, V)
-        if roles == 'degenerate' or (roles is None and (
-                lam[0] * lam[1] >= -eps or np.min(np.abs(lam)) < eps)):
-            # Degenerate H_det: plain saturated flow step.
-            _log('FLOW_DRIFT')
-            n = np.linalg.norm(f)
-            if n < 1e-12:
-                return 0.0, 0.0
-            scale = v_max * np.tanh(n / v_max) / n
-            return float(f[0] * scale), float(f[1] * scale)
-        if roles is None:
-            i_neg = 0 if lam[0] < lam[1] else 1
-            i_pos = 1 - i_neg
-            lam_pos_restore = lam[i_pos]  # always positive: 'sign' guard
-                                          # already required lam[0]*lam[1]<0
-        else:
-            i_neg, i_pos = roles  # tangent, transverse
-            # Transverse identification is by grad(D) alignment, not sign,
-            # so lam[i_pos] can be negative here even though the transverse
-            # channel must always restore TOWARD the trench, never away from
-            # it. Use the magnitude, exactly as the s1 tracker's sign-free
-            # transverse channel does (Section sep_controller / eq. vpar).
-            lam_pos_restore = abs(lam[i_pos])
-        v_neg = V[:, i_neg]
-        v_pos = V[:, i_pos]
-        c_along = float(f @ v_neg)
-        r_perp  = float(grad_det @ v_pos) / lam_pos_restore
-        c_perp  = -r_perp
-        s_along = v_max * np.tanh(c_along / v_max)
-        s_perp  = v_max * np.tanh(c_perp  / v_max)
-        delta = s_along * v_neg + s_perp * v_pos
+    # -- 1. CAPTURE: a flow saddle inside the footprint, latched ------------
+    # The Newton step J0^-1 v0 to the stagnation point uses only zeroth- and
+    # first-order coefficients, the least noisy ones the fit returns.
+    J = np.array([[theta_u[1], theta_u[2]], [theta_v[1], theta_v[2]]])
+    det_J = np.linalg.det(J)
+    at_saddle = (det_J < 0 and
+                 float(np.linalg.norm(np.linalg.solve(J, f))) < rho)
+    if getattr(cluster, '_logicc_captured', False) or at_saddle:
+        cluster._logicc_captured = True
+        _log('CAPTURE')
+        if abs(det_J) < eps:
+            return 0.0, 0.0
+        delta = _sat(-np.linalg.solve(J, f))
+        return float(delta[0]), float(delta[1])
+
+    w1, w2 = V[:, 0], V[:, 1]
+    lam2 = lam[1] if abs(lam[1]) >= eps else np.copysign(eps, lam[1])
+    c_across = -float(w2 @ grad_det) / lam2
+
+    # -- 2. FLOW at a crest: the fitted saddle of det(J) is inside the ------
+    # footprint, where both Newton steps vanish and only the flow can carry
+    # the team across.
+    if (lam[0] * lam[1] < 0 and
+            float(np.linalg.norm(np.linalg.solve(H_det, grad_det))) < c_crest * rho):
+        delta = _sat(float(f @ w1)) * w1 + _sat(c_across) * w2
         _log('FLOW')
         return float(delta[0]), float(delta[1])
 
-    # -- A/B selector ------------------------------------------------------
-    lam, V = np.linalg.eigh(H_det)
-    roles = _roles(lam, V)
-
-    if roles == 'degenerate' or (roles is None and lam[0] * lam[1] >= -eps):
-        # Not a saddle of det(J): fall back to Logic A.
-        _log('ATTRACT_FALLBACK')
-        c0 = -(V[:, 0] @ grad_det) / (lam[0] if abs(lam[0]) > eps else eps)
-        c1 = -(V[:, 1] @ grad_det) / (lam[1] if abs(lam[1]) > eps else eps)
-        delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
-                 v_max * np.tanh(c1 / v_max) * V[:, 1])
-        return float(delta[0]), float(delta[1])
-
-    if roles is None:
-        i_neg = 0 if lam[0] < lam[1] else 1
-    else:
-        i_neg = roles[0]  # tangent
-    v_neg = V[:, i_neg]
-
-    # Sign-stabilize v_neg so it points in the direction of decreasing det(J).
-    if float(grad_det @ v_neg) > 0:
-        v_neg = -v_neg
-
-    f = np.array([theta_u[0], theta_v[0]])
-
-    if float(f @ v_neg) > 0:
-        # Flow points along trench descent -> Logic B (|lambda| denominator).
-        mode_ab = 'SLIDE'
-        c0 = -(V[:, 0] @ grad_det) / abs(lam[0])
-        c1 = -(V[:, 1] @ grad_det) / abs(lam[1])
-    else:
-        # Flow points against descent -> Logic A (signed lambda denominator).
-        mode_ab = 'ATTRACT'
-        c0 = -(V[:, 0] @ grad_det) / lam[0]
-        c1 = -(V[:, 1] @ grad_det) / lam[1]
-
-    _log(mode_ab)
-    delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
-             v_max * np.tanh(c1 / v_max) * V[:, 1])
+    # -- 3. TRACK: along the flow on w1, signed Newton step across ----------
+    if float(f @ w1) < 0:
+        w1 = -w1
+    c_along = abs(float(w1 @ grad_det)) / max(abs(lam[0]), eps)
+    delta = _sat(c_along) * w1 + _sat(c_across) * w2
+    _log('TRACK')
     return float(delta[0]), float(delta[1])
+
+
+# -----------------------------------------------------------------------
+# Five-mode Logic C of 2026-10-09 (CAPTURE descending det(J) with |lambda|,
+# ATTRACT_FALLBACK, FLOW, SLIDE, ATTRACT), replaced the same day by the
+# three-mode version above and kept commented out for reference.
+# -----------------------------------------------------------------------
+#
+# def separatrix_logic_c_step(cluster, v_max=0.04, c_crest=0.1, **legacy):
+#     """
+#     Logic C, the D tracker. Five modes, checked in order each cycle:
+#
+#       CAPTURE           the fitted flow has a saddle within rho of the
+#                         centroid (det J < 0 and |J^-1 v0| < rho, the
+#                         critical point test of the 3-robot work). Latched:
+#                         descend det(J) with |lambda| for the rest of the run.
+#       ATTRACT_FALLBACK  fitted H_det not a saddle (definite or degenerate).
+#                         Newton step with |lambda| in both denominators,
+#                         which descends det(J).
+#       FLOW              fitted H_det a saddle whose stationary point lies
+#                         within c_crest * rho of the centroid, i.e. the team
+#                         sits on a crest of det(J). Follow the flow along the
+#                         trench and Newton-snap across it.
+#       SLIDE / ATTRACT   otherwise. The flow at the centroid, projected on
+#                         the along-trench eigenvector, picks the step. Flow
+#                         along descent selects SLIDE (|lambda|, descend along
+#                         the trench), flow against it ATTRACT (signed lambda,
+#                         climb toward the crest).
+#
+#     rho is the formation's mean ring radius, measured each step, so the
+#     crest and capture tests need no knowledge of the field's scale. The
+#     capture reads the measured flow, so like the rest of Logic C it is not
+#     objective. Per-run state (_logicc_captured) lives on the cluster and is
+#     cleared by building a fresh PentagonCluster per run. The previous
+#     version's band thresholds (eps_raw, eps_dim) are accepted and ignored.
+#     guard='transverse' is rejected.
+#
+#     Args:
+#         cluster:  PentagonCluster with a vector field attached
+#         v_max:    per-direction saturation speed (m/s)
+#         c_crest:  crest radius as a fraction of rho (dimensionless)
+#
+#     Returns:
+#         (vx_c, vy_c): centroid velocity command
+#     """
+#     unknown = set(legacy) - set(LOGIC_C_LEGACY)
+#     if unknown:
+#         raise TypeError(f"separatrix_logic_c_step no longer accepts {sorted(unknown)}")
+#     if legacy.get('guard', 'sign') != 'sign':
+#         raise ValueError("guard='transverse' was removed with the 2026-10-09 rewrite")
+#     eps = 1e-9
+#
+#     # -- Estimation --------------------------------------------------------
+#     u_arr, v_arr = _sample_vector_at_robots(cluster)
+#     rel_pos = _get_relative_positions(cluster)
+#     theta_u, theta_v = _fit_vector_quadratic(rel_pos, u_arr, v_arr)
+#
+#     det_val  = _det_value(theta_u, theta_v)
+#     grad_det = _det_gradient(theta_u, theta_v)
+#     H_det    = _det_hessian(theta_u, theta_v)
+#     H_norm   = np.linalg.norm(H_det, 'fro')
+#     rho = float(np.mean(np.sort(np.linalg.norm(rel_pos, axis=1))[1:]))
+#     f = np.array([theta_u[0], theta_v[0]])
+#     lam, V = np.linalg.eigh(H_det)
+#
+#     # Per-step mode log, recorded only if the cluster has a `diagnostics` list.
+#     def _log(mode):
+#         diag = getattr(cluster, 'diagnostics', None)
+#         if diag is not None:
+#             diag.append({
+#                 'mode': mode, 'det': float(det_val),
+#                 'det_ratio': float(abs(det_val) / max(H_norm, 1e-12)),
+#                 'lam1': float(lam[0]), 'lam2': float(lam[1]),
+#             })
+#
+#     def _descend():
+#         c0 = -(V[:, 0] @ grad_det) / max(abs(lam[0]), eps)
+#         c1 = -(V[:, 1] @ grad_det) / max(abs(lam[1]), eps)
+#         delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
+#                  v_max * np.tanh(c1 / v_max) * V[:, 1])
+#         return float(delta[0]), float(delta[1])
+#
+#     # -- 1. CAPTURE: a flow saddle inside the footprint, latched ------------
+#     # The Newton step J^-1 v0 to the stagnation point uses only first-order
+#     # coefficients, the least noisy ones the fit returns.
+#     J = np.array([[theta_u[1], theta_u[2]], [theta_v[1], theta_v[2]]])
+#     at_saddle = (np.linalg.det(J) < 0 and
+#                  float(np.linalg.norm(np.linalg.solve(J, f))) < rho)
+#     if getattr(cluster, '_logicc_captured', False) or at_saddle:
+#         cluster._logicc_captured = True
+#         _log('CAPTURE')
+#         return _descend()
+#
+#     # -- 2. Not a saddle of det(J): descend det(J) -------------------------
+#     if lam[0] * lam[1] >= -eps or np.min(np.abs(lam)) < eps:
+#         _log('ATTRACT_FALLBACK')
+#         return _descend()
+#
+#     i_neg = 0 if lam[0] < lam[1] else 1
+#     i_pos = 1 - i_neg
+#
+#     # -- 3. FLOW at a crest: the fitted saddle of det(J) is inside the -----
+#     # footprint, where both Newton steps vanish and only the flow can carry
+#     # the team across.
+#     if float(np.linalg.norm(np.linalg.solve(H_det, grad_det))) < c_crest * rho:
+#         v_neg = V[:, i_neg]
+#         v_pos = V[:, i_pos]
+#         c_along = float(f @ v_neg)
+#         c_perp  = -float(grad_det @ v_pos) / lam[i_pos]
+#         delta = (v_max * np.tanh(c_along / v_max) * v_neg +
+#                  v_max * np.tanh(c_perp / v_max) * v_pos)
+#         _log('FLOW')
+#         return float(delta[0]), float(delta[1])
+#
+#     # -- 4. SLIDE / ATTRACT selector ---------------------------------------
+#     v_neg = V[:, i_neg]
+#     # Sign-stabilize v_neg so it points in the direction of decreasing det(J).
+#     if float(grad_det @ v_neg) > 0:
+#         v_neg = -v_neg
+#
+#     if float(f @ v_neg) > 0:
+#         # Flow points along trench descent -> Logic B (|lambda| denominator).
+#         mode_ab = 'SLIDE'
+#         c0 = -(V[:, 0] @ grad_det) / abs(lam[0])
+#         c1 = -(V[:, 1] @ grad_det) / abs(lam[1])
+#     else:
+#         # Flow points against descent -> Logic A (signed lambda denominator).
+#         mode_ab = 'ATTRACT'
+#         c0 = -(V[:, 0] @ grad_det) / lam[0]
+#         c1 = -(V[:, 1] @ grad_det) / lam[1]
+#
+#     _log(mode_ab)
+#     delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
+#              v_max * np.tanh(c1 / v_max) * V[:, 1])
+#     return float(delta[0]), float(delta[1])
+
+
+# -----------------------------------------------------------------------
+# Previous Logic C (FLOW band on eps_raw / eps_dim, FLOW_DRIFT, signed-lambda
+# fallback, experimental guard option), replaced 2026-10-09 and kept
+# commented out for reference.
+# -----------------------------------------------------------------------
+#
+# def separatrix_logic_c_step(cluster, v_max=0.04, eps_raw=1e-3, eps_dim=0.025,
+#                             guard='sign'):
+#     """
+#     Logic C, the flow-projected-on-trench selector for vector fields.
+#
+#     Inside the FLOW band (det(J) ~ 0) the team follows the local flow along
+#     the trench and snaps across it. Outside, the flow at the centroid is
+#     projected on the along-trench eigenvector of H_det. Flow along descent
+#     selects Logic B (slide along the trench), and flow against it selects
+#     Logic A (attract toward the saddle).
+#
+#     Args:
+#         v_max:    per-direction saturation speed (m/s)
+#         eps_raw:  raw det(J) threshold for the FLOW band
+#         eps_dim:  det(J)/||H_det||_F threshold for the FLOW band
+#         guard:    'sign' (default, every published number) or
+#                   'transverse' (EXPERIMENTAL, NOT WORKING, see
+#                   revision/items.yaml B1). 'sign' requires the fitted H_det
+#                   to be indefinite. On the double gyre the true H_det is
+#                   positive definite for |y| > 0.25, so the law traverses
+#                   there only because truncation makes the fitted H_det
+#                   traceless. 'transverse' picks the transverse eigenvector
+#                   by the larger |grad(D) . w| instead. On the clean six-start
+#                   benchmark (2026-08-04) it traversed 0 of 6 against 6 of 6
+#                   for 'sign', even after r_perp was fixed to use |lambda|.
+#                   Some other step (likely the v_neg sign stabilization or
+#                   the SLIDE/ATTRACT split) still assumes i_pos carries the
+#                   positive eigenvalue. The resolution was to keep 'sign' and
+#                   qualify Theorem 1 in the text.
+#     """
+#     eps = 1e-9
+#
+#     # -- Estimation --------------------------------------------------------
+#     u_arr, v_arr = _sample_vector_at_robots(cluster)
+#     rel_pos = _get_relative_positions(cluster)
+#     theta_u, theta_v = _fit_vector_quadratic(rel_pos, u_arr, v_arr)
+#
+#     det_val  = _det_value(theta_u, theta_v)
+#     grad_det = _det_gradient(theta_u, theta_v)
+#     H_det    = _det_hessian(theta_u, theta_v)
+#
+#     # -- FLOW-band check ---------------------------------------------------
+#     H_norm = np.linalg.norm(H_det, 'fro')
+#     on_raw = abs(det_val) < eps_raw
+#     on_dim = (abs(det_val) / max(H_norm, 1e-12)) < eps_dim
+#
+#     # Per-step mode log, recorded only if the cluster has a `diagnostics` list.
+#     def _log(mode):
+#         diag = getattr(cluster, 'diagnostics', None)
+#         if diag is not None:
+#             lam_d = np.linalg.eigvalsh(H_det)
+#             diag.append({
+#                 'mode': mode, 'det': float(det_val),
+#                 'det_ratio': float(abs(det_val) / max(H_norm, 1e-12)),
+#                 'lam1': float(lam_d[0]), 'lam2': float(lam_d[1]),
+#             })
+#
+#     def _roles(lam, V):
+#         """
+#         Return (i_tan, i_trans) for guard='transverse', taking the
+#         transverse eigenvector as the one with larger |grad(D) . w|.
+#         Returns None for guard='sign' (callers use eigenvalue sign) and
+#         'degenerate' when grad(D) vanishes or the eigenvalues coincide.
+#         """
+#         if guard == 'sign':
+#             return None
+#         proj = np.array([abs(float(grad_det @ V[:, 0])), abs(float(grad_det @ V[:, 1]))])
+#         if np.max(proj) < eps or abs(lam[0] - lam[1]) < eps:
+#             return 'degenerate'
+#         i_trans = 0 if proj[0] > proj[1] else 1
+#         i_tan = 1 - i_trans
+#         return i_tan, i_trans
+#
+#     if on_raw or on_dim:
+#         # FLOW step: follow local field along trench, snap perp to trench.
+#         f = np.array([theta_u[0], theta_v[0]])
+#         lam, V = np.linalg.eigh(H_det)
+#         roles = _roles(lam, V)
+#         if roles == 'degenerate' or (roles is None and (
+#                 lam[0] * lam[1] >= -eps or np.min(np.abs(lam)) < eps)):
+#             # Degenerate H_det: plain saturated flow step.
+#             _log('FLOW_DRIFT')
+#             n = np.linalg.norm(f)
+#             if n < 1e-12:
+#                 return 0.0, 0.0
+#             scale = v_max * np.tanh(n / v_max) / n
+#             return float(f[0] * scale), float(f[1] * scale)
+#         if roles is None:
+#             i_neg = 0 if lam[0] < lam[1] else 1
+#             i_pos = 1 - i_neg
+#             lam_pos_restore = lam[i_pos]  # positive, guard checked the sign
+#         else:
+#             i_neg, i_pos = roles  # tangent, transverse
+#             # lam[i_pos] may be negative here, but the transverse channel
+#             # must restore toward the trench, so use the magnitude.
+#             lam_pos_restore = abs(lam[i_pos])
+#         v_neg = V[:, i_neg]
+#         v_pos = V[:, i_pos]
+#         c_along = float(f @ v_neg)
+#         r_perp  = float(grad_det @ v_pos) / lam_pos_restore
+#         c_perp  = -r_perp
+#         s_along = v_max * np.tanh(c_along / v_max)
+#         s_perp  = v_max * np.tanh(c_perp  / v_max)
+#         delta = s_along * v_neg + s_perp * v_pos
+#         _log('FLOW')
+#         return float(delta[0]), float(delta[1])
+#
+#     # -- A/B selector ------------------------------------------------------
+#     lam, V = np.linalg.eigh(H_det)
+#     roles = _roles(lam, V)
+#
+#     if roles == 'degenerate' or (roles is None and lam[0] * lam[1] >= -eps):
+#         # Not a saddle of det(J): fall back to Logic A.
+#         _log('ATTRACT_FALLBACK')
+#         c0 = -(V[:, 0] @ grad_det) / (lam[0] if abs(lam[0]) > eps else eps)
+#         c1 = -(V[:, 1] @ grad_det) / (lam[1] if abs(lam[1]) > eps else eps)
+#         delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
+#                  v_max * np.tanh(c1 / v_max) * V[:, 1])
+#         return float(delta[0]), float(delta[1])
+#
+#     if roles is None:
+#         i_neg = 0 if lam[0] < lam[1] else 1
+#     else:
+#         i_neg = roles[0]  # tangent
+#     v_neg = V[:, i_neg]
+#
+#     # Sign-stabilize v_neg so it points in the direction of decreasing det(J).
+#     if float(grad_det @ v_neg) > 0:
+#         v_neg = -v_neg
+#
+#     f = np.array([theta_u[0], theta_v[0]])
+#
+#     if float(f @ v_neg) > 0:
+#         # Flow points along trench descent -> Logic B (|lambda| denominator).
+#         mode_ab = 'SLIDE'
+#         c0 = -(V[:, 0] @ grad_det) / abs(lam[0])
+#         c1 = -(V[:, 1] @ grad_det) / abs(lam[1])
+#     else:
+#         # Flow points against descent -> Logic A (signed lambda denominator).
+#         mode_ab = 'ATTRACT'
+#         c0 = -(V[:, 0] @ grad_det) / lam[0]
+#         c1 = -(V[:, 1] @ grad_det) / lam[1]
+#
+#     _log(mode_ab)
+#     delta = (v_max * np.tanh(c0 / v_max) * V[:, 0] +
+#              v_max * np.tanh(c1 / v_max) * V[:, 1])
+#     return float(delta[0]), float(delta[1])
 
 
 def separatrix_logic_park_step(cluster, v_max=0.04, eps_raw=1e-3,
                                 eps_dim=0.025, d_capture=None):
     """
-    Logic Park (added 2026-07-02): Logic C plus an estimator-aware PARK
-    mode. Kept as a SEPARATE primitive so separatrix_logic_c_step remains
-    unchanged as the fallback/revert path (user decision 2026-07-02).
+    Logic C plus an estimator-aware PARK mode (2026-07-02). Kept separate so
+    separatrix_logic_c_step stays unchanged as the revert path.
 
-    Motivation (Paper_Draft_2A Sections III-E and VII): the theory's
-    eigenvalue-based capture test (H_D positive definite near a well of
-    det(J)) never fires in practice, because the quadratic model's H_D
-    estimate is structurally biased near the wells: the estimated
-    eigenvalues come out indefinite and roughly 10x too small. The PARK
-    test instead uses only the quantities the estimator delivers reliably
-    (det(J)_hat and its gradient):
+    The eigenvalue-based capture test of Paper_Draft_2A (Secs. III-E, VII)
+    never fires in practice because the fitted H_D near a det(J) well comes
+    out indefinite and roughly 10x too small. PARK uses only det(J) and its
+    gradient, which the estimator delivers reliably. When det(J) < d_capture
+    it commands componentwise saturated gradient descent on det(J), which
+    settles at the well minimum, the flow saddle ending the separatrix.
 
-        if det(J)_hat < d_capture:   # deep inside a well of det(J)
-            command componentwise tanh-saturated gradient DESCENT on
-            det(J), which converges to the well minimum, i.e. the flow
-            saddle at the end of the separatrix.
-
-    d_capture is the park-vs-traverse knob: None (default) disables the
-    test and the primitive is behaviorally identical to Logic C (verified
-    trajectory-exact, noise-free, in experiments/park_vs_traverse_demo.py);
-    a finite value (e.g. -0.5 for the A=0.1 double gyre, about half the
-    well depth pi^4 A^2) parks the team at the terminal saddle.
-
-    The estimation block and the selector below the PARK test are verbatim
-    Logic C, operating on the SAME single fit per step (no double
-    sampling, so noisy behavior is directly comparable to Logic C).
-
-    Args:
-        cluster:   PentagonCluster with a vector field attached
-        v_max:     per-direction saturation speed (m/s)
-        eps_raw:   raw det(J) threshold for the FLOW band
-        eps_dim:   dimensionless det(J)/||H_det||_F threshold for FLOW band
-        d_capture: capture threshold on det(J)_hat; None = never park
-
-    Returns:
-        (vx_c, vy_c): centroid velocity command
+    d_capture = None (default) never parks and is trajectory-exact with
+    Logic C (experiments/park_vs_traverse_demo.py). A finite value, e.g.
+    -0.5 for the A = 0.1 double gyre (about half the well depth pi^4 A^2),
+    parks at the terminal saddle. Everything below PARK is verbatim Logic C
+    as it stood before the 2026-10-09 rewrite, on the same single fit. Other args as in separatrix_logic_c_step.
     """
     eps = 1e-9
 
@@ -817,10 +901,7 @@ def _lg_normalise(v, eps=1e-12):
 
 
 def _lg_perp_aligned_with(direction, reference):
-    """
-    Return the unit perpendicular to `direction` whose dot with `reference`
-    is non-negative (agrees with `reference`).
-    """
+    """Unit perpendicular to `direction` with non-negative dot on `reference`."""
     perp = np.array([-direction[1], direction[0]])
     if np.dot(perp, reference) < 0:
         perp = -perp
@@ -829,18 +910,8 @@ def _lg_perp_aligned_with(direction, reference):
 
 def _estimate_det_and_grad_pentagon(cluster):
     """
-    Estimate det(J), grad(det(J)), Hessian of det(J), and flow for
-    a 6-robot PentagonCluster.
-
-    Reuses the existing quadratic fit infrastructure from Primitive 7.
-
-    Returns:
-        (det_val, grad_det, H_det, flow, theta_u, theta_v)
-          det_val:  scalar, det of the Jacobian at the centroid
-          grad_det: (2,) raw gradient of det(J) at the centroid
-          H_det:    (2,2) Hessian of det(J) at the centroid
-          flow:     (2,) field vector at the centroid (theta_u[0], theta_v[0])
-          theta_u, theta_v: quadratic fit coefficient vectors (for downstream use)
+    Run the Primitive 7 fit. Returns (det_val, grad_det, H_det, flow,
+    theta_u, theta_v) at the centroid, with flow = (theta_u[0], theta_v[0]).
     """
     u_arr, v_arr = _sample_vector_at_robots(cluster)
     rel_pos = _get_relative_positions(cluster)
@@ -858,22 +929,11 @@ def _estimate_det_and_grad_pentagon(cluster):
 
 def logic_g_zero_flow_pentagon(cluster, step_size=0.04, correction_weight=0.0):
     """
-    Logic G contour tracker for 6-robot PentagonCluster (heuristic version).
-
-    Drives the cluster centroid onto the det(J)=0 Okubo-Weiss boundary using
-    the heuristic gradient/flow blend from separatrix_interactive_v002.
-
-    Fixed orientation (no omega returned).  Uses the pentagon's existing
-    quadratic-fit infrastructure for det_val and grad_det.
-
-    Args:
-        cluster:           PentagonCluster with a vector field attached.
-        step_size:         Commanded speed magnitude (m/s), default 0.04.
-        correction_weight: Flow blend weight w in [0, 1].  0.0 = pure gradient
-                           direction (v002 default).
-
-    Returns:
-        (vx_c, vy_c)
+    Heuristic Logic G from separatrix_interactive_v002. Drives the centroid
+    onto the det(J) = 0 Okubo-Weiss boundary at speed step_size, heading
+    toward det(J) = 0 and blending in the flow by correction_weight in
+    [0, 1] (0 is pure gradient, the v002 default). When that heading opposes
+    the flow it moves perpendicular to it instead. Fixed orientation.
     """
     det_val, grad_det, _, flow, _, _ = _estimate_det_and_grad_pentagon(cluster)
 
@@ -904,42 +964,22 @@ def logic_g_zero_flow_pentagon(cluster, step_size=0.04, correction_weight=0.0):
 def logic_g_newton_contour_pentagon(cluster, v_max=0.04, eps_grad=1e-6,
                                     use_halley=False):
     """
-    Newton-step contour tracker for 6-robot PentagonCluster.
+    Newton-step contour tracker. Drives det(J) -> 0 with a Newton step
+    across the contour and slides along the exact level-set tangent
+    perp(grad_D), oriented with the flow. Each channel saturates as
+    v_max tanh(c / v_max). No heuristic flow blending, fixed orientation.
 
-    Drives det(J) -> 0 using a Newton step perpendicular to the contour and
-    slides along the exact contour tangent perp(grad_D).  No heuristic flow
-    blending.  Fixed orientation (no omega).
+      dp_perp = -(D / ||grad_D||^2) grad_D   (Halley step if use_halley)
+      t_hat   = rot90(grad_D) / ||grad_D||
 
-    Perpendicular step:
-      dp_perp = -(D / ||grad_D||^2) * grad_D     (linear Newton toward D=0)
-      Saturated via v_max * tanh(c_per / v_max) in the descent direction.
+    Drifts with the flow when ||grad_D|| < eps_grad.
 
-    Tangential step:
-      t_hat = rot90(grad_D) / ||grad_D||   (exact level-set tangent),
-      sign-stabilized so the cluster orbits with the flow direction,
-      saturated via v_max * tanh(c_tan / v_max).
-
-    History (2026-07-02): an earlier version used the eigenvector of H_det
-    with the smallest |eigenvalue| as the tangent.  A head-to-head across
-    the double gyre (noise-free and noisy) and the 2km Santa Barbara HFR
-    field showed the perp-gradient tangent tracks 2x to 10^4x tighter and
-    circulates farther in every arena, so the eigen-tangent was removed.
-    The tangent of a level set is perpendicular to the gradient by
-    definition; the eigenvector only approximates it and is ill-defined
-    where the H_det eigenvalue magnitudes coincide (which happens exactly
-    on the double-gyre diamond).
-
-    Degenerate fallback (||grad_D|| < eps_grad): drift with flow.
-
-    Args:
-        cluster:    PentagonCluster with a vector field attached.
-        v_max:      Per-direction saturation speed (m/s), default 0.04.
-        eps_grad:   Gradient norm threshold below which flow-drift fallback fires.
-        use_halley: If True, use Halley quadratic correction instead of linear
-                    Newton for the perpendicular step.  Default False.
-
-    Returns:
-        (vx_c, vy_c)
+    History (2026-07-02). An earlier version took the tangent from the H_det
+    eigenvector with the smallest |eigenvalue|. On the double gyre (clean
+    and noisy) and the 2 km Santa Barbara HFR field, perp(grad_D) tracked
+    2x to 10^4x tighter and circulated farther. The eigenvector is also
+    undefined where the eigenvalue magnitudes coincide, which happens on the
+    double-gyre diamond.
     """
     det_val, grad_det, H_det, flow, _, _ = _estimate_det_and_grad_pentagon(cluster)
 
@@ -991,61 +1031,34 @@ def logic_g_newton_contour_pentagon(cluster, v_max=0.04, eps_grad=1e-6,
 # -----------------------------------------------------------------------
 # Primitive 10: OECS / TRAP tracker (objective rate-of-strain)
 # -----------------------------------------------------------------------
-# Tracks attracting objective Eulerian coherent structures (OECSs), the
-# instantaneous limits of LCSs (Serra and Haller 2016), operationalized as
-# TRAPs (Serra et al. 2020).  Everything is built from the rate-of-strain
-# tensor S = (J + J^T)/2, which is objective: under any time-dependent
-# rotation Q(t) of the observer frame, S transforms as Q S Q^T, so its
-# eigenvalues are invariant and its eigenvectors co-rotate with the frame.
-# det(J), vorticity, and the Okubo-Weiss field are NOT objective (they are
-# only Galilean invariant), so the Logic C separatrix tracker above can be
-# fooled by a rotating frame; this primitive cannot.
+# Tracks attracting OECSs (Serra and Haller 2016), operationalized as TRAPs
+# (Serra et al. 2020), using the rate-of-strain tensor S = (J + J^T)/2.
+# S is objective (S -> Q S Q^T in a rotating frame), while det(J),
+# vorticity, and Okubo-Weiss are only Galilean invariant, so a rotating
+# frame can fool Logic C but not this primitive. The attracting curve runs
+# along a trench of s1, the smaller eigenvalue of S, with tangent e2 and
+# normal e1. The TRAP core is the s1 minimum.
 #
-# Structure tracked: trenches (valley lines) of s1, the smaller eigenvalue
-# of S.  s1 < 0 is the local instantaneous compression rate; the attracting
-# OECS/TRAP is the curve through a local minimum of s1 whose tangent is the
-# stretching eigenvector e2 and whose normal is the compression eigenvector
-# e1.  The TRAP core is the s1 minimum itself.
-#
-# STRUCTURAL LIMIT OF THE QUADRATIC FIT (2026-07-09, verified numerically):
-# under the quadratic velocity model the entries of S are affine in
-# position, so the model's s1 = mu - ||(a, b)|| is the negative norm of an
-# affine map: a CONCAVE function whose Hessian is negative semidefinite for
-# every field, and identically ~0 on the double gyre (where the shear
-# strain b == 0).  The true trench's positive transverse curvature lives in
-# THIRD velocity derivatives the fit cannot see.  A Newton step on
-# (grad s1, H_s1), the naive analogue of the Logic C machinery, is
-# therefore impossible in principle, not merely inaccurate.  This tracker
-# uses no H_s1: the frame comes from S's eigenvectors (first-order fitted
-# coefficients, noise gain (2/sqrt(10)) sigma/rho, one full rung BETTER
-# than the H_D eigenvector tangent Logic C uses), and transverse
-# regulation is saturated gradient descent of s1 along e1 (gradient-rate,
-# not Newton-rate; the restoring slope was verified against the analytic
-# transverse curvature on the double gyre).
+# Structural limit (2026-07-09). Under the quadratic model S is affine in
+# position, so the fitted s1 = mu - ||(a, b)|| is concave for every field,
+# with Hessian ~0 on the double gyre. The trench's transverse curvature
+# lives in third derivatives, so a Newton step on H_s1 is impossible in
+# principle. The frame comes from S's eigenvectors instead (noise gain
+# (2/sqrt(10)) sigma/rho, one rung better than Logic C's H_D tangent), and
+# transverse regulation is saturated gradient descent of s1 along e1.
 # -----------------------------------------------------------------------
 
 
 def _strain_quantities(theta_u, theta_v):
     """
-    Rate-of-strain quantities at the centroid from the two quadratic fits.
+    Rate-of-strain quantities at the centroid. With mu = (u_x + v_y)/2,
+    a = (u_x - v_y)/2, b = (u_y + v_x)/2, and r = sqrt(a^2 + b^2), the
+    eigenvalues of S are s1 = mu - r and s2 = mu + r, and under the
+    quadratic model grad s1 = grad mu - (a grad a + b grad b)/r exactly.
 
-    S = [[u_x, b], [b, v_y]] with b = (u_y + v_x)/2.  Writing
-    mu = (u_x + v_y)/2 (mean strain, zero for incompressible flow) and
-    a = (u_x - v_y)/2 (deviatoric normal strain), the eigenvalues are
-    s1 = mu - r and s2 = mu + r with r = sqrt(a^2 + b^2).  Under the
-    quadratic model a, b, mu are affine in position, so grad s1 is exact
-    for the fitted field:  grad s1 = grad mu - (a grad a + b grad b)/r.
-
-    Returns:
-        s1:      smaller eigenvalue of S (compression rate, < 0 where
-                 attraction dominates)
-        grad_s1: (2,) spatial gradient of s1 at the centroid
-        e1:      (2,) unit compression eigenvector (normal to the
-                 attracting curve); sign arbitrary
-        e2:      (2,) unit stretching eigenvector (tangent to the
-                 attracting curve); sign arbitrary
-        r:       deviatoric strain magnitude; r ~ 0 means S is nearly
-                 isotropic and the eigenframe is unreliable
+    Returns (s1, grad_s1, e1, e2, r). e1 (compression, normal to the
+    attracting curve) and e2 (stretching, tangent to it) have arbitrary
+    sign. Small r means S is nearly isotropic and the eigenframe unreliable.
     """
     _, ux, uy, uxx, uxy, uyy = theta_u
     _, vx, vy, vxx, vxy, vyy = theta_v
@@ -1071,62 +1084,35 @@ def _strain_quantities(theta_u, theta_v):
 def oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
                    s_capture=None, eps_degen=1e-3):
     """
-    Objective attracting-OECS/TRAP tracker (Primitive 10).
+    Objective attracting-OECS/TRAP tracker (Primitive 10). Modes, checked
+    in order each cycle:
 
-    Selector, executed once per control cycle after the estimation step:
+      ACQUIRE  before first contact, or r < eps_degen. Saturated gradient
+               descent on s1 toward stronger attraction.
+      TRIM     after contact, s1 > -s_trim. Attraction no longer dominates
+               (the Serra-Haller termination rule), so hold position.
+      PARK     s_capture set and s1 < s_capture. Descend s1 to the core.
+      TRACK    descend s1 along e1 (snap onto the trench) and drive along
+               e2. Core-seek (s_capture set) descends s1 along the curve.
+               Ride cruises at constant speed with its sign fixed by
+               continuity, seeded once from the flow, since an eigenvector
+               field has no global sign.
 
-      1. ACQUIRE  -- before first structure contact, or when S is nearly
-                     isotropic (r < eps_degen): componentwise saturated
-                     gradient descent on s1, toward stronger attraction.
-      2. TRIM     -- after first contact, if s1 > -s_trim the local
-                     attraction no longer dominates (structure end or
-                     tensor degeneracy): hold position.  This is the
-                     Serra-Haller termination rule playing the role that
-                     the capture test plays in Logic C.
-      3. PARK     -- (core-seek only, s_capture set) if s1 < s_capture the
-                     team is inside the TRAP core well: componentwise
-                     saturated gradient descent on s1 settles at the s1
-                     minimum, the objective saddle.
-      4. TRACK    -- otherwise: transverse channel descends s1 along the
-                     compression eigenvector e1 (snaps onto the trench);
-                     tangential channel drives along the stretching
-                     eigenvector e2.  Tangent sign: core-seek descends s1
-                     along the curve (toward the core); ride keeps
-                     continuity with the previous step's tangent (seeded
-                     from the flow direction once, then never consults the
-                     flow again -- eigenvector direction fields have no
-                     global sign, so continuity is the only objective
-                     orientation rule).
+    Commands use only s1, grad s1, e1, and e2, so the team tracks the same
+    material structure in any rotating frame. s_capture = None rides the
+    structure and trims at its end. A finite value (e.g. -0.9 for the
+    A = 0.1 double gyre, whose cores sit at s1 = -pi^2 A ~ -0.987) parks at
+    the TRAP core.
 
-    Every command is built from s1, grad s1, e1, e2 only, all of which
-    transform equivariantly under time-dependent frame rotations. The
-    TRACK and TRIM commands are therefore exactly frame-covariant. ACQUIRE
-    and PARK saturate the gradient componentwise in observer axes, so they
-    are covariant only where the saturation is inactive; they still descend
-    the invariant s1 in every frame, so the closed loop tracks the same
-    material structure in any frame up to that acquisition transient.
-
-    One knob mirrors Logic Park: s_capture = None (default) rides the
-    structure and trims at its end; a finite value (e.g. -0.9 for the
-    A = 0.1 double gyre, whose TRAP cores sit at s1 = -pi^2 A ~ -0.987)
-    parks the team at the TRAP core.
-
-    Per-run state is kept on the cluster (cleared implicitly by building a
-    fresh PentagonCluster per run, the pattern all experiments use):
-      cluster._oecs_prev_tangent  -- (2,) last commanded tangent direction
-      cluster._oecs_banded        -- True once s1 first dropped below -s_trim
+    Per-run state (_oecs_prev_tangent, _oecs_banded) lives on the cluster
+    and is cleared by building a fresh PentagonCluster per run.
 
     Args:
-        cluster:    PentagonCluster with a vector field attached
         v_max:      per-direction saturation speed (m/s)
         g_perp:     gradient gain on both s1-descent channels
         s_trim:     attraction-dominance threshold (s1 > -s_trim => TRIM)
         s_capture:  TRAP-core park threshold on s1; None = ride mode
-        eps_degen:  deviatoric strain magnitude below which the eigenframe
-                    is treated as degenerate
-
-    Returns:
-        (vx_c, vy_c): centroid velocity command
+        eps_degen:  r below which the eigenframe is treated as degenerate
     """
     # -- Estimation (same single fit per step as Logic C) -------------------
     u_arr, v_arr = _sample_vector_at_robots(cluster)
@@ -1151,17 +1137,10 @@ def oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
             })
 
     def _descend_s1():
-        # Vector saturation, NOT per-component.  Saturating each Cartesian
-        # component separately is frame dependent: it makes both the descent
-        # direction (up to 39 deg of skew) and the commanded speed (a factor
-        # of sqrt(2) between axis-aligned and diagonal gradients) depend on
-        # how the x-axis happens to be drawn.  That is inadmissible here --
-        # the entire point of building this controller on s1 rather than on
-        # Okubo-Weiss is that every quantity it acts on is objective, and a
-        # frame-dependent saturation would throw that away at the last step.
-        # Saturating the MAGNITUDE and keeping the direction is exactly
-        # equivariant: v(Q grad) = Q v(grad) for every rotation Q (verified
-        # to machine precision).  Matches the same fix in Primitive 11.
+        # Saturate the magnitude, not each component. Per-component tanh
+        # depends on the axes (up to 39 deg of direction skew and a sqrt(2)
+        # speed spread) and would break objectivity. This form is exactly
+        # rotation equivariant. Primitive 11 uses the same fix.
         a = -g_perp * grad_s1
         n = float(np.linalg.norm(a))
         if n < 1e-12:
@@ -1214,254 +1193,86 @@ def oecs_trap_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
 # -----------------------------------------------------------------------
 # Primitive 11: objective separatrix traverser (rate-of-strain, full network)
 # -----------------------------------------------------------------------
-# The S-based analogue of separatrix_logic_c_step (Primitive 7): rides the
-# FULL separatrix network -- both halves, through the saddle -- using only
-# the objective quantities s1, grad s1, and the strain eigenframe (e1, e2).
-# Primitive 10 above targets a single attracting OECS segment and parks at
-# its TRAP core; this primitive targets the trench of s1 itself and keeps
-# going, the way Logic C keeps going past a saddle onto the next trench
-# segment.
+# The S-based analogue of separatrix_logic_c_step. It rides the full
+# separatrix network, both halves and through the saddles, using only s1,
+# grad s1, and the eigenframe (e1, e2). Primitive 10 stops on one
+# attracting segment, and this one keeps going as Logic C does.
 #
-# THE KEY GEOMETRIC FACT (verified numerically on the double gyre, A = 0.1,
-# 2026-07-21; do not re-derive, unit-tested): the scalar s1 has a genuine
-# TRANSVERSE TRENCH (minimum) along the ENTIRE separatrix, both the
-# attracting upper half and the repelling lower half (d^2 s1/dx^2 = +8.68 at
-# y = +/-0.35, +6.89 at +/-0.25, +3.01 at +/-0.10, measured across x = 0 for
-# every y).  What alternates between the two halves is NOT the sign of the
-# trench; it is which eigenvector is TANGENT to it.  Walking the separatrix
-# from the top saddle to the bottom saddle, e2 (stretching, attracting OECS
-# tangent) is aligned with the line on the upper half and e1 (compression)
-# is aligned with it on the lower half; they trade places exactly at the
-# origin, the isotropic point where S = 0 and s1 = s2 = 0, so neither
-# eigenvector is defined there.  (This reconciles with the material
-# attracting/repelling classification in the paper's double-gyre discussion,
-# which is a statement about which eigenvector is tangent, not about the
-# sign of the s1 trench.)
+# Geometry (double gyre, A = 0.1, 2026-07-21, unit-tested). s1 has a
+# transverse trench along the whole separatrix, on the attracting and
+# repelling halves alike (d^2 s1/dx^2 = +8.68, +6.89, +3.01 at
+# |y| = 0.35, 0.25, 0.10). What alternates is which eigenvector is tangent,
+# e2 on the upper half and e1 on the lower. They swap at the origin, an
+# isotropic point (S = 0) where neither is defined. The network is also a
+# grid, since the walls y = +/-0.5 are s1 trenches crossing the separatrix
+# at the saddles.
 #
-# Consequently the transverse channel here does NOT snap along a fixed
-# eigenvector the way Primitive 10 does (that only holds the half where the
-# hardcoded eigenvector happens to be the transverse one).  It descends s1
-# along whatever direction is orthogonal to the CURRENT RIDE TANGENT, which
-# is correct on both halves because the trench never becomes a ridge.
+# Tangent rule. Away from a stationary point, grad s1 lies almost along the
+# trench, so the tangent is the eigenvector with the larger |grad s1 . e_i|
+# and the transverse direction is the other. This resolves both the origin
+# swap and the wall-vs-separatrix choice at the saddles. Two earlier rules
+# failed. Continuity alone could turn onto a wall at a saddle and never
+# come back. Best alignment with the flow worked in the inertial frame but
+# failed at Omega = 0.2, where the frame's swirl term, which grows with
+# position, flipped the preferred eigenvector a full trench-length from any
+# saddle.
 #
-# A SECOND geometric fact, found empirically running this controller against
-# separatrix_logic_c_step: the s1-trench network, like the D-trench network
-# it coincides with here, is a GRID, not a single curve -- the wall lines
-# y = +/-0.5 are themselves s1-trenches (transverse to e1 there), crossing
-# the separatrix at the saddles.  A tangent rule based on continuity alone
-# (whichever eigenvector best matches the PREVIOUS tangent) has no reason to
-# prefer continuing through a saddle over turning onto the crossing wall
-# branch once noise or the approach angle nudges it that way, and once
-# aboard the wall branch, continuity has no restoring force back toward the
-# saddle: the ride sails off along the wall forever.
+# Two modes (2026-10-08 rewrite). TRACK rides the trench with the tangent
+# rule above. CAPTURE holds at a 2D minimum of s1, entered when s1 changes by
+# less than a fraction c_in across the footprint, q = rho |grad s1| / |s1|.
+# q is dimensionless, so c_in needs no knowledge of the field's strain rate.
+# q is large on the ride, at the gyre centres, and at the isotropic origin
+# (s1 ~ 0 there), and small only near a saddle. CAPTURE never releases.
+# Under noise q often dips below c_in before the saddle, and the hold, a
+# descent of s1, then slides the team down the trench to the saddle anyway.
+# A release on q flickered on noise (grad s1 comes from second-order
+# coefficients) and a zero-velocity hold stopped short, so both were
+# rejected (experiments/primitive11_simplification/README.md).
 #
-# The first fix tried was to choose the tangent each step by best alignment
-# with the ambient flow (mirroring Logic C's f @ v_neg test, eq. d_selector),
-# with continuity fixing only the sign.  This worked cleanly in the inertial
-# frame, but was found to fail under a ROTATING observer: the frame's own
-# solid-body swirl term does not vanish at a trench-network crossing the way
-# the true flow does (it is a constant local vector there, proportional to
-# POSITION, not to distance from the crossing), and at Omega = 0.2 it was
-# large enough to flip which eigenvector the flow preferred a FULL
-# TRENCH-LENGTH away from any saddle, not just near one -- verified
-# numerically (true flow favors one eigenvector 2:1, the swirl-corrupted
-# flow favors the other, from the very first tracking step).  No flow-based
-# rule can be made robust to this, because the corruption scales with the
-# same distance from the origin that the rule needs to operate over.
-#
-# THE ACTUAL FIX uses no flow at all.  Away from a stationary point of s1,
-# grad s1 points almost entirely ALONG the trench (its transverse component
-# vanishes there by construction, leaving only the along-track slope), so of
-# the two eigenvectors, the TANGENT is whichever has the LARGER
-# |grad s1 . e_i|, and the TRANSVERSE direction (already used by the channel
-# below) is whichever has the SMALLER one -- the same two numbers pick both
-# channels.  This was verified against the fitted estimator: it correctly
-# resolves the vertical tangent through the origin eigenvector swap and
-# correctly prefers the separatrix branch over the crossing wall branch at
-# both saddles, using only s1, grad s1, and the eigenframe.  It is immune to
-# the swirl problem above by construction, since it never reads the flow.
-#
-# The CROSS mode is kept only for the case r is degenerate on the very first
-# tracking step with no previous tangent yet established (no continuity
-# reference exists); there it falls back to the ambient flow, the one input
-# in the whole controller not built from s1 alone, exactly as Logic C's
-# FLOW-band fallback (FLOW_DRIFT) falls back to a plain saturated flow step
-# when its own Hessian degenerates.  This branch is essentially unreachable
-# on the double gyre once tracking has begun.
-#
-# OBJECTIVITY ACCOUNTING: ACQUIRE, PARK, CAPTURE, and BOTH channels of TRACK
-# (transverse and tangent selection) are built only from s1, grad s1, and the
-# co-rotating eigenvectors e1, e2, which transform equivariantly under a
-# time-dependent rotation of the observer frame; continuity fixes only a
-# sign.  The controller is therefore frame-objective throughout except for
-# the essentially-unreachable CROSS fallback, a STRONGER claim than the
-# flow-selected-tangent design it replaced, which was Galilean-objective but
-# not fully frame-objective (see experiments/traverse_objectivity_demo.py for
-# the closed-loop verification, both designs' results, and the Omega=0.2
-# failure of the flow-based version).
+# Objectivity. q, the descent, and the TRACK tangent after the first step use
+# only s1, grad s1, and the co-rotating eigenvectors, with continuity fixing
+# a sign. The measured flow enters once, as the sign of the first step's
+# tangent, so the controller is frame-objective past that seed step
+# (closed-loop check in experiments/traverse_objectivity_demo.py). Taking the
+# first tangent along the flow instead matched this under noise on the double
+# gyre but sent the Santa Barbara run north, so it was not adopted.
 # -----------------------------------------------------------------------
 
 
-GAMMA2 = 8.0 / np.sqrt(10.0)  # eq:gain_ladder noise gain on the mixed a4/b4-style coefficient
+LEGACY_THRESHOLDS = ('s_trim', 'r_band', 'g_capture', 's_capture')
 
 
-def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
-                         r_band=0.05, g_capture=0.15, s_capture=None,
-                         override_seed=None, override_argmax=None,
-                         margin_gate=False, sigma_eff=None, rho=None,
-                         capture=True):
+def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, c_in=0.03,
+                         **legacy):
     """
-    Objective separatrix traverser (Primitive 11).
+    Objective separatrix traverser (Primitive 11). Two modes, checked in
+    order each cycle:
 
-    Selector, executed once per control cycle after the estimation step:
+      CAPTURE  once q = rho |grad s1| / |s1| < c_in with s1 < 0, descend s1
+               for the rest of the run (latched, never released).
+      TRACK    tangent t is whichever of e1, e2 has the larger
+               |grad s1 . e_i|, signed by the previous t (by the measured
+               flow on the first step). Cruise along t and descend the part
+               of grad s1 orthogonal to it.
 
-      1. ACQUIRE  -- before first structure contact: componentwise
-                     saturated gradient descent on s1, toward stronger
-                     attraction.  Homes onto the s1-trench from anywhere in
-                     the basin; no straddling start required.
-      2. PARK     -- (optional, s_capture set) if s1 < s_capture the team is
-                     inside a core well: componentwise saturated gradient
-                     descent on s1 settles at the local s1 minimum.  With
-                     s_capture = None (default) this branch never fires and
-                     the team relies on CAPTURE (below) instead.
-      3. CAPTURE  -- UNCONDITIONAL hold at a 2D stationary point of s1: fires
-                     whenever the full gradient magnitude |grad s1| drops
-                     below g_capture while r stays large (so this is not
-                     confused with an isotropic point, where r is small and
-                     CROSS applies instead).  A flow saddle is not merely
-                     where two 1D trenches cross; it is a genuine 2D local
-                     MINIMUM of s1 (the TRAP core of Primitive 10, verified
-                     s1 = -pi^2 A there), so grad s1 vanishes in every
-                     direction, not just transversally, while on a generic
-                     1D trench point |grad s1| stays large (zero only
-                     transverse to the trench, full strength along it).
-                     Checking the gradient directly, rather than trying to
-                     keep choosing a tangent, matters because the ambient
-                     flow ALSO collapses at the same point (a stagnation
-                     point), so any tangent-selection rule that consulted
-                     the flow would be starved of a reliable direction
-                     exactly where it needs one.  Descends s1 the same way
-                     PARK does; unlike PARK it needs no user-supplied s1
-                     threshold, so it holds ANY network minimum by default,
-                     the way TRIM in Primitive 10 holds an attracting
-                     segment's end without a supplied threshold.
-      4. CROSS    -- after first contact, whenever the eigenframe is
-                     degenerate (r < r_band) AND no previous tangent has
-                     yet been established: neither the eigenframe nor
-                     continuity gives a usable direction (only the very
-                     first tracking step after ACQUIRE can reach this).
-                     Rides the ambient flow, the one input in the whole
-                     controller not built from s1 alone; kept as the
-                     honest fallback for a generic field, essentially
-                     unreachable on the double gyre.
-      5. TRACK    -- otherwise: ride the trench of s1.  The tangent is
-                     whichever of e1, e2 has the LARGER |grad s1 . e_i|
-                     (continuity with the previous tangent fixes only the
-                     residual sign ambiguity); the transverse channel
-                     descends s1 along the component of grad s1 orthogonal
-                     to that tangent, using the SMALLER |grad s1 . e_i|,
-                     so the same two numbers pick both channels and the
-                     same law holds the trench on both the attracting and
-                     the repelling half.  Away from a stationary point of
-                     s1, grad s1 points mostly ALONG the trench (the
-                     transverse derivative vanishes there by construction),
-                     so the tangent is the eigenvector grad s1 is LESS
-                     orthogonal to, not more -- this is what carries the
-                     ride through a trench-NETWORK CROSSING (e.g. a saddle,
-                     where the separatrix meets a wall trench and a rule
-                     that only ever compared to the previous step could
-                     lock onto the wrong branch) and through the
-                     isotropic-point eigenvector swap alike, using no flow
-                     at all: CAPTURE above is what stops this branch from
-                     ever having to resolve the choice right at a genuine
-                     stationary point, where grad s1 itself vanishes and
-                     the discriminator loses power.
+    rho is the formation's mean ring radius, measured each step. Per-run
+    state (_oecs_prev_tangent, _oecs_captured) lives on the cluster and is
+    cleared by building a fresh PentagonCluster per run.
 
-    Objectivity note: ACQUIRE, PARK, CAPTURE, and BOTH channels of TRACK
-    (transverse and tangent selection) are built only from s1, grad s1, and
-    the co-rotating eigenvectors e1, e2, all of which transform
-    equivariantly under a time-dependent rotation of the observer frame
-    (Proposition equivariance for Primitive 10 applies verbatim to these
-    terms); continuity with the previous tangent, itself propagated from
-    these same equivariant quantities, fixes only a sign. The only place
-    the ambient flow enters at all is CROSS, reached solely on the very
-    first tracking step if the eigenframe is degenerate there with no
-    established tangent yet -- essentially unreachable once tracking has
-    begun. This is a STRONGER objectivity claim than an earlier design that
-    selected TRACK's tangent by best alignment with the flow at every step
-    (matching Logic C's own flow-projection test, eq. d_selector): that
-    design was found, empirically, to fail under a rotating observer whose
-    swirl term does not vanish at a trench-network crossing the way the
-    true flow does, so it can bias which branch gets selected even a full
-    trench-length from the crossing (verified at Omega = 0.2). The
-    gradient-based rule here uses no flow for branch selection, so it
-    carries no such corruption in any frame; see
-    experiments/traverse_objectivity_demo.py for the closed-loop
-    verification.
-
-    Per-run state is kept on the cluster (cleared implicitly by building a
-    fresh PentagonCluster per run, the pattern all experiments use):
-      cluster._oecs_prev_tangent  -- (2,) last commanded tangent direction
-      cluster._oecs_banded        -- True once s1 first dropped below -s_trim
+    The thresholds of the previous version (s_trim, r_band, g_capture,
+    s_capture) are accepted and ignored so existing callers still run. Its
+    diagnostic arguments (override_seed, override_argmax, margin_gate,
+    sigma_eff, rho, capture) are rejected.
 
     Args:
-        cluster:    PentagonCluster with a vector field attached
-        v_max:      per-direction saturation speed (m/s)
-        g_perp:     gradient gain on the transverse, CAPTURE, and ACQUIRE
-                    channels
-        s_trim:     attraction-dominance threshold marking first contact
-                    (s1 < -s_trim latches `banded`)
-                    Paper name: the Separatrix paper (Draft_11.tex, Table I
-                    and Sec. III-C) calls this the latch depth s_latch. The
-                    name "trim" is inherited from Primitive 10's TRIM mode,
-                    which this primitive does not have; here the threshold
-                    only latches the ride (s1 < -s_trim), gates CAPTURE
-                    (s1 < -4*s_trim), and releases it (s1 > -s_trim).
-                    Kept as s_trim in code so existing callers still work.
-        r_band:     strain-magnitude threshold below which the eigenframe is
-                    treated as unreliable and CROSS takes over
-        g_capture:  full-gradient-magnitude threshold below which CAPTURE
-                    holds position at a 2D stationary point of s1 (a network
-                    minimum / saddle); unconditional, unlike s_capture
-        s_capture:  optional core-park threshold on s1 (PARK); None = rely
-                    on CAPTURE at network minima and ride to the domain edge
-                    otherwise
-        override_seed:    diagnostic only, default None (no effect on any
-                    existing call site). If given a (2,) array, replaces
-                    `flow` -- the CROSS-branch tangent seed -- with this
-                    value for this step only, e.g. the noise-free analytic
-                    flow, to isolate the seed channel's noise contribution
-                    from the argmax channel's (Draft_6a sec:disc_noise,
-                    the "supplying one channel at a time from noise-free
-                    values" clean-channel-injection experiment).
-        override_argmax:  diagnostic only, default None. If given a
-                    (grad_s1, e1, e2) tuple, replaces the fitted TRACK
-                    discriminator inputs with these values for this step
-                    only, e.g. the noise-free analytic ones, isolating the
-                    argmax channel's noise contribution from the seed's.
-        margin_gate:  default False, no effect on any existing call site.
-                    If True (with sigma_eff and rho given), TRACK holds
-                    the previous cycle's tangent identity rather than
-                    re-resolving argmax(|grad_s1.e1|, |grad_s1.e2|)
-                    whenever the two are closer than gamma_2*sigma_eff/rho^2
-                    (eq:gain_ladder's noise gain on the discriminating
-                    coefficient) -- the noise floor the tangent hop of
-                    Section disc_noise crosses. Requires a previous
-                    tangent to hold; falls through to ordinary argmax
-                    otherwise (ACQUIRE/CROSS/first TRACK step).
-        sigma_eff:  measurement-noise standard deviation feeding the
-                    margin threshold above (only used if margin_gate).
-        rho:        formation ring radius feeding the margin threshold
-                    above (only used if margin_gate).
-        capture:    default True, unchanged for every existing call site.
-                    False skips the CAPTURE branch entirely (no hold, no
-                    latch), making the primitive a pure traverser. The
-                    Separatrix paper keeps capture (capture=True); False is
-                    diagnostic only.
-
-    Returns:
-        (vx_c, vy_c): centroid velocity command
+        v_max:   per-direction saturation speed (m/s)
+        g_perp:  gradient gain on the transverse and CAPTURE channels
+        c_in:    CAPTURE threshold on q (dimensionless)
     """
+    unknown = set(legacy) - set(LEGACY_THRESHOLDS)
+    if unknown:
+        raise TypeError(f"oecs_separatrix_step no longer accepts {sorted(unknown)}")
+
     # -- Estimation (same single fit per step as Logic C and Primitive 10) --
     u_arr, v_arr = _sample_vector_at_robots(cluster)
     rel_pos = _get_relative_positions(cluster)
@@ -1469,35 +1280,23 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
 
     s1, grad_s1, e1, e2, r = _strain_quantities(theta_u, theta_v)
     flow = np.array([theta_u[0], theta_v[0]])
-
-    if override_seed is not None:
-        flow = np.asarray(override_seed, dtype=float)
-    if override_argmax is not None:
-        grad_s1, e1, e2 = override_argmax
-
-    banded = getattr(cluster, '_oecs_banded', False)
-    if s1 < -s_trim and not banded:
-        banded = True
-        cluster._oecs_banded = True
+    rho = float(np.mean(np.sort(np.linalg.norm(rel_pos, axis=1))[1:]))
+    q = rho * float(np.linalg.norm(grad_s1)) / max(abs(s1), 1e-12)
 
     def _log(mode, **extra):
         diag = getattr(cluster, 'diagnostics', None)
         if diag is not None:
-            entry = {'mode': mode, 's1': float(s1), 'r': float(r)}
+            entry = {'mode': mode, 's1': float(s1), 'r': float(r), 'q': q}
             entry.update(extra)
             diag.append(entry)
 
-    def _descend_s1():
-        # Vector saturation, NOT per-component (see Primitive 10's
-        # _descend_s1 for the full argument).  Per-component tanh is frame
-        # dependent -- it skews the descent direction by up to 39 deg and
-        # varies the commanded speed by a factor of sqrt(2) with the
-        # orientation of the x-axis -- which would break the objectivity
-        # claim this controller exists to support.  Saturating the magnitude
-        # and preserving the direction is exactly rotation equivariant, and
-        # it is the form the paper's PARK Lyapunov result states:
-        #     s1_dot = -c_max ||grad s1|| tanh(g_perp ||grad s1|| / c_max)
-        # Note the resulting speed cap is v_max, not sqrt(2) v_max.
+    # -- 1. CAPTURE: latched descent of s1 at a 2D minimum -----------------
+    if getattr(cluster, '_oecs_captured', False) or (s1 < 0 and q < c_in):
+        cluster._oecs_captured = True
+        _log('CAPTURE')
+        # Magnitude saturation, rotation equivariant (see Primitive 10). It is
+        # the form of the paper's PARK Lyapunov result,
+        #     s1_dot = -c_max ||grad s1|| tanh(g_perp ||grad s1|| / c_max).
         a = -g_perp * grad_s1
         n = float(np.linalg.norm(a))
         if n < 1e-12:
@@ -1505,156 +1304,18 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
         scale = v_max * np.tanh(n / v_max) / n
         return float(a[0] * scale), float(a[1] * scale)
 
-    # -- 1. ACQUIRE: no structure yet -----------------------------------
-    if not banded:
-        _log('ACQUIRE')
-        return _descend_s1()
-
-    # -- 2. PARK: optional core well, checked before CROSS/TRACK --------
-    if s_capture is not None and s1 < s_capture:
-        _log('PARK')
-        return _descend_s1()
-
-    # -- 3. CAPTURE: hold at a 2D stationary point of s1 --
-    # A flow saddle is not merely a crossing of two 1D trenches; it is a
-    # genuine 2D local MINIMUM of s1 (verified: true H_s1 eigenvalues both
-    # +9.74 at the double-gyre saddle, matching the TRAP-core value
-    # s1 = -pi^2 A of eq. s1_analytic_main), so grad s1 vanishes in EVERY
-    # direction there, not just transversally. On a generic 1D trench point
-    # grad s1 is large (it is exactly zero only transverse to the trench,
-    # full-strength along it); only near a 2D minimum does the FULL gradient
-    # collapse. This is the distinguishing test, and it matters because the
-    # flow itself also collapses at the same point (a stagnation point of
-    # the flow), which otherwise starves TRACK's flow-selected tangent of a
-    # reliable direction exactly where it needs one -- empirically, without
-    # this branch, some approaches to a saddle pick the flow-ambiguous wrong
-    # eigenvector and slide off onto the crossing wall trench instead of
-    # stopping. Checking the gradient directly sidesteps the ambiguity, but
-    # the gradient test ALONE is not sufficient: a shallow, incidental flat
-    # spot of s1 well away from any real structure (e.g. near a gyre center)
-    # can also pass |grad s1| < g_capture for a step under position noise,
-    # even though s1 there sits near 0, nowhere close to the true well depth
-    # -- verified directly (s1 in [-0.06, +0.04] at such a spot vs. -0.76 to
-    # -1.16 at the true saddle, at the SAME |grad s1| magnitudes). So
-    # CAPTURE also requires s1 < -4*s_trim: a deep-well test using the same
-    # scale parameter that already marks first structure contact, verified
-    # to hold with comfortable margin everywhere the gradient test can
-    # plausibly fire near a true saddle (s1 already below -0.9 once
-    # |grad s1| is within an order of magnitude of g_capture) while
-    # rejecting the shallow false positive. This is not gated on a
-    # field-specific analytic value (unlike PARK/s_capture, which needs the
-    # user to know the field's well depth in advance), so it still holds ANY
-    # network minimum by default, generic across fields, exactly as the
-    # TRIM test of Primitive 10 holds an attracting segment's end without a
-    # user-supplied threshold.
-    #
-    # LATCH (mirrors `banded` above), RELEASED ON THE SAME CERTIFICATE PARK
-    # ALREADY USES: under measurement/position noise, grad_s1's norm can
-    # flicker back above g_capture for a step even after genuinely arriving
-    # at the well, and every such excursion re-enters TRACK's tangent
-    # discriminator in the same near-degenerate eigenframe region the
-    # CAPTURE test exists to avoid -- verified to occasionally reselect the
-    # wrong eigenvector there and slide onto the crossing wall under
-    # position noise as small as sigma_p = 0.005. An UNCONDITIONAL latch
-    # (tried first) fixes that but creates a worse failure: held forever
-    # with no way to re-diagnose, so a later noise-driven excursion that
-    # drifts the position entirely off the well kept applying pure grad-s1
-    # descent through open field far from any structure -- not a stable
-    # hold, an unmodulated walk down whatever the local gradient points at,
-    # verified to run the team out past +/-2 domain widths within 1000
-    # steps this way (s1 itself drifting toward and past 0 en route, the
-    # tell that the fitted field is no longer describing a real well).
-    # FIX, not a new estimator or threshold: Section stability's own PARK
-    # argument already shows s1 is a Lyapunov function for this exact
-    # descent under exact estimates (s1_dot <= 0, equality only at a
-    # critical point) -- so gradient descent cannot run away WHILE s1
-    # actually still reads like a trench, and only does so once the
-    # estimate no longer does. The latch is released the instant s1 rises
-    # back above -s_trim, the SAME threshold `banded` already uses to
-    # define "no longer on structure": while below it, the well is real and
-    # the latch may bridge a flicker of the transverse gradient test;
-    # above it, the well is lost and the state machine falls through to
-    # re-diagnose from TRACK, exactly as if CAPTURE had never latched.
-    captured = getattr(cluster, '_oecs_captured', False) if capture else False
-    if captured and s1 > -s_trim:
-        captured = False
-        cluster._oecs_captured = False
-    g_norm = float(np.linalg.norm(grad_s1))
-    if capture and (captured or (r > r_band and g_norm < g_capture
-                                 and s1 < -4.0 * s_trim)):
-        cluster._oecs_captured = True
-        _log('CAPTURE')
-        return _descend_s1()
-
-    t_prev = getattr(cluster, '_oecs_prev_tangent', None)
-    prev_hat = (t_prev / np.linalg.norm(t_prev)
-               if t_prev is not None and np.linalg.norm(t_prev) > 1e-12
-               else None)
-
-    # -- 3. CROSS: eigenframe degenerate AND no continuity to fall back on
-    # This is the genuine degeneracy case: r small (eigenframe undefined or
-    # noisy) with no previous tangent yet established (only the very first
-    # tracking step after ACQUIRE can reach this). Ride the ambient flow,
-    # oriented arbitrarily since no reference exists; this is the one branch
-    # that is not built purely from s1, grad s1, and the eigenframe, kept as
-    # the honest fallback for a generic field. On the double gyre this
-    # branch is essentially unreachable in practice (ACQUIRE's gradient
-    # descent lands on-trench well before r drops this low with no prior
-    # tangent).
-    if r < r_band and prev_hat is None:
-        _log('CROSS')
-        fn = float(np.linalg.norm(flow))
-        t_hat = flow / fn if fn > 1e-9 else np.array([1.0, 0.0])
-        step_tan = v_max * np.tanh(1.0) * t_hat
-        step_perp_x, step_perp_y = _descend_s1()
-        step_perp = np.array([step_perp_x, step_perp_y])
-        cluster._oecs_prev_tangent = t_hat
-        delta = step_perp + step_tan
-        return float(delta[0]), float(delta[1])
-
-    # -- 4. TRACK: ride the s1 trench, tangent chosen WITHOUT the flow ---
-    # The tangent of a trench is, by definition, the direction along which
-    # the along-track derivative of s1 is small: away from a stationary
-    # point, grad s1 points mostly ALONG the trench (the transverse
-    # derivative vanishes there by construction, leaving only the
-    # along-track slope), so of the two eigenvectors, the tangent is
-    # whichever has the LARGER |grad s1 . e_i| and the transverse direction
-    # is whichever has the SMALLER one -- the flip of the transverse
-    # channel below, using the same two numbers. This replaces an earlier
-    # design that chose the tangent by best alignment with the ambient
-    # flow (mirroring Logic C's f @ v_neg test): that worked in the
-    # inertial frame, but under a ROTATING observer the frame's own
-    # solid-body swirl does not vanish at a trench-network crossing the
-    # way the true flow does (it is a constant local vector there,
-    # proportional to POSITION, not to proximity to the crossing), and at
-    # Omega = 0.2 it was large enough, even a full trench-length away from
-    # any saddle, to flip which eigenvector the flow preferred -- verified
-    # numerically (true flow favors e2 by a 2:1 margin at one test point,
-    # the swirl-corrupted flow favors e1). The gradient-based rule uses NO
-    # flow at all, so it carries no such corruption in any frame, and it
-    # was verified against the fitted estimator to correctly track the
-    # separatrix tangent through the origin eigenvector swap and to
-    # correctly resolve the wall-vs-separatrix crossing at both saddles.
-    # Continuity with the previous tangent supplies only the sign, exactly
-    # as it always did; the direction itself no longer depends on it.
+    # -- 2. TRACK: ride the s1 trench ---------------------------------------
     d1 = abs(float(grad_s1 @ e1))
     d2 = abs(float(grad_s1 @ e2))
-    margin_held = False
-    if (margin_gate and sigma_eff is not None and rho is not None
-            and prev_hat is not None):
-        threshold = GAMMA2 * sigma_eff / rho**2
-        if abs(d1 - d2) < threshold:
-            t_hat = prev_hat
-            margin_held = True
-    if not margin_held:
-        t_raw = e1 if d1 > d2 else e2
-        sign_ref = prev_hat if prev_hat is not None else flow
-        t_hat = t_raw if float(t_raw @ sign_ref) >= 0 else -t_raw
+    t_prev = getattr(cluster, '_oecs_prev_tangent', None)
+    # The first step has no previous tangent and signs against the measured
+    # flow, the one non-objective input. It fixes the ride direction once.
+    sign_ref = t_prev if t_prev is not None else flow
+    t_raw = e1 if d1 > d2 else e2
+    t_hat = t_raw if float(t_raw @ sign_ref) >= 0 else -t_raw
 
-    # Transverse: descend s1 along the component of grad s1 orthogonal to
-    # the tangent, not along a fixed eigenvector.  s1 is a genuine
-    # transverse minimum along the whole network, so this single law snaps
-    # onto the trench whether the tangent above resolved to e1 or e2.
+    # Transverse: descend s1 orthogonal to the tangent rather than along a
+    # fixed eigenvector, so one law holds whether the tangent is e1 or e2.
     g_perp_vec = grad_s1 - float(grad_s1 @ t_hat) * t_hat
     g_perp_norm = float(np.linalg.norm(g_perp_vec))
     if g_perp_norm < 1e-12:
@@ -1670,3 +1331,194 @@ def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
     _log('TRACK', tangent_id=('e1' if d1 > d2 else 'e2'))
     delta = step_perp + step_tan
     return float(delta[0]), float(delta[1])
+
+
+# -----------------------------------------------------------------------
+# Previous Primitive 11 (five modes: ACQUIRE, PARK, CAPTURE, CROSS, TRACK),
+# replaced 2026-10-08 and kept commented out for reference.
+# -----------------------------------------------------------------------
+#
+# GAMMA2 = 8.0 / np.sqrt(10.0)  # eq:gain_ladder noise gain on the mixed a4/b4-style coefficient
+#
+#
+# def oecs_separatrix_step(cluster, v_max=0.04, g_perp=1.0, s_trim=0.05,
+#                          r_band=0.05, g_capture=0.15, s_capture=None,
+#                          override_seed=None, override_argmax=None,
+#                          margin_gate=False, sigma_eff=None, rho=None,
+#                          capture=True):
+#     """
+#     Objective separatrix traverser (Primitive 11). Modes, checked in order
+#     each cycle:
+#
+#       ACQUIRE  before first contact. Saturated gradient descent on s1
+#                homes onto the trench from anywhere in the basin.
+#       PARK     s_capture set and s1 < s_capture. Descend s1 to the well.
+#       CAPTURE  |grad s1| < g_capture, r > r_band, and s1 < -4 s_trim. Hold
+#                at a 2D minimum of s1 (a flow saddle) by descending s1,
+#                latched until s1 > -s_trim. Unlike PARK it needs no
+#                field-specific threshold.
+#       CROSS    r < r_band with no previous tangent, reachable only on the
+#                first tracking step. Rides the flow, the one non-objective
+#                input.
+#       TRACK    the tangent is whichever of e1, e2 has the larger
+#                |grad s1 . e_i|, signed by continuity. The transverse
+#                channel descends the part of grad s1 orthogonal to it,
+#                which holds the trench on both halves.
+#
+#     Per-run state (_oecs_prev_tangent, _oecs_banded, _oecs_captured) lives
+#     on the cluster and is cleared by building a fresh PentagonCluster per
+#     run. The diagnostic arguments default to no effect.
+#
+#     Args:
+#         v_max:      per-direction saturation speed (m/s)
+#         g_perp:     gradient gain on the transverse, CAPTURE, and ACQUIRE
+#                     channels
+#         s_trim:     latch depth, called s_latch in the Separatrix paper
+#                     (Draft_11.tex, Table I and Sec. III-C). The name comes
+#                     from Primitive 10's TRIM mode, which this primitive
+#                     lacks. It latches the ride (s1 < -s_trim), gates CAPTURE
+#                     (s1 < -4 s_trim), and releases it (s1 > -s_trim).
+#         r_band:     r below which the eigenframe is unreliable (CROSS)
+#         g_capture:  |grad s1| below which CAPTURE holds
+#         s_capture:  optional PARK threshold on s1; None relies on CAPTURE
+#         override_seed:    diagnostic. A (2,) vector that replaces the flow
+#                     seed for this step, e.g. the noise-free flow, to isolate
+#                     the seed channel's noise (Draft_6a sec:disc_noise).
+#         override_argmax:  diagnostic. A (grad_s1, e1, e2) tuple that replaces
+#                     the TRACK discriminator inputs for this step.
+#         margin_gate:  if True (with sigma_eff, rho, and a previous tangent),
+#                     TRACK keeps the previous tangent while |d1 - d2| is
+#                     below the noise floor gamma_2 sigma_eff / rho^2
+#                     (eq:gain_ladder).
+#         sigma_eff:  measurement-noise std for margin_gate
+#         rho:        formation ring radius for margin_gate
+#         capture:    False skips CAPTURE entirely, giving a pure traverser
+#                     (diagnostic only). The paper uses True.
+#     """
+#     # -- Estimation (same single fit per step as Logic C and Primitive 10) --
+#     u_arr, v_arr = _sample_vector_at_robots(cluster)
+#     rel_pos = _get_relative_positions(cluster)
+#     theta_u, theta_v = _fit_vector_quadratic(rel_pos, u_arr, v_arr)
+#
+#     s1, grad_s1, e1, e2, r = _strain_quantities(theta_u, theta_v)
+#     flow = np.array([theta_u[0], theta_v[0]])
+#
+#     if override_seed is not None:
+#         flow = np.asarray(override_seed, dtype=float)
+#     if override_argmax is not None:
+#         grad_s1, e1, e2 = override_argmax
+#
+#     banded = getattr(cluster, '_oecs_banded', False)
+#     if s1 < -s_trim and not banded:
+#         banded = True
+#         cluster._oecs_banded = True
+#
+#     def _log(mode, **extra):
+#         diag = getattr(cluster, 'diagnostics', None)
+#         if diag is not None:
+#             entry = {'mode': mode, 's1': float(s1), 'r': float(r)}
+#             entry.update(extra)
+#             diag.append(entry)
+#
+#     def _descend_s1():
+#         # Magnitude saturation, rotation equivariant (see Primitive 10). It is
+#         # the form of the paper's PARK Lyapunov result,
+#         #     s1_dot = -c_max ||grad s1|| tanh(g_perp ||grad s1|| / c_max),
+#         # and caps the speed at v_max.
+#         a = -g_perp * grad_s1
+#         n = float(np.linalg.norm(a))
+#         if n < 1e-12:
+#             return 0.0, 0.0
+#         scale = v_max * np.tanh(n / v_max) / n
+#         return float(a[0] * scale), float(a[1] * scale)
+#
+#     # -- 1. ACQUIRE: no structure yet -----------------------------------
+#     if not banded:
+#         _log('ACQUIRE')
+#         return _descend_s1()
+#
+#     # -- 2. PARK: optional core well, checked before CROSS/TRACK --------
+#     if s_capture is not None and s1 < s_capture:
+#         _log('PARK')
+#         return _descend_s1()
+#
+#     # -- 3. CAPTURE: hold at a 2D stationary point of s1 --
+#     # A flow saddle is a 2D minimum of s1 (true H_s1 eigenvalues both +9.74
+#     # on the double gyre, s1 = -pi^2 A per eq. s1_analytic_main), so the
+#     # full gradient vanishes there, while on a 1D trench it vanishes only
+#     # across. The flow stagnates there too, so testing grad s1 avoids
+#     # choosing a tangent where every cue is weak. The s1 < -4*s_trim gate
+#     # rejects shallow flat spots near the gyre centers that pass the
+#     # gradient test under noise (s1 in [-0.06, +0.04] there, -0.76 to -1.16
+#     # at the saddle).
+#     #
+#     # The latch bridges noise flicker of |grad s1| above g_capture, which
+#     # otherwise re-entered TRACK and slid onto the wall at sigma_p = 0.005.
+#     # It releases when s1 > -s_trim, the same test as `banded`. A latch that
+#     # never released walked the team past +/-2 domain widths within 1000
+#     # steps. While s1 still reads as a well, the PARK Lyapunov argument
+#     # (Section stability) keeps the descent from running away.
+#     captured = getattr(cluster, '_oecs_captured', False) if capture else False
+#     if captured and s1 > -s_trim:
+#         captured = False
+#         cluster._oecs_captured = False
+#     g_norm = float(np.linalg.norm(grad_s1))
+#     if capture and (captured or (r > r_band and g_norm < g_capture
+#                                  and s1 < -4.0 * s_trim)):
+#         cluster._oecs_captured = True
+#         _log('CAPTURE')
+#         return _descend_s1()
+#
+#     t_prev = getattr(cluster, '_oecs_prev_tangent', None)
+#     prev_hat = (t_prev / np.linalg.norm(t_prev)
+#                if t_prev is not None and np.linalg.norm(t_prev) > 1e-12
+#                else None)
+#
+#     # -- 4. CROSS: eigenframe degenerate AND no continuity to fall back on
+#     # Rides the flow, the only input not built from s1. Essentially
+#     # unreachable on the double gyre once ACQUIRE has landed on the trench.
+#     if r < r_band and prev_hat is None:
+#         _log('CROSS')
+#         fn = float(np.linalg.norm(flow))
+#         t_hat = flow / fn if fn > 1e-9 else np.array([1.0, 0.0])
+#         step_tan = v_max * np.tanh(1.0) * t_hat
+#         step_perp_x, step_perp_y = _descend_s1()
+#         step_perp = np.array([step_perp_x, step_perp_y])
+#         cluster._oecs_prev_tangent = t_hat
+#         delta = step_perp + step_tan
+#         return float(delta[0]), float(delta[1])
+#
+#     # -- 5. TRACK: ride the s1 trench, tangent chosen WITHOUT the flow ---
+#     # Tangent rule as in the block comment above. Continuity (or the flow,
+#     # before any tangent exists) supplies only the sign.
+#     d1 = abs(float(grad_s1 @ e1))
+#     d2 = abs(float(grad_s1 @ e2))
+#     margin_held = False
+#     if (margin_gate and sigma_eff is not None and rho is not None
+#             and prev_hat is not None):
+#         threshold = GAMMA2 * sigma_eff / rho**2
+#         if abs(d1 - d2) < threshold:
+#             t_hat = prev_hat
+#             margin_held = True
+#     if not margin_held:
+#         t_raw = e1 if d1 > d2 else e2
+#         sign_ref = prev_hat if prev_hat is not None else flow
+#         t_hat = t_raw if float(t_raw @ sign_ref) >= 0 else -t_raw
+#
+#     # Transverse: descend s1 orthogonal to the tangent rather than along a
+#     # fixed eigenvector, so one law holds whether the tangent is e1 or e2.
+#     g_perp_vec = grad_s1 - float(grad_s1 @ t_hat) * t_hat
+#     g_perp_norm = float(np.linalg.norm(g_perp_vec))
+#     if g_perp_norm < 1e-12:
+#         step_perp = np.zeros(2)
+#     else:
+#         n_hat = g_perp_vec / g_perp_norm
+#         c_perp = -g_perp * g_perp_norm
+#         step_perp = v_max * np.tanh(c_perp / v_max) * n_hat
+#
+#     step_tan = v_max * np.tanh(1.0) * t_hat
+#
+#     cluster._oecs_prev_tangent = t_hat
+#     _log('TRACK', tangent_id=('e1' if d1 > d2 else 'e2'))
+#     delta = step_perp + step_tan
+#     return float(delta[0]), float(delta[1])

@@ -1,0 +1,109 @@
+\subsection{The $s_1$ Tracker}
+\label{sec:s1_controller}
+
+The $s_1$ tracker steers along the same mountain pass, read in $s_1$,
+using two channels built from $\nabla\hat{s}_1$ and the strain eigenframe.
+Unlike $\hat{D}$, the fitted $\hat{s}_1$ is concave for every field and
+formation (Section~\ref{sec:surrogates}), so it never shows the upward
+curvature a trench has across it and the tracker cannot steer on a fitted
+Hessian.
+
+On an OECS the trench tangent is a strain eigenvector, $\mathbf{e}_2$ on
+an attracting segment and $\mathbf{e}_1$ on a repelling one, and the
+tracker must choose between them at every step. On the trench the
+transverse derivative of $s_1$ vanishes, so $\nabla\hat{s}_1$ lies nearly
+along the trench away from a stationary point. The tracker selects the
+eigenvector most nearly parallel to $\nabla\hat{s}_1$ and signs it against
+a reference,
+\begin{equation}
+    \mathbf{t}_{\mathrm{raw}} =
+    \arg\max_{\mathbf{e} \in \{\mathbf{e}_1, \mathbf{e}_2\}}
+    \bigl\lvert \nabla\hat{s}_1^\top \mathbf{e} \bigr\rvert,
+    \qquad
+    \mathbf{t} = \mathrm{sgn}\bigl(\mathbf{t}_{\mathrm{ref}}^\top
+    \mathbf{t}_{\mathrm{raw}}\bigr)\,\mathbf{t}_{\mathrm{raw}},
+    \label{eq:tangent_select}
+\end{equation}
+where $\mathbf{t}_{\mathrm{ref}}$ is the previous step's tangent
+(Fig.~\ref{fig:s1_channels}(a)). On a trench that is not an OECS, the rule
+takes the nearer eigenvector. The first ride step has no previous tangent,
+so the measured flow $\hat{\mathbf{v}}_0$ serves as
+$\mathbf{t}_{\mathrm{ref}}$. Because the measured flow is not objective, it
+seeds the ride direction only once.
+
+Behavior at the crest depends on whether the strain vanishes there. In
+incompressible flow $s_1 = -r \leq 0$ reaches zero only at an isotropic
+point, where $\mathbf{S}$ vanishes. Such points are in general isolated
+peaks, so the crest is a smooth saddle with $r > 0$, where
+$\nabla\hat{s}_1$ vanishes and tangent selection is least reliable, as it
+is near a minimum. When the shear strain vanishes identically, however,
+the isotropic points form curves, and the crest can sit on one at a kink
+of $s_1$. The tangent changes eigenvector only at an isotropic point, and
+the rule follows the swap across the kink with no dedicated test because
+$\nabla\hat{s}_1$ stays large on either side. On the benchmark,
+$\mathbf{S} = \mathrm{diag}(u_x, -u_x)$ has its eigenvectors on the
+coordinate axes wherever $u_x \neq 0$. On the upper segment of the
+separatrix $u_x < 0$, so the trench follows $\mathbf{e}_2$ and is an
+attracting OECS; on the lower segment $u_x > 0$, so it follows
+$\mathbf{e}_1$ and is a repelling OECS, meeting at the isotropic point at
+the origin.
+
+From the first step, the command pairs a constant-speed ride along
+$\mathbf{t}$ with projected gradient descent across the trench,
+\begin{equation}
+    \dot{\mathbf{p}}_c = k\bigl[
+    c_{\max}\tanh(1)\,\mathbf{t}
+    - \mathrm{sat}\!\bigl(g_\perp\,\mathbf{P}\,\nabla\hat{s}_1\bigr)\bigr],
+    \quad
+    \mathbf{P} = \mathbf{I} - \mathbf{t}\mathbf{t}^\top,
+    \label{eq:s1_law}
+\end{equation}
+with transverse gain $g_\perp$, where $\mathrm{sat}$ now saturates a
+vector's magnitude at $c_{\max}$ and preserves its direction. The projector
+$\mathbf{P}$ removes the along-trench component of the gradient
+(Fig.~\ref{fig:s1_channels}(b)), so the cluster descends only across the
+trench while riding along it at speed $k\,c_{\max}\tanh 1$.
+
+The tracker stops at a minimum by a gradient test. The concave fit cannot
+certify a minimum, but the fitted gradient tracks the true gradient even
+where the fitted curvature has the wrong sign. Each end of the trench is
+a true two-dimensional minimum of $s_1$, so a gradient that is small
+against the depth suffices. Capture requires $\hat{s}_1 < 0$ and
+\begin{equation}
+    q = \frac{\rho\,\|\nabla\hat{s}_1\|}{|\hat{s}_1|} < q_{\mathrm{cap}},
+    \label{eq:s1_capture}
+\end{equation}
+where $q$ is the fraction by which $\hat{s}_1$ changes across the
+footprint. The ratio is dimensionless, so $q_{\mathrm{cap}}$ needs no
+knowledge of the field's strain rate. It is large along the ride and
+wherever $\hat{s}_1$ nears zero, as at an isotropic point or a gyre
+center, and small only near a minimum. The tracker then drops the ride
+term and descends $\hat{s}_1$, $\dot{\mathbf{p}}_c =
+-k\,\mathrm{sat}(g_\perp\nabla\hat{s}_1)$, for the rest of the run. If
+noise trips the test early on the trench, the descent still carries the
+cluster down the trench to the minimum.
+
+\begin{figure}[!tb]
+    \centering
+    \includegraphics[width=\columnwidth]{figures/s1_channels.png}
+    \caption{The two channels of the $s_1$ tracker, on the benchmark
+    trench at $x = 0$. (a) Tangent selection. At each sample the strain eigenframe is
+    drawn, the selected eigenvector heavy and the rejected one light,
+    with $\nabla\hat{s}_1$ in orange. The argmax takes
+    $\mathbf{e}_2$ on the attracting segment and $\mathbf{e}_1$ on the
+    repelling segment, swapping through the isotropic point at the origin.
+    (b) The command. Travel along $\mathbf{t}$ is open loop at cruise
+    speed, while $\mathbf{P}$ removes the along-trench component of the
+    gradient so descent acts only across the trench.}
+    \label{fig:s1_channels}
+\end{figure}
+
+The across-trench channel returns the cluster to the trench by the same
+argument as for the $D$ tracker. It reduces to
+$\dot{n} = -k\,\mathrm{sat}(a_\perp n)$, with $\kappa_\perp$ now the
+transverse curvature of $s_1$ and $a_\perp = g_\perp\kappa_\perp$. No
+fitted curvature enters, so $a_\perp > 0$ wherever the trench curves
+upward across it, including at a smooth crest. The restoring term is lost
+only where $\kappa_\perp$ vanishes, as where a curve of isotropic points
+crosses the trench. There the ride carries the cluster across on the
+tangent alone.
