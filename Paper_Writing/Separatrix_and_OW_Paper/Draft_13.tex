@@ -45,18 +45,19 @@
 \maketitle
 
 \begin{abstract}
-Adaptive navigation is the process of modifying the motion of a robot's or a system of robots'  based on 
+Adaptive navigation is the process of modifying the motion of a robot's or a system of robots' based on 
 real-time measurements taken from the environment being traversed. This paper 
-develops an Adaptive Navigation strategy to navigate two short term flow transport bounadries; the strain-dominated
+develops an Adaptive Navigation strategy to navigate two short term flow transport boundaries; the strain-dominated
 curves across which water masses separate and the curves along which floating material collects.
-Existing robotic trackers of of these structures prestraddle it before tracking begins and either commits to the structure's
+Existing robotic trackers of these structures prestraddle it before tracking begins and either commits to the structure's
 identity or accumulate an estimate over a finite integration horizon to determine the type.
 We show that a computed second-order polynomial fit of the local flow can be recovered using synchronized measurements from six robots.
-This quadratic surrogate model can be used as a foundation to calculatee two derived fields which map the vector field to a scalar invariant field:
+This quadratic surrogate model can be used as a foundation to calculate two derived fields which map the vector field to a scalar invariant field:
 The Jacobian determinant field and the smaller rate of strain eigenvalue field.
-We develop two adaptive navigation primitives to steer on each of these derived fields along the transport bounadaries. Each tracker locate the nearest saparating boundary
-and navigates to and along it from instantaneous measreuments, with no integration horizon or prestraddling requirements.
-Monte Carlo analysis shows that the determiant tracker withstands more measurement noise than the rate of strin tracker from every tested starting position.
+We develop two adaptive navigation primitives to steer on each of these derived fields along the transport boundaries. Each tracker locates the nearest separating boundary
+and navigates to and along it from instantaneous measurements, with no integration horizon or prestraddling requirements.
+Monte Carlo analysis shows that the determinant tracker withstands more measurement noise than the rate of strain tracker from every tested starting position.
+However, the rate of strain tracker is objective in nature, and holds the the desired trajectory when the observer is rotating while the Jacobian determinant tracker fails.
 On Santa Barbara Channel radar currents, both primitives follow the dominant transport corridor from coast to coast.
 
 \end{abstract}
@@ -69,66 +70,80 @@ Cluster Space Control
 
 \section{Introduction}
 
-\IEEEPARstart{M}{ultirobot} systems (MRS) offer redundancy, increased
-throughput, and cooperative behaviors a single vehicle cannot produce,
-and they now operate across land, sea, air, and space \cite{1,2}.
- In adaptive
-navigation (AN), a vehicle or group of vehicles modifies its direction and path in real time
-from measurements taken while moving \cite{3}. A single vehicle must translate to sense a
-gradient, which costs time and misleads in a time-varying field,
-whereas an MRS can sample multiple locations simultaneously, tolerate
-vehicle failures, adapt its size and shape to the spatial frequencies
-present, and fit a local model of the landscape to steer on its features
-\cite{3,4,5}.
 
-AN in scalar fields is well developed. Each
-robot contributes one scalar measurement to a policy that reaches and
-follows a feature, and formations are sized so that differential
-measurements across the cluster recover the gradient and curvature that
-policy consumes \cite{5,6}. \"{O}gren, Fiorelli, and Leonard
+\IEEEPARstart{M}{ultirobot} systems (MRS) offer redundancy, increased
+throughput, and cooperative capabilities a single robot cannot produce,
+and have proven operational success  across land, sea, air, and space \cite{1,2}.
+Furthermore, and MRS can tolerate individual robot failures and adapt their formation based on mission objectives. \cite{3,4,5}.
+
+In adaptive
+navigation (AN), a vehicle or group of vehicles modifies its velocity and desired trajectory in real time
+as it creates a local map from measurements taken while moving \cite{3}. A single vehicle must translate to sense a
+gradient, which costs time and memory and misleads in a time-varying field,
+whereas an MRS can sample multiple locations simultaneously, enabling faster reaction times and better performance in non-static fields.
+
+
+AN in scalar fields is well. Each
+robot contributes one scalar measurement to a contol policy that controls the robots to reach or
+follow a feature. For example, specific formations are held so that differential measurements across different robots
+recover the gradient and curvature needed for specific control policies
+ \cite{5,6}. 
+ \"{O}gren, Fiorelli, and Leonard
 established cooperative gradient climbing with a formation of mobile
-sensors \cite{6}. Bri\~{n}\'{o}n-Arranz, Renzaglia, and Schenato
-extended it to the Hessian, five robots on a ring plus one at the
-center recovering both in closed form \cite{5}. Kitts, McDonald, and
+sensors using plane fitting \cite{6}. Bri\~{n}\'{o}n-Arranz, Renzaglia, and Schenato
+extended the fitting process to recover the Hessian by exploiting the gradients and curvature calculated from five robots on a ring plus one at the
+center \cite{5}. Kitts, McDonald, and
 Neumann developed primitives for extrema finding, contour following,
 ridge/trench following, and saddle point station keeping \cite{3}, and
 verified ridge, trench, saddle, and front tracking experimentally on an
 indoor testbed \cite{4,7}.
 
-Some environments are better modeled as vector fields, which contain features without scalar field equivalents. Critical points, such as sinks, sources, and vortices, can model convergence zones \cite{8} and subsurface leaks \cite{9}.  In \cite{10} a three-robot cluster
-estimated the location and type of one from a linear fit of
-simultaneous local velocity measurements and used this estimate to adaptively navigate towards and around them. 
+%% Going through this document again
 
-Beyond critical points, vector fields have curves that are useful for navigation. For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulate or separate \cite{11,12}. Mapping these exact curves allows teams to strategically deploy resources in highly targeted search areas \cite{12,13,14,15}. Without adaptive navigation, a large scale team must sample a much larger basin to determine where these structures lie.
+Some physical environments are better represented as vector fields, which can model certain features that have no scalar field equivalents. 
+Critical points, such as sinks, sources, and vortices, can model convergence zones \cite{8} and subsurface leaks \cite{9}. In \cite{10} a three-robot cluster
+estimated the location and type of a nearby critical point  from a linear fit of
+simultaneous local velocity measurements and used this estimate to adaptively navigate towards and orbit it. 
 
-Coherent structures are typically identified through two primary methods. The first relies on Lagrangian coherent structures (LCS) \cite{16}, typically computed as ridges in the finite-time Lyapunov exponent field \cite{17}, with ongoing research addressing the Lagrangian/Eulerian tradeoff and sparse-trajectory gradient recovery \cite{18,19,20,21}. The second method uses instantaneous Eulerian criteria, such as the Okubo-Weiss parameter, to partition flows based solely on the local velocity gradient \cite{8,22}. This instantaneous approach has been generalized to three dimensions \cite{23}, refined to second order \cite{24}, and applied at scale in mesoscale eddy censuses \cite{25}. However, both of these methods characterize these structures offline using a reconstructed field, which is not well suited to real-time adaptive navigation of a field that evolves in time.  
+Vector fields also have well defined curves that are useful for modelling naturally occuring phenomenon. 
+For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulates or separate \cite{11,12}.
+Coherent structures are typically identified through one of two primary methods.
+The first relies on Lagrangian coherent structures (LCS) \cite{16}, typically computed as ridges in the finite-time Lyapunov exponent field \cite{17}. 
+The second method uses instantaneous Eulerian criteria, such as the Okubo-Weiss parameter, to partition flows based solely on the local velocity gradient \cite{8,22}.
+This instantaneous approach has been generalized to three dimensions \cite{23}, refined to second order \cite{24}, and applied at scale in mesoscale eddy censuses \cite{25}. 
+The tradeoffs between using a Lagrangian or an Eulerian approach is a matter of ongoing research \cite{18,19,20,21}.
 
-New work is being done on using AN techniques with MRS in these scenarios. Michini et al. bracket a presumed stable or
+
+Mapping these curves allows teams to deploy resources in highly targeted search areas \cite{12,13,14,15}. 
+Traditionally, Without adaptive navigation, a large scale team must sample a much larger basin to determine where these structures lie using offline reconstruction.
+Adaptive Navigation, however, allows for quick localized mapping of this curve with a small team. 
+
+
+Recent work has begun applying AN techniques with MRS's to navigate along coherent structures.
+ Michini et al. travel along a presumed stable or
 unstable manifold with three robots using only local velocity
 measurements \cite{26}, an approach inspired by the PIM triple
-procedure, extended to $N$ robots \cite{27} and validated
-experimentally in gyre-like flows \cite{28}. The robots begin on the
-manifold and are advected by the flow, and the manifold's identity is
-supplied in advance. The saddle point is treated by neither the
+procedure \cite{27}  \cite{28}.  The saddle point is not discussed by neither the
 controller nor its analysis, and that work reports veering away from
-the structure near a saddle in flow-tank experiments. Kularatne and Hsieh confirm the boundary by computing the local FTLE field on board, at the cost of a nonzero integration horizon and a commitment to attracting structures \cite{29}. In both cases, the robotic formation pre-straddles the structure, and does not acquire a structure it does not already occupy.
+the structure near a saddle in flow-tank experiments.
+ Kularatne and Hsieh confirm the boundary of the attracting surface by computing the local FTLE field on board at the cost of a nonzero integration horizon \cite{29}.
+In these studies, the robotic teams pre-straddle the structure, and do not acquire a structure if they aren't.
 
-This paper shows that a second-order fit of the local flow can be used to
-acquire and track such a structure from instantaneous measurements. A
-linear fit, as in \cite{10}, gives the velocity gradient at one point. A
-second-order fit gives it as a field over the formation, so any quantity
-built from it comes with its own gradient in closed form. The contributions are
+
+This paper uses an eularian specification of the flow field, and shows that a second-order polynomial fit of the local flow can be used to
+acquire and track such a structure from instantaneous measurements. 
+The contributions are
 \begin{itemize}
 \item a cooperative estimator that recovers the local quadratic model of
-a two-component field from one synchronized set of measurements across six robots, the
-minimum for the unconstrained model, and that fails only when the robots
+a two-component field from one synchronized set of measurements across six robots that fails only when the robots
 lie on a common conic;
-\item two surrogates read in closed form from that fit, the
-velocity-gradient determinant $D$ and the smaller strain eigenvalue
-$s_1$ \cite{19};
+\item two surrogates fields transformed by that fit: the
+determinant field $D$ and the smaller strain eigenvalue field
+$s_1$ ;
+
 \item two AN primitives, the $D$ tracker and the $s_1$ tracker, that
 navigate to the structure and ride along it without pre-straddling;
-\item a tradeoff between them, in which the $D$ tracker tolerates more
+\item a compairson of the trackers showing the $D$ tracker tolerates more
 measurement noise while the $s_1$ tracker, being objective, holds its
 path under a rotating observer, which matters when the measured flow
 carries the observer's own rotation.
