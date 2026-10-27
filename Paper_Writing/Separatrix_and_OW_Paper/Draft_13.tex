@@ -45,19 +45,18 @@
 \maketitle
 
 \begin{abstract}
-Adaptive navigation is the process of modifying the motion of a robot's or a system of robots' based on 
+Adaptive navigation is the process of modifying the motion of a robot or a system of robots based on 
 real-time measurements taken from the environment being traversed. This paper 
-develops an Adaptive Navigation strategy to navigate two short term flow transport boundaries; the strain-dominated
+develops an adaptive navigation strategy to navigate two short-term flow transport boundaries, the strain-dominated
 curves across which water masses separate and the curves along which floating material collects.
-Existing robotic trackers of these structures prestraddle it before tracking begins and either commits to the structure's
+Existing robotic trackers of these structures pre-straddle them before tracking begins and either commit to the structure's
 identity or accumulate an estimate over a finite integration horizon to determine the type.
 We show that a computed second-order polynomial fit of the local flow can be recovered using synchronized measurements from six robots.
-This quadratic surrogate model can be used as a foundation to calculate two derived fields which map the vector field to a scalar invariant field:
-The Jacobian determinant field and the smaller rate of strain eigenvalue field.
+This quadratic surrogate model can be used as a foundation to calculate two derived fields that map the vector field to scalar invariant fields, the Jacobian determinant field and the smaller rate-of-strain eigenvalue field.
 We develop two adaptive navigation primitives to steer on each of these derived fields along the transport boundaries. Each tracker locates the nearest separating boundary
-and navigates to and along it from instantaneous measurements, with no integration horizon or prestraddling requirements.
-Monte Carlo analysis shows that the determinant tracker withstands more measurement noise than the rate of strain tracker from every tested starting position.
-However, the rate of strain tracker is objective in nature, and holds the the desired trajectory when the observer is rotating while the Jacobian determinant tracker fails.
+and navigates to and along it from instantaneous measurements, with no integration horizon or pre-straddling requirements.
+Monte Carlo analysis shows that the determinant tracker withstands more measurement noise than the rate-of-strain tracker from every tested starting position.
+However, the rate-of-strain tracker is objective in nature and holds the desired trajectory when the observer is rotating while the Jacobian determinant tracker fails.
 On Santa Barbara Channel radar currents, both primitives follow the dominant transport corridor from coast to coast.
 
 \end{abstract}
@@ -73,8 +72,8 @@ Cluster Space Control
 
 \IEEEPARstart{M}{ultirobot} systems (MRS) offer redundancy, increased
 throughput, and cooperative capabilities a single robot cannot produce,
-and have proven operational success  across land, sea, air, and space \cite{1,2}.
-Furthermore, and MRS can tolerate individual robot failures and adapt their formation based on mission objectives. \cite{3,4,5}.
+and have demonstrated operational success across land, sea, air, and space \cite{1,2}.
+Furthermore, an MRS can tolerate individual robot failures and adapt its formation based on mission objectives \cite{3,4,5}.
 
 In adaptive
 navigation (AN), a vehicle or group of vehicles modifies its velocity and desired trajectory in real time
@@ -83,8 +82,8 @@ gradient, which costs time and memory and misleads in a time-varying field,
 whereas an MRS can sample multiple locations simultaneously, enabling faster reaction times and better performance in non-static fields.
 
 
-AN in scalar fields is well. Each
-robot contributes one scalar measurement to a contol policy that controls the robots to reach or
+AN in scalar fields is well developed. Each
+robot contributes one scalar measurement to a control policy that controls the robots to reach or
 follow a feature. For example, specific formations are held so that differential measurements across different robots
 recover the gradient and curvature needed for specific control policies
  \cite{5,6}. 
@@ -98,52 +97,50 @@ ridge/trench following, and saddle point station keeping \cite{3}, and
 verified ridge, trench, saddle, and front tracking experimentally on an
 indoor testbed \cite{4,7}.
 
-%% Going through this document again
-
 Some physical environments are better represented as vector fields, which can model certain features that have no scalar field equivalents. 
 Critical points, such as sinks, sources, and vortices, can model convergence zones \cite{8} and subsurface leaks \cite{9}. In \cite{10} a three-robot cluster
 estimated the location and type of a nearby critical point  from a linear fit of
 simultaneous local velocity measurements and used this estimate to adaptively navigate towards and orbit it. 
 
-Vector fields also have well defined curves that are useful for modelling naturally occuring phenomenon. 
-For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulates or separate \cite{11,12}.
+Vector fields also have well-defined curves that are useful for modeling naturally occurring phenomena. 
+For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulate or separate \cite{11,12}.
 Coherent structures are typically identified through one of two primary methods.
 The first relies on Lagrangian coherent structures (LCS) \cite{16}, typically computed as ridges in the finite-time Lyapunov exponent field \cite{17}. 
 The second method uses instantaneous Eulerian criteria, such as the Okubo-Weiss parameter, to partition flows based solely on the local velocity gradient \cite{8,22}.
 This instantaneous approach has been generalized to three dimensions \cite{23}, refined to second order \cite{24}, and applied at scale in mesoscale eddy censuses \cite{25}. 
-The tradeoffs between using a Lagrangian or an Eulerian approach is a matter of ongoing research \cite{18,19,20,21}.
+The tradeoffs between using a Lagrangian or an Eulerian approach are a matter of ongoing research \cite{18,19,20,21}.
 
 
 Mapping these curves allows teams to deploy resources in highly targeted search areas \cite{12,13,14,15}. 
 Traditionally, Without adaptive navigation, a large scale team must sample a much larger basin to determine where these structures lie using offline reconstruction.
-Adaptive Navigation, however, allows for quick localized mapping of this curve with a small team. 
+Adaptive navigation, however, allows for quick localized mapping of these curves with a small team. 
 
 
-Recent work has begun applying AN techniques with MRS's to navigate along coherent structures.
+Recent work has begun applying AN techniques with MRS to navigate along coherent structures.
  Michini et al. travel along a presumed stable or
 unstable manifold with three robots using only local velocity
 measurements \cite{26}, an approach inspired by the PIM triple
-procedure \cite{27}  \cite{28}.  The saddle point is not discussed by neither the
+procedure \cite{27,28}. The saddle point is addressed by neither the
 controller nor its analysis, and that work reports veering away from
 the structure near a saddle in flow-tank experiments.
  Kularatne and Hsieh confirm the boundary of the attracting surface by computing the local FTLE field on board at the cost of a nonzero integration horizon \cite{29}.
 In these studies, the robotic teams pre-straddle the structure, and do not acquire a structure if they aren't.
 
 
-This paper uses an eularian specification of the flow field, and shows that a second-order polynomial fit of the local flow can be used to
+This paper uses an Eulerian specification of the flow field and shows that a second-order polynomial fit of the local flow can be used to
 acquire and track such a structure from instantaneous measurements. 
 The contributions are
 \begin{itemize}
 \item a cooperative estimator that recovers the local quadratic model of
-a two-component field from one synchronized set of measurements across six robots that fails only when the robots
+a two-component field from one synchronized set of measurements across six robots, and that fails only when the robots
 lie on a common conic;
-\item two surrogates fields transformed by that fit: the
+\item two surrogate fields computed from that fit, the
 determinant field $D$ and the smaller strain eigenvalue field
-$s_1$ ;
+$s_1$;
 
 \item two AN primitives, the $D$ tracker and the $s_1$ tracker, that
 navigate to the structure and ride along it without pre-straddling;
-\item a compairson of the trackers showing the $D$ tracker tolerates more
+\item a comparison of the trackers showing the $D$ tracker tolerates more
 measurement noise while the $s_1$ tracker, being objective, holds its
 path under a rotating observer, which matters when the measured flow
 carries the observer's own rotation.
@@ -154,7 +151,7 @@ Barbara Channel radar currents.
 
 \section{Second-Order Field Estimation}
 
-\subsection{Local Vector Field Polynomials}
+\subsection{Quadratic Field Estimation}
 
 A planar vector field assigns a velocity $\mathbf{v}(\mathbf{p}) =
 (u(\mathbf{p}), v(\mathbf{p}))$ to each position in space $\mathbf{p} = (x, y)$.
@@ -162,8 +159,8 @@ The critical point estimator of \cite{10} fits a plane to each
 component of the vector field and solves for the point where $\mathbf{v} = \mathbf{0}$. 
 
 In this work, we extend the linear approximation to the second-order Taylor expansion about the
-centroid, $\mathbf{p}_c$. Coordinates are measured
-from the centroid throughout this section, so $\mathbf{p}_c = \mathbf{0}$.
+centroid, $\mathbf{p}_c$. 
+
 \begin{align}
     u(\mathbf{p}) &= a_1 + a_2 x + a_3 y
         \nonumber \\
@@ -177,8 +174,7 @@ from the centroid throughout this section, so $\mathbf{p}_c = \mathbf{0}$.
         \label{eq:quad_model_v}
 \end{align}
 where $\mathcal{O}(\|\mathbf{p}\|^3)$ is the truncation error.
-The twelve coefficients of this quadratic model are constants and each is a derivative of the field at
-the centroid. The one-half factors cancel the factor of 2 during differentiation.
+The twelve coefficients of this quadratic model are constants. The one-half factors cancel the factor of 2 during differentiation.
 This gives $a_1 = u(\mathbf{p}_c)$, $a_2 = \partial u/\partial
 x|_{\mathbf{p}_c}$, $a_3 = \partial u/\partial y|_{\mathbf{p}_c}$,
 $a_4 = \partial^2 u/\partial x \partial
@@ -191,46 +187,48 @@ y_i)$, we define the quadratic basis vector
 \begin{equation}
     \boldsymbol{\phi}(\mathbf{p}) =
     \bigl[\,1, \; x, \; y, \; xy, \;
-    \tfrac{1}{2}x^2, \; \tfrac{1}{2}y^2\,\bigr]^\top,
+    \tfrac{1}{2}x^2, \; \tfrac{1}{2}y^2\,\bigr]^\top.
 \end{equation}
-whose entries are the terms of
-(\ref{eq:quad_model_u})--(\ref{eq:quad_model_v}) in order, so
-the recovered coefficients, which we mark with a hat, estimate the Taylor derivatives directly with
-no rescaling. Stacking the six basis vectors row-wise gives
-the $6 \times 6$ formation matrix $\boldsymbol{\Phi}$, and the coefficient
-estimates $\hat{\boldsymbol{\theta}}_u = [\hat{a}_1, \ldots,
-\hat{a}_6]^\top$ and $\hat{\boldsymbol{\theta}}_v = [\hat{b}_1, \ldots,
-\hat{b}_6]^\top$ solve
+
+
+
+Stacking the $n$ basis vectors row-wise gives us the $n \times 6$ formation matrix $\boldsymbol{\Theta}$, and the coefficient estimates $\hat{\boldsymbol{\theta}}_u$ and $\hat{\boldsymbol{\theta}}_v$ solve
 \begin{equation}
-    \boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_u = \mathbf{m}_u, \qquad
-    \boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_v = \mathbf{m}_v,
-    \label{eq:solve}
+\boldsymbol{\Theta},\hat{\boldsymbol{\theta}}_u = \mathbf{m}_u, \qquad
+\boldsymbol{\Theta},\hat{\boldsymbol{\theta}}_v = \mathbf{m}_v,
+\label{eq:solve}
 \end{equation}
-where $\mathbf{m}_u = [u_1, \ldots, u_6]^\top$ and
-$\mathbf{m}_v = [v_1, \ldots, v_6]^\top$ collect the measurements $u_i$ and $v_i$, the components of the velocity
-sampled by robot $i$. 
+where $\mathbf{m}_u = [u_1, \ldots, u_n]^\top$ and $\mathbf{m}_v = [v_1, \ldots, v_n]^\top$ collect the measurements $u_i$ and $v_i$, 
+the vector components sampled by the $i$-th robot.
 
 \subsection{Minimality}
 \label{sec:minimality}
 
+
+
 Six robots is the minimum for recovery of the unconstrained local
-quadratic model of a two-component planar field from one synchronized set of measurements. Each robot contributes one equation per component to
-(\ref{eq:solve}), and each system has six unknowns, so fewer than six
+quadratic model using 1 set of instantaneous measurements. . Each robot contributes one equation per component of
+(\ref{eq:solve}). Each system of equations has six unknowns, so fewer than six
 robots leave the solution set a positive-dimensional affine subspace.
 
+%% You have made everything before this understandable.
+% Note to self, don't trust the AI
+% Line 210 of about 1400 or 1/7
+
+With five equations or fewer, a method either returns a family of solutions or imposes a structural prior, such as assuming
+divergence-free flow by imposing $\nabla\cdot\mathbf{v} = 0$. We do not impose any priors on the field, as horizontal surface
+currents are not divergence free, so imposing
+$\nabla\cdot\mathbf{v} = 0$ would bias every recovered coefficient.
 Six robots suffice provided $\boldsymbol{\Phi}$ is nonsingular. With
 more than six, $\boldsymbol{\Phi}$ has more rows than columns, the fit
-becomes least squares, and the condition becomes full column rank.
+becomes least squares.
+
 Either condition fails exactly when the robots lie on a common conic.
 For example, a standard ring formation is degenerate at any size, since
 the ring itself is the conic. A fit from more than six robots also
 leaves a residual, which carries the measurement noise and the
 truncation error.
 
-With five equations or fewer, a method either returns a family of solutions or imposes a structural prior, such as assuming
-divergence-free flow by imposing $\nabla\cdot\mathbf{v} = 0$. We do not impose any priors on the field, as horizontal surface
-currents are not divergence free, so imposing
-$\nabla\cdot\mathbf{v} = 0$ would bias every recovered coefficient.
 
 For this study, we chose the pentagon-plus-center formation and use it
 throughout. It is the smallest uniform ring plus center on which \cite{5}
