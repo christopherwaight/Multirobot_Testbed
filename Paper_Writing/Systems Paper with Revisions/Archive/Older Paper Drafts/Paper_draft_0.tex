@@ -1,0 +1,659 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}  % For better equation formatting
+\usepackage{amsfonts} % For additional math fonts
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{hyperref}
+
+
+\title{Adaptive Navigation Control Primitives for Multirobot Systems in Vector Fields}
+\author{Christopher Waight}
+\date{Last Update June 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Objective}
+
+To Design, Analyze and Validate ten multirobot adaptive navigation control primitives. This will be done mathematically, in simulation and on a physical testbed. Each control primitive will demonstrate memory-free navigation and information-minimal control across several test fields.
+
+
+For each control primitive in each environment, we will measure the system's ability to achieve the desired target variables and locations.
+
+This document consolidates the methods and mathematical foundations for multi-robot cluster control systems. The system employs adaptive navigation primitives that exploit instantaneous field information without requiring memory or state history, enabling robust navigation in both vector and scalar fields.
+
+\section{Introduction}
+
+Multirobot systems have emerged as a transformative technology for environmental sensing and autonomous navigation, offering capabilities in redundancy, spatial coverage, and distributed intelligence that single robots cannot achieve [68]. These systems have demonstrated success across diverse applications including ocean exploration [1], atmospheric monitoring [62], search and rescue operations [13], and precision agriculture [68], fundamentally changing how autonomous systems interact with complex environments [16].
+
+The evolution of multirobot coordination has progressed through distinct phases. Early work by Khatib introduced artificial potential fields for obstacle avoidance [32], establishing foundations for reactive navigation. Subsequent research developed sophisticated formation control strategies [6], cluster space formulations that treat robot teams as single entities [1], and distributed optimization methods that reduce communication overhead [18]. Recent advances have incorporated machine learning for adaptability [56], belief propagation for decentralized planning [15], and guiding vector fields for coordinated motion [7].
+
+Despite these advances, critical gaps persist between theoretical development and practical deployment. Current approaches typically require abundant sensing capabilities, with most methods demanding six or more distributed measurements to estimate essential field properties including gradients, Jacobians, and Hessians [5]. This requirement limits deployment in resource-constrained scenarios where minimizing robot count, power consumption, and communication bandwidth is essential [34]. Furthermore, existing methods rely heavily on memory-intensive state estimation and feedback control loops [40], increasing computational complexity and reducing system responsiveness in dynamic environments [11].
+
+A particularly compelling yet underexplored domain is adaptive navigation in environmental vector fields---naturally occurring phenomena such as ocean currents [3], atmospheric flows [10], electromagnetic fields [24], and chemical plumes [13]. Unlike scalar fields that have received extensive attention [5], vector fields present unique challenges: they encode both magnitude and direction at each point, exhibit complex topological features including sources, sinks, vortices, and saddle points [3], and often display dynamic behavior that traditional path planning cannot address [7]. The limited work on vector field navigation has remained largely theoretical [2], with significant gaps in experimental validation [30].
+
+The simulation-to-reality gap presents another fundamental challenge. Algorithms validated in simulation often fail when deployed on physical robots due to unmodeled dynamics, sensor noise, communication delays, and environmental uncertainties [15]. While researchers have developed various testbeds [2], most focus on artificial scenarios rather than realistic environmental conditions [30]. This disconnect has limited the practical impact of multirobot navigation research [68], particularly for vector field applications where sensor calibration and formation maintenance are critical [30].
+
+
+Recent efforts to address these limitations have explored various approaches. Distributed optimization methods have reduced communication requirements to O(n) complexity [18], information-theoretic frameworks have improved exploration efficiency [12], and adaptive control strategies have enhanced robustness [9]. However, these solutions often introduce new complexities: optimization methods require iterative convergence [57], probabilistic approaches need extensive prior models [15], and learning-based methods demand significant training data [56]. The fundamental question of minimal information requirements for guaranteed navigation performance has not been fully explored [47].
+
+This paper presents a purely reactive approach to multirobot adaptive navigation that addresses these limitations through an information-theoretic framework. This approach exploits inherent geometric structure in environmental vector fields, not just linear approximations but a framework for understanding the curvature of the space. Our key insight is that vector fields contain sufficient mathematical structure for complete navigation using only instantaneous measurements from strategically positioned robots without the need to flatten them to a scalar field first. We show 3 robots can understand curvature of a vector field, and we prove that 4 robots are sufficient to extract all necessary second-order field information (Hessians, and eigenstructure) in scalar fields and vector fields,  less than previously thought possible [47].  We then use this information to reactivley adjust to navigate to features of interest. This reduction is achieved by exploiting fundamental properties including Hessian symmetry, vector field consistency constraints, and the natural computational structure embedded in field geometry [58].
+
+Our approach eliminates memory, state estimation, and feedback loops entirely, achieving guaranteed convergence using only instantaneous 10Hz measurements without any historical information. This memory-free paradigm represents a departure from both traditional planning methods and reactive behaviors, proving that navigation complexity can be shifted from computation to geometric insight. We develop universal control primitives that handle all critical point types in 2D vector fields through a single memoryless law, including challenging features such as saddle points in scalar fields and separatrices in vector fields that previous methods cannot address [3].
+
+The technical contributions of this work span theoretical foundations and practical implementation. We establish fundamental information-theoretic limits proving 3-4 robots sufficient for complete field characterization, develop memory-free control laws with convergence guarantees for all vector field topologies, introduce novel primitives for separatrix and bifurcation following critical for understanding field structure, and demonstrate sub-centimeter formation precision enabling reliable field geometry extraction. All theoretical results are validated on a custom testbed using a fleet of omnidirectional robots, marking the first successful implementation of truly information-minimal navigation and bridging the persistent simulation-to-reality gap [30].
+
+This paper advances multirobot systems by establishing minimal sensing requirements for environmental navigation, eliminating computational complexity through memory-free control, enabling new capabilities for exploring complex field topologies, and demonstrating practical viability for resource-constrained deployment. These contributions provide theoretical foundations and practical tools for next-generation autonomous systems operating in challenging environments with minimal resources.
+
+
+\section{Introduction}
+
+Multi-robot systems have emerged as a transformative technology for sensing and navigation in complex environments, offering advantages in redundancy, spatial coverage, and distributed intelligence that single robots cannot achieve . These systems have found applications across diverse domains including environmental monitoring , search and rescue operations , precision agriculture , and ocean exploration . The fundamental challenge in deploying multi-robot teams lies in developing distributed control strategies that enable coordinated behavior while operating under constraints of limited sensing, unreliable communication, and dynamic environments .
+
+A particularly compelling application domain for multi-robot systems is adaptive navigation in environmental vector fields—naturally occurring phenomena such as ocean currents, atmospheric flows, and chemical plumes that robots must sense, characterize, and navigate. Unlike traditional path planning where robots navigate to predetermined locations, adaptive navigation requires teams to discover and track dynamic features of interest including sources, sinks, vortices, and saddle points in real-time using only local measurements . This paradigm shift from trajectory tracking to feature-based navigation has opened new possibilities for autonomous environmental monitoring and exploration .
+
+The theoretical foundations for multi-robot navigation in vector fields draw from diverse mathematical disciplines. Early work adapted artificial potential field methods for obstacle avoidance  to multi-robot coordination. Subsequent research incorporated techniques from differential geometry to characterize vector field topology , optimization theory for extremum seeking , and information theory for efficient exploration . These theoretical advances have enabled sophisticated behaviors such as gradient climbing , level curve tracking , circulation control , and source localization .
+
+Despite significant theoretical progress, critical gaps remain between algorithmic development and practical implementation. First, most existing approaches assume abundant sensing and communication capabilities, requiring six or more distributed measurements to estimate field properties such as gradients, Jacobians, and Hessians . This assumption limits deployment in resource-constrained scenarios where minimizing robot count and communication overhead is essential . Second, current methods typically rely on memory-intensive state estimation, feedback control, and inter-robot communication to achieve coordination , increasing computational complexity and power consumption. Third, the majority of research has focused on scalar fields or simplified 2D vector fields , with limited attention to the full complexity of 3D environmental phenomena and the topological features that characterize them.
+
+Recent efforts have begun addressing these limitations through various approaches. Distributed optimization methods have reduced communication requirements, belief propagation techniques have enabled decentralized planning , and machine learning approaches have improved adaptability . However, these solutions often introduce new complexities: optimization methods require iterative convergence , belief propagation assumes probabilistic models , and learning approaches need extensive training data . Moreover, the fundamental question of minimal information requirements for navigation—determining the absolute minimum sensing and computation needed for guaranteed performance—remains largely unexplored .
+
+The simulation-to-reality gap presents another significant challenge, as algorithms validated in simulation often fail when deployed on physical robots due to unmodeled dynamics, sensor noise, and communication delays . While some researchers have developed testbeds for validation , most focus on artificial scenarios rather than realistic environmental vector fields. This disconnect between theoretical algorithms and physical implementation has limited the practical impact of multi-robot navigation research .
+
+This paper presents a fundamentally different approach to multi-robot adaptive navigation that addresses these limitations through an information-theoretic framework. Our key insight is that environmental vector fields contain inherent geometric structure that can be exploited for navigation using minimal sensing and zero memory. Specifically, we prove that only 3-4 strategically positioned robots are sufficient to extract all necessary second-order field information—including gradients, Jacobians, Hessians, and eigenstructure—that traditionally required six or more measurements . This reduction is achieved by exploiting mathematical properties such as Hessian symmetry and vector field consistency constraints, where the field structure itself acts as a natural computer providing navigation instructions through classical optimization geometry.
+
+Our approach eliminates the need for memory, state estimation, or feedback loops entirely, achieving convergence using only instantaneous measurements at 10 Hz without any historical information. This memory-free paradigm represents a fundamental departure from existing reactive and behavior-based methods  by proving that navigation complexity can be shifted from computation to geometric insight. We develop universal navigation primitives that handle challenging features including saddle points in scalar fields and all types of critical points (nodes, centers, foci, and saddle points) in 2D vector fields through a single memoryless control law . Additionally, we introduce novel primitives for following separatrices and bifurcation curves—features that are crucial for understanding field topology but have been largely ignored in navigation research.
+
+The practical implications of this information-minimal approach are substantial. By reducing sensing requirements and eliminating memory, our method enables deployment on severely resource-constrained platforms with limited battery life and processing power . The geometric framework provides theoretical guarantees on convergence and stability while maintaining sub-centimeter formation precision in real-world conditions . We validate all theoretical results on a physical testbed using a fleet of student designed IOT robots, demonstrating the first successful implementation of truly information-minimal navigation and bridging the persistent simulation-to-reality gap .
+
+This paper makes four primary contributions to the field of multi-robot systems. First, we establish fundamental limits on the information required for navigation in vector fields, proving that 3-4 robots with instantaneous measurements are sufficient for complete field characterization. Second, we develop memory-free control laws that exploit geometric field properties to achieve guaranteed convergence without state estimation or feedback. Third, we introduce universal navigation primitives for all critical point types and novel behaviors such as separatrix following. Fourth, we demonstrate successful physical implementation with sub-centimeter precision, validating the practical viability of information-minimal navigation. These contributions advance both the theoretical understanding of minimal sensing requirements and the practical deployment of resource-constrained multi-robot systems in complex environments.
+
+
+
+
+
+
+\section{Control Architecture}
+
+The multirobot system employs a three-layer hierarchical control architecture adapted from previous cluster space control studies [17]. This architecture, illustrated in Figure 1, enables modular development and systematic comparison of navigation strategies while maintaining reusability across different robot platforms and formations.
+
+\subsection{Adaptive Navigation Layer}
+
+The top layer integrates the cluster shape policy, feature estimator, and control law to determine desired cluster actions in cluster space variables. This layer executes control primitives that exploit instantaneous field information without requiring memory or state history. The feature estimator processes RGB sensor data from individual robots, converting it to navigation parameters using supervised learning neural networks (Section \ref{sec:sensor-calibration}).
+
+\subsection{Cluster Space Controller Layer}
+
+The middle layer maintains fixed formation geometry using cluster space control techniques [17]. For $n$ robots with positions $\mathbf{p}_i = (x_i, y_i)$, the cluster space variables $\mathbf{c}$ and robot space variables $\mathbf{r}$ are related through:
+
+\begin{equation}
+\dot{\mathbf{c}} = \mathbf{J}\dot{\mathbf{r}}
+\end{equation}
+
+where $\mathbf{J}$ is the cluster Jacobian matrix. This formulation provides closed-form conversions between cluster-level commands and individual robot velocities, enabling precise formation control with full controllability and observability.
+
+\subsection{Robot Control Layer}
+
+The bottom layer consists of individual robot controllers that translate velocity commands from the cluster layer into motor torque commands. Each robot's onboard Arduino manages motor control to achieve desired velocities while handling low-level dynamics.
+
+\section{Hardware Platform}
+
+\subsection{Robot Specifications}
+
+The experimental platform utilizes Decabot omnidirectional rovers developed at Santa Clara University [16]. Key specifications include:
+\begin{itemize}
+\item Maximum linear velocity: 0.3 m/s
+\item Onboard sensing: TCS34725 RGB color sensor with white LED illumination
+\item Processing: Arduino microcontroller
+\item Communication: TCP/IP over WiFi to central control computer
+\item Tracking: Reflective spheres for OptiTrack motion capture (10Hz update rate)
+\item Work area: 3m $\times$ 6m indoor space
+\end{itemize}
+
+The robots operate on printed color floor maps (2.3m $\times$ 2.3m) representing vector fields through HSV color encoding, where hue encodes direction (0-2$\pi$) and saturation encodes magnitude (0.3-1.0).
+
+\subsection{Sensor Calibration}
+\label{sec:sensor-calibration}
+
+RGB sensor readings suffer from channel interference, necessitating a supervised learning approach for accurate field interpretation. The calibration process involves:
+
+\begin{enumerate}
+\item \textbf{Data Collection}: Three robots sample a 24$\times$24 grid calibration palette with known hue and saturation values
+\item \textbf{Feature Extraction}: Raw RGBK values are augmented with $\pm$1\% noise and converted to a 7-dimensional feature space (R,G,B,K,H,S,V)
+\item \textbf{Neural Network Training}: Two separate networks process direction and magnitude:
+   \begin{itemize}
+   \item Direction network: 7 inputs $\rightarrow$ [8-12 neurons] $\rightarrow$ [6-10 neurons] $\rightarrow$ 2 outputs (sin, cos components)
+   \item Magnitude network: 7 inputs $\rightarrow$ [8-12 neurons] $\rightarrow$ [6-10 neurons] $\rightarrow$ 1 output (saturation)
+   \end{itemize}
+\item \textbf{Model Selection}: Random search optimizes architecture parameters, selecting models based on worst-case performance across all validation sets
+\end{enumerate}
+
+This approach achieves $R^2 > 0.96$ for direction and $R^2 > 0.91$ for magnitude estimation, enabling cross-robot deployment without individual calibration.
+
+\section{Cluster Kinematics}
+
+\subsection{General Kinematic Framework}
+
+The process of determining forward and inverse kinematics for multi-robot clusters follows a systematic approach that separates shape constraints from rigid body motion. The complete parameter set for any multi-robot cluster can be classified as:
+
+\begin{equation}
+\boldsymbol{\xi}_{\text{total}} = [\boldsymbol{\xi}_{\text{pose}}^T, \boldsymbol{\xi}_{\text{shape}}^T]^T
+\end{equation}
+
+where:
+\begin{itemize}
+\item $\boldsymbol{\xi}_{\text{pose}} = [x_c, y_c, \theta_c]^T$: Universal pose parameters (3 DOF)
+\item $\boldsymbol{\xi}_{\text{shape}}$: Shape-specific parameters (dimension varies with cluster type)
+\end{itemize}
+
+For an $n$-robot planar formation, the total degrees of freedom is $2n$, with 3 DOF for rigid body motion and $2n-3$ DOF for shape.
+
+\subsection{Three-Robot Triangular Cluster}
+
+The three-robot formation uses Side-Angle-Side (SAS) parameterization forming an equilateral triangle with:
+\begin{itemize}
+\item Side lengths: $p = q = 0.35$m  
+\item Interior angle: $\beta = 1.05$ radians
+\end{itemize}
+
+\subsubsection{Forward Kinematics}
+
+Given the SAS parameters and centroid position $(x_c, y_c)$ with orientation $\theta_c$, compute the triangle vertices in the local frame:
+
+\begin{equation}
+\begin{aligned}
+x_1^{\text{local}} &= -\frac{p \sin(\alpha)}{2 \sin(\beta)}, \quad
+y_1^{\text{local}} = -\frac{p \cos(\alpha) + q}{2}
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+x_2^{\text{local}} &= \frac{q \sin(\gamma)}{2 \sin(\beta)}, \quad
+y_2^{\text{local}} = \frac{p + q \cos(\gamma)}{2}
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\begin{aligned}
+x_3^{\text{local}} &= \frac{p \sin(\alpha) + q \sin(\gamma)}{2 \sin(\beta)}, \quad
+y_3^{\text{local}} = -\frac{p \cos(\alpha) + q \cos(\gamma)}{2}
+\end{aligned}
+\end{equation}
+
+where $\alpha$ and $\gamma$ are computed using the law of cosines:
+
+\begin{equation}
+r = \sqrt{p^2 + q^2 - 2pq\cos(\beta)}
+\end{equation}
+
+\begin{equation}
+\alpha = \arccos\left(\frac{p^2 + r^2 - q^2}{2pr}\right), \quad
+\gamma = \arccos\left(\frac{q^2 + r^2 - p^2}{2qr}\right)
+\end{equation}
+
+The global positions are obtained through rotation and translation:
+
+\begin{equation}
+\begin{bmatrix} x_i \\ y_i \end{bmatrix} = 
+\mathbf{R}(\theta_c)\begin{bmatrix} x_i^{\text{local}} \\ y_i^{\text{local}} \end{bmatrix} +
+\begin{bmatrix} x_c \\ y_c \end{bmatrix}
+\end{equation}
+
+where $\mathbf{R}(\theta_c)$ is the standard rotation matrix.
+
+\subsubsection{Inverse Kinematics}
+
+Given robot positions, the SAS parameters are:
+
+\begin{equation}
+p = \|\mathbf{p}_2 - \mathbf{p}_1\|, \quad q = \|\mathbf{p}_3 - \mathbf{p}_2\|, \quad
+\beta = \arccos\left(\frac{p^2 + q^2 - r^2}{2pq}\right)
+\end{equation}
+
+\subsection{Four-Robot Quadrilateral Cluster}
+
+Building on the same control principles, the four-robot formation employs diagonal-based parameterization with eight degrees of freedom:
+\begin{itemize}
+\item Diagonal lengths: $d_1, d_2 = 0.5$m
+\item Intersection ratios: $r_1, r_2 = 0.5$
+\item Inter-diagonal angle: $\phi = \pi/2$ radians
+\end{itemize}
+
+\subsubsection{Forward Kinematics}
+
+The diagonal parameters are computed from corner positions as:
+
+\begin{equation}
+d_1 = \|\mathbf{p}_3 - \mathbf{p}_1\|, \quad d_2 = \|\mathbf{p}_4 - \mathbf{p}_2\|
+\end{equation}
+
+\begin{equation}
+\theta_c = \text{atan2}(y_3 - y_1, x_3 - x_1), \quad
+\phi = \text{atan2}(y_4 - y_2, x_4 - x_2) - \theta_c
+\end{equation}
+
+The intersection ratios $r_1$ and $r_2$ are found by solving the line intersection problem.
+
+\subsubsection{Inverse Kinematics}
+
+Given the diagonal parameters, compute the intersection point:
+
+\begin{equation}
+\begin{aligned}
+x_i &= x_c + \frac{1}{4}\left[d_1(2r_1 - 1)\cos(\theta_c) + d_2(2r_2 - 1)\cos(\theta_c - \phi)\right] \\
+y_i &= y_c + \frac{1}{4}\left[d_1(2r_1 - 1)\sin(\theta_c) + d_2(2r_2 - 1)\sin(\theta_c - \phi)\right]
+\end{aligned}
+\end{equation}
+
+Then compute corner positions relative to the intersection point.
+
+\subsection{Star Configuration for $n > 4$ Robots}
+
+For larger formations, use a star (hub-and-spoke) configuration with robot 1 as the reference hub:
+\begin{itemize}
+\item $d_i$: distance from robot 1 to robot $i$ for $i = 2, 3, \ldots, n$ 
+\item $\alpha_j$: angle between consecutive radial lines for $j = 2, 3, \ldots, n-1$
+\end{itemize}
+
+This yields exactly $2n - 3$ shape parameters. Robot positions in the local frame:
+
+\begin{equation}
+x_i^{\text{local}} = d_i \cos\left(\sum_{j=2}^{i-1} \alpha_j\right), \quad
+y_i^{\text{local}} = d_i \sin\left(\sum_{j=2}^{i-1} \alpha_j\right)
+\end{equation}
+
+\section{Field Representations}
+
+\subsection{Vector Fields}
+
+Vector fields are encoded using HSV color space with mathematical models:
+
+\textbf{Fixed Vortex} (centered at origin):
+\begin{align}
+r &= \sqrt{(x - 1.15)^2 + (y - 1.15)^2} \\
+\theta &= \text{atan2}(y - 1.15, x - 1.15) \\
+u &= r \sin(\theta), \quad v = -r \cos(\theta)
+\end{align}
+
+\textbf{Sinking Vortex} (fixed vortex with radial component):
+\begin{align}
+u &= u_{\text{vortex}} + \frac{0.1(x - 1.15)}{r^2 + 10^{-6}} \\
+v &= v_{\text{vortex}} + \frac{0.1(y - 1.15)}{r^2 + 10^{-6}}
+\end{align}
+
+\subsection{Scalar Fields}
+
+Scalar fields use grayscale encoding (0-255) representing field magnitude, with gradient and Hessian information extracted through multi-robot sampling.
+
+\section{Gradient and Hessian Estimation}
+
+\subsection{Gradient Estimation (3+ Robots)}
+
+For vector fields, the local flow is approximated using planar models:
+\begin{align}
+U(x,y) &= ax + by + c \\
+V(x,y) &= dx + ey + f
+\end{align}
+
+Given $n \geq 3$ robot measurements $(x_i, y_i, u_i, v_i)$, coefficients are determined via least squares:
+\begin{equation}
+\mathbf{A}\boldsymbol{\theta} = \mathbf{b}
+\end{equation}
+
+where $\mathbf{A}$ contains position coordinates and $\boldsymbol{\theta}$ contains model parameters.
+
+\subsection{Jacobian Estimation}
+
+The vector field Jacobian at the cluster center is:
+\begin{equation}
+\mathbf{J}_f = \begin{bmatrix} \frac{\partial u}{\partial x} & \frac{\partial u}{\partial y} \\ \frac{\partial v}{\partial x} & \frac{\partial v}{\partial y} \end{bmatrix} = \begin{bmatrix} a & b \\ d & e \end{bmatrix}
+\end{equation}
+
+\subsection{Hessian Estimation (4+ Robots in Scalar Fields)}
+
+For scalar field $z(x,y)$, four robots enable gradient estimation at multiple points. Fitting planes to gradient components:
+\begin{align}
+\frac{\partial z}{\partial x} &= \alpha_x x + \beta_x y + \gamma_x \\
+\frac{\partial z}{\partial y} &= \alpha_y x + \beta_y y + \gamma_y
+\end{align}
+
+yields the Hessian estimate:
+\begin{equation}
+\mathbf{H} = \begin{bmatrix} \alpha_x & \beta_x \\ \alpha_y & \beta_y \end{bmatrix}
+\end{equation}
+
+\section{Control Primitives}
+
+\subsection{Critical Point Navigation}
+
+\subsubsection{Mathematical Foundation}
+
+Estimates critical point location where $\mathbf{f}(x^*, y^*) = \mathbf{0}$ using the planar approximation. The critical point satisfies:
+
+\begin{equation}
+\mathbf{J}\mathbf{p}^* = -\mathbf{h}
+\end{equation}
+
+where $\mathbf{J}$ is the Jacobian and $\mathbf{h} = [c, f]^T$ from the planar model. Thus:
+
+\begin{equation}
+\mathbf{p}^* = -\mathbf{J}^{-1}\mathbf{h}
+\end{equation}
+
+\subsubsection{Control Law}
+
+The continuous velocity command is:
+
+\begin{equation}
+\dot{\mathbf{p}}_c = k(\mathbf{p}^* - \mathbf{p}_c)
+\end{equation}
+
+where $k > 0$ is the proportional gain, yielding exponential convergence with time constant $\tau = 1/k$.
+
+\subsection{Orbital Control Around Critical Point}
+
+\subsubsection{Mathematical Foundation}
+
+Given the estimated critical point $\mathbf{p}^*$, maintain a circular orbit at desired radius $r_d$. The vector from cluster center to critical point:
+
+\begin{equation}
+\mathbf{r} = \mathbf{p}^* - \mathbf{p}_c, \quad r = \|\mathbf{r}\|
+\end{equation}
+
+The unit radial vector and its perpendicular:
+
+\begin{equation}
+\hat{\mathbf{r}} = \frac{\mathbf{r}}{r}, \quad \hat{\mathbf{r}}_\perp = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix} \hat{\mathbf{r}}
+\end{equation}
+
+\subsubsection{Control Law}
+
+The orbital velocity combines tangential motion with radial correction:
+
+\begin{equation}
+\dot{\mathbf{p}}_c = k_t \hat{\mathbf{r}}_\perp - k_r(r - r_d)\hat{\mathbf{r}}
+\end{equation}
+
+where $k_t > 0$ sets orbital speed and $k_r > 0$ determines radius correction rate.
+
+\subsection{Weighted Jacobian Critical Point Navigation}
+
+\subsubsection{Mathematical Foundation}
+
+Characterize local flow using curl and divergence:
+
+\begin{equation}
+\text{curl}_z = \frac{\partial v}{\partial x} - \frac{\partial u}{\partial y} = d - b
+\end{equation}
+
+\begin{equation}
+\text{div} = \frac{\partial u}{\partial x} + \frac{\partial v}{\partial y} = a + e
+\end{equation}
+
+Compute relative weights:
+
+\begin{equation}
+w_\text{rot} = \frac{|\text{curl}_z|}{|\text{curl}_z| + |\text{div}|}, \quad 
+w_\text{rad} = \frac{|\text{div}|}{|\text{curl}_z| + |\text{div}|}
+\end{equation}
+
+\subsubsection{Control Law}
+
+The rotational component points toward the vortex center:
+
+\begin{equation}
+\mathbf{d}_\text{rot} = \text{sgn}(\text{curl}_z) \begin{bmatrix} 0 & 1 \\ -1 & 0 \end{bmatrix} \hat{\mathbf{f}}
+\end{equation}
+
+The radial component points toward the source/sink:
+
+\begin{equation}
+\mathbf{d}_\text{rad} = -\text{sgn}(\text{div}) \hat{\mathbf{f}}
+\end{equation}
+
+Composite control:
+
+\begin{equation}
+\dot{\mathbf{p}}_c = k(w_\text{rot}\mathbf{d}_\text{rot} + w_\text{rad}\mathbf{d}_\text{rad})
+\end{equation}
+
+\subsection{Vector-Sum}
+
+Combines vectors sensed by all robots:
+
+\begin{equation}
+\mathbf{v}_{\text{sum}} = \frac{1}{n}\sum_{i=1}^{n} \mathbf{f}_i
+\end{equation}
+
+The normalized resultant specifies cluster velocity direction. Successfully demonstrated spiral convergence in sinking vortex fields during experimental validation.
+
+\subsection{Vector-to-Scalar}
+
+Transforms vector field navigation to scalar field problem using magnitude:
+
+\begin{equation}
+z_i = \|\mathbf{f}_i\|
+\end{equation}
+
+Gradient ascent/descent on the magnitude field enables navigation to extrema. Experimental results showed convergence within 0.2m of vortex centers.
+
+\subsection{Saddlepoint-Seeker (Scalar Fields)}
+
+\subsubsection{Mathematical Foundation}
+
+For scalar fields with four robots, uses Newton's method with the estimated gradient $\nabla z$ and Hessian $\mathbf{H}$:
+
+\begin{equation}
+\Delta \mathbf{p} = -\mathbf{H}^{-1}\nabla z
+\end{equation}
+
+\subsubsection{Control Law}
+
+The velocity commands:
+
+\begin{equation}
+\dot{x}_c = k_p \Delta p_x, \quad \dot{y}_c = k_p \Delta p_y
+\end{equation}
+
+Combined with formation alignment:
+
+\begin{equation}
+\theta_{\text{desired}} = \text{atan2}(\Delta p_y, \Delta p_x) + \frac{k\pi}{2}
+\end{equation}
+
+where $k \in \{0,1,2,3\}$ minimizes $|\theta_{\text{desired}} - \theta_c|$. The rotation control:
+
+\begin{equation}
+\dot{\theta}_c = k_\theta(\theta_{\text{desired}} - \theta_c)
+\end{equation}
+
+This ensures robust convergence to saddle points where $\lambda_1 < 0 < \lambda_2$.
+
+\section{Experimental Testing Procedures}
+
+All experiments followed standardized protocols to ensure repeatability and statistical validity:
+
+\begin{enumerate}
+\item \textbf{Initialization}: Robots positioned at predetermined starting locations with cluster variables set to desired formation parameters
+
+\item \textbf{Data Collection}: OptiTrack system recorded all robot positions at 10Hz throughout each trial
+
+\item \textbf{Control Execution}: Adaptive navigation primitives executed with fixed cluster shape policy
+
+\item \textbf{Performance Metrics}: 
+   \begin{itemize}
+   \item Cluster position and orientation: $(x_c, y_c, \theta_c)$
+   \item Formation parameters: $(p, q, \beta)$ for triangular, $(d_1, d_2, r_1, r_2, \phi)$ for quadrilateral
+   \item Individual robot trajectories and sensor readings
+   \end{itemize}
+
+\item \textbf{Statistical Analysis}: 10 trials per primitive-field combination to assess consistency and compute error statistics
+\end{enumerate}
+
+The cluster space controller maintained formation precision within 1cm throughout all experiments, validating the effectiveness of the hierarchical control architecture in real-world conditions.
+
+\section{Future Work to Write}
+
+\subsection{Control Primitives to Complete}
+
+\begin{itemize}
+\item \textbf{Bifurcation Rider}: Control strategy for following bifurcation curves in parameter-dependent fields
+\item \textbf{Bifurcation Correct}: Stabilization method for maintaining position at bifurcation points
+\item \textbf{Contour Follower I}: Basic contour following using gradient perpendicular motion
+\item \textbf{Contour Follower II}: Advanced contour following with curvature compensation
+\end{itemize}
+
+\subsection{Vector Field Models to Complete}
+
+\begin{itemize}
+\item \textbf{Double Hill}: Two-peak scalar field with saddle point between maxima
+\item \textbf{Double Vortex}: Counter-rotating vortex pair with interaction region
+\item \textbf{Three Additional Fields}: To be determined based on experimental needs
+\end{itemize}
+
+\subsection{Additional Documentation Needs}
+
+\begin{itemize}
+\item Complete derivation of Jacobian matrices for all cluster configurations
+\item Stability analysis for each control primitive
+\item Convergence proofs for critical point navigation strategies
+\item Noise sensitivity analysis for gradient/Hessian estimation
+\item Comparison of different formation geometries for field estimation accuracy
+\item Extension to 3D formations and fields
+\item Real-time adaptation of formation shape based on field characteristics
+\end{itemize}
+
+\appendix
+
+\section{Notation Summary}
+
+\begin{itemize}
+\item $\mathbf{p}_i = (x_i, y_i)$: Position of robot $i$
+\item $\mathbf{p}_c = (x_c, y_c)$: Cluster centroid position
+\item $\theta_c$: Cluster orientation
+\item $\mathbf{f}_i = (u_i, v_i)$: Vector field measurement at robot $i$
+\item $z_i$: Scalar field measurement at robot $i$
+\item $\mathbf{J}_f$: Vector field Jacobian matrix
+\item $\mathbf{H}$: Scalar field Hessian matrix
+\item $\boldsymbol{\xi}_{\text{shape}}$: Shape parameters
+\item $\boldsymbol{\xi}_{\text{pose}}$: Pose parameters $(x_c, y_c, \theta_c)$
+\end{itemize}
+
+\section{Parameter Tables}
+
+\subsection{Three-Robot SAS Parameters}
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+Parameter & Symbol & Default Value \\
+\hline
+Side 1 length & $p$ & 0.35 m \\
+Interior angle & $\beta$ & 1.05 rad \\
+Side 2 length & $q$ & 0.35 m \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Four-Robot Diagonal Parameters}
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+Parameter & Symbol & Default Value \\
+\hline
+Diagonal 1 length & $d_1$ & 0.5 m \\
+Diagonal 2 length & $d_2$ & 0.5 m \\
+Intersection ratio 1 & $r_1$ & 0.5 \\
+Intersection ratio 2 & $r_2$ & 0.5 \\
+Inter-diagonal angle & $\phi$ & $\pi/2$ rad \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Control Gains}
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+Control Primitive & Gain Symbol & Typical Value \\
+\hline
+Critical Point Navigation & $k$ & 0.5 s$^{-1}$ \\
+Orbital Control (tangential) & $k_t$ & 0.2 rad/s \\
+Orbital Control (radial) & $k_r$ & 0.3 s$^{-1}$ \\
+Saddlepoint Seeker (position) & $k_p$ & 0.4 s$^{-1}$ \\
+Saddlepoint Seeker (rotation) & $k_\theta$ & 0.5 rad/s \\
+\hline
+\end{tabular}
+\end{center}
+
+
+
+\section{Saddle Point Navigation in Scalar Fields}
+
+
+\subsection{Saddle Point Navigation in Scalar Fields}
+
+For scalar field applications, we extend our approach to saddle point navigation using four robots in a square formation. The objective is to locate saddle points—critical points where the Hessian has eigenvalues of opposite signs—which serve as transition regions between local extrema and are crucial for understanding field topology.
+
+\subsection{Gradient Estimation via Planar Fitting}
+
+Given four robots at positions $(x_i, y_i)$ measuring scalar field values $z_i$ for $i \in \{1,2,3,4\}$, we estimate gradients using all ${4 \choose 3} = 4$ combinations of three robots. For each subset $\mathcal{S}_j$, we fit a plane:
+
+\begin{equation}
+z = a_j x + b_j y + c_j
+\end{equation}
+
+yielding gradient estimates at the subset's centroid $(\bar{x}_j, \bar{y}_j)$:
+\begin{equation}
+\nabla z_j = \left[\frac{\partial z}{\partial x}, \frac{\partial z}{\partial y}\right]_j = [a_j, b_j]^T \quad \text{at } (\bar{x}_j, \bar{y}_j)
+\end{equation}
+
+This provides four gradient measurements at four distinct locations. Note that these four points could alternatively be fitted to a single plane for a robust gradient measure at $(x_c, y_c)$.
+
+\subsection{Hessian Reconstruction for Scalar Fields}
+
+The spatial variation of gradient components across the four centroids reveals second-order information. Fitting planes to each gradient component:
+
+\begin{equation}
+\frac{\partial z}{\partial x} = \alpha_x x + \beta_x y + \gamma_x, \quad \frac{\partial z}{\partial y} = \alpha_y x + \beta_y y + \gamma_y
+\end{equation}
+
+using the overdetermined systems:
+\begin{equation}
+\begin{bmatrix} \bar{x}_1 & \bar{y}_1 & 1 \\ \vdots & \vdots & \vdots \\ \bar{x}_4 & \bar{y}_4 & 1 \end{bmatrix} \begin{bmatrix} \alpha_x \\ \beta_x \\ \gamma_x \end{bmatrix} = \begin{bmatrix} a_1 \\ \vdots \\ a_4 \end{bmatrix}, \quad \begin{bmatrix} \bar{x}_1 & \bar{y}_1 & 1 \\ \vdots & \vdots & \vdots \\ \bar{x}_4 & \bar{y}_4 & 1 \end{bmatrix} \begin{bmatrix} \alpha_y \\ \beta_y \\ \gamma_y \end{bmatrix} = \begin{bmatrix} b_1 \\ \vdots \\ b_4 \end{bmatrix}
+\end{equation}
+
+The coefficients $\gamma_x$ and $\gamma_y$ represent the gradient components at the origin, while the Hessian estimate follows from the spatial derivatives:
+\begin{equation}
+\mathbf{H} = \begin{bmatrix} \frac{\partial^2 z}{\partial x^2} & \frac{\partial^2 z}{\partial x \partial y} \\ \frac{\partial^2 z}{\partial y \partial x} & \frac{\partial^2 z}{\partial y^2} \end{bmatrix} = \begin{bmatrix} \alpha_x & \beta_x \\ \alpha_y & \beta_y \end{bmatrix}
+\end{equation}
+
+\subsection{Continuous Control for Critical Point Navigation}
+
+The continuous control law drives the cluster toward the critical point using Newton's method:
+\begin{equation}
+\begin{bmatrix} \Delta p_x \\ \Delta p_y \end{bmatrix} = -\mathbf{H}^{-1} \begin{bmatrix} \bar{\nabla}z_x \\ \bar{\nabla}z_y \end{bmatrix}
+\end{equation}
+
+where $\bar{\nabla}z = [\bar{\nabla}z_x, \bar{\nabla}z_y]^T = \frac{1}{4}\sum_{j=1}^{4} \nabla z_j$. The velocity commands become:
+
+\begin{equation}
+\dot{x}_c = k_p \Delta p_x, \quad \dot{y}_c = k_p \Delta p_y
+\end{equation}
+
+\subsection{Formation Orientation Control}
+
+To improve convergence, we align the square formation with the Newton direction:
+\begin{equation}
+\theta_{\text{desired}} = \arctan2(\Delta p_y, \Delta p_x) + \frac{k\pi}{2}
+\end{equation}
+
+where $k \in \{0,1,2,3\}$ minimizes $|\theta_{\text{desired}} - \theta_c|$. The rotation control law is:
+
+\begin{equation}
+\dot{\theta}_c = k_\theta(\theta_{\text{desired}} - \theta_c)
+\end{equation}
+
+This alignment strategy ensures robots are positioned along the primary approach direction, improving gradient and Hessian estimates where they matter most for convergence. The combined control (34)-(35) achieves robust convergence to saddle points, with typical convergence occurring when $\|\bar{\nabla}z\| < \epsilon$ and the Hessian eigenvalues satisfy $\lambda_1 < 0 < \lambda_2$. Alternative strategies exist, such as aligning with Hessian eigenvectors, but the Newton direction approach provides the most direct path to convergence.
+
+\end{document}
