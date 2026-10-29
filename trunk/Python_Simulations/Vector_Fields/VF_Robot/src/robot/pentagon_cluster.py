@@ -173,8 +173,16 @@ class PentagonCluster:
             else:
                 q_dot[col[var]] = self.position_gain * err
 
-        # Robot velocities via inverse Jacobian
-        J = compute_inverse_jacobian(current)
+        # Robot velocities via inverse Jacobian.
+        # FIX 2026-10-28: forward_kinematics returns theta_c = atan2(B - A),
+        # but inverse_kinematics (which compute_inverse_jacobian
+        # differentiates) places A along local +x from B, so the actual
+        # formation sits at IK heading theta_c + pi. Evaluating J at the FK
+        # heading negated the p_1, beta_1, q_1 shape columns (positive
+        # feedback). Round-off seeded errors then wrecked the formation after
+        # about 30-50 s of continuous motion. Runs parked under stiction were
+        # unaffected.
+        J = compute_inverse_jacobian({**current, 'theta_c': current['theta_c'] + np.pi})
         r_dot = shape_velocities_to_robot_velocities(J, q_dot)
 
         for i, robot in enumerate(self.robots):

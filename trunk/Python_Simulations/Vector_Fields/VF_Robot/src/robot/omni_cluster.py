@@ -23,7 +23,7 @@ class OmniCluster:
     """
 
     def __init__(self, formation_config_path, field, timestep=0.1, momentum_alpha=0.7,
-                 stiction_threshold=0.025):
+                 stiction_threshold=0.025, stiction_model="legacy"):
         """
         Initialize OmniCluster.
 
@@ -38,6 +38,7 @@ class OmniCluster:
         self.timestep = timestep
         self.momentum_alpha = momentum_alpha
         self.stiction_threshold = stiction_threshold
+        self.stiction_model = stiction_model      # see Omnibot; default keeps the original model
 
         # Load formation configuration
         self._load_formation_config(formation_config_path)
@@ -99,11 +100,14 @@ class OmniCluster:
         # Create 3 robots
         self.robots = [
             Omnibot(x1, y1, self.timestep, self.momentum_alpha,
-                    stiction_threshold=self.stiction_threshold),
+                    stiction_threshold=self.stiction_threshold,
+                    stiction_model=self.stiction_model),
             Omnibot(x2, y2, self.timestep, self.momentum_alpha,
-                    stiction_threshold=self.stiction_threshold),
+                    stiction_threshold=self.stiction_threshold,
+                    stiction_model=self.stiction_model),
             Omnibot(x3, y3, self.timestep, self.momentum_alpha,
-                    stiction_threshold=self.stiction_threshold)
+                    stiction_threshold=self.stiction_threshold,
+                    stiction_model=self.stiction_model)
         ]
 
         print(f"Initialized 3 robots at centroid ({x_c_init:.3f}, {y_c_init:.3f})")
@@ -177,12 +181,20 @@ class OmniCluster:
         # Angular velocity (for now, keep current orientation stable)
         omega_c = 0.0
 
-        # Compute inverse Jacobian at current configuration
+        # Compute inverse Jacobian at current configuration.
+        # FIX 2026-10-28: forward_kinematics measures theta_c from robot 1 to
+        # robot 2, but inverse_kinematics (which compute_inverse_jacobian
+        # differentiates) puts robot 1 on the far side of robot 2, so the
+        # actual triangle sits at IK heading theta_c + pi. Evaluating J_inv at
+        # the FK heading rotated every shape column by pi, which negated the
+        # p, beta, q feedback (error growth e^{+0.44 t} at the default gains).
+        # Round-off seeded errors then reached 10% after about 60 s of
+        # continuous motion. Runs that parked under stiction were unaffected.
         J_inv = compute_inverse_jacobian(
             current_formation['p'],
             current_formation['beta'],
             current_formation['q'],
-            current_formation['theta_c']
+            current_formation['theta_c'] + np.pi
         )
 
         # Convert shape velocities to robot velocities

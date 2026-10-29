@@ -111,35 +111,40 @@ We refer to the group of robots as a cluster: a formation treated as a single vi
 
 Given a cluster of three robots sampling a planar vector field with robot positions $\mathbf{p}_i = (x_i, y_i)$ and corresponding vector field measurements $(u_i, v_i)$ for $i \in \{1, 2, 3\}$, we can approximate the vector field components across the cluster's spatial extent using linear planar models:
 \begin{equation}\label{eq:2}
-U(x,y) = ax + by + c
+\hat{U}(x,y) = ax + by + c
 \end{equation}
 \begin{equation}\label{eq:3}
-V(x,y) = dx + ey + f
+\hat{V}(x,y) = dx + ey + f
 \end{equation}
+where hats denote quantities estimated from the measurements.
 
 The coefficients are determined by solving the linear systems:
 \begin{equation}\label{eq:4}
-\mathbf{A}\boldsymbol{\theta}_u = \mathbf{u}, \quad \mathbf{A}\boldsymbol{\theta}_v = \mathbf{v}
+\mathbf{A}\hat{\boldsymbol{\theta}}_u = \mathbf{z}_u, \quad \mathbf{A}\hat{\boldsymbol{\theta}}_v = \mathbf{z}_v
 \end{equation}
 where:
 \begin{equation}\label{eq:5}
-\mathbf{A} = \begin{bmatrix} x_1 & y_1 & 1 \\ x_2 & y_2 & 1 \\ x_3 & y_3 & 1 \end{bmatrix}, \quad \boldsymbol{\theta}_u = \begin{bmatrix} a \\ b \\ c \end{bmatrix}, \quad \boldsymbol{\theta}_v = \begin{bmatrix} d \\ e \\ f \end{bmatrix}
+\mathbf{A} = \begin{bmatrix} x_1 & y_1 & 1 \\ x_2 & y_2 & 1 \\ x_3 & y_3 & 1 \end{bmatrix}, \quad \hat{\boldsymbol{\theta}}_u = \begin{bmatrix} a \\ b \\ c \end{bmatrix}, \quad \hat{\boldsymbol{\theta}}_v = \begin{bmatrix} d \\ e \\ f \end{bmatrix}
 \end{equation}
-and $\mathbf{u} = [u_1, u_2, u_3]^T$, $\mathbf{v} = [v_1, v_2, v_3]^T$ are the collected field measurements.
+and $\mathbf{z}_u = [u_1, u_2, u_3]^T$, $\mathbf{z}_v = [v_1, v_2, v_3]^T$ are the collected field measurements.
 
-The critical point $\mathbf{p}^* = (x^*, y^*)$ satisfies $U(x^*, y^*) = 0$ and $V(x^*, y^*) = 0$, which in matrix form reads $\mathbf{J}\mathbf{p}^* = -\mathbf{h}$, where the Jacobian matrix and offset vector are:
+The estimated critical point $\hat{\mathbf{p}}^* = (\hat{x}^*, \hat{y}^*)$ satisfies $\hat{U}(\hat{x}^*, \hat{y}^*) = 0$ and $\hat{V}(\hat{x}^*, \hat{y}^*) = 0$, which in matrix form reads $\hat{\mathbf{J}}\hat{\mathbf{p}}^* = -\hat{\mathbf{h}}$, where the estimated Jacobian matrix and offset vector are:
 \begin{equation}\label{eq:8}
-\mathbf{J} = \begin{bmatrix} a & b \\ d & e \end{bmatrix}, \quad \mathbf{h} = \begin{bmatrix} c \\ f \end{bmatrix}
+\hat{\mathbf{J}} = \begin{bmatrix} a & b \\ d & e \end{bmatrix}, \quad \hat{\mathbf{h}} = \begin{bmatrix} c \\ f \end{bmatrix}
 \end{equation}
 
-Thus, provided $\det(\mathbf{J}) \neq 0$:
+Thus, provided $\det(\hat{\mathbf{J}}) \neq 0$:
 \begin{equation}\label{eq:9}
-\mathbf{p}^* = -\mathbf{J}^{-1}\mathbf{h}
+\hat{\mathbf{p}}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{h}}
 \end{equation}
 
-The eigenvalues of the Jacobian can be used to identify the type of nearby critical point (Table~\ref{tab:field_summary}).
+The eigenvalues of $\hat{\mathbf{J}}$ can be used to identify the type of nearby critical point (Table~\ref{tab:field_summary}).
 
-If the true field is affine over the cluster's spatial extent, the models (\ref{eq:2})--(\ref{eq:3}) reproduce it without error and the recovery is exact at any formation size. On a smooth nonlinear field, the fit carries a first-order linearization error that scales with the local curvature of the field; this error decreases as the formation contracts toward the critical point.
+Equation (\ref{eq:9}) returns the zero of the fitted affine field $\hat{\mathbf{v}}(\mathbf{p}) = (\hat{U}(\mathbf{p}), \hat{V}(\mathbf{p})) = \hat{\mathbf{J}}\mathbf{p} + \hat{\mathbf{h}}$, which need not be a zero of the true field. To relate the two, let $\mathbf{p}^*$ be any critical point of the true field, so that $\mathbf{v}(\mathbf{p}^*) = \mathbf{0}$. Evaluating the fitted field at $\mathbf{p}^*$ and substituting $\hat{\mathbf{h}} = -\hat{\mathbf{J}}\hat{\mathbf{p}}^*$ gives
+\begin{equation}\label{eq:scope}
+\hat{\mathbf{p}}^* - \mathbf{p}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{v}}(\mathbf{p}^*).
+\end{equation}
+This relation is exact. Because the true field vanishes at $\mathbf{p}^*$, the term $\hat{\mathbf{v}}(\mathbf{p}^*)$ is the error of the affine model at the true critical point, and the estimate coincides with $\mathbf{p}^*$ exactly when that error is zero. If the true field is affine over a region containing both the cluster and $\mathbf{p}^*$, the fit reproduces it there and $\hat{\mathbf{p}}^* = \mathbf{p}^*$ at any formation size. On a smooth nonlinear field, the affine model omits the second-order terms of the field, so the model error at $\mathbf{p}^*$ is nonzero and grows with the local curvature and with the distance from the robots to $\mathbf{p}^*$, and $\hat{\mathbf{J}}^{-1}$ amplifies it when the estimated Jacobian is poorly conditioned. The inference from $\hat{\mathbf{p}}^*$ to a true critical point is therefore valid only where the affine model remains accurate from the cluster out to $\mathbf{p}^*$.
 
 
 \subsection{Minimum Robot Requirements}
@@ -154,20 +159,20 @@ Three non-collinear robots are also sufficient: $\det(\mathbf{A})$ equals twice 
 \subsection{Adaptive Navigation Control Laws}
 \label{sec:control_primitives}
 
-We develop two control primitives that drive the cluster centroid $\mathbf{p}_c = \frac{1}{3}\sum_{i=1}^{3}\mathbf{p}_i$ toward or around the estimated critical point $\mathbf{p}^*$. The mapping from cluster-level velocity commands to individual robot velocities is handled by the cluster space controller described in Section~III.
+We develop two control primitives that drive the cluster centroid $\mathbf{p}_c = \frac{1}{3}\sum_{i=1}^{3}\mathbf{p}_i$ toward or around the estimated critical point $\hat{\mathbf{p}}^*$. The mapping from cluster-level velocity commands to individual robot velocities is handled by the cluster space controller described in Section~III.
 
 \subsubsection{Critical Point Attraction}
-To navigate the cluster center $\mathbf{p}_c$ to the critical point, we apply a proportional control law:
+To navigate the cluster center $\mathbf{p}_c$ to the estimated critical point, we apply a proportional control law:
 \begin{equation}\label{eq:10}
-\dot{\mathbf{p}}_c = k(\mathbf{p}^* - \mathbf{p}_c)
+\dot{\mathbf{p}}_c = k(\hat{\mathbf{p}}^* - \mathbf{p}_c)
 \end{equation}
 where $k > 0$ is the proportional gain. This linear error dynamic guarantees global exponential convergence to the estimated critical point with time constant $\tau = 1/k$ provided the estimate is stationary.
 
 \subsubsection{Orbital Navigation}
-To maintain a circular orbit of radius $r_d$ around $\mathbf{p}^*$, we define the radial vector $\mathbf{r} = \mathbf{p}^* - \mathbf{p}_c$ with magnitude $r = \|\mathbf{r}\|$. The unit radial vector is $\hat{\mathbf{r}} = \mathbf{r}/r$, and the tangent vector $\hat{\mathbf{r}}_\perp$ is obtained via a $-90^\circ$ rotation. The orbital velocity command is:
+To maintain a circular orbit of radius $r_d$ around $\hat{\mathbf{p}}^*$, we define the radial vector $\mathbf{r} = \hat{\mathbf{p}}^* - \mathbf{p}_c$ with magnitude $r = \|\mathbf{r}\|$. The unit radial vector is $\mathbf{n} = \mathbf{r}/r$, and the unit tangent vector $\mathbf{t}$ is obtained by rotating $\mathbf{n}$ by $-90^\circ$. The orbital velocity command is:
 
 \begin{equation}\label{eq:11}
-\dot{\mathbf{p}}_c = k_t \hat{\mathbf{r}}_\perp + k_r(r - r_d)\hat{\mathbf{r}}
+\dot{\mathbf{p}}_c = k_t \mathbf{t} + k_r(r - r_d)\mathbf{n}
 \end{equation}
 
 Here, $k_t$ determines the orbital speed (where $\text{sgn}(k_t)$ dictates direction) and $k_r > 0$ drives radial convergence.
@@ -233,7 +238,7 @@ The forward kinematic equations map the robot positions $(x_1, y_1), (x_2, y_2),
 
 \subsection{Adaptive Navigation Layer}
 
-The adaptive navigation layer is the highest level of the control architecture. It specifies cluster mobility and shape based on real time sensor data from each robot using three functional blocks. A feature estimation block computes the critical point location $\mathbf{p}^*$ using robot positions and vector field measurements as described in Section~II-B, a navigation controller generates desired centroid velocity commands $\dot{\mathbf{p}}_c$ using the control laws described in Section~II-D, and a formation controller regulates the cluster shape variables $(p, \beta, q)$ to desired values using proportional error feedback. The navigation and formation velocity commands are combined into a complete cluster-space velocity vector, which is passed to the cluster space controller layer for transformation into individual robot commands.
+The adaptive navigation layer is the highest level of the control architecture. It specifies cluster mobility and shape based on real time sensor data from each robot using three functional blocks. A feature estimation block computes the critical point estimate $\hat{\mathbf{p}}^*$ using robot positions and vector field measurements as described in Section~II-B, a navigation controller generates desired centroid velocity commands $\dot{\mathbf{p}}_c$ using the control laws described in Section~II-D, and a formation controller regulates the cluster shape variables $(p, \beta, q)$ to desired values using proportional error feedback. The navigation and formation velocity commands are combined into a complete cluster-space velocity vector, which is passed to the cluster space controller layer for transformation into individual robot commands.
 
 
 \section{Control Performance in Simulation}
@@ -447,15 +452,15 @@ Orbital control was evaluated on both fields at commanded radii from 0.01~m to 0
 
 Estimation and control errors arise from four sources: robot dynamics, sensor noise, cluster geometry, and field conditioning.
 
-Perfect convergence does not occur in simulation. However, repeating experiments with no stiction, no max velocity, and $\alpha = 0$ (instantaneous velocity response) confirms convergence to the controller's $10^{-6}$~m command deadband, with the critical point estimate itself exact to machine precision. This result confirms the variance is due to robot dynamics, not the estimation method. A nonlinear controller with gain scheduling could overcome these dynamics, but the linear controller proposed serves as a baseline. Some errors may also have arisen from modeling discrepancies such as modeling all robots identically with the average stiction, max speed, and response time values measured in the robots.
+Perfect convergence does not occur in simulation. However, repeating experiments with no stiction, no max velocity, and $\alpha = 0$ (instantaneous velocity response) confirms convergence to the controller's $10^{-6}$~m command deadband, with the critical point estimate $\hat{\mathbf{p}}^*$ itself matching $\mathbf{p}^*$ to machine precision. This result confirms the variance is due to robot dynamics, not the estimation method. A nonlinear controller with gain scheduling could overcome these dynamics, but the linear controller proposed serves as a baseline. Some errors may also have arisen from modeling discrepancies such as modeling all robots identically with the average stiction, max speed, and response time values measured in the robots.
 
 Positive radial bias at small orbital radii is also a result of robot dynamics. At small radii, the commanded angular rate $k_t / r_d$ is high relative to the radial correction bandwidth $k_r$, and the centripetal demand ($k_t^2 / r$) pushes the cluster outward faster than the radial controller can correct. A point-mass replication of the robot dynamics reproduces the simulated bias column of Table~\ref{tab:simulation_orbital_results} to within 0.001~m and attributes roughly 80\% of the small-radius bias to the first-order actuator lag and the remainder to the 10~Hz discretization of the tangential step. As the commanded radius increases, this effect diminishes. More aggressive radial gains would reduce this error, at the cost of increased sensitivity to noise in the critical point estimate.
 
-Comparing the noise-free and reconstructed fields in simulation isolates the effect of noisy sensor data: sensor noise appears to be the driving factor of the simulation-reality gap, with sensing errors propagating directly through the critical point estimation equations. Nonetheless, the robot cluster detected and converged to the critical point, confirming the effectiveness of multirobot critical point estimation on physical robots. To first order, the centered equilateral fit maps per-component sensor noise $\sigma_v$ into estimate scatter $\sigma_p \approx \|\mathbf{J}^{-1}\|\,\sigma_v/\sqrt{3}$; the calibration errors of Section V-A give $\sigma_v \approx 0.02$~m/s, predicting roughly 0.03~m of scatter on the printed vortex. This matches the observed 0.009--0.016~m precision after closed-loop time-averaging, while the 0.012--0.028~m bias reflects systematic distortion that averaging cannot remove.
+Comparing the noise-free and reconstructed fields in simulation isolates the effect of noisy sensor data: sensor noise appears to be the driving factor of the simulation-reality gap, with sensing errors propagating directly through the critical point estimation equations. Nonetheless, the robot cluster detected and converged to the critical point, confirming the effectiveness of multirobot critical point estimation on physical robots. To first order, the centered equilateral fit maps per-component sensor noise $\sigma_v$ into estimate scatter $\sigma_p \approx \|\hat{\mathbf{J}}^{-1}\|\,\sigma_v/\sqrt{3}$; the calibration errors of Section V-A give $\sigma_v \approx 0.02$~m/s, predicting roughly 0.03~m of scatter on the printed vortex. This matches the observed 0.009--0.016~m precision after closed-loop time-averaging, while the 0.012--0.028~m bias reflects systematic distortion that averaging cannot remove.
 
 To avoid errors arising from robots becoming collinear (the condition number of $\mathbf{A}$ becomes infinite), an equilateral triangle was chosen as the cluster shape. This shape minimizes the condition number of $\mathbf{A}$ in (\ref{eq:4}) among formations of the same size centered on the sampled region, making this formation optimal for sampling.
 
-Further errors could arise from poor conditioning of the estimated Jacobian $\kappa(\mathbf{J})$ in (\ref{eq:8}), directly affecting the estimation of the critical point location (\ref{eq:9}). The negative bias in orbital performance at the largest commanded radii traces to degradation of the reconstructed field near the edge of the mapped region: there the estimated critical point distance is systematically inflated, so the radial controller pulls the cluster inside the commanded radius. This is the range-dependent error amplification captured by $\kappa(\mathbf{J})$, which measures how the local field structure amplifies coefficient errors into location errors. Unlike $\kappa(\mathbf{A})$, this factor is an intrinsic property of the field and is not under the designer's control. The condition number grows when the Jacobian eigenvalues have very different magnitudes, as occurs near highly asymmetric nodes or saddle points with disparate stable and unstable manifold strengths. In the limiting case, $\kappa(\mathbf{J}) \to \infty$ as $\det(\mathbf{J}) \to 0$, corresponding to non-hyperbolic critical points or near-uniform flow where no isolated critical point exists; the cluster approaches this condition far from the critical point, where the sampled field looks locally uniform. These singular cases are detectable through eigenvalue analysis of the estimated Jacobian and fallback strategies could be developed, such as resizing the cluster.
+Further errors could arise from poor conditioning of the estimated Jacobian $\kappa(\hat{\mathbf{J}})$ in (\ref{eq:8}), directly affecting the estimation of the critical point location (\ref{eq:9}). The negative bias in orbital performance at the largest commanded radii traces to degradation of the reconstructed field near the edge of the mapped region: there the estimated critical point distance is systematically inflated, so the radial controller pulls the cluster inside the commanded radius. This is the range-dependent error amplification captured by $\kappa(\hat{\mathbf{J}})$, which measures how the local field structure amplifies coefficient errors into location errors. Unlike $\kappa(\mathbf{A})$, this factor is an intrinsic property of the field and is not under the designer's control. The condition number grows when the Jacobian eigenvalues have very different magnitudes, as occurs near highly asymmetric nodes or saddle points with disparate stable and unstable manifold strengths. In the limiting case, $\kappa(\hat{\mathbf{J}}) \to \infty$ as $\det(\hat{\mathbf{J}}) \to 0$, corresponding to non-hyperbolic critical points or near-uniform flow where no isolated critical point exists; the cluster approaches this condition far from the critical point, where the sampled field looks locally uniform. These singular cases are detectable through eigenvalue analysis of the estimated Jacobian and fallback strategies could be developed, such as resizing the cluster.
 
 Across all four error sources, estimation errors shift the equilibrium location of both controllers but preserve the stability predicted by the linear error dynamics. The attraction controller converges to the estimated critical point, and the orbital controller maintains circular motion around it. As a result, sensor noise and conditioning errors affect the accuracy of the final position but not the stability of the control laws themselves.
 
@@ -483,7 +488,7 @@ Second, the testbed validates performance only on static fields where critical p
 
 Third, robot team sizes were limited to three. While the theoretical framework supports arbitrary team sizes through the overdetermined system approach, larger formations present practical implementation challenges including communication bandwidth, computational complexity, and formation control stability.
 
-Fourth, the estimator assumes the field is well approximated by an affine model over the cluster's spatial extent. On fields that are highly nonlinear at the scale of the formation, this local linear fit degrades, biasing the recovered critical point location; the six canonical fields and the two reconstructed hardware fields evaluated here do not probe this regime.
+Fourth, the estimate $\hat{\mathbf{p}}^*$ is the zero of a local affine model. It recovers a true critical point exactly when the field is affine over a region containing both the cluster and that critical point, and otherwise it is displaced by the model error in (\ref{eq:scope}). On fields that are highly nonlinear between the cluster and the critical point, this displacement can be large; the six canonical fields and the two reconstructed hardware fields evaluated here do not probe this regime.
 
 Finally, this work assumes a sampling rate sufficiently high that the system approximates continuous control. The robustness of the approach to lower update rates and communication dropouts was not tested.
 

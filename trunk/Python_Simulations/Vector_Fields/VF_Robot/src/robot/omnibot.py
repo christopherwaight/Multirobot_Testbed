@@ -26,7 +26,7 @@ class Omnibot:
     """
 
     def __init__(self, x, y, timestep=0.1, momentum_alpha=0.7,
-                 max_velocity=0.3, stiction_threshold=0.025):
+                 max_velocity=0.3, stiction_threshold=0.025, stiction_model="legacy"):
         """
         Initialize an Omnibot.
 
@@ -41,6 +41,22 @@ class Omnibot:
                 (m/s), default matches Decabot hardware (0.025 m/s). Callers
                 simulating a different vehicle (e.g. a boat, where "stiction"
                 has little physical meaning) can lower this toward 0.
+            stiction_model: how the threshold is applied (added 2026-10-29).
+                "legacy"   zero the lagged velocity whenever its pre-cap
+                           magnitude is below the threshold (original model).
+                           A robot at rest then needs a command above
+                           threshold / (1 - alpha), so the effective
+                           threshold changes with the sample period.
+                "deadzone" commands below the threshold are treated as zero
+                           before the lag, v' = alpha v + (1 - alpha) DZ(u).
+                           This is the exact zero-order-hold discretization of
+                           tau dv/dt = -v + DZ(u), so it does not depend on
+                           the sample period; a robot coasts to rest with
+                           time constant tau once its command is dead.
+                "scaled"   legacy test with threshold (1 - alpha) v_s; starts
+                           match "deadzone" but a moving robot stops only
+                           below (1 - alpha) v_s, which vanishes as dt -> 0.
+                The default stays "legacy" so existing results reproduce.
         """
         self.position = np.array([x, y], dtype=float)
         self.velocity = np.array([0.0, 0.0], dtype=float)
@@ -48,6 +64,9 @@ class Omnibot:
         self.momentum_alpha = momentum_alpha
         self.max_velocity = max_velocity
         self.stiction_threshold = stiction_threshold
+        if stiction_model not in ("legacy", "deadzone", "scaled"):
+            raise ValueError(f"unknown stiction_model {stiction_model!r}")
+        self.stiction_model = stiction_model
 
     def command_velocity(self, vx_cmd, vy_cmd):
         """
@@ -59,6 +78,9 @@ class Omnibot:
         """
         # Apply momentum dynamics
         velocity_commanded = np.array([vx_cmd, vy_cmd], dtype=float)
+        if (self.stiction_model == "deadzone"
+                and np.linalg.norm(velocity_commanded) < self.stiction_threshold):
+            velocity_commanded = np.zeros(2)
         self.velocity = (self.momentum_alpha * self.velocity +
                         (1 - self.momentum_alpha) * velocity_commanded)
 
@@ -79,7 +101,13 @@ class Omnibot:
         # practice because stiction_threshold << max_velocity (a magnitude
         # cannot be both above max and below stiction), but the two
         # constraints intentionally share the same measured magnitude.
-        if velocity_magnitude < self.stiction_threshold:
+        if self.stiction_model == "legacy":
+            threshold = self.stiction_threshold
+        elif self.stiction_model == "scaled":
+            threshold = (1 - self.momentum_alpha) * self.stiction_threshold
+        else:
+            threshold = 0.0      # deadzone acts on the command above
+        if velocity_magnitude < threshold:
             # Velocity too small to overcome static friction - robot stops
             self.velocity = np.array([0.0, 0.0], dtype=float)
 

@@ -1,0 +1,42 @@
+\documentclass[10pt]{article}
+\usepackage[letterpaper,margin=0.65in]{geometry}
+\usepackage{amsmath,amsfonts}
+\usepackage{graphicx}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+{\large\bfseries Multilayer Control Architecture}\\[2pt]
+{\small C. Waight and C. A. Kitts, Robotic Systems Laboratory, Santa Clara University}
+\end{center}
+
+The multirobot system control architecture chosen is an established multilayer approach successfully demonstrated in prior cluster space control studies in both 2D and 3D environments. There are three primary layers: (1) an adaptive navigation layer that implements the critical point estimation and adaptive navigation control laws, generating desired cluster centroid velocities, $\dot{\mathbf{p}}_c$, (2) a cluster space controller that maintains formation geometry and translates between cluster space and robot space variables, (3) individual robot controllers that convert velocity commands into mechanical actuation of each robot's drive system. Fig.~\ref{fig:arch} illustrates this hierarchical structure. The architecture itself is not a contribution of this work. This paper provides one estimation function that fills the feature estimation block, and two controllers, attraction and orbit, that fill the navigation controller block and are built to use that estimate. The vector field measurements enter the architecture only at the adaptive navigation layer, which uses them to form the critical point estimate; the lower layers operate on velocity commands alone, without reference to the field.
+
+At each control cycle (10~Hz), each robot reports its position and vector field measurement. The cluster space kinematics are computed, and the cluster shape velocity commands needed for formation control are determined. The adaptive navigation layer computes the critical point estimate and generates a cluster velocity command. The cluster space controller maps all velocity commands to individual robot velocities via the inverse kinematic Jacobian.
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}[c]{0.52\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{control_architecture_2.png}
+    \end{minipage}\hfill
+    \begin{minipage}[c]{0.32\textwidth}
+        \centering
+        \includegraphics[width=0.8\textwidth]{SAS_Robots.png}
+    \end{minipage}
+    \caption{Left, hierarchical control architecture: robot, cluster space, and adaptive navigation layers. Right, three-robot triangular formation parameterized by SAS variables: side lengths $p$, $q$ and interior angle $\beta$.}
+    \label{fig:arch}
+\end{figure}
+
+\textbf{Robot Controller Layer.} Each robot's controller receives velocity commands and translates them into motion. Each robot also samples the local vector field $\mathbf{v}(\mathbf{p}_i) = (u_i, v_i)$ and reports its global position $\mathbf{p}_i$, providing the inputs to the estimation framework. In simulation, each robot is modeled as a single omnidirectional point mass with a first order response, $\dot{\mathbf{v}}(t) = -\frac{1}{\tau}\mathbf{v}(t) + \frac{1}{\tau}\mathbf{v}_{\text{des}}(t)$, where $\tau$ is the actuator time constant. The time constant on the Decabot hardware was found to be approximately 0.28~s. The robots are also modeled with a maximum speed of 0.3~m/s and a minimum speed of 0.025~m/s needed to overcome stiction. The sensed field does not appear as a force or drift term, so each robot's velocity responds only to the commanded $\mathbf{v}_{\text{des}}$.
+
+\textbf{Cluster Space Controller Layer.} The cluster space controller maintains the cluster's formation geometry while executing centroid velocity commands from the adaptive navigation layer. It translates cluster-level velocity commands into individual robot velocity commands using an inverse kinematic Jacobian, and transforms robot position data back into cluster variables for feedback control. In this study, we consider a cluster of three robots forming a triangular configuration. The shape can be parameterized using Side-Angle-Side (SAS) representation with parameters $(p, \beta, q)$, where $p$ is the distance between robots 1 and 2, $\beta$ is the interior angle at robot 2, and $q$ is the distance between robots 2 and 3, as visualized in Fig.~\ref{fig:arch}.
+
+\textbf{Adaptive Navigation Layer.} The adaptive navigation layer is the highest level of the control architecture. It specifies cluster mobility and shape based on real time sensor data from each robot using three functional blocks. A feature estimation block computes the critical point estimate $\hat{\mathbf{p}}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{h}}$ using robot positions and vector field measurements, a navigation controller generates desired centroid velocity commands $\dot{\mathbf{p}}_c$ using either the attraction law $\dot{\mathbf{p}}_c = k(\hat{\mathbf{p}}^* - \mathbf{p}_c)$ or the orbital law $\dot{\mathbf{p}}_c = k_t \mathbf{t} + k_r(r - r_d)\mathbf{n}$, and a formation controller regulates the cluster shape variables $(p, \beta, q)$ to desired values using proportional error feedback. The first two blocks are the contributions of this paper; the formation controller is standard. The navigation and formation velocity commands are combined into a complete cluster-space velocity vector, which is passed to the cluster space controller layer for transformation into individual robot commands.
+
+\end{document}

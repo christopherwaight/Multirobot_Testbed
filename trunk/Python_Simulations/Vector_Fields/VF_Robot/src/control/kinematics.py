@@ -21,9 +21,11 @@ Convention caveats (audit 2026-07-03), shared by the paper's Appendix B:
    (robot 1 -> robot 2), but inverse_kinematics places robot 1 at +x from
    robot 2 in the local frame, so FK(IK(theta_c)) returns theta_c + pi
    (exactly, for every configuration). Shape and centroid round-trip
-   exactly; only the orientation convention differs. Inert in the control
-   loop because theta_c is used self-consistently via FK everywhere and
-   orientation is not actively commanded (omega_c = 0).
+   exactly; only the orientation convention differs. NOT inert (corrected
+   2026-10-28): compute_inverse_jacobian differentiates inverse_kinematics,
+   so it must be evaluated at the IK heading, theta_FK + pi. Evaluating it
+   at theta_FK negates the theta, p, beta, q columns and turns the shape
+   feedback into positive feedback. OmniCluster.move now adds the pi.
 2. CHIRALITY: beta from arccos lies in [0, pi], so forward kinematics
    cannot distinguish robot 3 left vs right of the robot1-robot2 line;
    inverse_kinematics always rebuilds the counterclockwise (+beta) mirror.
