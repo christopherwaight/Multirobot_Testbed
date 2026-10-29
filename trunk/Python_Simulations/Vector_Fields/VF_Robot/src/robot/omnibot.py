@@ -26,7 +26,8 @@ class Omnibot:
     """
 
     def __init__(self, x, y, timestep=0.1, momentum_alpha=0.7,
-                 max_velocity=0.3, stiction_threshold=0.025, stiction_model="legacy"):
+                 max_velocity=0.3, stiction_threshold=0.025, stiction_model="legacy",
+                 kinetic_threshold=None):
         """
         Initialize an Omnibot.
 
@@ -56,7 +57,22 @@ class Omnibot:
                 "scaled"   legacy test with threshold (1 - alpha) v_s; starts
                            match "deadzone" but a moving robot stops only
                            below (1 - alpha) v_s, which vanishes as dt -> 0.
-                The default stays "legacy" so existing results reproduce.
+                "coulomb"  static plus kinetic (Coulomb) friction behind the
+                           velocity loop (added 2026-10-29). In continuous
+                           time, with v_s = stiction_threshold and
+                           v_k = kinetic_threshold,
+                               stuck:  v = 0 until |u| > v_s (breakaway)
+                               moving: tau dv/dt = u - v - v_k v/|v|
+                           and the robot sticks again when v reaches 0 with
+                           |u| <= v_s. A moving robot settles at |u| - v_k,
+                           so it stops once |u| < v_k, and a parked robot
+                           holds any |u| <= v_s. The update is exact at the
+                           sample instants whenever u is parallel to v, so it
+                           does not depend on the sample period.
+                Omnibot's default stays "legacy" (PentagonCluster relies on
+                it). OmniCluster defaults to "coulomb" from 2026-10-29.
+            kinetic_threshold: v_k for "coulomb", 0 <= v_k <= v_s. None
+                means v_k = v_s (no static excess). Ignored by other models.
         """
         self.position = np.array([x, y], dtype=float)
         self.velocity = np.array([0.0, 0.0], dtype=float)
@@ -64,9 +80,14 @@ class Omnibot:
         self.momentum_alpha = momentum_alpha
         self.max_velocity = max_velocity
         self.stiction_threshold = stiction_threshold
-        if stiction_model not in ("legacy", "deadzone", "scaled"):
+        if stiction_model not in ("legacy", "deadzone", "scaled", "coulomb"):
             raise ValueError(f"unknown stiction_model {stiction_model!r}")
         self.stiction_model = stiction_model
+        self.kinetic_threshold = (stiction_threshold if kinetic_threshold is None
+                                  else kinetic_threshold)
+        if stiction_model == "coulomb" and not 0 <= self.kinetic_threshold <= stiction_threshold:
+            raise ValueError("coulomb needs 0 <= kinetic_threshold <= stiction_threshold")
+        self.stuck = True        # "coulomb" only: held by static friction
 
     def command_velocity(self, vx_cmd, vy_cmd):
         """
@@ -81,8 +102,11 @@ class Omnibot:
         if (self.stiction_model == "deadzone"
                 and np.linalg.norm(velocity_commanded) < self.stiction_threshold):
             velocity_commanded = np.zeros(2)
-        self.velocity = (self.momentum_alpha * self.velocity +
-                        (1 - self.momentum_alpha) * velocity_commanded)
+        if self.stiction_model == "coulomb":
+            self._coulomb_update(velocity_commanded)
+        else:
+            self.velocity = (self.momentum_alpha * self.velocity +
+                            (1 - self.momentum_alpha) * velocity_commanded)
 
         # ========================================================================
         # PHYSICAL CONSTRAINTS
@@ -106,7 +130,7 @@ class Omnibot:
         elif self.stiction_model == "scaled":
             threshold = (1 - self.momentum_alpha) * self.stiction_threshold
         else:
-            threshold = 0.0      # deadzone acts on the command above
+            threshold = 0.0      # deadzone and coulomb act before the cap
         if velocity_magnitude < threshold:
             # Velocity too small to overcome static friction - robot stops
             self.velocity = np.array([0.0, 0.0], dtype=float)
@@ -115,6 +139,31 @@ class Omnibot:
 
         # Update position
         self.position += self.timestep * self.velocity
+
+    def _coulomb_update(self, u):
+        """Lag step with static and kinetic friction (stiction_model "coulomb").
+
+        The kinetic term is the lag applied to a constant -v_k along the
+        motion, so it removes (1 - alpha) v_k of speed per step. If that would
+        carry the velocity through zero, the robot stops within the step, and
+        it sticks unless the command already exceeds static friction.
+        """
+        if np.any(self.velocity):
+            self.stuck = False   # moving, including a velocity set by the caller
+        u_mag = np.linalg.norm(u)
+        if self.stuck:
+            if u_mag <= self.stiction_threshold:
+                self.velocity = np.zeros(2)
+                return
+            self.stuck = False   # breakaway, kinetic friction from here on
+        free = self.momentum_alpha * self.velocity + (1 - self.momentum_alpha) * u
+        free_mag = np.linalg.norm(free)
+        drop = (1 - self.momentum_alpha) * self.kinetic_threshold
+        if free_mag <= drop:
+            self.velocity = np.zeros(2)
+            self.stuck = u_mag <= self.stiction_threshold
+        else:
+            self.velocity = free * (1 - drop / free_mag)
 
     def sample_field(self, field):
         """

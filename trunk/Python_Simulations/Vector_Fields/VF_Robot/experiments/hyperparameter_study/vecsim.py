@@ -170,9 +170,9 @@ def make_field(name, eps=1.0, family="potential"):
 # ============================================================================
 # Simulation
 # ============================================================================
-DEFAULTS = dict(side=0.33, alpha=0.7, vs=0.025, vmax=0.3, k=1.0, vcmd_max=0.5,
+DEFAULTS = dict(side=0.33, alpha=float(np.exp(-0.1 / 0.28)), vs=0.025, vmax=0.4, k=1.0, vcmd_max=0.5,
                 kt=0.2, kr=0.5, rclamp=0.3, rd=0.3, sigma_n=0.0, kf=0.5, kb=0.01, r0=np.nan)
-STICTION_MODELS = ("legacy", "deadzone", "scaled")
+STICTION_MODELS = ("legacy", "deadzone", "scaled", "coulomb")
 PARAM_KEYS = list(DEFAULTS)
 
 
@@ -214,14 +214,18 @@ def _fit(pos, c, f):
 
 
 def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None,
-             window=20.0, escape=None, keep=0, keep_stride=5, stiction_model="legacy"):
+             window=20.0, escape=None, keep=0, keep_stride=5, stiction_model="coulomb",
+             vk=None):
     """Run len(P['side']) trials for T seconds. task 'attract' or 'orbit'.
     starts: (n, 2) centroid starts; default uniform box (attract) or on the
     circle of radius r0 (default r_d) for orbits.
-    stiction_model: as Omnibot. "legacy" zeroes the lagged velocity below v_s;
+    stiction_model: as Omnibot, default "coulomb" to match OmniCluster
+    (run_study passes each cell's rule explicitly). "legacy" zeroes the lagged velocity below v_s;
     "deadzone" zeroes commands below v_s before the lag (exact ZOH
     discretization, sample-period invariant); "scaled" is legacy with
-    threshold (1 - alpha) v_s. Returns (metrics dict of arrays, sample trajectories)."""
+    threshold (1 - alpha) v_s; "coulomb" is static friction v_s plus kinetic
+    friction vk (scalar or per-trial array, default vk = v_s) behind the lag.
+    Returns (metrics dict of arrays, sample trajectories)."""
     assert stiction_model in STICTION_MODELS, stiction_model
     rng = np.random.default_rng(seed)
     n = len(P["side"])
@@ -240,6 +244,10 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
     pos = equilateral(np.asarray(starts, float), np.asarray(thetas, float), P["side"])
     vel = np.zeros_like(pos)
     side, al, vs, vmax = P["side"], P["alpha"], P["vs"], P["vmax"]
+    vk = vs if vk is None else np.broadcast_to(np.asarray(vk, float), (n,))
+    if stiction_model == "coulomb":
+        assert np.all((vk >= 0) & (vk <= vs)), "coulomb needs 0 <= vk <= vs"
+    stuck = np.ones((n, 3), bool)
     al3 = al[:, None, None]
     n_steps = int(round(T / dt))
     w0 = int(round(window / dt))
@@ -359,6 +367,16 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
         if stiction_model == "deadzone":
             cmd[np.hypot(cmd[..., 0], cmd[..., 1]) < vs[:, None]] = 0.0
         new = al3 * vel + (1 - al3) * cmd
+        if stiction_model == "coulomb":
+            um = np.hypot(cmd[..., 0], cmd[..., 1])
+            stuck &= ~(vel != 0).any(-1)
+            stuck &= ~(um > vs[:, None])
+            fm = np.hypot(new[..., 0], new[..., 1])
+            drop = ((1 - al) * vk)[:, None]
+            through = fm <= drop
+            with np.errstate(all="ignore"):
+                new = new * np.where(through | stuck, 0.0, 1 - drop / fm)[..., None]
+            stuck |= through & (um <= vs[:, None])
         mag = np.hypot(new[..., 0], new[..., 1])
         over = mag > vmax[:, None]
         with np.errstate(all="ignore"):
@@ -375,6 +393,7 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
         a3 = active[:, None, None]
         pos = np.where(a3, newpos, pos)
         vel = np.where(a3, new, 0.0)
+        stuck |= ~active[:, None]
 
         # ---- metrics
         sp = np.hypot(vel[..., 0], vel[..., 1])

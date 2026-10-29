@@ -21,6 +21,7 @@ import numpy as np
 import vecsim as vs
 
 HW = {}
+OLD_BASE = dict(vmax=0.3, alpha=0.7)   # v1 and v2 values; v3 uses vecsim.DEFAULTS (0.4, exp(-0.1/0.28))
 IDEAL = dict(alpha=0.0, vs=0.0, vmax=1e9)
 TAU = 0.28                                     # Decabot time constant, alpha = exp(-dt / tau)
 
@@ -54,8 +55,11 @@ def _seed(s):
     return zlib.crc32(s.encode()) & 0x7FFFFFFF
 
 
-def _adder(C, stiction="legacy", scale=None):
+def _adder(C, stiction="legacy", scale=None, base=None):
+    """base: parameter values every cell takes unless it sets its own. They
+    are not part of the cell id (each version writes to its own folder)."""
     scale = scale or {}
+    base = base or {}
 
     def add(exp, task, method, field, N, eps=1.0, family="potential", dt=0.1, T=None, hw=None,
             st=None, **p):
@@ -73,14 +77,14 @@ def _adder(C, stiction="legacy", scale=None):
                                  p.get("alpha", 0.7), dt)
         mult = next((v for k, v in scale.items() if exp.startswith(k)), 1)
         C.append(dict(id=cid, exp=exp, task=task, method=method, field=field, eps=eps,
-                      family=family, N=int(N * mult), dt=dt, T=T, window=w0, params=p,
+                      family=family, N=int(N * mult), dt=dt, T=T, window=w0, params={**base, **p},
                       seed=_seed(cid), stiction=st, hw=hw))
     return add
 
 
-def build(stiction="legacy", scale=None):
+def build(stiction="legacy", scale=None, base=OLD_BASE):
     C = []
-    add = _adder(C, stiction, scale)
+    add = _adder(C, stiction, scale, base)
 
     def max_rd(field):
         return 10.0 if field in vs.LINEAR else (1.0 if field == "gyre" else 0.5)
@@ -166,7 +170,7 @@ def build(stiction="legacy", scale=None):
     return C
 
 
-def build_extra(stiction="deadzone"):
+def build_extra(stiction="deadzone", base=OLD_BASE):
     """Version 2 additions.
     E8a  attraction overshoot / undershoot: tau x dt x k x caps x stiction (vortex, plane fit)
     E8o  orbit radial transient from r0 = 0.05 or 0.6 to r_d = 0.3: tau x dt x k_r x caps
@@ -175,7 +179,7 @@ def build_extra(stiction="deadzone"):
     E10  stiction model comparison: model x dt (tau fixed) x v_s, attraction and orbit
     E10hw  hardware start positions, 10 s runs, each model, linear and reconstructed fields"""
     C = []
-    add = _adder(C, stiction)
+    add = _adder(C, stiction, base=base)
     OFF = dict(vmax=1e9, vcmd_max=1e9)
     for tau in (0.0, 0.1, 0.28, 0.5, 1.0):
         for dt in (0.01, 0.02, 0.05, 0.1, 0.2):
@@ -199,7 +203,8 @@ def build_extra(stiction="deadzone"):
             for rd in (0.1, 0.3, 1.0, 3.0):
                 for rc in (0.3, 1e9):
                     add("E9o", "orbit", "fit", "vortex", 200, kt=kt, rd=rd, vmax=vm, rclamp=rc)
-    for model in ("legacy", "scaled", "deadzone"):
+    models = ("legacy", "scaled", "deadzone") + (("coulomb",) if stiction == "coulomb" else ())
+    for model in models:
         for dt in (0.01, 0.02, 0.05, 0.1, 0.2):
             a = float(np.exp(-dt / TAU))
             for v in (0.01, 0.025, 0.05):
@@ -212,7 +217,7 @@ def build_extra(stiction="deadzone"):
     return C
 
 
-def random_batches(n_batches=1000, per_batch=1000, seed=7, stiction="legacy"):
+def random_batches(n_batches=1000, per_batch=1000, seed=7, stiction="legacy", base=OLD_BASE):
     """E7: each batch fixes (field, method, task, dt); every other parameter is
     drawn per trial in run_study.random_params from the batch seed."""
     rng = np.random.default_rng(seed)
@@ -233,7 +238,7 @@ def random_batches(n_batches=1000, per_batch=1000, seed=7, stiction="legacy"):
             cid += f"|st={stiction}"
         B.append(dict(id=cid, exp="E7", task=task, method=method, field=field, eps=eps,
                       family=fam, N=per_batch, dt=dt, T=T, window=60.0 if task == "orbit" else 0.0,
-                      params={}, seed=_seed(cid), random=True, stiction=stiction, hw=None))
+                      params=dict(base), seed=_seed(cid), random=True, stiction=stiction, hw=None))
     return B
 
 
@@ -245,9 +250,19 @@ def build_v2():
         random_batches(per_batch=10000, stiction="deadzone")
 
 
+def build_v3():
+    """Version 3 (2026-10-29): the paper's robot model, first-order lag plus
+    Coulomb friction (v_s is the friction level v_c, static = kinetic)."""
+    return build("coulomb", V2_SCALE, {}) + build_extra("coulomb", {}) + \
+        random_batches(per_batch=10000, stiction="coulomb", base={})
+
+
 if __name__ == "__main__":
     import sys
-    if "--v2" in sys.argv:
+    if "--v3" in sys.argv:
+        C = [c for c in build_v3() if not c.get("random")]
+        R = [c for c in build_v3() if c.get("random")]
+    elif "--v2" in sys.argv:
         C = [c for c in build_v2() if not c.get("random")]
         R = [c for c in build_v2() if c.get("random")]
     else:

@@ -25,20 +25,24 @@ from src.fields.environments.Spewing_Vortex import spewing_vortex1
 STEPS = 400
 
 
-def ref_run(fieldfn, task, start, theta, side, alpha, vsn, rd):
+def ref_run(fieldfn, task, start, theta, side, alpha, vsn, rd, model="legacy", vk=None):
     spec = ft.FieldSpec("ref", 0.0, lambda x, y: tuple(float(a) for a in fieldfn(x, y)),
                         [("t", 0.0, 0.0)], lambda x, y: True, 0.5)
     cl = ft.make_cluster(spec, start, side, alpha, vsn, theta)
+    for robot in cl.robots:
+        robot.stiction_model = model
+        robot.kinetic_threshold = vsn if vk is None else vk
     prim = ft.attract_primitive("vector") if task == "attract" else ft.orbit_primitive("vector", rd)
     for _ in range(STEPS):
         cl.move(prim)
     return cl.get_center_history()
 
 
-def vec_run(field, task, start, theta, side, alpha, vsn, rd):
+def vec_run(field, task, start, theta, side, alpha, vsn, rd, model="legacy", vk=None):
     P = vs.params(1, side=side, alpha=alpha, vs=vsn, rd=rd)
     _, tr = vs.simulate(field, task, "fit", P, STEPS * 0.1, starts=np.array([start]),
-                        thetas=np.array([theta]), keep=1, keep_stride=1)
+                        thetas=np.array([theta]), keep=1, keep_stride=1,
+                        stiction_model=model, vk=vk)
     out = tr[0, :STEPS]          # traj[k] is the centroid after step k, as center_history[k]
     assert np.isfinite(out).all()
     return out
@@ -87,3 +91,24 @@ if __name__ == "__main__":
             worst = max(worst, float(np.abs(a - b).max()))
         print(f"{name:15s} {task:7s} side {side:4.2f} alpha {alpha:4.2f} vs {vsn:5.3f}: "
               f"max centroid difference over {STEPS} steps x 3 trials = {worst:.1e} m")
+
+    # each stiction rule; coulomb at the hardware fit (v_k 0.09) and with a static excess
+    rules = [("legacy", 0.025, None), ("deadzone", 0.025, None), ("scaled", 0.025, None),
+             ("coulomb", 0.09, None), ("coulomb", 0.12, 0.09), ("coulomb", 0.05, 0.0)]
+    for model, vsn, vk in rules:
+        worst = 0.0
+        for name, task, rd in [("vortex", "attract", 0.3), ("saddle", "attract", 0.3),
+                               ("vortex", "orbit", 0.3)]:
+            F = vs.make_field(name)
+            for trial in range(3):
+                if task == "attract":
+                    start = rng.uniform(-0.4, 0.4, 2)
+                else:
+                    ph = rng.uniform(0, 2 * np.pi)
+                    start = rd * np.array([np.cos(ph), np.sin(ph)])
+                theta = rng.uniform(0, 2 * np.pi)
+                a = ref_run(F.fn, task, start, theta, 0.33, 0.7, vsn, rd, model, vk)
+                b = vec_run(F, task, start, theta, 0.33, 0.7, vsn, rd, model, vk)
+                worst = max(worst, float(np.abs(a - b).max()))
+        print(f"stiction {model:8s} v_s {vsn:5.3f} v_k {str(vk):5s}: max centroid difference, "
+              f"vortex/saddle attract and vortex orbit x 3 trials = {worst:.1e} m")

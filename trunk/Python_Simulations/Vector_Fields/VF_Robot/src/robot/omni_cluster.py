@@ -22,8 +22,9 @@ class OmniCluster:
     6. Commands individual robots
     """
 
-    def __init__(self, formation_config_path, field, timestep=0.1, momentum_alpha=0.7,
-                 stiction_threshold=0.025, stiction_model="legacy"):
+    def __init__(self, formation_config_path, field, timestep=0.1, momentum_alpha=None,
+                 stiction_threshold=0.025, stiction_model="coulomb", kinetic_threshold=None,
+                 max_velocity=0.4, time_constant=0.28):
         """
         Initialize OmniCluster.
 
@@ -31,14 +32,32 @@ class OmniCluster:
             formation_config_path: Path to YAML formation configuration file
             field: VectorField object for environment sensing
             timestep: Time step for robot integration
-            momentum_alpha: Momentum coefficient for robots
+            momentum_alpha: Momentum coefficient for robots. None (default)
+                sets alpha = exp(-timestep / time_constant), the exact sampled
+                form of the actuator lag, so it follows the sample period
+                (0.6997 at 0.1 s, 0.9649 at 0.01 s). Pass a number to fix it;
+                runs before 2026-10-29 used 0.7.
+            time_constant: actuator time constant tau (s), Decabot 0.28.
             stiction_threshold: Minimum speed to overcome static friction (see Omnibot)
+            stiction_model, kinetic_threshold: passed to each Omnibot. The
+                default is "coulomb" since 2026-10-29: each robot is a
+                first-order lag with Coulomb friction v_c = stiction_threshold,
+                equal static and kinetic levels. Pass "legacy" to reproduce
+                results made before that date.
+            max_velocity: per-robot speed cap (m/s). 0.4 from 2026-10-29,
+                the Decabot top speed; pass 0.3 to reproduce earlier results.
+                The hardware's 0.3 m/s centroid clip is not modelled.
         """
         self.field = field
         self.timestep = timestep
+        self.time_constant = time_constant
+        if momentum_alpha is None:
+            momentum_alpha = float(np.exp(-timestep / time_constant))
         self.momentum_alpha = momentum_alpha
         self.stiction_threshold = stiction_threshold
-        self.stiction_model = stiction_model      # see Omnibot; default keeps the original model
+        self.stiction_model = stiction_model      # see Omnibot
+        self.kinetic_threshold = kinetic_threshold
+        self.max_velocity = max_velocity
 
         # Load formation configuration
         self._load_formation_config(formation_config_path)
@@ -99,15 +118,18 @@ class OmniCluster:
 
         # Create 3 robots
         self.robots = [
-            Omnibot(x1, y1, self.timestep, self.momentum_alpha,
+            Omnibot(x1, y1, self.timestep, self.momentum_alpha, max_velocity=self.max_velocity,
                     stiction_threshold=self.stiction_threshold,
-                    stiction_model=self.stiction_model),
-            Omnibot(x2, y2, self.timestep, self.momentum_alpha,
+                    stiction_model=self.stiction_model,
+                    kinetic_threshold=self.kinetic_threshold),
+            Omnibot(x2, y2, self.timestep, self.momentum_alpha, max_velocity=self.max_velocity,
                     stiction_threshold=self.stiction_threshold,
-                    stiction_model=self.stiction_model),
-            Omnibot(x3, y3, self.timestep, self.momentum_alpha,
+                    stiction_model=self.stiction_model,
+                    kinetic_threshold=self.kinetic_threshold),
+            Omnibot(x3, y3, self.timestep, self.momentum_alpha, max_velocity=self.max_velocity,
                     stiction_threshold=self.stiction_threshold,
-                    stiction_model=self.stiction_model)
+                    stiction_model=self.stiction_model,
+                    kinetic_threshold=self.kinetic_threshold)
         ]
 
         print(f"Initialized 3 robots at centroid ({x_c_init:.3f}, {y_c_init:.3f})")

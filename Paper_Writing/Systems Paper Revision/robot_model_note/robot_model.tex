@@ -1,0 +1,52 @@
+% Robot actuator model for the vector field paper revision (2026-10-29).
+% Fits in one column of an IEEEtran two-column page.
+\documentclass[journal]{IEEEtran}
+\usepackage{amsmath,amsfonts}
+\usepackage{array}
+
+\begin{document}
+
+\section*{Robot Actuator Model}
+
+Each Decabot is modeled as a holonomic point with a first-order velocity lag, a speed limit, and Coulomb friction. Let $\mathbf{u}_i$ be the velocity commanded to robot $i$ by the cluster controller and $\mathbf{v}_i$ its velocity. While the robot moves,
+\begin{equation}
+\tau\,\dot{\mathbf{v}}_i = \mathbf{u}_i - \mathbf{v}_i - v_c\,\frac{\mathbf{v}_i}{\|\mathbf{v}_i\|}, \qquad \|\mathbf{v}_i\| \le v_{\max},
+\label{eq:rm_cont}
+\end{equation}
+where $\tau$ is the actuator time constant and $v_c$ is the Coulomb friction level expressed as a speed. A parked robot ($\mathbf{v}_i = \mathbf{0}$) stays parked while $\|\mathbf{u}_i\| \le v_c$, and a moving robot parks when its velocity reaches zero with $\|\mathbf{u}_i\| \le v_c$. A constant command with $\|\mathbf{u}_i\| > v_c$ drives the speed to $\|\mathbf{u}_i\| - v_c$.
+
+Commands are held over each control period $\Delta t$. With $\alpha = e^{-\Delta t/\tau}$, a robot that is moving or whose command exceeds $v_c$ is updated as
+\begin{align}
+\mathbf{v}_i^{-} &= \alpha\,\mathbf{v}_i[k] + (1-\alpha)\,\mathbf{u}_i[k], \label{eq:rm_lag}\\
+\mathbf{v}_i[k+1] &=
+\begin{cases}
+\mathbf{0}, & \|\mathbf{v}_i^{-}\| \le (1-\alpha)\,v_c,\\[2pt]
+\mathbf{v}_i^{-}\Bigl(1 - \dfrac{(1-\alpha)\,v_c}{\|\mathbf{v}_i^{-}\|}\Bigr), & \text{otherwise},
+\end{cases} \label{eq:rm_fric}
+\end{align}
+followed by projection onto $\|\mathbf{v}_i\| \le v_{\max}$ and $\mathbf{p}_i[k+1] = \mathbf{p}_i[k] + \Delta t\,\mathbf{v}_i[k+1]$. A parked robot with $\|\mathbf{u}_i[k]\| \le v_c$ keeps $\mathbf{v}_i[k+1] = \mathbf{0}$. When $\mathbf{u}_i$ is parallel to $\mathbf{v}_i$, (\ref{eq:rm_lag})--(\ref{eq:rm_fric}) reproduce the solution of (\ref{eq:rm_cont}) exactly at the sampling instants. The lag and the friction level therefore do not depend on the sampling rate, and $\alpha$ is recomputed from $\tau$ when $\Delta t$ changes ($\alpha = 0.700$ at $\Delta t = 0.1$~s and $0.965$ at $0.01$~s).
+
+With the formation at its desired shape every robot receives the centroid command. Under the attraction law $\mathbf{u} = k(\hat{\mathbf{p}}^* - \mathbf{c})$ the cluster therefore comes to rest once $k\|\hat{\mathbf{p}}^* - \mathbf{c}\| \le v_c$, inside a disk of radius $v_c/k$ about the estimated critical point. At $k = 1$~s$^{-1}$ this radius is 0.025~m. Table~\ref{tab:rm_params} lists the parameters.
+
+\begin{table}[!h]
+\footnotesize
+\centering
+\caption{Robot model parameters.}
+\label{tab:rm_params}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{l c l}
+\hline
+\textbf{Parameter} & \textbf{Value} & \textbf{Source} \\
+\hline
+Time constant $\tau$ & 0.28~s & Step response, 0 to 0.3~m/s \\
+Friction level $v_c$ & 0.025~m/s & Measured on the testbed \\
+Speed limit $v_{\max}$ & 0.4~m/s & Decabot top speed \\
+Control period $\Delta t$ & 0.1~s & Hardware loop rate \\
+Attraction gain $k$ & 1~s$^{-1}$ & Hardware setting \\
+\hline
+\end{tabular}
+\end{table}
+
+The hardware attraction trials support this model. At the last sample in which any robot moved, the centroid lay a median 0.025~m (vortex, 79 runs) and 0.032~m (saddle, 78 runs) from the critical point estimate the cluster was tracking, against $v_c/k = 0.025$~m. The mean final distance to the true critical point was 0.023~m in both fields, against 0.025~m in simulation on the linear fields from the same 157 start positions. A fit to the start transients of the hardware runs gives $\tau \approx 0.20$~s. The value 0.28~s overstates the lag, so predicted overshoot and orbit radius error are conservative, while the attraction rest radius $v_c/k$ does not depend on $\tau$. No parked robot restarted during the trials, so static friction is taken equal to $v_c$.
+
+\end{document}

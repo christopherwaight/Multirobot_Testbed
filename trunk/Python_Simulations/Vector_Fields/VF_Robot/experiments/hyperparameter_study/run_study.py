@@ -4,6 +4,7 @@ Run the hyperparameter study (design.py) with vecsim, saving per-trial results.
     venv/bin/python3 experiments/hyperparameter_study/run_study.py              # full study, resumable
     venv/bin/python3 experiments/hyperparameter_study/run_study.py --pilot      # 5% of trials, separate folder
     venv/bin/python3 experiments/hyperparameter_study/run_study.py --only E2alpha E3k
+    venv/bin/python3 experiments/hyperparameter_study/run_study.py --v3         # Coulomb model (results_v3/)
 
 Output: results/cells/<hash>.npz (per-trial metrics as float32, plus E7 per-trial
 parameters), results/manifest.csv, results/progress.log.
@@ -25,6 +26,9 @@ import vecsim as vs
 import design
 
 _FIELDS = {}
+# hardware_*_starts_finals.npy hold OptiTrack metres divided by the printed map
+# size (66 in); see stiction_hw_check.py. Starts are used in metres.
+MAP_SCALE = 1.6764
 
 
 def field_of(cell):
@@ -42,7 +46,7 @@ def random_params(cell, n, F):
     P = dict(side=logu(0.01, 1.0),
              alpha=np.where(rng.random(n) < 0.2, 0.0, rng.uniform(0, 0.95, n)),
              vs=np.where(rng.random(n) < 0.25, 0.0, rng.uniform(0, 0.1, n)),
-             vmax=np.where(rng.random(n) < 0.2, 1e9, 0.3),
+             vmax=np.where(rng.random(n) < 0.2, 1e9, cell["params"].get("vmax", vs.DEFAULTS["vmax"])),
              k=logu(0.1, 100.0), kt=rng.uniform(0.05, 0.5, n), kr=logu(0.1, 5.0),
              rd=logu(1e-4, F.max_rd),
              sigma_n=np.where(rng.random(n) < 0.4, 0.0, logu(1e-4, 0.1)))
@@ -63,7 +67,7 @@ def run_cell(args):
     n = max(10, int(round(cell["N"] * scale)))
     starts = thetas = None
     if cell.get("hw"):
-        hs = np.load(os.path.join(HERE, f"hardware_{cell['hw']}_starts_finals.npy"))[:, :2]
+        hs = np.load(os.path.join(HERE, f"hardware_{cell['hw']}_starts_finals.npy"))[:, :2] * MAP_SCALE
         reps = max(1, int(round(cell["N"] * scale)))
         starts = np.repeat(hs, reps, axis=0)
         n = len(starts)
@@ -87,13 +91,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pilot", action="store_true", help="5%% of trials into results_pilot/")
     ap.add_argument("--v2", action="store_true", help="dead-zone stiction, larger N, E8-E10 (results_v2/)")
+    ap.add_argument("--v3", action="store_true", help="as --v2 with Coulomb friction (results_v3/)")
     ap.add_argument("--only", nargs="+", default=None)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     a = ap.parse_args()
-    out_dir = os.path.join(HERE, ("results_v2" if a.v2 else "results") + ("_pilot" if a.pilot else ""))
+    version = "results_v3" if a.v3 else ("results_v2" if a.v2 else "results")
+    out_dir = os.path.join(HERE, version + ("_pilot" if a.pilot else ""))
     os.makedirs(os.path.join(out_dir, "cells"), exist_ok=True)
     scale = 0.05 if a.pilot else 1.0
-    cells = design.build_v2() if a.v2 else design.build() + design.random_batches()
+    if a.v3:
+        cells = design.build_v3()
+    elif a.v2:
+        cells = design.build_v2()
+    else:
+        cells = design.build() + design.random_batches()
     if a.only:
         cells = [c for c in cells if any(c["exp"].startswith(o) for o in a.only)]
     cells.sort(key=lambda c: -c["N"] * c["T"] / c["dt"])
