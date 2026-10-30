@@ -215,7 +215,7 @@ def _fit(pos, c, f):
 
 def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None,
              window=20.0, escape=None, keep=0, keep_stride=5, stiction_model="coulomb",
-             vk=None):
+             vk=None, record=False):
     """Run len(P['side']) trials for T seconds. task 'attract' or 'orbit'.
     starts: (n, 2) centroid starts; default uniform box (attract) or on the
     circle of radius r0 (default r_d) for orbits.
@@ -225,6 +225,10 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
     discretization, sample-period invariant); "scaled" is legacy with
     threshold (1 - alpha) v_s; "coulomb" is static friction v_s plus kinetic
     friction vk (scalar or per-trial array, default vk = v_s) behind the lag.
+    record: also return out["rec"], per-step arrays for every trial (centroid
+    c with n_steps + 1 rows, estimate phat, centroid command vc, robot command
+    and actual speeds, and for method "fit" the estimated Jacobian J as
+    [du/dx, du/dy, dv/dx, dv/dy]); recording does not change the dynamics.
     Returns (metrics dict of arrays, sample trajectories)."""
     assert stiction_model in STICTION_MODELS, stiction_model
     rng = np.random.default_rng(seed)
@@ -272,6 +276,12 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
                  sest=np.zeros(n), nest=np.zeros(n))
         phi_prev = None
     traj = np.full((keep, n_steps // keep_stride + 1, 2), np.nan) if keep else None
+    if record:
+        rec = dict(c=np.full((n, n_steps + 1, 2), np.nan), phat=np.full((n, n_steps, 2), np.nan),
+                   vc=np.full((n, n_steps, 2), np.nan), cmd_speed=np.full((n, n_steps, 3), np.nan),
+                   vel_speed=np.full((n, n_steps, 3), np.nan), active=np.zeros((n, n_steps), bool),
+                   J=np.full((n, n_steps, 4), np.nan))
+        rec["c"][:, 0] = c0
     active = np.ones(n, bool)
 
     for kstep in range(n_steps):
@@ -394,6 +404,15 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
         pos = np.where(a3, newpos, pos)
         vel = np.where(a3, new, 0.0)
         stuck |= ~active[:, None]
+        if record:
+            rec["c"][:, kstep + 1] = pos.mean(1)
+            rec["phat"][:, kstep] = phat
+            rec["vc"][:, kstep] = vc
+            if method == "fit":
+                rec["J"][:, kstep] = np.stack([gux, guy, gvx, gvy], 1)
+            rec["cmd_speed"][:, kstep] = np.hypot(cmd[..., 0], cmd[..., 1])
+            rec["vel_speed"][:, kstep] = np.hypot(vel[..., 0], vel[..., 1])
+            rec["active"][:, kstep] = active
 
         # ---- metrics
         sp = np.hypot(vel[..., 0], vel[..., 1])
@@ -479,4 +498,6 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
         out["a4"] = np.hypot(coef[:, 5], coef[:, 6])
         for k in ("cnt", "sr", "sr2", "ang", "srho", "sest", "nest"):
             out.pop(k, None)
+    if record:
+        out["rec"] = rec
     return out, traj

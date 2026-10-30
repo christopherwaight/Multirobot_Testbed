@@ -1,0 +1,128 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{amsmath,amsfonts}
+\setlength{\parskip}{3pt}
+% Paper equation numbers, copied from the revision's .aux so references resolve here.
+\makeatletter
+\newlabel{eq:2}{{1}{3}}\newlabel{eq:3}{{2}{3}}\newlabel{eq:4}{{3}{3}}\newlabel{eq:5}{{4}{3}}
+\newlabel{eq:8}{{5}{3}}\newlabel{eq:9}{{6}{3}}\newlabel{eq:scope}{{7}{3}}
+\makeatother
+\begin{document}
+\setcounter{equation}{7}
+
+\noindent\textbf{Proposed Section II-B, last paragraph.} The text through (\ref{eq:scope}) stays as it is. Everything from ``This relation is exact.'' to the end of that paragraph is replaced by the following.
+
+\subsection*{B. Cooperative Critical Point Estimation (end)}
+
+This relation is exact. The fitted value $\hat{\mathbf{v}}(\mathbf{p}^*) = \sum_i w_i\mathbf{m}_i$ combines the measurements $\mathbf{m}_i = [u_i,\ v_i]^T$ with the barycentric coordinates $\mathbf{w} = \mathbf{A}^{-T}[\mathbf{p}^{*T},\ 1]^T$ of $\mathbf{p}^*$, so the correlated errors in $\hat{\mathbf{J}}$ and $\hat{\mathbf{h}}$ act jointly through this one combination.
+
+Let $\mathbf{p}_c = \frac{1}{3}\sum_i\mathbf{p}_i$ be the cluster centroid, $\mathbf{e} = \mathbf{p}_c - \mathbf{p}^*$, and $R$ the largest distance from $\mathbf{p}_c$ to a robot. Let $\kappa_0$ be the condition number of $\mathbf{A}$ with each $\mathbf{p}_i$ replaced by $(\mathbf{p}_i - \mathbf{p}_c)/R$, which is $\sqrt{2}$ for an equilateral triangle and unbounded for collinear robots. Assume the Hessians of $u$ and $v$ have spectral norm at most $M$ on a convex region $\Omega$ containing the robots, and that $\|\mathbf{m}_i - \mathbf{v}(\mathbf{p}_i)\| \le \bar{\epsilon}$. With $\mu = MR^2/\sqrt{2} + \bar{\epsilon}$, Taylor expansion about $\mathbf{p}_c$ gives, for every $\mathbf{p} \in \Omega$,
+\begin{equation}\label{eq:model_err}
+\|\hat{\mathbf{J}} - \mathbf{J}(\mathbf{p}_c)\| \le \frac{\kappa_0\mu}{R}, \qquad \|\hat{\mathbf{v}}(\mathbf{p}) - \mathbf{v}(\mathbf{p})\| \le \phi(\|\mathbf{p} - \mathbf{p}_c\|),
+\end{equation}
+where $\phi(s) = Ms^2/\sqrt{2} + (1 + \kappa_0 s/R)\mu$. Its terms are the curvature between $\mathbf{p}_c$ and $\mathbf{p}$ and the model error $\mu$ at each robot, extrapolated to $\mathbf{p}$ through the formation geometry. If $\sigma_J = \sigma_{\min}(\mathbf{J}(\mathbf{p}_c)) - \kappa_0\mu/R$ is positive, Weyl's inequality gives $\sigma_{\min}(\hat{\mathbf{J}}) \ge \sigma_J$, and $\hat{\mathbf{J}}$ is invertible. For $\mathbf{p}^* \in \Omega$, where $\mathbf{v}$ vanishes, (\ref{eq:model_err}) then bounds (\ref{eq:scope}) by
+\begin{equation}\label{eq:err_bound}
+\|\hat{\mathbf{p}}^* - \mathbf{p}^*\| \le \frac{M\|\mathbf{e}\|^2/\sqrt{2} + (1 + \kappa_0\|\mathbf{e}\|/R)(MR^2/\sqrt{2} + \bar{\epsilon})}{\sigma_{\min}(\mathbf{J}(\mathbf{p}_c)) - \kappa_0(MR^2/\sqrt{2} + \bar{\epsilon})/R}.
+\end{equation}
+Field curvature, formation size, measurement error, formation conditioning, and Jacobian invertibility enter through $M$, $R$, $\bar{\epsilon}$, $\kappa_0$, and $\sigma_{\min}(\mathbf{J}(\mathbf{p}_c))$.
+
+Conversely, (\ref{eq:model_err}) certifies a true critical point near the estimate. Let $D \subset \Omega$ be the disk of radius $\rho$ about $\hat{\mathbf{p}}^*$, and suppose $\phi(\|\hat{\mathbf{p}}^* - \mathbf{p}_c\| + \rho) \le \sigma_{\min}(\hat{\mathbf{J}})\,\rho$. The map $\mathbf{p} \mapsto \hat{\mathbf{p}}^* - \hat{\mathbf{J}}^{-1}(\mathbf{v}(\mathbf{p}) - \hat{\mathbf{v}}(\mathbf{p}))$ then sends $D$ into itself, and since $\hat{\mathbf{v}}(\mathbf{p}) = \hat{\mathbf{J}}(\mathbf{p} - \hat{\mathbf{p}}^*)$, its Brouwer fixed point in $D$ is a zero of $\mathbf{v}$. Apart from $M$ and $\bar{\epsilon}$, every quantity in this test comes from the current fit and formation.
+
+For independent zero-mean measurement noise of covariance $\sigma_v^2\mathbf{I}_2$ on a locally affine field, linearizing (\ref{eq:scope}) in the noise gives
+\begin{equation}\label{eq:cov}
+\operatorname{Cov}(\hat{\mathbf{p}}^*) \approx \sigma_v^2\|\mathbf{w}\|^2\,\mathbf{J}^{-1}\mathbf{J}^{-T},
+\end{equation}
+where $\|\mathbf{w}\|^2$ is $1/3$ at the centroid of any triangle and grows with distance from it. The approximation holds for the bulk of the estimates while $\kappa_0\sigma_v/R \ll \sigma_{\min}(\mathbf{J})$, and rare nearly singular fits add heavy tails.
+
+\smallskip
+\noindent\textbf{Optional closing sentence.} Include it only if the nonlinear benchmarks report steady-state bias, so that the two can be compared.
+
+\begin{quote}
+For an equilateral cluster centered on $\mathbf{p}^*$, the curvature part of $\hat{\mathbf{v}}(\mathbf{p}^*)$ is $(R^2/4)[\nabla^2 u,\ \nabla^2 v]^T$ to leading order in $R$, where $\nabla^2$ is the Laplacian, so the noise-free estimate is $\hat{\mathbf{p}}^* \approx \mathbf{p}^* - (R^2/4)\mathbf{J}^{-1}[\nabla^2 u,\ \nabla^2 v]^T$ for any orientation of the formation.
+\end{quote}
+
+\section*{Changes elsewhere needed for this to work}
+
+\noindent\textbf{Required.}
+\begin{enumerate}
+\item \textbf{Section II-D, first sentence.} $\mathbf{p}_c$ is now defined in II-B.
+\begin{quote}
+``drive the cluster centroid $\mathbf{p}_c = \frac{1}{3}\sum_{i=1}^{3}\mathbf{p}_i$ toward'' $\to$ ``drive the cluster centroid $\mathbf{p}_c$ toward''
+\end{quote}
+
+\item \textbf{Proposed Section III-D (stability note).} Four edits connect Proposition~2 to (\ref{eq:err_bound}).
+\begin{enumerate}
+\item ``and the centroid error as $\mathbf{e}[j] = \mathbf{p}_c[j] - \mathbf{p}^*$'' $\to$ ``and the centroid error of Section~II-B as $\mathbf{e}[j]$''.
+\item Replace from ``The estimate error itself depends on cluster position.'' to the end of that paragraph with
+\begin{quote}
+The estimate error itself depends on cluster position. On the disk $\|\mathbf{e}\| \le E$, (\ref{eq:err_bound}) gives $\|\boldsymbol{\delta}\| \le \eta\|\mathbf{e}\| + \bar{\delta}$ with $\eta = (ME/\sqrt{2} + \kappa_0\mu/R)/\underline{\sigma}_J$ and $\bar{\delta} = \mu/\underline{\sigma}_J$, where $\underline{\sigma}_J$ is the least value of $\sigma_J$ on that disk.
+\end{quote}
+\item In Proposition~2, ``and on a bounded region containing the trajectory $\|\boldsymbol{\delta}[j]\| \le \eta\|\mathbf{e}[j]\| + \bar{\delta}$ with $\gamma\eta < 1$'' $\to$ ``$M$ bounds the Hessians within $E + R$ of $\mathbf{p}^*$, the trajectory stays in $\|\mathbf{e}\| \le E$, $\underline{\sigma}_J > 0$, and $\gamma\eta < 1$''.
+\item ``Both $\eta$ and $\bar{\delta}$ scale with $1/\sigma_{\min}(\hat{\mathbf{J}})$'' $\to$ ``Both $\eta$ and $\bar{\delta}$ scale with $1/\underline{\sigma}_J$''.
+\end{enumerate}
+
+\item \textbf{Section VI-A, sensor noise.} The formula is now derived, and it holds for any triangle. The numbers after the semicolon are unchanged. \emph{Superseded in part by notes N2 and N3 of \texttt{Queued\_Edits/prose\_framing\_batch.tex}:} the 0.02~m/s of Section V-A is fixed calibration error, not measurement noise, so the ``time-averaging'' sentence that follows should not be kept.
+\begin{quote}
+``To first order, the centered equilateral fit maps per-component sensor noise $\sigma_v$ into estimate scatter $\sigma_p \approx \|\hat{\mathbf{J}}^{-1}\|\,\sigma_v/\sqrt{3}$;'' $\to$ ``By (\ref{eq:cov}), a cluster of any shape centered on the critical point maps per-component sensor noise $\sigma_v$ into a largest principal standard deviation $\sigma_p \approx \|\hat{\mathbf{J}}^{-1}\|\,\sigma_v/\sqrt{3}$;''
+\end{quote}
+
+\item \textbf{Section VI-A, cluster geometry.} $\kappa(\mathbf{A})$ in (\ref{eq:4}) depends on units and on where the cluster sits, so the optimality claim should refer to $\kappa_0$. Equilateral is the minimizer. With $\boldsymbol{\rho}_i = (\mathbf{p}_i - \mathbf{p}_c)/R$, $\kappa_0^2 = 3/\lambda_{\min}(\sum_i\boldsymbol{\rho}_i\boldsymbol{\rho}_i^T)$, and the two eigenvalues sum to at most 3, so $\lambda_{\min} \le 3/2$ with equality only for the equilateral triangle.
+\begin{quote}
+``This shape minimizes the condition number of $\mathbf{A}$ in (\ref{eq:4}) among formations of the same size centered on the sampled region, making this formation optimal for sampling.'' $\to$ ``Among formations with the same $R$, this shape minimizes $\kappa_0$, and with it the Jacobian error $\kappa_0\mu/R$ in (\ref{eq:model_err}) and the extrapolation factor in (\ref{eq:err_bound}).''
+\end{quote}
+
+\item \textbf{Section VI-A, Jacobian conditioning paragraph.} The bound depends on $\sigma_{\min}$, not on $\kappa(\hat{\mathbf{J}})$, which is blind to the field's scale. These edits supersede the stability note's ``non-hyperbolic'' to ``degenerate'' edit. The two sentences on the orbital bias stay as they are, per your instruction.
+\begin{enumerate}
+\item ``Further errors could arise from poor conditioning of the estimated Jacobian $\kappa(\hat{\mathbf{J}})$ in (\ref{eq:8}), directly affecting the estimation of the critical point location (\ref{eq:9}).'' $\to$ ``Further errors arise when $\sigma_{\min}(\hat{\mathbf{J}})$ is small, since $\|\hat{\mathbf{J}}^{-1}\| = 1/\sigma_{\min}(\hat{\mathbf{J}})$ multiplies the model error in (\ref{eq:scope}).''
+\item ``Unlike $\kappa(\mathbf{A})$, this factor is an intrinsic property of the field and is not under the designer's control.'' $\to$ ``Unlike $\kappa_0$, $\sigma_{\min}(\mathbf{J})$ is a property of the field and is not under the designer's control.''
+\item ``The condition number grows when the Jacobian eigenvalues have very different magnitudes, as occurs near highly asymmetric nodes or saddle points with disparate stable and unstable manifold strengths.'' $\to$ ``Since $\sigma_{\min}(\mathbf{J}) \le |\lambda|$ for every eigenvalue $\lambda$, a node or saddle with one weak eigenvalue gives a small $\sigma_{\min}$, as does strong shear.''
+\item ``In the limiting case, $\kappa(\hat{\mathbf{J}}) \to \infty$ as $\det(\hat{\mathbf{J}}) \to 0$, corresponding to non-hyperbolic critical points'' $\to$ ``In the limiting case, $\sigma_{\min}(\hat{\mathbf{J}}) \to 0$ as $\det(\hat{\mathbf{J}}) \to 0$, corresponding to degenerate critical points''.
+\end{enumerate}
+
+\item \textbf{Minimality note.} Its $\mathbf{w} = \mathbf{J}\mathbf{d}$ collides with the barycentric $\mathbf{w}$. Rename it $\mathbf{m}_1$, which also matches $\mathbf{m}_i$ as a measurement. The line then measures $\mathbf{m}_0 + s_i\mathbf{m}_1$, and $\mathbf{J}_q = [\,\mathbf{m}_0\ \ \mathbf{m}_1\,][\,\mathbf{p}_0 - \mathbf{q}\ \ \mathbf{d}\,]^{-1}$.
+\end{enumerate}
+
+\noindent\textbf{Recommended.}
+\begin{enumerate}
+\setcounter{enumi}{6}
+\item \textbf{Section VI-A, after the ``degenerate critical points'' sentence.} This answers the second half of Reviewer~1, Comment~3, and supports the classification claim of Comment~7.
+\begin{quote}
+A center is non-hyperbolic yet has $\sigma_{\min}(\mathbf{J}) > 0$, so (\ref{eq:err_bound}) locates it as well as any other critical point. Only its type is fragile. The center ($\operatorname{tr}\mathbf{J} = 0$) and the canonical sink and source ($\mathbf{J} = \mp\mathbf{I}$, a star node with repeated eigenvalues and $(\operatorname{tr}\mathbf{J})^2 = 4\det\mathbf{J}$) each lie on a boundary between types in Table~I, and any error in $\hat{\mathbf{J}}$ can move them across it. Saddles, spirals, and nodes with distinct eigenvalues fill open regions of the $(\operatorname{tr}, \det)$ plane and keep their type under small errors. The classifier therefore counts an eigenvalue pair within $\arcsin(\epsilon/2)$ of the imaginary or real axis as a center or a node, with $\epsilon = 0.2$ (about $6^\circ$).
+\end{quote}
+Why this matters:
+\begin{itemize}
+\item A generic sink or source is not fragile. The fragility comes from the paper's choice of $\mathbf{J} = \mp\mathbf{I}$ as the canonical example, which sits on the node/spiral boundary exactly as the canonical vortex sits on the center/spiral boundary.
+\item Without the band, the noise-free simulated sink scored only 75\%, because round-off in the fit chose between node and stable spiral.
+\item The band and its value must be stated wherever classification accuracy is reported.
+\end{itemize}
+The simulation results, for the results section and still subject to your review:
+\begin{quote}
+With white measurement noise of 0.02~m/s added to every reading, the type of $\hat{\mathbf{J}}$ matched the true type on 100\% of cycles for saddles, 96--97\% for spirals, 95--96\% for the star nodes (100\% for attracting against repelling), and 90\% for the center, falling to 64--65\% on the reconstructed vortex.
+\end{quote}
+This item affects the queued \texttt{Queued\_Edits/prose\_framing\_batch.tex}:
+\begin{itemize}
+\item Its item~3 says ``the present experiments evaluate location only''. That must change if the new campaign reports classification, since the campaign logs $\hat{\mathbf{J}}$ and a type label every cycle.
+\item Its item~7 (metric definitions) then needs the classification metric: the fraction of cycles on which the type of $\hat{\mathbf{J}}$ matches the true type.
+\end{itemize}
+\item \textbf{Section VI-A, last sentence of the conditioning paragraph.} ``These singular cases are detectable through eigenvalue analysis of the estimated Jacobian'' $\to$ ``These cases are detectable at run time through $\sigma_{\min}(\hat{\mathbf{J}})$ and the existence test of Section~II-B''.
+\item \textbf{Notation.} Bold $\mathbf{v}$ is the field in Section II and the robot velocity in the robot model of Section III-A. The stability note's per-axis state $[e,\ v]^T$ reuses the plane coefficient $e$ of (\ref{eq:3}) and the field component $v$, and the index $[k]$ in the discrete robot model reuses the gain $k$. Renaming the robot velocity $\boldsymbol{\nu}$, the per-axis state $[e_a,\ \nu_a]^T$, and the index $[j]$ removes all three clashes.
+\end{enumerate}
+
+\noindent\textbf{After applying.} Three new equations shift every number from the current (8) onward. All cross-references use \verb|\ref|, so nothing in the paper breaks, but the \verb|\newlabel| lines in the stability and minimality notes go stale. Weyl's inequality and Brouwer's theorem are standard, and the text uses them without a citation.
+
+\section*{Numerical checks (for review, not for the paper)}
+Quadratic fields with random $\mathbf{J}$, Hessians, $R \in [0.05, 0.4]$~m, $\|\mathbf{e}\| \le 2R$, $\bar{\epsilon} \le 0.05$, half equilateral and half random triangles.
+\begin{itemize}
+\item (\ref{eq:err_bound}): 0 violations in 61{,}119 trials with $\sigma_J > 0$, worst ratio of error to bound 0.73. The Jacobian half of (\ref{eq:model_err}) was never violated, and its field half reached a worst ratio of 0.98, so $\phi$ is nearly tight.
+\item Existence test: in 196 of 196 certified cases a true zero lay inside the certified disk.
+\item (\ref{eq:cov}) with $\sigma_v = 0.02$: median error 16.6~mm against 16.5~mm predicted at the centroid, and 28.5~mm against 28.6~mm at $\|\mathbf{e}\| = R$. A skinny triangle matched the median but had an RMS of 1.8~m from near-singular fits.
+\item Optional Laplacian sentence: median relative error 0.3\% over 926 fields at the noise-free fixed point, 95th percentile 5.5\%.
+\item Classification (\texttt{revision\_metrics}, Coulomb model): the percentage of cycles labelled correctly, over the last 2~s of 1000 attraction trials and after 10~s of 600 orbit trials per field. Hardware classification waits on the new campaign, because the old logs do not record $\hat{\mathbf{J}}$.
+\begin{itemize}
+\item \emph{Noise-free:} 100\% for every linear field and both reconstructed saddles; reconstructed vortex 91\% (attraction) and 81\% (orbit).
+\item \emph{White measurement noise 0.02~m/s:} saddle 100\%, spirals 96--97\%, sink and source 95--96\% (coarse 100\%), vortex 90\%, reconstructed vortex 65\% and 64\%.
+\item \emph{Without the band:} the noise-free sink and source scored 75\%.
+\end{itemize}
+\end{itemize}
+
+\end{document}

@@ -32,9 +32,9 @@
 \maketitle
 
 \begin{abstract}
-    There are a variety of interesting phenomena that exist at the critical points of environmental vector fields. Existing approaches for navigation to critical points either require prior knowledge of the environment or use local information to provide directional guidance only. This paper presents a multirobot method for estimating critical point locations without prior field knowledge, using only real-time local measurements from a minimum of three robots.
+    There are a variety of interesting phenomena that exist at the critical points of environmental vector fields. Existing approaches for navigation to critical points either require prior knowledge of the environment or use local information to provide directional guidance only. This paper presents a multirobot method for estimating critical point locations without prior field knowledge, using only real-time local measurements from a minimum of three robots. The sensing is spatially distributed across the robots, while the estimate and control laws are computed on a central computer that receives every measurement.
     This estimation enables new control laws to navigate to these points and to orbit them at a fixed radius.
-    Simulation verifies both attraction and orbital control laws across six canonical vector fields using three omnidirectional robots in both noisy and noise-free models. Hardware validation within a lab-based experimental testbed demonstrates a 100\% attraction convergence success rate across 157 convergence trials, with average position errors of 0.012~m or less from the true critical points. An additional 12 orbital trials demonstrated stable orbital control at six commanded radii across two fields with less than 0.25~m error at small radii and less than 0.1~m at larger radii. These findings establish this distributed estimation method as a viable approach for precise navigation in vector fields such as oceanic and atmospheric flows.  
+    Simulation verifies both attraction and orbital control laws across six canonical vector fields using three omnidirectional robots in both noisy and noise-free models. Hardware validation within a lab-based experimental testbed demonstrates a 100\% attraction convergence success rate across 157 convergence trials, with average position errors of 0.021~m or less from the true critical points. An additional 12 orbital trials demonstrated stable orbital control at six commanded radii across two fields with less than 0.25~m error at small radii and less than 0.1~m at larger radii. The printed fields do not advect the robots, so these findings establish the estimation method under lab conditions. In oceanic and atmospheric flows the field also pushes the platform, and the present controller does not compensate for that disturbance.  
 
 \end{abstract}
 
@@ -60,11 +60,11 @@ Recovering those coordinates is harder than following a heading, for reasons of 
 
 The implementation problem is that the local field must be reconstructed on physical hardware from noisy distributed measurements. The conditioning of this reconstruction degrades as the formation approaches collinearity, so the sampling shape must be held by a formation controller under real actuator dynamics and communication latency. Both the estimator and the mechatronics of the cluster limit the accuracy of the recovered features.
 
-This paper introduces a distributed cooperative estimation strategy that recovers the local linear structure of the field. Using a minimum of three robots, the cluster estimates the local Jacobian in a single time step and treats critical point navigation as a local-to-global inference. Inverting the Jacobian predicts the location of the nearby critical point that organizes the surrounding flow, and its eigenvalues fix the identity, with no global map required. The same estimate supports two control laws, a proportional law that drives the cluster centroid onto the critical point, and an orbital law that holds the centroid at a commanded standoff radius.
+This paper introduces a cooperative estimation strategy that recovers the local linear structure of the field from spatially distributed measurements. Using a minimum of three robots, the cluster estimates the local Jacobian in a single time step and treats critical point navigation as a local-to-global inference. Inverting the Jacobian predicts the location of the nearby critical point that organizes the surrounding flow, and its eigenvalues fix the identity, with no global map required. The same estimate supports two control laws, a proportional law that drives the cluster centroid onto the critical point, and an orbital law that holds the centroid at a commanded standoff radius. In the present implementation the robots sense and move, and a central computer forms the estimate and computes the commands.
 
-This paper makes four contributions. First, it presents a distributed algorithm that estimates critical point locations from instantaneous measurements alone. Second, it proves that three robots are the minimum number required for this estimation. Third, it demonstrates that this cooperative estimate is sufficient to drive navigation to and around critical points across six vector field types. Fourth, it validates the cooperative estimation and resulting navigation in 169 hardware experiments that demonstrate repeatable critical point estimation, attraction, and orbit control.
+This paper makes four contributions. First, it presents an algorithm that estimates critical point locations from instantaneous, spatially distributed measurements alone. Second, it proves that three robots are the minimum number required for this estimation. Third, it demonstrates that this cooperative estimate is sufficient to drive navigation to and around critical points across six vector field types. Fourth, it validates the cooperative estimation and resulting navigation in 169 hardware experiments that demonstrate repeatable critical point estimation, attraction, and orbit control.
 
-The remainder of this paper is organized as follows. Section II develops the mathematical framework for distributed Jacobian estimation and critical point prediction, and presents the control strategies for approach and orbit. Section III describes the control architecture used to evaluate these strategies in simulation and hardware. Section IV presents simulation results across six vector field types. Section V describes the hardware testbed and presents validation results. Section VI compares performance against alternative navigation strategies and discusses limitations and future work. Section VII concludes.
+The remainder of this paper is organized as follows. Section II develops the mathematical framework for Jacobian estimation from spatially distributed measurements and critical point prediction, and presents the control strategies for approach and orbit. Section III describes the control architecture used to evaluate these strategies in simulation and hardware. Section IV presents simulation results across six vector field types. Section V describes the hardware testbed and presents validation results. Section VI compares performance against alternative navigation strategies and discusses limitations and future work. Section VII concludes.
 
 \section{Critical Point Detection and Control}
 
@@ -104,19 +104,19 @@ Eigenvalue analysis can also identify degenerate scenarios such as cases where t
 \end{table}
 
 
-\subsection{Distributed Critical Point Estimation}
+\subsection{Cooperative Critical Point Estimation}
 \noindent
 
 We refer to the group of robots as a cluster: a formation treated as a single virtual rigid body whose centroid, orientation, and internal geometry can be independently specified and controlled \cite{50,51}.
 
 Given a cluster of three robots sampling a planar vector field with robot positions $\mathbf{p}_i = (x_i, y_i)$ and corresponding vector field measurements $(u_i, v_i)$ for $i \in \{1, 2, 3\}$, we can approximate the vector field components across the cluster's spatial extent using linear planar models:
 \begin{equation}\label{eq:2}
-\hat{U}(x,y) = ax + by + c
+\hat{U}(x,y) = ax + by + c = u(x,y) + \mathcal{O}(\ell^2)
 \end{equation}
 \begin{equation}\label{eq:3}
-\hat{V}(x,y) = dx + ey + f
+\hat{V}(x,y) = dx + ey + f = v(x,y) + \mathcal{O}(\ell^2)
 \end{equation}
-where hats denote quantities estimated from the measurements.
+where hats denote quantities estimated from the measurements and $\ell$ is the size of the region spanned by the robots and the point $(x,y)$. The $\mathcal{O}(\ell^2)$ term carries the field's curvature, the second-order part of its Taylor expansion that a plane cannot represent.
 
 The coefficients are determined by solving the linear systems:
 \begin{equation}\label{eq:4}
@@ -126,7 +126,7 @@ where:
 \begin{equation}\label{eq:5}
 \mathbf{A} = \begin{bmatrix} x_1 & y_1 & 1 \\ x_2 & y_2 & 1 \\ x_3 & y_3 & 1 \end{bmatrix}, \quad \hat{\boldsymbol{\theta}}_u = \begin{bmatrix} a \\ b \\ c \end{bmatrix}, \quad \hat{\boldsymbol{\theta}}_v = \begin{bmatrix} d \\ e \\ f \end{bmatrix}
 \end{equation}
-and $\mathbf{z}_u = [u_1, u_2, u_3]^T$, $\mathbf{z}_v = [v_1, v_2, v_3]^T$ are the collected field measurements.
+and $\mathbf{z}_u = [u_1, u_2, u_3]^T$, $\mathbf{z}_v = [v_1, v_2, v_3]^T$ are the collected field measurements. The fit needs every robot's position and measurement from the same cycle, so it runs on whichever computer collects them.
 
 The estimated critical point $\hat{\mathbf{p}}^* = (\hat{x}^*, \hat{y}^*)$ satisfies $\hat{U}(\hat{x}^*, \hat{y}^*) = 0$ and $\hat{V}(\hat{x}^*, \hat{y}^*) = 0$, which in matrix form reads $\hat{\mathbf{J}}\hat{\mathbf{p}}^* = -\hat{\mathbf{h}}$, where the estimated Jacobian matrix and offset vector are:
 \begin{equation}\label{eq:8}
@@ -183,7 +183,7 @@ This control law decouples radial and angular dynamics. The radial error $e_r = 
 
 The multirobot system control architecture chosen is an established multilayer approach successfully demonstrated in prior cluster space control studies in both 2D and 3D environments \cite{5,8}. There are three primary layers: (1) an adaptive navigation layer that implements the critical point estimation and adaptive navigation control laws from Section II, generating desired cluster centroid velocities, $\dot{\mathbf{p}}_c$, (2) a cluster space controller that maintains formation geometry and translates between cluster space and robot space variables, (3) individual robot controllers that convert velocity commands into mechanical actuation of each robot's drive system. Fig.~\ref{fig:control_architecture} illustrates this hierarchical structure. The vector field measurements enter the architecture only at the adaptive navigation layer, which uses them to form the critical point estimate; the lower layers operate on velocity commands alone, without reference to the field (Section~III-A).
 
-At each control cycle (10~Hz), each robot reports its position and vector field measurement. The cluster space kinematics are computed, and the cluster shape velocity commands needed for formation control are determined. The adaptive navigation layer computes the critical point estimate and generates a cluster velocity command. The cluster space controller maps all velocity commands to individual robot velocities via the inverse kinematic Jacobian.
+At each control cycle (10~Hz), each robot reports its position and vector field measurement. The cluster space kinematics are computed, and the cluster shape velocity commands needed for formation control are determined. The adaptive navigation layer computes the critical point estimate and generates a cluster velocity command. The cluster space controller maps all velocity commands to individual robot velocities via the inverse kinematic Jacobian. The adaptive navigation and cluster space controller layers run on one central computer, and only the sensing and the robot controller layer reside on the robots.
 
 
 \begin{figure}[!t]
@@ -484,11 +484,13 @@ As can be seen in Fig.~\ref{fig:primitive_comparison}, both alternative primitiv
 
 Several limitations constrain the current implementation and experimental validation. First, the approach is restricted to planar (2D) vector fields, though many real-world applications involve three-dimensional flows. Extension to 3D fields would require at minimum four non-coplanar robots for Jacobian estimation.
 
-Second, the testbed validates performance only on static fields where critical points remain fixed during operation. The static printed field approach enables precise ground truth validation but does not capture dynamic field behavior.
+Second, the testbed validates performance only on static printed fields. The critical points remain fixed during operation, and the field exerts no force on the robots, so the robot dynamics carry no advection term (Section~III-A). The static printed field approach enables precise ground truth validation but does not capture dynamic field behavior or the drift a physical flow imposes on the platform.
 
 Third, robot team sizes were limited to three. While the theoretical framework supports arbitrary team sizes through the overdetermined system approach, larger formations present practical implementation challenges including communication bandwidth, computational complexity, and formation control stability.
 
 Fourth, the estimate $\hat{\mathbf{p}}^*$ is the zero of a local affine model. It recovers a true critical point exactly when the field is affine over a region containing both the cluster and that critical point, and otherwise it is displaced by the model error in (\ref{eq:scope}). On fields that are highly nonlinear between the cluster and the critical point, this displacement can be large; the six canonical fields and the two reconstructed hardware fields evaluated here do not probe this regime.
+
+Fifth, the computation is centralized. A central computer receives OptiTrack positions and field readings from every robot, forms the estimate, and returns velocity commands. The estimate needs only the positions and readings of one cycle, expressed in a common frame, so a robot that received them from its neighbors could compute it. Onboard relative localization and inter-robot communication were not tested, however.
 
 Finally, this work assumes a sampling rate sufficiently high that the system approximates continuous control. The robustness of the approach to lower update rates and communication dropouts was not tested.
 
@@ -507,7 +509,7 @@ Beyond critical point detection and orbital control, vector fields contain other
 \section{Conclusion}
 \noindent
 
-This paper presents a distributed framework for multirobot navigation in vector fields containing critical points. A Jacobian-based approach uses instantaneous measurements from three robots to identify critical point locations without prior field knowledge, supporting an attraction control law and an orbital control law built on these estimates. Simulation across six canonical field types confirmed convergence of these control primitives. In 157 hardware convergence trials, the system achieved a 100\% success rate with average position errors of 0.012~m or less. Orbital control experiments maintained commanded radii within 0.25~m error at small radii and 0.1~m at larger radii.
+This paper presents a framework for multirobot navigation in vector fields containing critical points, in which the robots sense the field at spatially distributed points and a central computer forms the estimate. A Jacobian-based approach uses instantaneous measurements from three robots to identify critical point locations without prior field knowledge, supporting an attraction control law and an orbital control law built on these estimates. Simulation across six canonical field types confirmed convergence of these control primitives. In 157 hardware convergence trials, the system achieved a 100\% success rate with average position errors of 0.021~m or less. Orbital control experiments maintained commanded radii within 0.25~m error at small radii and 0.1~m at larger radii. The printed fields do not advect the robots, so these results hold under lab conditions. A physical flow adds a disturbance to the robot dynamics that the present controller does not compensate for.
 
 
 \appendices

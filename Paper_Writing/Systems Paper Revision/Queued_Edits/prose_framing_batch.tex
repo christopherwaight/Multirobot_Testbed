@@ -1,0 +1,152 @@
+% Queued prose framing batch. Drafted 2026-10-30, reverified the same day. NOT applied.
+% Target: cwaight_systems_paper/cwaight_systems_paper_with_revisions.tex
+% Match each OLD on exact text and abort the batch if any match fails.
+% Apply after the error, minimality, and stability notes. Items 1, 2 and 5 use their
+% results and the symbol e = p_c - p* defined in II-B by the error note.
+% [REVIEW] marks numbers that are not yet approved.
+%
+% ---------------------------------------------------------------------------
+% 1. R2.1-2  Contributions (Section I). Replace the whole paragraph that begins
+%    "This paper makes four contributions."
+This paper makes four contributions. First, it presents an algorithm that estimates the location of a critical point from instantaneous, spatially distributed measurements. Given bounds on field curvature and measurement error, it also bounds the error of the estimate and certifies that a true critical point lies near it. Second, it proves that three non-collinear robots are necessary and sufficient to locate the critical point of every nondegenerate affine field from instantaneous measurements. Third, it derives attraction and orbital control laws that act on the estimate and states conditions under which the attraction error stays bounded despite actuator lag, sampled updates, and friction. Finally, it validates the estimate and both laws in a hardware campaign on two printed fields.
+% The trial count is dropped because it changes with the 80th vortex run and the new orbits.
+% The certification needs the curvature bound M and error bound eps-bar, hence "Given bounds".
+% The stability note bounds the attraction error only. The orbit result is first order.
+%
+% ---------------------------------------------------------------------------
+% 2. R3.1-1  Novelty beyond the construction. Append to the paragraph that ends
+%    "...a central computer forms the estimate and computes the commands."
+The construction itself is two affine fits and a matrix inversion. This paper closes a feedback loop on their joint zero at every cycle and demonstrates it in hardware. It also bounds how far that zero lies from a true critical point and how far the cluster settles from that point.
+%
+% ---------------------------------------------------------------------------
+% 3. R1.7-1  Classification claim (Section I).
+% OLD: Inverting the Jacobian predicts the location of the nearby critical point that organizes the surrounding flow, and its eigenvalues fix the identity, with no global map required.
+% NEW:
+Inverting the Jacobian predicts the location of the nearby critical point that organizes the surrounding flow, with no global map required. Its eigenvalues indicate the type of that point.
+% [HW] Holds once the new campaign reports hardware classification (decided 2026-10-30).
+% If it does not, restore ", which the hardware experiments do not test".
+%
+% ---------------------------------------------------------------------------
+% 4. R2.2-1  Larger teams (Limitation Three).
+% OLD: Third, robot team sizes were limited to three. While the theoretical framework supports arbitrary team sizes through the overdetermined system approach, larger formations present practical implementation challenges including communication bandwidth, computational complexity, and formation control stability.
+% NEW:
+Third, robot team sizes were limited to three. With $n > 3$ robots the least-squares fit averages measurement errors across robots and survives the loss of one. Each added robot also adds communication and formation-control load, and a wider footprint asks the affine model to hold over more of the field's curvature.
+%
+% ---------------------------------------------------------------------------
+% 5. R2.5-1, AE.1-11  Four challenges of a real flow. Replace Limitation Two and
+%    delete the last limitation. Proposition 2 now covers the sampling rate, and
+%    dropouts move here.
+% OLD (Second): Second, the testbed validates performance only on static printed fields. The critical points remain fixed during operation, and the field exerts no force on the robots, so the robot dynamics carry no advection term (Section~III-A). The static printed field approach enables precise ground truth validation but does not capture dynamic field behavior or the drift a physical flow imposes on the platform.
+% NEW:
+Second, the testbed uses static printed fields, which give precise ground truth but omit four features of a real flow. The flow advects the robots and adds its own velocity $\mathbf{J}\mathbf{e}$ to the centroid near $\mathbf{p}^*$. For an ideal centroid with an exact estimate, the error then obeys $\dot{\mathbf{e}} = (\mathbf{J} - k\mathbf{I})\mathbf{e}$, which is unstable when an eigenvalue of $\mathbf{J}$ has real part above $k$. Actuator lag lowers this limit in rotating flow. Critical points also drift, and the attraction law trails a moving one. A communication dropout can leave fewer than three readings, and the fit then has no unique solution. Sensor latency mixes readings from different times into one fit.
+% DELETE: Finally, this work assumes a sampling rate sufficiently high that the system approximates continuous control. The robustness of the approach to lower update rates and communication dropouts was not tested.
+% Ripple: "Fifth, the computation is centralized." becomes "Finally, the computation is centralized."
+%
+% ---------------------------------------------------------------------------
+% 6. R3.2-1  Affine fields do not test extrapolation (Section IV-B).
+%    Insert after "hence the single noise-free column in the table."
+Because these six fields are affine, the estimate is exact on them, so they do not show how it extrapolates to a nonlinear field.
+% Ripple: once the nonlinear benchmarks enter Section IV, Limitation Four's clause
+% "the six canonical fields and the two reconstructed hardware fields evaluated here do not probe this regime" must change.
+%
+% ---------------------------------------------------------------------------
+% 7. R1.6-1  Metric definitions (Section V-B). HOLD until the revision_metrics agent
+%    finishes. Its draft table captions carry the same definitions, so use one place.
+%    Insert after "resulting in 157 usable convergence trials."
+Each attraction trial is scored by its final error, the distance from the final centroid to the true critical point. A trial succeeds if this error is below $\varepsilon$ and the centroid never leaves the printed map, and success is reported at $\varepsilon = 0.03$, $0.04$, and $0.05$~m. Convergence time is the time after which the centroid stays within $\varepsilon$. Bias is the distance from the mean final centroid to the critical point, and $\sigma$ is the RMS distance of the final centroids from that mean. Localization error is the distance from the estimate to the critical point over the last 20\% of a trial. Classification accuracy is the fraction of control cycles on which the type of $\hat{\mathbf{J}}$ matches the true type. Orbit trials report the radial error $r^* - r_d$ after the first 10~s.
+% [REVIEW] eps levels, 20%, 10 s, and "157" (the metrics agent found 158 runs).
+%
+% ---------------------------------------------------------------------------
+% 8. R1.6-5  The MLP fields are a fixed distortion. Two edits.
+% 8a OLD: These reconstructed fields incorporate realistic sensor noise from the physical testbed.
+% 8a NEW:
+These reconstructed fields are a fixed spatial distortion of the analytical fields, fit to the robots' readings on the printed maps, and they add no noise that varies in time.
+% 8b OLD: referenced in Section~IV as the realistic noise model for simulation
+% 8b NEW: used in Section~IV as a fixed distortion model for simulation
+% Verified: NNField runs in eval mode, and every simulation script leaves sigma_n = 0.
+%
+% ---------------------------------------------------------------------------
+% 9. R2.4-1  Closed-loop error of the attraction law (Section II-D). This also removes
+%    the clash between tau = 1/k and the actuator time constant tau of Section III-A.
+% OLD: This linear error dynamic guarantees global exponential convergence to the estimated critical point with time constant $\tau = 1/k$ provided the estimate is stationary.
+% NEW:
+Let $\hat{\mathbf{e}} = \mathbf{p}_c - \hat{\mathbf{p}}^*$. For a stationary estimate the attraction law gives the closed-loop error dynamics $\dot{\hat{\mathbf{e}}} = -k\hat{\mathbf{e}}$. The error therefore decays as $\hat{\mathbf{e}}(t) = \hat{\mathbf{e}}(0)e^{-kt}$, and the centroid converges globally and exponentially to the estimate with time constant $1/k$.
+%
+% ---------------------------------------------------------------------------
+% 10. R1.5-3  Magnitude-only baseline law and gains. For the rewritten VI-B, which drops
+%     vector-sum and compares against the oracle and the magnitude-only baseline
+%     (decided 2026-10-30). Matches vecsim.py method "magnitude".
+The magnitude-only baseline fits a plane $m = g_x x + g_y y + m_0$ to the three sensed speeds $m_i = \|\mathbf{v}(\mathbf{p}_i)\|$. For attraction it descends the fitted gradient $\mathbf{g} = [g_x,\ g_y]^T$ with unit gain. For orbiting it estimates the critical point as $\hat{\mathbf{p}}_m = \mathbf{p}_c - m_c\mathbf{g}/\|\mathbf{g}\|^2$, where $m_c$ is the fitted speed at the centroid, and applies the orbital law with the same $k_t$ and $k_r$.
+% CAUTION. Only the orbit baseline shares the proposed law. The study's magnitude attraction
+% is gradient descent, not k(p_hat_m - p_c). Either rerun attraction with the attraction law
+% driven by p_hat_m, so that only the estimate changes, or describe it as above.
+% Known behavior (checks below): p_hat_m errs by about R^2/r, and near the tip the descent
+% gain is 1/R, which overshoots with lag.
+% Response letter: the submitted VI-B described a modified vector-to-scalar orbit, but
+% cluster_orbit_demonstrator.py ran only vector-sum and the proposed controller.
+%
+% ===========================================================================
+% NOTES ON NOISE (for review, not for the paper)
+% ===========================================================================
+% N1. Two different errors are both called "noise".
+%     (a) Field distortion. Printing and color-calibration error, the same every time a
+%         robot reads a given spot. The MLP fields capture it.
+%     (b) Measurement noise. The cycle-to-cycle change in one robot's reading at a fixed spot.
+%     Parked intervals of the 3-robot attraction logs (66 saddle and 73 vortex runs,
+%     6,904 samples) put (b) at about 2e-5 m/s per component. That is three orders of
+%     magnitude below the sigma_v = 0.02 m/s the paper takes from the calibration RMSE,
+%     which is (a). The testbed's error is therefore almost all distortion. Caveat: these
+%     are the readings as Simulink logged them, after any filtering in the pipeline. [REVIEW]
+% N2. VI-A does not hold as written.
+%     - "isolates the effect of noisy sensor data: sensor noise appears to be the driving
+%       factor" compares the analytical fields with the MLP fields, so it isolates (a).
+%     - The covariance formula assumes zero-mean noise that is independent across cycles.
+%       A parked cluster sees constant distortion, so "closed-loop time-averaging" cannot
+%       reduce it. Under the Coulomb model, noise-free simulation already gives a 24.9 mm
+%       RMS spread of final positions, the friction ring v_min/k = 25 mm, against 23.8 mm
+%       on the saddle hardware. Friction sets the spread. Distortion adds bias, plus the
+%       vortex spread above the ring (36 mm). [REVIEW]
+%     - Edit 3 of the error note keeps this sentence's numbers, so N2 supersedes that part.
+% N3. Proposed VI-A replacement, from "Comparing the noise-free" through "averaging cannot remove."
+%     Comparing the analytical and reconstructed fields in simulation isolates the field
+%     distortion of the printed maps. On the testbed this distortion dominates. A parked
+%     robot's reading changes by about $2\times10^{-5}$~m/s between cycles, while the
+%     calibration error of Section V-A is about 0.02~m/s and is fixed at each location.
+%     Friction parks the cluster about $v_{\min}/k$ from its estimate, which sets the spread
+%     of final positions, and the distortion shifts the estimate and appears as bias.
+%     Keep the covariance result of the error note for sensors whose noise does vary in time.
+% N4. Terminology (style 4.12). Use "measurement noise" for (b) and one fixed term, such as
+%     "field distortion", for (a). Retire "sensor noise", "sensing errors", "noisy sensor
+%     data", "calibration errors", "realistic noise model" and "noisy fields". They appear in
+%     the abstract ("noisy and noise-free models"), Section IV, the Table II caption ("two
+%     noisy fields"), V-A, VI-A, and lines 18 and 50 of the stability note.
+%     Done 2026-10-30. The injected 0.02 m/s noise is relabeled "measurement noise" in
+%     revision_metrics (tables.py, the classification table and its caption, run_all.py,
+%     sim.py) and in the error note, whose edit 3 now points to N2 and N3.
+% N5. Physical reason before formula (style 3.6). If the covariance stays, open it with
+%     "Each robot carries its own color sensor, so measurement noise is independent across
+%     robots." The isotropic sigma_v^2 I is an approximation. Hue error acts across the flow
+%     and scales with speed, and saturation error acts along it.
+% N6. Position noise. OptiTrack jitter is under 1 mm, and the estimate moves 1 to 2 mm
+%     (median) while the cluster is parked. A frame registration error, such as the 1.6764
+%     map scale or the suspected rotation, acts as distortion and belongs with (a).
+% N7. The stability note writes v_min and the robot model note writes v_c for the same
+%     friction speed. Pick one before applying either.
+%
+% ===========================================================================
+% CHECKS RUN (scratchpad checks/math_checks*.py, hw_noise.py; ideal centroid with lag
+% alpha = 0.70, no friction, no speed cap)
+% ===========================================================================
+% - Stability note: kdt = 0.1 gives complex poles 0.835 +/- 0.052i, l1 gain 1.00026,
+%   step overshoot 0.013%. Matches the note.
+% - Advection with lag, J = lambda I: stable exactly while lambda < k. For a +/- i w the
+%   stable limit on a falls to 0.95, 0.83 and 0.45 at w = 0.5, 1 and 2 rad/s (edit 5).
+% - Least squares at the centroid: |w|^2 = 1/n for n = 3 to 6 (edit 4).
+% - Magnitude-only estimate on the linear vortex, 0.33 m formation: error about R^2/r,
+%   that is 182 mm at r = 0.2 m and 363 mm at r = 0.1 m.
+% - Gyre cell, 400 starts outside the diamond, 60 s. The Jacobian law reached a corner
+%   saddle in 396, with det(J_hat) < 0 at the start in 398. Magnitude descent reached a
+%   saddle in 374 and the center in 26. Vector-sum drifted to a saddle in 326.
+% - Magnitude descent near the tip has effective gain 1/R = 5.2 1/s, set by formation size.
+%   With lag that overshoots p* by 71 mm from a 0.5 m start. The Jacobian law at k = 1
+%   overshoots by 0.07 mm.

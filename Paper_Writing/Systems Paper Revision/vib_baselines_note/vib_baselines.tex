@@ -1,0 +1,82 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{amsmath,amsfonts,enumitem}
+\setlength{\parskip}{3pt}
+\setlist{nosep}
+% Paper labels, so references resolve here.
+\makeatletter
+\newlabel{eq:10}{{10}{3}}\newlabel{eq:11}{{11}{3}}\newlabel{tab:field_summary}{{I}{2}}
+\makeatother
+\begin{document}
+
+\noindent\textbf{Proposed Section VI-B, replacing ``Comparison with Other Primitives''.} Drafted 2026-10-30. This draft:
+\begin{itemize}
+\item supersedes \texttt{Queued\_Edits/VI-B\_comparison\_rewrite.tex};
+\item deletes the vector-sum comparison and its figure;
+\item answers the AE (matched fixed-radius baselines), Reviewer~1 Comment~5 and Reviewer~3.
+\end{itemize}
+Numbers come from \texttt{VF\_Robot/experiments/revision\_metrics/baselines.py} and await your review. Equation numbers follow the current paper.
+
+\subsection*{B. Comparison with Matched Baselines}
+
+To separate the estimate from the controller, the attraction law (\ref{eq:10}) and the orbital law (\ref{eq:11}) were run with the same gains, robot model, and formation, driven by three estimates of the critical point.
+\begin{itemize}
+\item \emph{Oracle} uses the true critical point and isolates the controller.
+\item \emph{Magnitude} uses only the sensed speeds $m_i = \|\mathbf{v}(\mathbf{p}_i)\|$. A plane fit gives their slope $\mathbf{g}$ and their value $m_c$ at the centroid, and $\hat{\mathbf{p}}_m = \mathbf{p}_c - m_c\mathbf{g}/\|\mathbf{g}\|^2$ locates the zero of a speed that grows linearly with distance. It uses the gains of the proposed laws without separate tuning.
+\end{itemize}
+Table~\ref{tab:baselines} reports both, alongside the plane fit, in simulation over repeated trials.
+
+On the affine fields, the plane fit matches the oracle in every metric, because its estimate is exact. The remaining errors belong to the controller: the friction ring of radius $v_{\min}/k$ in attraction, and the outward lag offset of the orbit. On the reconstructed fields, the plane fit's estimate errs by 0.05--0.06~m, and its orbit error at $r_d = 0.3$~m rises above the oracle's.
+
+The magnitude estimate errs by 0.06~m on the affine fields and 0.21~m on the reconstructed ones. Near the critical point the sensed speeds form a cone, the fitted slope vanishes, and the estimate diverges.
+\begin{itemize}
+\item \emph{Attraction.} The cluster never comes to rest, and after 10~s it still moves at about 0.12~m/s. Its smaller final error is a snapshot of that motion, and it costs about four times the control effort.
+\item \emph{Orbit.} Its smaller errors at 0.3 and 0.5~m on the affine fields come from an inward estimate bias that offsets the lag. The same bias holds the orbit 0.07~m inside the commanded 0.1~m.
+\item \emph{Type.} The canonical sink, source, vortex, and saddle share the speed field $\|\mathbf{v}\| = r$, so only the plane fit identifies the type of the critical point (Table~\ref{tab:field_summary}).
+\end{itemize}
+
+[PENDING the new campaign.] In hardware, the oracle runs of Section~V repeat each attraction start and orbital radius with the measured critical point, and give the controller's share of the hardware error directly.
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Matched baselines in simulation: the same attraction law (\ref{eq:10}) and orbital law (\ref{eq:11}), gains, robot model, and formation, driven by three estimates of the critical point. 500 attraction trials of 10~s and 50 orbit trials of 60~s per field and setting. Success is ending within 0.05~m; $\mu_e$ is the mean final error; $T_{\mathrm{conv}}$ is the median time to stay within 0.05~m; $E_u$ (m$^2$/s) is the realized quadratic effort; orbit RMSE of $r^* - r_d$ excludes the first 10~s; Est.\ err.\ is the mean $\|\hat{\mathbf{p}}^* - \mathbf{p}^*\|$ during the orbits.}
+\label{tab:baselines}
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{llcccc|ccc|c}
+\hline
+ & & \multicolumn{4}{c|}{\textbf{Attraction}} & \multicolumn{3}{c|}{\textbf{Orbit RMSE (m)}} & \textbf{Est.} \\
+\textbf{Field} & \textbf{Estimate} & \textbf{Succ.\ (\%)} & \textbf{$\mu_e$ (m)} & \textbf{$T_{\mathrm{conv}}$ (s)} & \textbf{$E_u$} & $r_d$ = 0.1 & $r_d$ = 0.3 & $r_d$ = 0.5 & \textbf{err.\ (m)} \\
+\hline
+Linear (6) & Plane fit & 100 & 0.025 & 2.1 & 0.074 & 0.093 & 0.051 & 0.033 & 0.000 \\
+ & Oracle & 100 & 0.025 & 2.1 & 0.074 & 0.093 & 0.051 & 0.033 & 0.000 \\
+ & Magnitude & 100 & 0.012 & 1.3 & 0.306 & 0.068 & 0.016 & 0.020 & 0.060 \\
+\hline
+Vortex (reconstructed) & Plane fit & 94 & 0.031 & 2.3 & 0.069 & 0.096 & 0.092 & 0.045 & 0.051 \\
+ & Oracle & 100 & 0.025 & 2.1 & 0.074 & 0.093 & 0.051 & 0.033 & 0.000 \\
+ & Magnitude & 94 & 0.034 & 1.8 & 0.269 & 0.065 & 0.079 & 0.068 & 0.211 \\
+\hline
+Saddle (reconstructed) & Plane fit & 100 & 0.025 & 2.3 & 0.071 & 0.090 & 0.071 & 0.050 & 0.061 \\
+ & Oracle & 100 & 0.025 & 2.1 & 0.074 & 0.093 & 0.051 & 0.033 & 0.000 \\
+ & Magnitude & 100 & 0.018 & 1.5 & 0.270 & 0.066 & 0.061 & 0.056 & 0.214 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section*{Changes elsewhere}
+\begin{enumerate}
+\item \textbf{Delete} everything from ``The modular architecture allows navigation controllers'' through the \verb|\end{figure}| of \texttt{fig:primitive\_comparison} (\texttt{orbit\_demonstration.png}). Nothing else references the figure. Citations [22] and [48] remain cited elsewhere, so no bibliography entry is orphaned.
+\item \textbf{Introduction roadmap.} ``Section VI compares performance against alternative navigation strategies and discusses limitations and future work.'' $\to$ ``Section VI compares the proposed estimate with matched baselines and discusses limitations and future work.''
+\item \textbf{Superseded queued text.} Do not apply \texttt{Queued\_Edits/VI-B\_comparison\_rewrite.tex}, or item~10 of \texttt{prose\_framing\_batch.tex} (the vector-to-scalar description). This section describes the magnitude baseline itself.
+\item \textbf{Metric definition} (item~7 of \texttt{prose\_framing\_batch.tex}). ``Enters and stays within $\varepsilon$'' is met by a cluster that keeps moving, as the magnitude baseline shows. Either require the cluster to come to rest (speed below a threshold for the last second), or report the final speed with the final error. The proposed laws always park under friction, so their numbers do not change.
+\item \textbf{Hardware oracle runs} come from block~C of the campaign prompt. The bracketed sentence stays out until those runs exist.
+\end{enumerate}
+
+\textbf{Response letter (vector-sum only; the vector-to-scalar orbit was never run).}
+\begin{quote}
+We agree that the vector-sum controller lacks radial feedback, so its drift said little about the proposed method. We removed that comparison and replaced Section VI-B with matched baselines: the same attraction and orbital laws driven by the true critical point and by a magnitude-only estimate, scored with the metrics of Section V-B over repeated trials.
+\end{quote}
+
+\textbf{For Section IV, not this section.} On the nonlinear fields of the hyperparameter study, both estimates lose the orbit at $r_d = 0.5$~m in all trials (gyre and curved saddle), while the oracle holds it. Attraction on the gyre reaches a neighboring critical point in about 42\% of trials for both estimates. These belong with the nonlinear benchmarks.
+
+\end{document}

@@ -1,0 +1,93 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{amsmath,amsfonts,booktabs,enumitem,array}
+\setlength{\parskip}{2pt}
+\setlength{\parindent}{0pt}
+\setlist{nosep,leftmargin=1.2em}
+\begin{document}
+\sloppy
+
+{\large\textbf{Revised draft outline: vector field paper, IEEE Systems major revision}}\\
+\small Planning note, 2026-10-30. Numbers here come from \texttt{VF\_Robot/experiments/revision\_metrics} and are for review. None is in the paper .tex.\normalsize
+
+\medskip
+\textbf{What changes beyond the numbers.} Three findings change the story.
+\begin{enumerate}
+\item \textbf{Vortex data.} The vortex rows of Tables IV and V, and the two hardware convergence figures, came from four-robot runs. The three-robot vortex runs are less accurate. Of the 80 runs, 70 end within 0.05~m. All 80 settle without leaving the map, and the worst ends 0.080~m away.
+\item \textbf{Simulation predicts the error floor.} With Coulomb friction the simulated cluster parks on a ring of radius $v_c/k = 25$~mm, and the saddle hardware averages 23~mm. Simulation now predicts the hardware error floor instead of reporting near-zero bias.
+\item \textbf{A frame for the numbers.} The new theory notes cover the error bound (II-B), minimality (II-C) and stability (III-D). Together they say the cluster parks within the friction ring around an estimate whose error the bound describes. The draft should be built on that sentence.
+\end{enumerate}
+
+\textbf{Proposed thesis sentence.} The estimator places the critical point within its model error, and the closed loop parks the cluster inside a friction ring around that estimate. Simulation and hardware agree on the ring, and the error bound accounts for the rest.
+
+\medskip
+\textbf{Section plan}
+
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.95in}>{\raggedright\arraybackslash}p{4.25in}>{\raggedright\arraybackslash}p{1.15in}}
+\toprule
+\textbf{Section} & \textbf{Change} & \textbf{Answers} \\
+\midrule
+I Introduction & Restate the contributions: estimator with error bound and existence test, three-robot minimality, stability under lag, sampling and friction, and hardware with defined metrics. Separate prior framework from new work. Remove the ``100\%'' claims. & AE, R2 \\
+II-B Estimation & Add the error-analysis paragraph: (err\_bound), existence test, covariance (error note). & R1.1, R1.3, R3 \\
+II-C Minimality & Replace with Proposition~1 (minimality note). & AE, R1 \\
+III-A Robot model & Coulomb friction model, defining $v_{\min}$ and $\tau$. Rename the robot velocity to avoid the clash with the field $\mathbf{v}$. & R1.2 \\
+III-D (new) & Closed-loop stability, Proposition~2, orbit radial dynamics (stability note). & AE, R1.2, R2.4, R3 \\
+IV Simulation & Coulomb model throughout. Revised Tables II and III. Nonlinear benchmarks, formation size and noise from the hyperparameter study (awaiting your review). & AE, R1.1, R3 \\
+V-A/B Testbed, plan & State three robots and the actual formation. Add a metric-definitions paragraph or small table: convergence, localization, radial tracking, effort, failure. & AE, R1.6, R3 \\
+V-C Attraction & Revised Table IV on three-robot runs. New per-run error figure. Regenerate the trajectory and distance-over-time figures. Explain the parked group (runs 41--50, 71). & AE, R1.6 \\
+V-D Orbits & New runs. Revised Table V with 10~s excluded, laps and repeats. New radius-versus-$r_d$ figure with theory. & AE, R1, R3 \\
+VI-A Error analysis & Rewrite around $\sigma_{\min}(\hat{\mathbf{J}})$ with the note on centers. Replace the last paragraph (stability note). & R1.3, R3 \\
+VI-B Comparison & Queued rewrite (\texttt{Queued\_Edits/VI-B\_comparison\_rewrite.tex}), with matched fixed-radius baselines. & AE \\
+VI-C, VII & Advection and centralized computation are done. Add the friction ring and 10~s run length. Update the conclusion numbers after approval. & AE \\
+\bottomrule
+\end{tabular}
+\normalsize
+
+\medskip
+\textbf{Figures.} The draft needs two new figures and two regenerated ones, with an optional third.
+\begin{itemize}
+\item \textbf{New, per-run final error} for each field, box and strip with the $\varepsilon$ lines (\texttt{figures/hw\_final\_error}). It answers R1.6's request for per-trial distributions and shows bias against spread.
+\item \textbf{New, mean orbit radius against $r_d$} showing hardware, simulation and the friction-scaled theory (\texttt{figures/orbit\_radius}). It carries the lag-offset result that Table V alone cannot. Its hardware points wait on the new orbit runs.
+\item \textbf{Regenerate} the eight-start trajectory figure and the distance-to-center figure from the three-robot runs. The current ones plot the four-robot vortex.
+\item \textbf{Optional} figure from the hyperparameter study for Section IV: accuracy against formation size and curvature on nonlinear fields. The orbit comparison figure at 0.40~m can go once the orbits are redone.
+\end{itemize}
+
+\textbf{Tables.} Tables II--V take the new columns: bias, $\sigma$, mean error $\pm$ SD, median [p95], localization error, $T_{\mathrm{conv}}$, effort and success at 3/4/5~cm, with orbit tables giving bias $\pm$ within-run SD, RMSE, controller-only bias, $N_{\mathrm{laps}}$ and lap SD. Drafts are in \texttt{revision\_metrics/tables}.
+
+\medskip
+\textbf{Key numbers (for review)}
+
+\small
+\begin{tabular}{lcccc}
+\toprule
+ & \textbf{Bias} & \textbf{Mean error $\pm$ SD} & \textbf{Within 3/4/5 cm} & \textbf{Max} \\
+\midrule
+Hardware saddle (78 runs, 3 robots) & 7.5 mm & 23.3 $\pm$ 8.8 mm & 77 / 99 / 100 \% & 42 mm \\
+Hardware vortex (80 runs, 3 robots) & 17.5 mm & 36.6 $\pm$ 17.1 mm & 34 / 60 / 86 \% & 80 mm \\
+Simulation, linear fields (1000 each) & 1.3 mm & 24.9 $\pm$ 0.8 mm & 100 / 100 / 100 \% & 25 mm \\
+Simulation, reconstructed vortex & 20.5 mm & 29.3 $\pm$ 13.2 mm & 45 / 79 / 95 \% & 55 mm \\
+\bottomrule
+\end{tabular}
+\normalsize
+
+\medskip
+Claims to rewrite:
+\begin{itemize}
+\item ``100\% convergence in 157 trials'' becomes ``all 158 runs settled on the map, and 147 ended within 0.05~m''. This works only if convergence is defined as settling.
+\item ``0.021~m or less'' becomes the mean Euclidean error.
+\item ``79 vortex runs'' becomes 80.
+\item The 0.33~m formation becomes the actual sides, about 0.30~m (saddle) and 0.25~m (vortex), unless the runs are redone.
+\item ``3000 cycles'' changes to match the new orbit runs.
+\end{itemize}
+
+\textbf{Data to collect.} The orbits are already being redone.
+\begin{itemize}
+\item Three robots, both fields, with the formation side used in simulation.
+\item Three or more runs per radius, since Table V is one run per radius and the AE asked for repeated trials.
+\item At least 180~s per run, which gives about eight laps at 0.50~m.
+\item Log the commanded centroid velocity after saturation, the gains and per-cycle timestamps. The logged \texttt{desired\_velocities} is a scaled field reading, not the command.
+\item The attraction redo is your decision (see chat).
+\end{itemize}
+
+\end{document}
