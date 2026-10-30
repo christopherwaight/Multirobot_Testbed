@@ -1,9 +1,10 @@
 """
 Figures, tables and theory checks for the hyperparameter study.
 
-    venv/bin/python3 experiments/hyperparameter_study/analyze.py [--res results]
+    venv/bin/python3 experiments/hyperparameter_study/analyze.py [--res results | results_v2 | results_v3]
 
-Writes figures/fig*.png, results/summary.csv, results/tables.md, and prints
+Writes figures/fig*.png (figures_v2/, figures_v3/ for those versions),
+results/summary.csv, results/tables.md, and prints
 the validation numbers quoted in hyperparameter_study.md.
 """
 import argparse
@@ -64,17 +65,27 @@ def build_summary(res):
     return S
 
 
+def friction(df):
+    """Coulomb friction level v_c per row (the cell's v_s under "coulomb", else 0)."""
+    return np.where(df["stiction"] == "coulomb", df["vs"], 0.0)
+
+
+def pred_start(df):
+    """Orbit start condition per row: legacy (1 - alpha) k_t >= v_s, Coulomb k_t > v_s, else k_t >= v_s."""
+    return np.where(df["stiction"] == "legacy", (1 - df["alpha"]) * df["kt"] >= df["vs"],
+                    np.where(df["stiction"] == "coulomb", df["kt"] > df["vs"], df["kt"] >= df["vs"]))
+
+
 def add_orbit_predictions(S):
     o = S["task"] == "orbit"
-    S.loc[o, "pred_r"] = [th.orbit_r_exact(r.rd, r.alpha, r.dt, r.kt, r.kr, r.vmax) for r in S[o].itertuples()]
-    S.loc[o, "pred_r_small"] = th.orbit_r_small_angle(S.loc[o, "rd"], S.loc[o, "alpha"], S.loc[o, "dt"],
-                                                      S.loc[o, "kt"], S.loc[o, "kr"], S.loc[o, "vmax"])
     if "stiction" not in S:
         S["stiction"] = "legacy"
     S["stiction"] = S["stiction"].fillna("legacy")
-    leg = S["stiction"] == "legacy"
-    S.loc[o, "pred_start"] = np.where(leg[o], (1 - S.loc[o, "alpha"]) * S.loc[o, "kt"] >= S.loc[o, "vs"],
-                                      S.loc[o, "kt"] >= S.loc[o, "vs"])
+    S["vc"] = friction(S)
+    S.loc[o, "pred_r"] = [th.orbit_r_exact(r.rd, r.alpha, r.dt, r.kt, r.kr, r.vmax, vc=r.vc) for r in S[o].itertuples()]
+    S.loc[o, "pred_r_small"] = th.orbit_r_small_angle(S.loc[o, "rd"], S.loc[o, "alpha"], S.loc[o, "dt"],
+                                                      S.loc[o, "kt"], S.loc[o, "kr"], S.loc[o, "vmax"], S.loc[o, "vc"])
+    S.loc[o, "pred_start"] = pred_start(S[o])
     S["exact_est"] = (S["method"] == "oracle") | ((S["method"] == "fit") & S["field"].isin(vs.LINEAR))
     return S
 
@@ -104,7 +115,7 @@ def fig1(S, R7, out):
     for i, (a, D) in enumerate(series):
         D = D.sort_values("rd")
         col = SEQ[i]
-        pred = th.orbit_r_small_angle(rr, a, 0.1, 0.2, 0.5) - rr
+        pred = th.orbit_r_small_angle(rr, a, 0.1, 0.2, 0.5, D["vmax"].iloc[0], friction(D)[0]) - rr
         ax.plot(rr, pred, color=col, lw=1.2, alpha=0.9)
         h = ax.plot(D["rd"], D["err_mean"], MARK[i], color=col, mec="white", mew=0.6, ms=5)[0]
         hs.append(h)
@@ -121,15 +132,16 @@ def fig1(S, R7, out):
     ax = axs[1]
     hs, ls = [], []
     D = sel(S, exp="E2kt", field="vortex", method="fit")
+    a0, vm0, vc0 = D["alpha"].iloc[0], D["vmax"].iloc[0], friction(D)[0]
     for i, kt in enumerate((0.1, 0.2, 0.3)):
         d = sel(D, kt=kt).sort_values("rd")
-        ax.plot(rr, th.orbit_r_small_angle(rr, 0.7, 0.1, kt, 0.5) - rr, color=CAT[i], lw=1.2)
+        ax.plot(rr, th.orbit_r_small_angle(rr, a0, 0.1, kt, 0.5, vm0, vc0) - rr, color=CAT[i], lw=1.2)
         hs.append(ax.plot(d["rd"], d["err_mean"], MARK[i], color=CAT[i], mec="white", mew=0.6)[0])
         ls.append(f"k_t {kt:g} m/s")
     D = sel(S, exp="E2kr", field="vortex", method="fit")
     for j, kr in enumerate((0.1, 5.0)):
         d = sel(D, kr=kr).sort_values("rd")
-        ax.plot(rr, th.orbit_r_small_angle(rr, 0.7, 0.1, 0.2, kr) - rr, color=CAT[3 + j], lw=1.2, ls="--")
+        ax.plot(rr, th.orbit_r_small_angle(rr, a0, 0.1, 0.2, kr, vm0, vc0) - rr, color=CAT[3 + j], lw=1.2, ls="--")
         hs.append(ax.plot(d["rd"], d["err_mean"], MARK[3 + j], color=CAT[3 + j], mec="white", mew=0.6)[0])
         ls.append(f"k_r {kr:g} /s")
 
@@ -145,7 +157,6 @@ def fig1(S, R7, out):
     ax = axs[2]
     X = sel(S, task="orbit")
     X = X[X["exact_est"] & (X["sigma_n"] == 0) & (X["ok"] > 0.5) & np.isfinite(X["pred_r"])]
-    X = X[X["kt"] <= X["vmax"]]
     pm = X["pred_r_small"] - X["rd"]
     mm = X["err_mean"]
     if R7 is not None and len(R7):
@@ -203,22 +214,23 @@ def fig2(S, res, out):
         pred, meas = [], []
         for r in d.itertuples():
             M = load.trials(rows[r.id])
-            fe, _, _ = th.reduced_1d(M["start_dist"], 1.0, a, r.dt, r.vs, 0.3, 0.5, 60.0, model=r.stiction)
+            fe, _, _ = th.reduced_1d(M["start_dist"], 1.0, a, r.dt, r.vs, r.vmax, r.vcmd_max, 60.0, model=r.stiction)
             pred.append(np.median(fe))
             meas.append(np.median(M["final_err"]))
         x = d["vs"].values
         ax.plot(x, np.array(pred) * 100, color=SEQ[i + 1], lw=1.2)
         hs.append(ax.plot(x, np.array(meas) * 100, MARK[i], color=SEQ[i + 1], mec="white", mew=0.6)[0])
         ls.append(f"alpha {a:g}")
+    cou = (D["stiction"] == "coulomb").all()
     ax.plot([0, 0.1], [0, 10], color=INK2, lw=0.8, ls="--")
-    ax.text(0.045, 6.0, "v_s / k", color=INK2, fontsize=7)
-    ax.set_xlabel("stiction threshold v_s (m/s)")
+    ax.text(0.045, 6.0, "v_c / k" if cou else "v_s / k", color=INK2, fontsize=7)
+    ax.set_xlabel("friction level v_c (m/s)" if cou else "stiction threshold v_s (m/s)")
     ax.set_ylim(-0.5, 12)
     if (D["stiction"] == "legacy").all():
         ax.text(0.099, 0.4, "alpha 0.9 is off scale for v_s >= 0.05:\nit stalls from rest once\n(1 - alpha) x 0.5 m/s < v_s",
                 color=INK2, fontsize=6.5, ha="right")
     ax.set_ylabel("median final error (cm)")
-    ax.set_title("(b) Stiction stop at k = 1")
+    ax.set_title("(b) Friction stop at k = 1" if cou else "(b) Stiction stop at k = 1")
     legend_and_labels(ax, hs, ls, "upper left")
 
     ax = axs[2]
@@ -571,7 +583,7 @@ def checks(S, R, X):
         O = R[(R["task"] == "orbit") & (R["sigma_n"] == 0) & ((R["method"] == "oracle") |
               ((R["method"] == "fit") & R["field"].isin(vs.LINEAR)))]
         started = O["path"] > 1e-9
-        pred = np.where(O["stiction"] == "legacy", (1 - O["alpha"]) * O["kt"] >= O["vs"], O["kt"] >= O["vs"])
+        pred = pred_start(O)
         out.append(f"random design start condition: {((started == pred).mean()) * 100:.2f}% of {len(O):,} trials")
     if X is not None:
         out.append(f"index prediction (gyre + rotational saddles): {X['match'].mean() * 100:.2f}% of {len(X):,} arrived trials; "
@@ -584,11 +596,11 @@ def random_orbit_frame(R):
     O = R[(R["task"] == "orbit") & (R["sigma_n"] == 0) & ((R["method"] == "oracle") |
           ((R["method"] == "fit") & R["field"].isin(vs.LINEAR)))].copy()
     O = O[(O["escaped"] == 0) & (O["max_side_err"] < 0.1) & (O["revs"] >= 0.25) & (O["path"] > 1e-9)]
-    O = O[(O["kt"] <= O["vmax"])]
     sub = O.sample(min(len(O), 20000), random_state=0)
-    sub["pred_e"] = th.orbit_r_small_angle(sub.rd, sub.alpha, sub.dt, sub.kt, sub.kr, sub.vmax) - sub.rd
+    vc = friction(sub)
+    sub["pred_e"] = th.orbit_r_small_angle(sub.rd, sub.alpha, sub.dt, sub.kt, sub.kr, sub.vmax, vc) - sub.rd
     sub["meas_e"] = sub["mean_r"] - sub["rd"]
-    phase = sub.kt / (sub.rd + sub.pred_e) * (th.t_lag(sub.alpha, sub.dt) + sub.dt / 2)
+    phase = th.orbit_speed(sub.kt, sub.vmax, vc) / (sub.rd + sub.pred_e) * (th.t_lag(sub.alpha, sub.dt) + sub.dt / 2)
     sub["valid"] = (phase <= 0.5) & (sub.kr * sub.pred_e <= sub.rclamp)
     return sub
 
@@ -598,15 +610,16 @@ def main():
     ap.add_argument("--res", default="results")
     a = ap.parse_args()
     global FIG
-    if a.res.startswith("results_v2"):
-        FIG = os.path.join(HERE, "figures_v2")
+    for v in ("v2", "v3"):
+        if a.res.startswith("results_" + v):
+            FIG = os.path.join(HERE, "figures_" + v)
     os.makedirs(FIG, exist_ok=True)
     S = add_orbit_predictions(build_summary(a.res))
     R = random_frame(a.res)
     R7 = random_orbit_frame(R) if R is not None else None
     if R7 is not None:
         e = (R7["meas_e"] - R7["pred_e"]).abs()
-        print(f"random orbit trials (exact estimate, k_t <= v_max): n={len(R7):,}, median |err| {e.median() * 1000:.2f} mm, "
+        print(f"random orbit trials (exact estimate): n={len(R7):,}, median |err| {e.median() * 1000:.2f} mm, "
               f"95% {e.quantile(.95) * 1000:.2f} mm")
         v = R7[R7.valid]
         ev = (v.meas_e - v.pred_e).abs()
@@ -622,7 +635,7 @@ def main():
     tables(S, os.path.join(HERE, a.res, "tables.md"))
     for line in checks(S, R, X):
         print(line)
-    if a.res.startswith("results_v2"):
+    if a.res.startswith(("results_v2", "results_v3")):
         import analyze_v2
         analyze_v2.run(S, a.res, FIG)
 

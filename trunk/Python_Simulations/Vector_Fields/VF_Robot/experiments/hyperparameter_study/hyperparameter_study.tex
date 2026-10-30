@@ -1,0 +1,417 @@
+% Hyperparameter study for Section IV, version 3 (2026-10-29).
+% Standalone report, hand-written from hyperparameter_study.md. Not the paper.
+% Build from this folder:  pdflatex hyperparameter_study.tex  (twice)
+% Version 2 is kept as hyperparameter_study_v2.tex.
+\documentclass[10pt,letterpaper]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\renewcommand{\rmdefault}{ptm}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage[font=small,labelfont=bf,labelsep=period]{caption}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{microtype}
+\usepackage{url}
+
+\titleformat*{\section}{\large\bfseries\sffamily}
+\titleformat*{\subsection}{\normalsize\bfseries\sffamily}
+\setlength{\parskip}{3pt}
+\setlist{nosep,leftmargin=1.4em}
+\renewcommand{\arraystretch}{1.15}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\newcommand{\Teff}{T_{\mathrm{eff}}}
+\newcommand{\Tlag}{T_{\mathrm{lag}}}
+\newcommand{\kmax}{k_{\max}}
+\newcommand{\vmax}{v_{\max}}
+\newcommand{\dt}{\Delta t}
+\newcommand{\DZ}{\mathrm{DZ}}
+\newcommand{\vv}{\mathbf{v}}
+\newcommand{\uu}{\mathbf{u}}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\sffamily\bfseries Hyperparameter Study for Section IV}\\[4pt]
+{\large\sffamily Three-robot cluster, simulation}\\[4pt]
+Version 3, 29 October 2026
+\end{center}
+
+\begin{center}
+\begin{minipage}{0.86\textwidth}
+\small Simulation only, run after the 28 October 2026 formation sign fix, with the robot model committed on 29 October 2026 (first-order lag with $\tau = 0.28$~s and $\alpha$ recomputed from the sample period, Coulomb friction $v_c = 0.025$~m/s, measured in a dedicated testbed experiment, with equal static and kinetic levels, 0.4~m/s per-robot cap). Version~2 used a dead zone on the command and a 0.3~m/s cap. This version also reads the hardware runs in metres (version~2 read map units, which understated the hardware rest distance by a factor of 1.68), adds a sensitivity study on $\tau$ and kinetic friction (E11), and compares the model with the hardware orbit runs. The numbers are for review and none are in the paper.
+\end{minipage}
+\end{center}
+
+\section*{What was run}
+
+All runs use a vectorized copy of the paper's simulator (\texttt{vecsim.py}). It reproduces \texttt{OmniCluster}, \texttt{Omnibot} and the Eq.~10 and Eq.~11 laws to within $10^{-11}$~m of the reference code over 400 steps, to $4\times10^{-7}$~m on the MLP fields, and to $7\times10^{-12}$~m under every stiction rule including Coulomb friction with kinetic below static (\texttt{validate\_vecsim.py}). Version~3 ran 5,403 designed configurations plus 1,000 random batches, 28.8 million trials, in 104 minutes on 7 cores, and E11 ran 1.7 million more.
+
+A configuration fixes the field, estimator, task, formation side, $\tau$, $\dt$, $v_c$, $\vmax$, $k$, $k_t$, $k_r$, $r_d$, $\sigma_n$ and stiction rule. Each configuration runs a batch of $N$ trials. A trial draws a start (uniform in a 1~m box for attraction, on the commanded circle for orbits) and a random formation heading, runs for 60~s (attraction) or $w_0 + W$~s (orbit), and records per-trial metrics. The batch is summarized and compared with the theory prediction for the same configuration. Table~\ref{tab:exp} lists the experiments.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Experiments. Reviewer comments are in parentheses.}
+\label{tab:exp}
+\begin{tabularx}{\textwidth}{@{}l P{4.1cm} L P{3.1cm}@{}}
+\toprule
+Exp. & Question & Factors and levels & Trials \\
+\midrule
+E1 & Per-trial errors, convergence and failure (AE, R1.6, R3) & 10 fields $\times$ 3 estimators $\times$ \{hardware, non-idealities off\}, attraction, and orbit at $r_d$ 0.01 to 0.5 & 9.6\,M ($10^5$ per attraction cell, $10^4$ per orbit cell) \\
+E2 & Achievable orbit radius, actuator lag, gains (R1.4, R1.2) & $r_d$ $10^{-4}$ to 10~m (14 levels) $\times$ $\alpha$ 0 to 0.95, $k_t$ 0.05 to 0.5, $k_r$ 0.1 to 5, $\dt$ 0.02 to 0.2 at fixed $\tau$, $v_c$ 0 to 0.1 & 1.5\,M \\
+E3 & Attraction gain, lag, friction (AE, R1.2) & $k$ 0.1 to 100 $\times$ $\alpha$, $v_c \times \alpha$, $\dt \times k$ & 2.5\,M \\
+E4 & Formation size (R1.1, R3) & side 0.01 to 1~m $\times$ 6 fields $\times$ \{fit, magnitude\} & 2.1\,M \\
+E5 & Curvature and multiple critical points (R1.1, R3) & $\varepsilon$ $-4$ to 4, irrotational and rotational saddles, side, $r_d$, basins & 0.8\,M \\
+E6 & Temporal noise versus fixed distortion (R1.3, R1.6) & $\sigma_n$ 0 to 0.1 $\times$ side $\times$ 6 linear fields, plus the 2 reconstructed fields & 1.6\,M \\
+E7 & Global check & 1,000 batches of $10^4$ trials, every parameter drawn at random per trial & 10\,M \\
+E8 & Overshoot and undershoot & $\tau$ 0 to 1~s $\times$ $\dt$ 0.01 to 0.2 $\times$ $k$ 0.3 to 30 $\times$ caps on/off $\times$ $v_c \in \{0, 0.025\}$; orbit transient from $r_0$ 0.05 and 0.6 $\times$ $k_r$ 0.25 to 5 & 0.31\,M \\
+E9 & Raised speed limits & $\vmax$ 0.1, 0.3, 1, 3~m/s and none $\times$ $\alpha$ $\times$ $k$ 1 to 300; orbit $\vmax \times k_t$ 0.1 to 2 $\times$ $r_d$ $\times$ radial clamp & 0.16\,M \\
+E10 & Stiction rule & 4 rules $\times$ $\dt$ 0.01 to 0.2 at $\tau = 0.28$ $\times$ $v_c$; and the 157 hardware start positions $\times$ 50 headings, 10~s runs & 0.27\,M \\
+E11 & Robot model sensitivity & $\tau \in \{0.20, 0.28\}$ $\times$ $v_c \in \{0.025, 0.035\}$ $\times$ $v_k \in \{v_c, v_c/2, 0\}$; attraction, orbit, radius sweep and hardware starts on 5 fields & 1.7\,M \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The 10 fields are the paper's six linear fields, a single double-gyre cell (center target, saddles at the corners), a curved saddle ($v = -y + \varepsilon y^3$ on the inflow axis, in irrotational or rotational form), and the two MLP fields reconstructed from testbed data. The estimators are the plane fit (paper), the true critical point (an oracle that isolates the controller), and a magnitude-only baseline that senses $|v|$ and feeds the same laws. Attraction counts as converged when the final distance to the true critical point is under 5~cm. Orbit statistics start after $w_0 = \max(20~\mathrm{s},\, 5/k_r,\, 10\tau)$ and run for 1.5 revolutions (40 to 300~s). A trial fails if it escapes, its formation side error exceeds 10\%, or it completes under a quarter revolution.
+
+\section{The robot model is a lag with Coulomb friction}\label{sec:stiction}
+
+Each robot is a first-order lag with Coulomb friction behind it. While it moves,
+\begin{equation}\label{eq:cont}
+\tau\dot\vv = \uu - \vv - v_c\frac{\vv}{\|\vv\|}, \qquad \|\vv\| \le \vmax,
+\end{equation}
+and a parked robot stays parked until $\|\uu\| > v_c$. Held constant over each sample, with $\alpha = e^{-\dt/\tau}$,
+\begin{equation}\label{eq:disc}
+\vv^- = \alpha\vv[n] + (1-\alpha)\uu[n], \qquad
+\vv[n+1] = \begin{cases} \mathbf{0}, & \|\vv^-\| \le (1-\alpha)v_c,\\[2pt]
+\vv^-\Bigl(1 - \dfrac{(1-\alpha)v_c}{\|\vv^-\|}\Bigr), & \text{otherwise,}\end{cases}
+\end{equation}
+followed by the cap $\|\vv\| \le \vmax$. This is exact at the sample instants whenever $\uu$ is parallel to $\vv$. $\alpha$ is a property of the sample period and $\tau$ is the physical constant ($\alpha = 0.700$ at $\dt = 0.1$~s and 0.965 at $\dt = 0.01$~s). Friction enters through the same $(1-\alpha)$ factor as the command, so its coefficient follows the sampling rate and the model behaves the same at every $\dt$. A constant command drives the speed to $\|\uu\| - v_c$, and a robot moving straight at the target parks once $k\|e\| \le v_c$. The friction level $v_c = 0.025$~m/s was measured in a dedicated testbed experiment and is used throughout.
+
+Four discrete rules were compared (Table~\ref{tab:stiction}). The legacy rule zeroes the lagged velocity below $v_s$, so its start threshold on the command is $v_s/(1-\alpha)$, which grows as $\dt$ shrinks until nothing moves. The scaled rule starts correctly but stops only below $(1-\alpha)v_s$ and creeps in at small $\dt$. The dead zone (version~2) switches the command off at $\|e\| = v_s/k$ and lets the robot coast on its lag, so it rests about $v_s/(2k)$ short. Coulomb friction keeps opposing the motion until the robot stops, so it rests at $v_c/k$ on the approach side, twice as far.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\caption{Stiction rules at $\tau = 0.28$~s, $v_c = 0.025$~m/s, $k = 1$, vortex, 1,000 trials per cell. Mean final distance to the critical point in mm, over all trials.}
+\label{tab:stiction}
+\begin{tabular}{@{}l l rrrrr P{2.0cm} P{1.6cm}@{}}
+\toprule
+ & & \multicolumn{5}{c}{$\dt$ (s)} & & \\
+\cmidrule(lr){3-7}
+rule & moves from rest when & 0.01 & 0.02 & 0.05 & 0.1 & 0.2 & orbit at $k_t = 0.05$ starts & hardware starts, 10~s \\
+\midrule
+legacy & $\|\uu\| \ge v_s/(1-\alpha)$ & 380.1 & 104.8 & 20.5 & 13.4 & 12.4 & only at $\dt = 0.2$ & 12.0 \\
+scaled & $\|\uu\| \ge v_s$ & 0.3 & 0.6 & 1.6 & 3.3 & 5.8 & at every $\dt$ & 3.1 \\
+dead zone (v2) & $\|\uu\| \ge v_s$ & 12.3 & 12.3 & 12.3 & 12.1 & 11.8 & at every $\dt$ & 11.5 \\
+Coulomb (v3) & $\|\uu\| > v_c$ & 24.9 & 24.9 & 25.0 & 24.9 & 24.9 & at every $\dt$ & 24.9 \\
+hardware & & & & & & & & 23.4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The 157 hardware runs (79 vortex, 78 saddle, 10~s each) end 23.4~mm from the critical point on average (vortex 23.5, saddle 23.3, median 23.3, 95th percentile 40.2). Re-running the same starts with 50 random headings each, Coulomb friction gives 24.9~mm on the linear fields and 27.8~mm on the reconstructed fields, against 11.5~mm for the dead zone. The saddle runs check the stop side. Of the hardware saddle runs 94\% stop on the approach side, 18.2~mm back along the approach line on average, and the model stops every trial on the approach side, 24.9~mm back. The hardware vortex runs carry a fixed 21~mm offset in one direction ($-6.0$, $+19.9$~mm). The reconstructed vortex field also puts the rest point about 21~mm off, but toward ($+17$, $-13$)~mm, 145$^\circ$ away. The hardware and reconstruction frames probably differ by a turn, since the map was printed in the $x$-$z$ plane, which can mirror it, and OptiTrack can add a rotation. Of the eight 90$^\circ$ rotations and mirrors, only the 180$^\circ$ rotation that \texttt{combined\_trajectory\_plotter.m} applies to the vortex runs brings both fields closer, leaving 35$^\circ$ and 13~mm between the hardware and simulated offsets for the vortex and 42$^\circ$ and 8~mm for the saddle (\path{results_v3_sens/frames.csv}). The exact frame chain is not settled here. The hardware spread is wider than any single-$v_c$ model (Fig.~\ref{fig:stiction}c).
+
+\texttt{OmniCluster} now defaults to this model (commit 7e91436). Passing \texttt{stiction\_model="legacy"}, \texttt{momentum\_alpha=0.7} and \texttt{max\_velocity=0.3} reproduces runs made before 29 October 2026.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig7_stiction_models.png}
+\caption{(a) Mean final distance against sample period at fixed $\tau = 0.28$~s, filled $k = 1$, hollow $k = 10$. The dead zone and Coulomb rules are flat at $k = 1$. (b) Share of orbit trials that start. The legacy rule fails at small $\dt$. (c) Final-distance distributions from the 157 hardware start positions (in metres), hardware against each rule.}
+\label{fig:stiction}
+\end{figure}
+
+\section{Overshoot and undershoot as functions of $\alpha$, sample rate and gain}\label{sec:overshoot}
+
+With an exact estimate the cluster moves on a straight line, so attraction reduces to a sampled second-order loop. Writing everything in $\tau$ and $\dt$, with the lag's delay $\Tlag = \alpha\dt/(1-\alpha)$,
+\begin{align}
+\Teff &= \Tlag + \frac{\dt}{2} = \frac{\dt}{2}\coth\frac{\dt}{2\tau} \;\to\; \tau, \label{eq:teff}\\
+0 &= z^2 - \bigl(1 + \alpha - \dt(1-\alpha)k\bigr)z + \alpha, \label{eq:poles}\\
+k_c &= \frac{1-\sqrt{\alpha}}{\dt\,(1+\sqrt{\alpha})} = \frac{\tanh\bigl(\dt/(4\tau)\bigr)}{\dt} \;\to\; \frac{1}{4\tau}, \label{eq:kc}\\
+\kmax &= \frac{2(1+\alpha)}{\dt\,(1-\alpha)} = \frac{4\Teff}{\dt^2}, \label{eq:kmax}\\
+M &= \exp\Bigl(-\frac{\pi\zeta}{\sqrt{1-\zeta^2}}\Bigr), \qquad \zeta = \frac{1}{2\sqrt{k\Teff}}, \label{eq:M}
+\end{align}
+where the limits are taken as $\dt \to 0$. The closed-loop poles are the roots of \eqref{eq:poles}. Overshoot begins at $k_c$, the loop is unstable beyond $\kmax$, and $M$ is the overshoot ratio in the continuous limit.
+
+The exact overshoot ratio comes from iterating the two-pole loop. In the continuous limit overshoot depends on $k\tau$ alone, and the sample period adds a small correction through $\Teff$ and the discrete poles. At fixed $\tau$ the sample rate hardly matters ($k = 3$ and $\tau = 0.28$~s give 12.9\% at $\dt = 0.01$ and 14.4\% at $\dt = 0.2$, Table~\ref{tab:overshoot}). At fixed $\alpha$ it matters a great deal, because $\alpha = 0.7$ means $\tau = 0.28$~s at $\dt = 0.1$ and $\tau = 0.028$~s at $\dt = 0.01$. With caps and friction off, the simulator matches the discrete prediction to 0.000 percentage points in all 121 stable cells and diverges in all 125 cells above $\kmax$. At the paper's settings $k_c = 0.890~\mathrm{s^{-1}}$ and $\kmax = 113~\mathrm{s^{-1}}$, so $k = 1$ sits just past the onset with a predicted overshoot of 0.013\%.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Overshoot in \% of the start distance at $k = 3$, caps and friction off, 500 trials per cell.}
+\label{tab:overshoot}
+\begin{tabular}{@{}l rrrrr@{}}
+\toprule
+ & \multicolumn{5}{c}{$\dt$ (s)} \\
+\cmidrule(l){2-6}
+$\tau$ (s) & 0.01 & 0.02 & 0.05 & 0.1 & 0.2 \\
+\midrule
+0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+0.1 & 0.1 & 0.1 & 0.1 & 0.1 & 0.5 \\
+0.28 & 12.9 & 12.9 & 13.0 & 13.3 & 14.4 \\
+0.5 & 24.5 & 24.5 & 24.6 & 24.6 & 25.1 \\
+1.0 & 38.8 & 38.8 & 38.8 & 38.9 & 39.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Friction turns the end of the approach into an undershoot. While the robot moves toward the target, Coulomb friction is a constant along the motion, so the moving loop is the frictionless loop aimed at a shifted target $b = v_c/k$ on the approach side. The robot stops at each velocity zero and parks there if it lies within $b$ of the target. Each swing starts from rest, so with $M$ the sampled overshoot ratio a swing from $x$ ($|x| > b$) ends at
+\begin{equation}\label{eq:swing}
+x' = \operatorname{sign}(x)\,b - M\bigl(x - \operatorname{sign}(x)\,b\bigr),
+\end{equation}
+and the rest point is the first $x$ with $|x| \le b$. One swing leaves the robot $v_c/k - M(d_0 - v_c/k)$ short of the target. On an overdamped approach ($M = 0$) it creeps to $v_c/k$ exactly, whatever $\tau$ is. At the paper's settings $M = 0.013\%$, so the rest point is 24.9~mm short against $v_c/k = 25$~mm. With caps off \eqref{eq:swing} matches the simulated median rest point to within 0.1~mm for $k$ up to 3 and 0.6~mm at $k$ = 10 and 30, at every $\tau$ from 0 to 1~s. A longer $\tau$ or a higher gain overshoots the shifted target and parks closer, or past the target ($\tau = 1$~s at $k = 1$ rests 2.0~cm past, Fig.~\ref{fig:overshoot}c).
+
+The orbit's radial loop is the same sampled loop with $k$ replaced by $k_r$, so the same formula predicts radial overshoot when an orbit starts off $r^*$. Over 147 caps-off cells with $|r_0 - r^*| \ge 0.1$~m the median gap is 0.0 percentage points, the 90th percentile is 5.1, and the correlation is 0.96. At the paper's $k_r = 0.5 < k_c$ there is none. Starting outside with a long lag, the radius first dips below $r^*$ (11~mm at $\tau = 1$~s and $k_r = 0.25$), because the outward push that sets $r^*$ builds up only as the robots reach speed. Friction lowers that push, so the dip is smaller than version~2's 46~mm.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig8_overshoot_undershoot.png}
+\caption{(a) Overshoot against $k$ for four sample periods at $\tau = 0.28$~s, caps and friction off. Markers are simulation, solid lines the discrete theory, dashed the continuous limit, dotted the $\kmax$ of $\dt = 0.2$. (b) Overshoot at $k = 3$ over $\tau$ and $\dt$. (c) Rest point along the approach line with $v_c = 0.025$ and $\dt = 0.1$, caps off, negative is short of the target. Dotted lines are the swing map \eqref{eq:swing}. (d) Orbit radial overshoot against the sampled-loop prediction with $k$ replaced by $k_r$.}
+\label{fig:overshoot}
+\end{figure}
+
+\section{Raising the speed limits}\label{sec:speed}
+
+The robots' cap is not what limits accuracy. Raising $\vmax$ from 0.1 to 3~m/s, or removing it, changes the attraction error little below $\kmax$ ($k = 1$ gives 25.0~mm at every cap, $k = 30$ gives 0.16 to 0.41~mm). Above $\kmax$ the cap decides the outcome. Without one the loop diverges at $k = 300$. With one it settles into a limit cycle whose final distance is $\vmax\dt/2$ (ratio median 1.02, range 0.96 to 1.09, $n = 16$), so the error grows with the cap, 5.1, 15.2, 53 and 153~mm at $\vmax$ = 0.1, 0.3, 1 and 3~m/s. The same saturation explains why random-design convergence falls only gradually past $\kmax$, to 70\% at four to ten times $\kmax$ (Fig.~\ref{fig:random}a).
+
+For orbits the closed form of Section~\ref{sec:orbit} holds with the cap raised up to $k_t = 2$~m/s (radius error 1.071~m simulated against 1.069~m at $r_d = 1$). The cap also scales the radial correction, and the closed form includes that, so with the 0.3~m/s cap and $k_t$ from 0.5 to 2~m/s it gives 0.054 to 0.093~m against 0.054 to 0.088~m simulated, where version~2's formula, which only capped the speed, gave 0.049~m. Without a cap the error grows as $k_t^2$, so a higher cap buys a faster orbit, not a more accurate one.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig9_speed_limits.png}
+\caption{(a) Median final error against $k$ for five speed caps, $\alpha = 0.7$, $v_c = 0.025$. The dashed line is $\kmax$. (b) Limit-cycle size above $\kmax$ against $\vmax\dt/2$. (c) Orbit radius error against $k_t$ at $r_d = 1$~m with raised caps. Lines are the closed form \eqref{eq:rstar}.}
+\label{fig:speed}
+\end{figure}
+
+\section{The orbit radius error has a closed form}\label{sec:orbit}
+
+The tangential command rotates at $V/r$. The robot lag delays it, which turns part of the command outward, and each straight sampled step adds $(V\dt)^2/(2r)$. Friction takes $v_c$ off the speed the robots reach. In the sampled update \eqref{eq:disc} friction and the speed cap both scale the whole vector $\alpha\vv + (1-\alpha)\uu$, by a factor $g$ each step, which shortens the lag (the pole moves from $\alpha$ to $g\alpha$) and passes only $G = V/k_t$ of the radial command. With
+\begin{equation}\label{eq:scale}
+V = \min(k_t - v_c, \vmax), \qquad g = \frac{V}{\alpha V + (1-\alpha)k_t}, \qquad G = \frac{V}{k_t}, \qquad \Tlag(a) = \frac{a\,\dt}{1-a},
+\end{equation}
+the radial loop balances at
+\begin{equation}\label{eq:rstar}
+r^* = \frac{r_d + \sqrt{r_d^2 + 4C}}{2}, \qquad C = \frac{V^2\bigl(\Tlag(g\alpha) + \dt/2\bigr)}{G\,k_r},
+\end{equation}
+so the error $r^* - r_d$ tends to $C/r_d$ for large $r_d$ and to $r_{\min} = \sqrt{C}$ as $r_d \to 0$. Without friction or cap $g = G = 1$ and $C = V^2\Teff/k_r$, version~2's form. As $\dt \to 0$ it becomes $C = V^2\tau/k_r$, the continuous balance, where the command is $V + v_c$ along the motion plus $\tau\Omega V$ across it, and matching that to $k_t$ and $k_r(r_d - r)$ gives $k_t = V + v_c$ and $k_r(r - r_d) = \tau V^2/r$. Keeping the frictionless lag instead misses by up to 4~mm on the hardware-like cells and by 82\% (95th percentile, relative) on random trials with friction.
+
+The estimate does not enter, so the result is the same for every linear field and for the oracle in every field. At the paper's gains the simulation gives $+0.129$, 0.093, 0.067, 0.051, 0.040 and 0.033~m at $r_d$ = 0.01 to 0.5 and \eqref{eq:rstar} gives $+0.127$, 0.092, 0.066, 0.051, 0.040 and 0.033. Version~2, without friction and with the 0.3~m/s cap, gave $+0.146$ to $+0.042$, which is the paper's current Table~V. Across 1,971 designed cells inside the validity region ($r_d$ from $10^{-4}$ to 10~m) the median gap between formula and simulation is 0.03~mm and the largest is 5.3~mm (0.088 against 0.093~m, the capped orbit at $k_t = 2$~m/s and $r_d = 1$~m). Across 16,991 random trials inside the region it holds within 4.3\% at the 95th percentile. The region is a lag phase $(V/r)\Teff$ under 0.5~rad and $k_r$ times the error under the 0.3~m/s radial clamp. Outside it the orbit ends up larger than the formula says (Fig.~\ref{fig:orbit}c, gray). Since $\Teff$ is close to $\tau$, $C$ is about $V^2\tau/k_r$ and the sample rate barely matters ($r_d = 0.3$ gives 0.049, 0.050, 0.051 and 0.053~m for $\dt$ = 0.02, 0.05, 0.1 and 0.2~s). An orbit starts if and only if $k_t > v_c$, which held in all 3,592 orbit cells and all 1,087,573 random orbit trials.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Smallest orbit the controller can hold (closed form, $\dt = 0.1$).}
+\label{tab:rmin}
+\begin{tabular}{@{}l rrrr@{}}
+\toprule
+settings & $C$ (m$^2$) & $r_{\min}$ (m) & $r_d$ for error $\le$ 5~cm & $r_d$ for error $\le$ 1~cm \\
+\midrule
+hardware ($\alpha = 0.70$, $k_t = 0.2$, $k_r = 0.5$, $v_c = 0.025$) & 0.0178 & 0.133 & 0.31 & 1.77 \\
+version~2 model (no friction, 0.3~m/s cap) & 0.0227 & 0.151 & 0.40 & 2.26 \\
+lag off ($\alpha = 0$) & 0.0035 & 0.059 & 0.02 & 0.34 \\
+$k_t = 0.1$ & 0.0034 & 0.058 & 0.02 & 0.33 \\
+$k_r = 2$ & 0.0044 & 0.067 & 0.04 & 0.43 \\
+$k_t = 0.1$ and $k_r = 2$ & 0.0008 & 0.029 & any & 0.07 \\
+$\tau = 0.20$ (hardware transient fit) & 0.0129 & 0.114 & 0.21 & 1.28 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig1_orbit_radius.png}
+\caption{(a) Orbit radius error against commanded radius for five lag levels, vortex. Lines are the closed form \eqref{eq:rstar}. (b) The same for tangential and radial gains at $\alpha = 0.7$. (c) Closed form against simulation for designed cells and random trials, gray where the validity conditions fail.}
+\label{fig:orbit}
+\end{figure}
+
+\section{Attraction accuracy and the gain}\label{sec:attraction}
+
+At hardware settings all six linear fields converge in 100\% of 100,000 trials each and end 24.9~mm from the critical point (Table~\ref{tab:attr}), which is $v_c/k$. Gain trades stop distance for overshoot. At $\alpha = 0.7$, $k = 3$ cuts the mean final error to 6.5~mm with a 95th-percentile overshoot of 2.3~cm, and $k = 10$ cuts it to 0.40~mm with 3.7~cm. At $k = 0.3$ the rest radius $v_c/k = 8.3$~cm lies outside the 5~cm test, so only 0.8\% of trials converge.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig2_attraction.png}
+\caption{(a) Median overshoot past the target against $k$, with dotted lines at $k_c$ for each $\alpha$. (b) Median stop distance against $v_c$ at $k = 1$, with the 1-D model as lines and $v_c/k$ dashed. (c) Median final error in mm over $\alpha$ and $k$, with $k_c$ in yellow and $\kmax$ in red.}
+\label{fig:attraction}
+\end{figure}
+
+\section{Formation size and curvature}\label{sec:size}
+
+These runs turn lag, friction and the cap off, so they do not depend on the robot model. On curved fields the estimator's fixed point sits off the critical point by an amount that grows as side$^3$, because the cubic terms of the field do not cancel over an equilateral triangle. It is 0.16~mm at a 0.1~m side and 6.6~mm at 0.33~m in the gyre, and the fixed-point calculation matches (Fig.~\ref{fig:size}a, crosses). The reconstructed vortex has a floor that does not shrink with size, 17 to 21~mm at sides from 0.01 to 0.33~m, and the reconstructed saddle falls only from 13 to 5~mm over the same range. That is the fixed spatial distortion of the MLP reconstruction, and it shows up as bias (Table~\ref{tab:attr}).
+
+For orbits, curvature acts through the estimator error $d$, split into radial and tangential parts, which adds $\langle d_r\rangle + k_t\langle d_t\rangle/(k_r r)$ to the radius. In the gyre the estimate lands past the center, so orbits come in by 7~cm at $r_d = 0.3$ (Fig.~\ref{fig:size}b). The two curved saddles have the same cubic on the axis but behave differently (Fig.~\ref{fig:size}c, d). In the irrotational saddle the error is $+2\varepsilon r^3$ on one axis and $-2\varepsilon r^3$ on the other, so it averages out. The mean radius moves under 2~mm for $|\varepsilon| \le 1$, and the orbit becomes an ellipse with wobble
+\begin{equation}\label{eq:wobble}
+2|\varepsilon|\, r^3\, \frac{\sqrt{k_r^2 + \Omega^2}}{\sqrt{k_r^2 + 4\Omega^2}}, \qquad \Omega = \frac{k_t}{r}.
+\end{equation}
+That predicts 0.036~m against 0.038~m simulated at $\varepsilon = 1$, and $+\varepsilon$ and $-\varepsilon$ give identical numbers. In the rotational saddle the error has the same sign on both axes, so the mean shifts, from $+0.013$~m at $\varepsilon = 0$ to $-0.047$~m at $\varepsilon = 1$ and $+0.18$~m at $\varepsilon = -1$. Orbits are lost once they reach a point where $\det J = 0$, which also bounds the usable radius in the gyre ($r_d \ge 0.4$ fails, Table~\ref{tab:orbitB}).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig3_size_curvature.png}
+\caption{(a) Median final error against formation side, crosses from the fixed-point calculation. (b) Orbit radius error against side at $r_d = 0.3$ with lag and friction off. (c) Mean radius error against $\varepsilon$ for the two curved saddles. (d) Orbit ellipticity against $\varepsilon$. Hollow markers on the top edge are lost orbits.}
+\label{fig:size}
+\end{figure}
+
+\section{Sensor noise}\label{sec:noise}
+
+If the plane is fitted about the centroid, the slope errors and the centroid-value error are uncorrelated for any triangle, because the robot offsets sum to zero. That answers R1.3's concern about correlated $\hat J$ and $\hat h$ errors. To first order
+\begin{equation}\label{eq:cov}
+\operatorname{Cov}(\hat p) = \frac{\sigma_n^2}{3}\Bigl(1 + \frac{2|e|^2}{R^2}\Bigr) J^{-1}J^{-\mathsf T}, \qquad R = \frac{\text{side}}{\sqrt 3},
+\end{equation}
+where $e$ is the offset from the critical point $p^*$. At the critical point this does not depend on formation size. Fed through the sampled loop (a discrete Lyapunov equation), it gives the closed-loop mean error with friction off to a median ratio of 1.004 over 66 cells (range 0.98 to 1.04, Fig.~\ref{fig:noise}), as long as $\lambda R/\sigma_n \ge 3$, where $\lambda = \sqrt{|\det J|}$. Below that the noise across the triangle swamps the field's slope and errors grow quickly. The spirals ($\lambda = 0.43$) are 2.3 times noisier than the other linear fields for that reason.
+
+With friction, moderate noise helps. Noise in the estimate pushes the command past $v_c$, so parked robots break away and creep closer. At $\sigma_n = 0.01$ the final error drops from 24.9~mm to 1.8 to 14.8~mm on the linear fields at a 0.33~m side. Whether the hardware does the same is untested. At $\sigma_n = 0.1$ convergence falls to 93\% (vortex) and 24\% (sinking vortex). The same dither lowers the reconstructed fields' error with friction on (vortex 28.2 to 21.6~mm and saddle 25.4 to 14.5~mm between $\sigma_n = 0$ and 0.03), so the separation of fixed distortion from temporal noise (R1.6) rests on the friction-off runs, where the reconstructed fields' error stays at 21.3 to 22.5~mm (vortex) and 14.1 to 15.8~mm (saddle) up to $\sigma_n = 0.03$.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.66\textwidth]{figures_v3/fig4_noise.png}
+\caption{Mean final error against sensor noise for three formation sides, lag and friction off. The line is the covariance \eqref{eq:cov} fed through the loop, and dotted lines mark $\lambda R/\sigma_n = 3$ for each side.}
+\label{fig:noise}
+\end{figure}
+
+\section{Estimator comparison and critical-point type}\label{sec:estimators}
+
+On every linear field the plane fit and the oracle give identical trajectories (largest orbit difference 0.000~mm), so all of the orbit error in the paper's table is controller dynamics, not estimation (R3). In the gyre the fit pulls orbits inward relative to the oracle ($-0.044$ against $+0.051$~m at $r_d = 0.3$). The magnitude-only baseline ends 2.1~mm from the target on the unit-strength fields (6.3~mm on the spirals), closer than the fit, because gradient descent on $|v|$ has a much higher effective gain near the target, which shrinks the friction band $v_c/k$. It cannot hold an orbit smaller than about one formation radius. At hardware settings $r_d = 0.01$ and 0.1 both collapse to a 0.032~m circle, and it loses most gyre orbits at $r_d \ge 0.4$.
+
+The attraction law follows $-J^{-1}F$, a sampled Newton flow, which cannot cross $\det J = 0$. So the sign of $\det\hat J$ at the start equals the index of the critical point reached ($-1$ for a saddle, $+1$ otherwise). Over 451,508 gyre and rotational-saddle trials that reached a critical point it was right 99.89\% of the time, and in all 180,771 that started at least one formation circumradius from $\det J = 0$ (Fig.~\ref{fig:random}c).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig5_estimators.png}
+\caption{(a) Median final error by field and estimator at hardware settings. (b, c) Orbit radius error against $r_d$ in the gyre and the reconstructed saddle. Bars are within-trial standard deviation.}
+\label{fig:estimators}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig6_random_index.png}
+\caption{Random design. (a) Convergence against $k/\kmax$. (b) Share of trials that move at all against the first command over $v_c$. (c) Share where the sign of $\det\hat J$ at the start matches the type of critical point reached, by start distance from $\det J = 0$.}
+\label{fig:random}
+\end{figure}
+
+\section{Robot model sensitivity and the hardware runs (E11)}\label{sec:e11}
+
+The robot model note leaves two parameters uncertain. A fit to the hardware start transients gives $\tau$ about 0.20~s against the 0.28~s used here, and static friction is assumed equal to kinetic. E11 (\texttt{sensitivity\_v3.py}) reruns the hardware-settings attraction, the paper's orbits, the radius sweep and the 157 hardware starts for every combination of $\tau \in \{0.20, 0.28\}$~s, static $v_c \in \{0.025, 0.035\}$~m/s and kinetic $v_k \in \{v_c, v_c/2, 0\}$, each next to its closed form. Attraction runs on the vortex, saddle, gyre and both reconstructed fields ($N = 10^4$, and the vortex at $k$ = 0.3, 3 and 10), orbits at $r_d$ = 0.01 to 0.5 on the same fields ($N = 10^3$), the radius sweep from $10^{-4}$ to 10~m on the vortex ($N = 200$), and the hardware starts with 50 headings each for 10~s.
+
+Kinetic friction sets where the cluster rests and static friction only decides whether it starts. On the linear fields the rest distance is $v_k/k$ to within 0.05~mm for both values of $\tau$, and it is zero when $v_k = 0$ even with static friction present. The orbit closed form \eqref{eq:rstar} with $V = \min(k_t - v_k, \vmax)$ holds across all 312 linear-field orbit cells (median gap 0.06~mm, largest 0.39~mm), and an orbit starts in every cell where $k_t > v_c$. Both uncertain parameters shrink the orbit error, $\tau$ through $\Teff$ and $v_k$ through $V^2$ (Table~\ref{tab:e11orbit}).
+
+\begin{table}[htbp]
+\centering\small
+\caption{Mean orbit radius error in m, vortex, plane fit, $k_t = 0.2$, $k_r = 0.5$, 1,000 trials per cell.}
+\label{tab:e11orbit}
+\begin{tabular}{@{}l rrrrrr@{}}
+\toprule
+ & \multicolumn{6}{c}{$r_d$ (m)} \\
+\cmidrule(l){2-7}
+model & 0.01 & 0.1 & 0.2 & 0.3 & 0.4 & 0.5 \\
+\midrule
+$\tau$ 0.28, no friction & $+0.146$ & $+0.109$ & $+0.081$ & $+0.062$ & $+0.050$ & $+0.042$ \\
+$\tau$ 0.28, $v_k$ 0.025 (v3 model) & $+0.129$ & $+0.093$ & $+0.067$ & $+0.051$ & $+0.040$ & $+0.033$ \\
+$\tau$ 0.28, $v_k$ 0.035 & $+0.122$ & $+0.086$ & $+0.061$ & $+0.046$ & $+0.037$ & $+0.030$ \\
+$\tau$ 0.20, no friction & $+0.123$ & $+0.087$ & $+0.062$ & $+0.047$ & $+0.037$ & $+0.031$ \\
+$\tau$ 0.20, $v_k$ 0.025 & $+0.109$ & $+0.074$ & $+0.052$ & $+0.038$ & $+0.030$ & $+0.025$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The friction level stays at the 0.025~m/s measured in a dedicated experiment. As a check, the hardware attraction runs can be compared with $v_k$ through two bias-free measures, the precision about the mean rest point and the median rest point along the approach line. The hardware saddle runs give 23.8~mm and $-19.5$~mm, which the reconstructed saddle reproduces at $v_k$ = 0.020 to 0.025~m/s (19.5 to 24.0~mm and $-18.7$ to $-23.5$~mm, smallest KS distance 0.14 at 0.0225), consistent with the measured value. The hardware vortex runs give 14.3~mm and $-12.9$~mm, which the reconstructed vortex reproduces at a lower $v_k$ of 0.0125 to 0.015~m/s (13.6 to 15.7~mm and $-10.8$ to $-13.3$~mm). That difference is left open (\path{results_v3_sens/hw_fit.csv}).
+
+The hardware orbit runs (\path{trunk/robots_3}, metres) reproduce the paper's hardware orbit table exactly from the full record. Each run is 600 control cycles, 60~s at the nominal 0.1~s step, and covers 2.7 to 17.7 orbits. The paper's text gives 3000 cycles, and a correction is queued for it. Table~\ref{tab:hworbit} sets them against the model on the reconstructed fields.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Orbit radius error in m, hardware after 20~s (full record in parentheses) against the model on the reconstructed fields ($v_c = v_k = 0.025$), 1,000 trials per cell.}
+\label{tab:hworbit}
+\begin{tabular}{@{}l rr rr@{}}
+\toprule
+$r_d$ & vortex, hardware & vortex model, $\tau$ 0.28 / 0.20 & saddle, hardware & saddle model, $\tau$ 0.28 / 0.20 \\
+\midrule
+0.01 & $+0.269$ ($+0.246$) & $+0.133$ / $+0.111$ & $+0.115$ ($+0.114$) & $+0.131$ / $+0.112$ \\
+0.1 & $+0.192$ ($+0.190$) & $+0.094$ / $+0.078$ & $+0.072$ ($+0.072$) & $+0.089$ / $+0.075$ \\
+0.2 & $+0.150$ ($+0.143$) & $+0.089$ / $+0.069$ & $+0.058$ ($+0.058$) & $+0.067$ / $+0.047$ \\
+0.3 & $+0.091$ ($+0.087$) & $+0.087$ / $+0.076$ & $+0.095$ ($+0.089$) & $+0.062$ / $+0.051$ \\
+0.4 & $+0.038$ ($+0.032$) & $+0.063$ / $+0.056$ & $+0.100$ ($+0.090$) & $+0.039$ / $+0.033$ \\
+0.5 & $-0.035$ ($-0.035$) & $+0.026$ / $+0.020$ & $+0.068$ ($+0.060$) & $+0.000$ / $-0.004$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The saddle orbits at $r_d \le 0.2$ sit between the two values of $\tau$. The speeds here take the logged 0.1~s step as the real cycle. On that time base the saddle orbits run at 0.21 to 0.23~m/s, faster than $k_t = 0.2$ allows, and \eqref{eq:rstar} without friction gives $\Teff$ of 0.13 to 0.18~s. If some cycles ran longer than 0.1~s, the apparent speed overstates the real one by the same factor. The model's 0.175~m/s would then correspond to cycles of 0.12 to 0.13~s, and the same orbits give $\Teff$ of 0.20 to 0.24~s, close to the 0.20~s transient fit. At larger radii the hardware saddle orbits are larger and much more variable than the model (within-run sd up to 0.09~m). The vortex orbits are two to three times the model at small radii and move at only 0.13 to 0.14~m/s on the logged time base, against 0.175~m/s in the model. A slower orbit should be smaller, and longer cycles would make the real speed lower still, so something other than the lag, most likely the estimate in the real field, sets the vortex orbit radius. Neither difference is resolved here.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures_v3/fig10_robot_model.png}
+\caption{(a) Mean final distance from the 157 hardware starts against kinetic friction, $\tau$ 0.20 (markers) and 0.28 (lines), with the hardware mean dotted. (b) Orbit radius error on the vortex for $\tau$ and $v_k$, lines the closed form. (c) Hardware orbit runs against the model on the reconstructed fields.}
+\label{fig:e11}
+\end{figure}
+
+\section*{Summary tables}
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Attraction at hardware settings (Coulomb friction), 100,000 trials per field. Per-trial final distance in m. Conv.\ is the share of trials within 5~cm.}
+\label{tab:attr}
+\begin{tabularx}{\textwidth}{@{}L r r P{1.55cm} r P{1.55cm} r r P{1.55cm} P{2.1cm}@{}}
+\toprule
+field & conv.\ (\%) & mean & median & p95 & bias & precision & $t$ to 5~cm (s) & oracle median & magnitude conv.\ (\%) / median \\
+\midrule
+six linear fields & 100.0 & 0.0249 & 0.0250 & 0.0250 & 0.0001 & 0.0249 & 2.1 & 0.0250 & 100 / 0.0021 (spirals 0.0062 to 0.0063) \\
+gyre & 59.7 & 0.0262 & 0.0252 & 0.0336 & 0.0001 & 0.0266 & 1.8 & 0.0250 & 59.9 / 0.0100 \\
+curved saddle, $\varepsilon = 1$ & 99.9 & 0.0240 & 0.0234 & 0.0310 & 0.0001 & 0.0244 & 2.1 & 0.0250 & 99.8 / 0.0073 \\
+vortex (reconstructed) & 95.3 & 0.0285 & 0.0314 & 0.0456 & 0.0191 & 0.0244 & 2.3 & 0.0250 & 100 / 0.0329 \\
+saddle (reconstructed) & 100.0 & 0.0252 & 0.0260 & 0.0437 & 0.0117 & 0.0248 & 2.3 & 0.0250 & 100 / 0.0165 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Orbit with the plane fit. Mean radius error in m, with the between-trial and within-trial standard deviations below it, 10,000 trials per cell. ``Off'' turns lag, friction and the speed cap off.}
+\label{tab:orbitB}
+\begin{tabularx}{\textwidth}{@{}L l *{6}{P{1.6cm}}@{}}
+\toprule
+ & & \multicolumn{6}{c}{$r_d$ (m)} \\
+\cmidrule(l){3-8}
+field & settings & 0.01 & 0.1 & 0.2 & 0.3 & 0.4 & 0.5 \\
+\midrule
+six linear fields, and oracle anywhere & hardware & $+0.129$ & $+0.093$ & $+0.067$ & $+0.051$ & $+0.040$ & $+0.033$ \\
+same & off & $+0.059$ & $+0.031$ & $+0.018$ & $+0.013$ & $+0.010$ & $+0.008$ \\
+gyre & hardware & $+0.127$\newline(.000, .003) & $+0.080$\newline(.000, .009) & $+0.023$\newline(.000, .016) & $-0.044$\newline(.001, .023) & 44\% kept & 4\% kept \\
+curved saddle, $\varepsilon = 1$ & hardware & $+0.129$\newline(.000, .003) & $+0.092$\newline(.000, .012) & $+0.067$\newline(.002, .030) & unstable, 90\% kept & lost & lost \\
+vortex (reconstructed) & hardware & $+0.133$\newline(.003, .018) & $+0.094$\newline(.003, .016) & $+0.089$\newline(.002, .022) & $+0.087$\newline(.006, .026) & $+0.063$\newline(.009, .029) & $+0.026$\newline(.009, .035) \\
+saddle (reconstructed) & hardware & $+0.131$\newline(.006, .008) & $+0.089$\newline(.004, .010) & $+0.066$\newline(.007, .018) & $+0.062$\newline(.008, .033) & $+0.039$\newline(.009, .044) & $+0.000$\newline(.008, .052) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The between-trial standard deviations are near zero. For a deterministic field, repeating an orbit condition changes almost nothing, and the spread reviewers saw is within-trajectory ripple (R3).
+
+\section*{Caveats}
+
+\begin{itemize}
+\item The sampled Coulomb update is exact when the command is parallel to the velocity. At a reversal with kinetic friction below static it can carry a robot through zero velocity that the continuous model would stick, so the swing map is not used for $v_k < v_c$.
+\item The hardware orbit speeds differ from the model's in both fields, and the vortex orbit files do not log the commanded velocities, so the gains used on hardware could not be checked. The orbit logs use the nominal 0.1~s step as their time base, and real cycles may have run longer.
+\item The truth for the reconstructed fields is the printed map's critical point at the origin. The MLP fields never reach zero (minimum $|v|$ is about 0.05).
+\item One formation-control gain set (0.5 and 0.01) and a 0.3~m/s radial clamp throughout.
+\item \path{results_v3/tables.md} holds every per-field and per-estimator orbit cell, \path{results_v3/v3_numbers.txt} and \path{results_v3/report_numbers.txt} hold the checks quoted above, and \path{results_v3_sens/} holds E11.
+\end{itemize}
+
+\section*{Files}
+
+{\raggedright All in \path{VF_Robot/experiments/hyperparameter_study/}. \texttt{vecsim.py} (simulator, all four stiction rules), \texttt{validate\_vecsim.py}, \texttt{design.py} (\texttt{build\_v3}), \texttt{run\_study.py -{}-v3} (resumable), \texttt{theory.py} (every formula above, including the swing map), \texttt{analyze.py} and \texttt{analyze\_v2.py} (figures and tables, \texttt{-{}-res results\_v3}), \texttt{report\_numbers.py}, \texttt{sensitivity\_v3.py} (E11, \texttt{-{}-fit} for the hardware friction scan, \texttt{-{}-frames} for the frame check), \texttt{load.py}, \texttt{build\_report.py} (HTML version), \texttt{results\_v3/}, \texttt{results\_v3\_sens/}, \texttt{figures\_v3/}. Version~2 (dead zone) is kept in \texttt{results\_v2/}, \texttt{figures\_v2/} and \texttt{hyperparameter\_study\_v2.*}, and version~1 (legacy rule) in \texttt{results/} and \texttt{figures/}.\par}
+
+\end{document}

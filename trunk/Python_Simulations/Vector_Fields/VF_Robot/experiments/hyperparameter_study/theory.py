@@ -13,6 +13,11 @@ ORBIT (Eq. 11 with an exact estimate, i.e. any linear field or the oracle)
         r* = (r_d + sqrt(r_d^2 + 4 C)) / 2,   C = V^2 (T_lag + dt / 2) / k_r
     giving radius error C / r_d for r_d >> sqrt(C) and a floor r_min = sqrt(C)
     as r_d -> 0 (the r = 0 singularity of Eq. 11 is never reached).
+    Friction and the speed cap (version 3): both scale the free vector
+    alpha v + (1 - alpha) u by g = V / (alpha V + (1 - alpha) k_t) each step, with
+    V = min(k_t - v_c, v_max). The lag pole becomes g alpha and only G = V / k_t of
+    the radial command passes, so C = V^2 (T_lag(g alpha) + dt / 2) / (G k_r)
+    (orbit_scaling, orbit_C).
     Stiction: a robot at rest receives (1 - alpha) of its command, so the
     orbit never starts when (1 - alpha) k_t < v_s.
 
@@ -51,26 +56,48 @@ def lag_filter(alpha, w):
     return np.abs(H), -np.angle(H)
 
 
-def e_dyn(r, alpha, dt, kt, kr, vmax=0.3):
-    V = np.minimum(kt, vmax)
-    G, lag = lag_filter(alpha, V * dt / r)
-    return (V * np.sin(lag) + dt * G * V ** 2 / (2 * r)) / (kr * np.cos(lag))
+def orbit_speed(kt, vmax=0.3, vc=0.0):
+    """Steady orbit speed. Coulomb friction v_c (model "coulomb") takes v_c off
+    the commanded speed, so V = min(k_t - v_c, v_max); vc = 0 for the other models."""
+    return np.clip(np.minimum(np.asarray(kt) - vc, vmax), 0.0, None)
 
 
-def orbit_C(alpha, dt, kt, kr, vmax=0.3):
-    V = np.minimum(kt, vmax)
-    return V ** 2 * (t_lag(alpha, dt) + dt / 2) / kr
+def orbit_scaling(alpha, kt, vmax=0.3, vc=0.0):
+    """Friction and the speed cap both scale the whole free vector
+    alpha v + (1 - alpha) u each step, by g = V / (alpha V + (1 - alpha) k_t) in
+    steady state. That shortens the lag (pole alpha -> g alpha) and passes only
+    G = V / k_t of the radial command. Returns (V, effective alpha, G)."""
+    V = orbit_speed(kt, vmax, vc)
+    free = alpha * V + (1 - alpha) * np.asarray(kt, float)
+    with np.errstate(all="ignore"):
+        g = np.where(free > 0, V / free, 1.0)
+        G = np.where(np.asarray(kt) > 0, V / np.asarray(kt, float), 1.0)
+    return V, g * alpha, G
 
 
-def orbit_r_small_angle(rd, alpha, dt, kt, kr, vmax=0.3):
-    C = orbit_C(alpha, dt, kt, kr, vmax)
+def e_dyn(r, alpha, dt, kt, kr, vmax=0.3, vc=0.0):
+    V, a_eff, G0 = orbit_scaling(alpha, kt, vmax, vc)
+    G, lag = lag_filter(a_eff, V * dt / r)
+    return (V * np.sin(lag) + dt * G * V ** 2 / (2 * r)) / (kr * G0 * np.cos(lag))
+
+
+def orbit_C(alpha, dt, kt, kr, vmax=0.3, vc=0.0):
+    """C = V^2 (T_lag' + dt / 2) / (G k_r) = V k_t (T_lag' + dt / 2) / k_r with the
+    effective lag of orbit_scaling. Reduces to V^2 T_eff / k_r without friction
+    or cap, and to V^2 tau / k_r as dt -> 0."""
+    V, a_eff, G = orbit_scaling(alpha, kt, vmax, vc)
+    return V ** 2 * (t_lag(a_eff, dt) + dt / 2) / (kr * G)
+
+
+def orbit_r_small_angle(rd, alpha, dt, kt, kr, vmax=0.3, vc=0.0):
+    C = orbit_C(alpha, dt, kt, kr, vmax, vc)
     return (rd + np.sqrt(rd ** 2 + 4 * C)) / 2
 
 
-def orbit_r_exact(rd, alpha, dt, kt, kr, vmax=0.3, extra=None):
+def orbit_r_exact(rd, alpha, dt, kt, kr, vmax=0.3, extra=None, vc=0.0):
     """Solve r = rd + e_dyn(r) (+ extra(r)) by bisection. Scalars."""
     def h(r):
-        out = r - rd - e_dyn(r, alpha, dt, kt, kr, vmax)
+        out = r - rd - e_dyn(r, alpha, dt, kt, kr, vmax, vc)
         return out - (extra(r) if extra else 0.0)
     lo = max(rd, 1e-6)
     hi = rd + 2.0
@@ -110,13 +137,23 @@ def reduced_1d(d0, k, alpha, dt, vs_, vmax, vcmd_max, T, noise_std=0.0, seed=0, 
     v = np.zeros_like(d)
     over = np.zeros_like(d)
     moved = np.zeros(d.shape, bool)
+    stuck = np.ones(d.shape, bool)
     for _ in range(int(round(T / dt))):
         est = noise_std * rng.standard_normal(d.shape) if noise_std else 0.0
         err = est - d
         cmd = np.sign(err) * np.minimum(k * np.abs(err), vcmd_max)
         if model == "deadzone":
             cmd = np.where(np.abs(cmd) < vs_, 0.0, cmd)
-        v = alpha * v + (1 - alpha) * cmd
+        if model == "coulomb":     # as vecsim: kinetic = static = vs_, friction before the cap
+            stuck &= v == 0
+            stuck &= ~(np.abs(cmd) > vs_)
+            free = alpha * v + (1 - alpha) * cmd
+            drop = (1 - alpha) * vs_
+            through = np.abs(free) <= drop
+            v = np.where(through | stuck, 0.0, free - np.sign(free) * drop)
+            stuck |= through & (np.abs(cmd) <= vs_)
+        else:
+            v = alpha * v + (1 - alpha) * cmd
         mag = np.abs(v)
         v = np.where(mag > vmax, np.sign(v) * vmax, v)
         if model == "legacy":
@@ -188,7 +225,7 @@ def orbit_bias_terms(F, method, side, r):
     return dr.mean(), dt.mean()
 
 
-def orbit_r_nonlinear(F, method, side, rd, alpha, dt, kt, kr, vmax=0.3):
+def orbit_r_nonlinear(F, method, side, rd, alpha, dt, kt, kr, vmax=0.3, vc=0.0):
     """Mean orbit radius with estimator error, by scanning for the stable root of
     h(r) = r - rd - e_dyn(r) - <d_r> - kt <d_t> / (kr r)."""
     grid = np.unique(np.concatenate([np.linspace(0.01, 0.2, 39), np.linspace(0.2, 1.0, 81)]))
@@ -197,7 +234,7 @@ def orbit_r_nonlinear(F, method, side, rd, alpha, dt, kt, kr, vmax=0.3):
         a, b = orbit_bias_terms(F, method, side, r)
         if not np.isfinite(a):
             return np.nan
-        return r - rd - e_dyn(r, alpha, dt, kt, kr, vmax) - a - kt * b / (kr * r)
+        return r - rd - e_dyn(r, alpha, dt, kt, kr, vmax, vc) - a - kt * b / (kr * r)
     hs = np.array([h(r) for r in grid])
     for i in range(len(grid) - 1):
         if np.isfinite(hs[i]) and np.isfinite(hs[i + 1]) and hs[i] < 0 <= hs[i + 1]:
@@ -255,6 +292,8 @@ def start_condition(model, alpha, cmd0, vs_):
     """Does a robot at rest move under its first command magnitude cmd0?"""
     if model == "legacy":
         return (1 - alpha) * cmd0 >= vs_
+    if model == "coulomb":
+        return cmd0 > vs_         # breakaway needs the command to exceed static friction
     return cmd0 >= vs_            # deadzone and scaled agree here
 
 
@@ -287,3 +326,39 @@ def overshoot_ratio_discrete(k, alpha, dt, steps=20000):
         if np.all(np.abs(e) < 1e-12) or np.any(np.abs(e) > 1e6):
             break
     return np.where(np.abs(e) > 1e3, np.inf, mx)
+
+
+"""
+STICTION, Coulomb model (version 3, OmniCluster default from 2026-10-29):
+    tau dv/dt = u - v - v_c v/|v| while moving; parked until |u| > v_c.
+    On a straight approach the friction is a constant, so the moving loop is
+    the frictionless loop aimed at the shifted target v_c / k on the approach
+    side. The robot stops at each velocity zero and parks there if k |e| <= v_c.
+    Each swing starts from rest, so with b = v_c / k and
+    M = overshoot_ratio_discrete(k, alpha, dt) a swing from x (|x| > b) ends at
+        x' = sign(x) b - M (x - sign(x) b)
+    and the rest point is the first x with |x| <= b. One swing gives
+    s = b - M (d0 - b) short of the target. Overdamped (M = 0) the robot creeps
+    to b = v_c / k on the approach side, independent of tau. Linear loop only
+    (no command or speed cap). Orbit: orbit_C with V = min(k_t - v_c, v_max)
+    and the scaled lag, and an orbit starts iff k_t > v_c.
+"""
+
+
+def rest_point_coulomb(d0, k, alpha, dt, vc, swings=100, vk=None):
+    """Rest position along the approach line, positive = short of the target
+    (approach side), from start distance d0 > 0. Linear loop, no caps.
+    vk (kinetic, default vc) sets the shifted target vk / k each swing aims at;
+    vc (static) sets the band |x| <= vc / k in which a stopped robot parks."""
+    k = np.asarray(k, float)
+    M = overshoot_ratio_discrete(k, alpha, dt)
+    b = vc / k
+    bk = (vc if vk is None else vk) / k
+    x = np.asarray(d0, float).copy()
+    for _ in range(swings):
+        moving = np.abs(x) > b
+        if not moving.any():
+            break
+        t = np.sign(x) * bk
+        x = np.where(moving, t - M * (x - t), x)
+    return np.where(np.isfinite(M), x, np.nan)

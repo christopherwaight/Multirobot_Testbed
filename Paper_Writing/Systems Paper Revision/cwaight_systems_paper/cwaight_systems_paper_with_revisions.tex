@@ -339,7 +339,7 @@ The experimental platform used three omnidirectional Decabot rovers operating wi
     \label{fig:HuePredictions}
 \end{figure}
 
-The multilayer control architecture from Section~III runs in MATLAB/Simulink on a central computer that communicates with the robots over Wi-Fi at 10~Hz: at each control cycle it receives OptiTrack positions and RGB sensor readings, computes the control laws, and returns velocity commands, which each robot's onboard computer (Intel Edison) converts into drive motor commands.
+The multilayer control architecture from Section~III runs in MATLAB/Simulink on a central computer that communicates with the robots over Wi-Fi at 10~Hz: at each control cycle it receives OptiTrack positions and RGB sensor readings, computes the control laws, and returns velocity commands, which each robot's onboard computer (Intel Edison) converts into drive motor commands. The hardware controller also limited the commanded centroid velocity to 0.3~m/s per axis, a safeguard that reserves actuator capacity for formation keeping.
 
 Vector fields are physically realized as printed floor maps using HSV color encoding, where hue (0--2$\pi$) represents flow direction and saturation (0--1) encodes magnitude. Printed magnitudes are scaled to the 0.3--1.0 saturation range to avoid undersaturated areas and ensure reliable sensor readings, then remapped to 0--1 in software, with saturation 1.0 corresponding to the maximum robot velocity of 0.3~m/s. Together with the sensor shroud and self-illumination, this encoding is minimally affected by overhead lighting variations.
 

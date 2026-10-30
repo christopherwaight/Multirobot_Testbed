@@ -1,0 +1,39 @@
+% Queued rewrite of Section VI-B, "Comparison with Other Primitives".
+% Drafted 2026-10-29. NOT applied to the paper.
+%
+% Target: cwaight_systems_paper/cwaight_systems_paper_with_revisions.tex
+% This is a snippet for side-by-side reading. It does not compile on its own;
+% \cite{48}, \cite{22}, and Table~\ref{tab:field_summary} resolve in the paper.
+%
+% Ripple if applied (match on exact text, abort if any match fails):
+%   1. Introduction roadmap sentence.
+%      OLD: Section VI compares performance against alternative navigation
+%           strategies and discusses limitations and future work.
+%      NEW: Section VI compares the proposed primitives with alternative
+%           navigation primitives and discusses limitations and future work.
+%   2. Replace everything from "The modular architecture allows navigation
+%      controllers" through the \end{figure} of fig:primitive_comparison
+%      (orbit_demonstration.png) with the two paragraphs below. The figure
+%      is deleted. Nothing else in the revision file references it.
+%   3. PhD thesis: ch06.py copies this figure from the frozen submitted
+%      paper, not the revision file, so the thesis build is unaffected.
+%
+% Sentence provenance relative to the submitted text:
+%   Kept whole:     modular architecture sentence; "As a result, performance
+%                   differences..."; vector-sum description; "neither has a
+%                   mechanism to detect or correct radial error..."; "The
+%                   vector-sum drift has been confirmed in hardware in [22]."
+%   Lightly edited: vector-to-scalar description (split at the semicolon,
+%                   "here it was modified" -> "can be modified"); "This is
+%                   because both approaches..." -> "Both approaches...";
+%                   saddle sentence (dropped "the comparison is more decisive"
+%                   and the "vectors do not all point toward" clause).
+%   New:            closed loop of each primitive, the shared magnitude field
+%                   of the Appendix A fields, the drift mechanism, the cone of
+%                   |v| at the critical point, and the cost of inverting J-hat.
+
+\subsection{Comparison with Other Primitives}
+
+The modular architecture allows navigation controllers to be interchanged while cluster and robot controller layers remain fixed. As a result, performance differences between controllers reflect algorithmic rather than implementation variations. The vector-sum approach commands the cluster to move in the direction of the average perceived flow. The vector-to-scalar primitive \cite{48} reduces the flow to its magnitude. Both are memoryless and use the same three instantaneous measurements as the proposed estimate, and they differ in what each recovers from them. On an affine field the average of the three readings equals the field at the centroid, so the vector-sum closed loop is the flow itself, $\dot{\mathbf{p}}_c \propto \mathbf{J}(\mathbf{p}_c - \mathbf{p}^*)$. It inherits the eigenvalues of $\mathbf{J}$ and reaches only sinks and stable spirals, or sources and unstable spirals with the command negated; a saddle repels it under either sign. Descending $\|\mathbf{v}\|$ is stable at every nondegenerate critical point of an affine field. However, $\|\mathbf{v}\|$ does not change when the vectors are reversed or rotated. The sink, source, vortex, and saddle of Appendix~A share the magnitude field $\|\mathbf{v}\| = r$, so a primitive driven by it cannot tell them apart. The proposed estimate recovers the full Jacobian and offset, and on these fields the eigenvalues of $\hat{\mathbf{J}}$ determine the type (Table~\ref{tab:field_summary}).
+
+For orbiting, the vector-to-scalar primitive can be modified to move tangentially to the direction of steepest descent. Both approaches derive their velocity commands from direction-only guidance; neither has a mechanism to detect or correct radial error with respect to a specific point, and so centrifugal drift goes uncorrected. A head-to-head orbit trial therefore mainly shows that radial feedback is absent. In the vortex field, the starting point fixes the orbit of either primitive. A sampled step of length $s$ along a circle of radius $r$ ends about $s^2/(2r)$ outside it, and actuator lag turns part of the tangential command outward. The vector-sum drift has been confirmed in hardware in~\cite{22}. In the saddle field, the vector-sum controller cannot produce an orbital trajectory at all, and the vector-to-scalar technique would still drift. On the canonical fields, a distance can be inferred from $\|\mathbf{v}\|$ alone, but $\|\mathbf{v}\|$ forms a cone at the critical point. When a centered equilateral formation encloses it, the three magnitudes are equal and a planar fit returns no gradient. The velocity components stay affine through $\mathbf{p}^*$, and the proposed estimate remains exact there. Its cost is the inversion of $\hat{\mathbf{J}}$, which amplifies errors as $\kappa(\hat{\mathbf{J}})$ grows and fails at $\det(\hat{\mathbf{J}}) = 0$, a singularity neither alternative has.

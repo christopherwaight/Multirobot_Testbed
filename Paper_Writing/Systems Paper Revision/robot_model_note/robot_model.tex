@@ -26,7 +26,7 @@ Commands are held over each control period $\Delta t$. With $\alpha = e^{-\Delta
 \end{align}
 followed by projection onto $\|\mathbf{v}_i\| \le v_{\max}$ and $\mathbf{p}_i[k+1] = \mathbf{p}_i[k] + \Delta t\,\mathbf{v}_i[k+1]$. A parked robot with $\|\mathbf{u}_i[k]\| \le v_c$ keeps $\mathbf{v}_i[k+1] = \mathbf{0}$. When $\mathbf{u}_i$ is parallel to $\mathbf{v}_i$, (\ref{eq:rm_lag})--(\ref{eq:rm_fric}) reproduce the solution of (\ref{eq:rm_cont}) exactly at the sampling instants. The lag and the friction level therefore do not depend on the sampling rate, and $\alpha$ is recomputed from $\tau$ when $\Delta t$ changes ($\alpha = 0.700$ at $\Delta t = 0.1$~s and $0.965$ at $0.01$~s).
 
-With the formation at its desired shape every robot receives the centroid command. Under the attraction law $\mathbf{u} = k(\hat{\mathbf{p}}^* - \mathbf{c})$ the cluster therefore comes to rest once $k\|\hat{\mathbf{p}}^* - \mathbf{c}\| \le v_c$, inside a disk of radius $v_c/k$ about the estimated critical point. At $k = 1$~s$^{-1}$ this radius is 0.025~m. Table~\ref{tab:rm_params} lists the parameters.
+With the formation at its desired shape, the attraction law $\mathbf{u} = k(\hat{\mathbf{p}}^* - \mathbf{c})$ brings the cluster to rest inside a disk of radius $v_c/k$ about the estimated critical point, 0.025~m at $k = 1$~s$^{-1}$. Table~\ref{tab:rm_params} lists the parameters.
 
 \begin{table}[!h]
 \footnotesize
@@ -48,5 +48,7 @@ Attraction gain $k$ & 1~s$^{-1}$ & Hardware setting \\
 \end{table}
 
 The hardware attraction trials support this model. At the last sample in which any robot moved, the centroid lay a median 0.025~m (vortex, 79 runs) and 0.032~m (saddle, 78 runs) from the critical point estimate the cluster was tracking, against $v_c/k = 0.025$~m. The mean final distance to the true critical point was 0.023~m in both fields, against 0.025~m in simulation on the linear fields from the same 157 start positions. A fit to the start transients of the hardware runs gives $\tau \approx 0.20$~s. The value 0.28~s overstates the lag, so predicted overshoot and orbit radius error are conservative, while the attraction rest radius $v_c/k$ does not depend on $\tau$. No parked robot restarted during the trials, so static friction is taken equal to $v_c$.
+
+\textit{Note.} The hardware controller also limited the commanded centroid velocity to 0.3~m/s per axis, a safeguard that reserves actuator capacity for formation keeping. The simulation omits this limit.
 
 \end{document}
