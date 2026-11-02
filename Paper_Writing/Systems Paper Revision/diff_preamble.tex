@@ -1,0 +1,66 @@
+%DIF Markup preamble for make_diff.sh (passed to latexdiff --preamble).
+%DIF Added text: dark green, underlined. (changebar hangs pdflatex on this paper, so no margin bars.)
+%DIF Deleted text: grey strikeout.
+%DIF Added equations: dark green. Deleted equations: grey.
+%DIF New graphics: green frame. Deleted graphics: half size, grey cross.
+%DIF Red, blue and magenta are left to the paper's \syn, \rev and \open markers.
+\RequirePackage[normalem]{ulem} %DIF PREAMBLE
+\RequirePackage{xcolor} %DIF PREAMBLE
+\definecolor{DIFaddbg}{RGB}{204,238,194} %DIF PREAMBLE
+\definecolor{DIFaddtx}{RGB}{0,120,45} %DIF PREAMBLE
+\definecolor{DIFdeltx}{gray}{0.55} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFhl}{\bgroup\markoverwith{\textcolor{DIFaddbg}{\rule[-0.6ex]{2pt}{2.55ex}}}\ULon} %DIF PREAMBLE
+\providecommand{\DIFadd}[1]{{\protect\color{DIFaddtx}\uline{#1}}} %DIF PREAMBLE
+\providecommand{\DIFdel}[1]{{\protect\color{DIFdeltx}\sout{#1}}} %DIF PREAMBLE
+\providecommand{\DIFaddbegin}{\protect\color{DIFaddtx}} %DIF PREAMBLE
+\providecommand{\DIFaddend}{\protect\color{black}} %DIF PREAMBLE
+\providecommand{\DIFdelbegin}{\protect\color{DIFdeltx}} %DIF PREAMBLE
+\providecommand{\DIFdelend}{\protect\color{black}} %DIF PREAMBLE
+\providecommand{\DIFmodbegin}{} %DIF PREAMBLE
+\providecommand{\DIFmodend}{} %DIF PREAMBLE
+\providecommand{\DIFaddFL}[1]{\DIFadd{#1}} %DIF PREAMBLE
+\providecommand{\DIFdelFL}[1]{\DIFdel{#1}} %DIF PREAMBLE
+\providecommand{\DIFaddbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFaddendFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelendFL}{} %DIF PREAMBLE
+\providecommand{\DIFscaledelfig}{0.5} %DIF PREAMBLE
+\RequirePackage{settobox} %DIF PREAMBLE
+\RequirePackage{letltxmacro} %DIF PREAMBLE
+\newsavebox{\DIFdelgraphicsbox} %DIF PREAMBLE
+\newlength{\DIFdelgraphicswidth} %DIF PREAMBLE
+\newlength{\DIFdelgraphicsheight} %DIF PREAMBLE
+\LetLtxMacro{\DIFOincludegraphics}{\includegraphics} %DIF PREAMBLE
+\providecommand{\DIFaddincludegraphics}[2][]{{\color{DIFaddtx}\setlength{\fboxrule}{1.5pt}\fbox{\DIFOincludegraphics[#1]{#2}}}} %DIF PREAMBLE
+\providecommand{\DIFdelincludegraphics}[2][]{% %DIF PREAMBLE
+\sbox{\DIFdelgraphicsbox}{\DIFOincludegraphics[#1]{#2}}% %DIF PREAMBLE
+\settoboxwidth{\DIFdelgraphicswidth}{\DIFdelgraphicsbox} %DIF PREAMBLE
+\settoboxtotalheight{\DIFdelgraphicsheight}{\DIFdelgraphicsbox} %DIF PREAMBLE
+\scalebox{\DIFscaledelfig}{% %DIF PREAMBLE
+\parbox[b]{\DIFdelgraphicswidth}{\usebox{\DIFdelgraphicsbox}\\[-\baselineskip] \rule{\DIFdelgraphicswidth}{0em}}\llap{\resizebox{\DIFdelgraphicswidth}{\DIFdelgraphicsheight}{% %DIF PREAMBLE
+\setlength{\unitlength}{\DIFdelgraphicswidth}% %DIF PREAMBLE
+\begin{picture}(1,1)% %DIF PREAMBLE
+\thicklines\linethickness{2pt} %DIF PREAMBLE
+{\color{DIFdeltx}\put(0,0){\framebox(1,1){}}}% %DIF PREAMBLE
+{\color{DIFdeltx}\put(0,0){\line( 1,1){1}}}% %DIF PREAMBLE
+{\color{DIFdeltx}\put(0,1){\line(1,-1){1}}}% %DIF PREAMBLE
+\end{picture}% %DIF PREAMBLE
+}\hspace*{3pt}}} %DIF PREAMBLE
+} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddbegin}{\DIFaddbegin} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddend}{\DIFaddend} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelbegin}{\DIFdelbegin} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelend}{\DIFdelend} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddbegin}{\DIFOaddbegin \let\includegraphics\DIFaddincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddend}{\DIFOaddend \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelbegin}{\DIFOdelbegin \let\includegraphics\DIFdelincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelend}{\DIFOdelend \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddbeginFL}{\DIFaddbeginFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddendFL}{\DIFaddendFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelbeginFL}{\DIFdelbeginFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelendFL}{\DIFdelendFL} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddbeginFL}{\DIFOaddbeginFL \let\includegraphics\DIFaddincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddendFL}{\DIFOaddendFL \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelbeginFL}{\DIFOdelbeginFL \let\includegraphics\DIFdelincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelendFL}{\DIFOdelendFL \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+%DIF latexdiff appends its own math-safe \sout after this file, so it is not repeated here.
