@@ -25,7 +25,7 @@ C. Waight and C. A. Kitts
 
 Dear Associate Editor,
 
-We thank you and the three reviewers for their careful reading. The revision adds an error bound and an existence test for the estimate (Section~II-B), a minimality proposition (Section~II-C), a closed-loop analysis with actuator lag, sampled updates, friction, and nearly singular estimates (Section~III-D), common metrics with nonlinear benchmarks and simulated classification (Section~IV), and matched baselines (Section~VI-B). \syn{All hardware experiments were repeated in a new campaign designed around the reviewers' requests. All hardware results in the revised manuscript come from this campaign and supersede the earlier results.} Elsewhere the submitted text was retained and changed only where a comment required it, except that both appendices were removed and Sections~III and~IV were shortened to stay within the page limit. Every change is marked in the accompanying marked-up PDF.
+We thank you and the three reviewers for their careful reading. The revision adds an error bound for the estimate (Section~II-B), a minimality proposition (Section~II-C), a closed-loop analysis with actuator lag, sampled updates, friction, and nearly singular estimates (Section~III-D), common metrics with nonlinear benchmarks and simulated classification (Section~IV), and matched baselines (Section~VI-B). \syn{All hardware experiments were repeated in a new campaign designed around the reviewers' requests. All hardware results in the revised manuscript come from this campaign and supersede the earlier results.} Elsewhere the submitted text was retained and changed only where a comment required it, except that both appendices were removed and Sections~III and~IV were shortened to stay within the page limit. Every change is marked in the accompanying marked-up PDF.
 
 While re-analyzing the original logs we found that the vortex rows of the submitted Tables~IV and~V and the vortex trajectories in the submitted Figs.~8 and~9 came from four-robot runs. The revision reports three-robot runs only, and \syn{Fig.~7 redraws those two figures from the new campaign}.
 
@@ -53,23 +53,23 @@ Each response below quotes the comment, split into lettered sentences, and gives
 \resp (a) The responses to (b)--(k) below are the full answers to the shared requests. The reviewer sections refer back to them.
 
 % AE.1-1
-(b) \emph{Nonlinear benchmarks.} Section~IV-C and Fig.~4 add two nonlinear fields. One is a single cell of the double gyre, with a center, four corner saddles, and a curve where $\det\mathbf{J} = 0$. The other is a saddle whose inflow axis is bent by a cubic term of strength $\chi$, in an irrotational and a rotational form. The section reports four results.
+(b) \emph{Nonlinear benchmarks.} Section~IV and Fig.~4 add two nonlinear fields. One is a single cell of the double gyre, with a center, four corner saddles, and a curve where $\det\mathbf{J} = 0$. The other is a saddle whose inflow axis is bent by a cubic term of strength $\chi$, in an irrotational and a rotational form. Sections~IV-A and~IV-D report four results.
 \begin{itemize}
 \item Fig.~4(a) and~(b) show both flows with plane-fit attraction trajectories. In the gyre, starts outside the $\det\mathbf{J} = 0$ curve reach a neighboring saddle.
 \item The estimate's curvature error grows as the cube of the formation side, \rev{6.6}~mm at the 0.33~m side used in simulation, because the cubic terms of the field do not cancel over an equilateral triangle.
-\item The attraction law is a sampled Newton flow, so the start largely decides which critical point is reached. The sign of $\det\hat{\mathbf{J}}$ at the start matched the index of the critical point reached in \rev{99.89}\% of gyre and rotational-saddle trials. The section reports the gyre outcome by start distance against the true critical point, and the curved saddle from starts up to 0.7~m.
-\item With lag and friction off, white measurement noise up to 0.03~m/s changes the final error on the reconstructed fields by at most \rev{1.7}~mm, which separates their fixed distortion from temporal noise.
+\item The attraction law takes Newton steps toward the zero of the local fit, which cannot cross a curve where $\det\mathbf{J} = 0$, so the start largely decides which critical point is reached. The sign of $\det\hat{\mathbf{J}}$ at the start matched the critical point reached, negative for a saddle and positive for a center, in \rev{99.89}\% of gyre and rotational-saddle trials. The section reports the gyre outcome by start distance against the true critical point, and the curved saddle from starts up to 0.7~m.
+\item With lag and friction off, white measurement noise up to 0.03~m/s changes the final error on the reconstructed fields by at most \rev{1.7}~mm, which separates their fixed distortion from temporal noise (Section~IV-A).
 \end{itemize}
 
 % AE.1-2
-(c) \emph{Estimation error analysis.} Section~II-B bounds the estimation error. With the cluster centroid $\mathbf{p}_c$, $\mathbf{e} = \mathbf{p}_c - \mathbf{p}^*$, a bound $M$ on the second derivatives of the true field, the formation radius $R$, a measurement-error bound $\bar{\epsilon}$, and the normalized formation condition number $\kappa_0$, equation~(8) reads
+(c) \emph{Estimation error analysis.} Section~II-B bounds the estimation error. Taking norms in the exact relation (7) gives
 \[
-\|\hat{\mathbf{p}}^* - \mathbf{p}^*\| \le \frac{1}{\sigma_{\min}(\hat{\mathbf{J}})}\left(\frac{M}{\sqrt{2}}\|\mathbf{e}\|^2 + \left(1 + \frac{\kappa_0\|\mathbf{e}\|}{R}\right)\mu\right),
+\|\hat{\mathbf{p}}^* - \mathbf{p}^*\| \le \|\hat{\mathbf{v}}(\mathbf{p}^*)\|/\sigma_{\min}(\hat{\mathbf{J}}),
 \]
-with $\mu = MR^2/\sqrt{2} + \bar{\epsilon}$. The bound holds whenever $\hat{\mathbf{J}}$ is invertible. Section~III-D adds a condition on the true field, $\sigma_J = \sigma_{\min}(\mathbf{J}(\mathbf{p}_c)) - \kappa_0\mu/R > 0$, that guarantees invertibility by Weyl's inequality. The same bound gives a run-time existence test that certifies a true critical point near the estimate, and (9) gives the covariance of the estimate under measurement noise.
+which holds whenever $\hat{\mathbf{J}}$ is invertible. The section then explains how field curvature, formation size, distance to the critical point, and measurement error set the model error $\hat{\mathbf{v}}(\mathbf{p}^*)$, and (8) gives the covariance of the estimate under measurement noise. Section~IV-D measures the curvature error against formation size on the nonlinear fields, and Section~IV-A checks the covariance numerically.
 
 % AE.1-3
-(d) \emph{Stability.} Section~III-D models the changing estimate as $\hat{\mathbf{p}}^*[j] = \mathbf{p}^* + \boldsymbol{\delta}[j]$ and analyzes the sampled loop with lag (15). It derives the exact gain condition (16), treats Coulomb friction as a bounded command disturbance, and states Proposition~2, an ultimate bound (17) under explicit assumptions. Nearly singular estimates are handled as described in the response to Reviewer~3, Comment~3.3(e). The orbital law's radial error is bounded to first order by (18), and the singular point $r = 0$ is treated at the end of the section.
+(d) \emph{Stability.} Section~III-D models the changing estimate as $\hat{\mathbf{p}}^*[j] = \mathbf{p}^* + \boldsymbol{\delta}[j]$ and analyzes the sampled loop with lag (13). It derives the exact gain condition (14), treats Coulomb friction as a bounded command disturbance, and bounds the final error under explicit assumptions. Nearly singular estimates are handled as described in the response to Reviewer~3, Comment~3.3(e). The orbital law's radial error is bounded to first order in the same section, and the singular point $r = 0$ is treated at the end of the section.
 
 % AE.1-4
 (e) \emph{Matched baselines.} Section~VI-B, Table~VI, and Fig.~8 drive the same attraction and orbital laws, gains, robot model, and formation with three estimates of the critical point. These are the plane fit, the true critical point (an oracle that isolates the controller), and a magnitude-only estimate that senses only the speeds. The orbital comparison is at fixed commanded radii.
@@ -121,16 +121,16 @@ A real flow differs in four ways. It advects the robots and adds its own velocit
 \resp (a, b) We agree. Section~II-B now relates the estimate to a zero of the true field through the exact relation (7), $\hat{\mathbf{p}}^* - \mathbf{p}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{v}}(\mathbf{p}^*)$. The estimate is displaced by the error of the affine model at the true critical point, amplified by $\hat{\mathbf{J}}^{-1}$, and it coincides with $\mathbf{p}^*$ when the field is affine over a region containing the cluster and $\mathbf{p}^*$.
 
 % R1.1-2
-(c, d) Equation~(8) bounds that displacement (response to the Associate Editor, (c)). Section~II-B adds the following sentence after it.
+(c, d) Taking norms in (7) bounds that displacement by $\|\hat{\mathbf{v}}(\mathbf{p}^*)\|/\sigma_{\min}(\hat{\mathbf{J}})$ wherever $\hat{\mathbf{J}}$ is invertible (response to the Associate Editor, (c)). Section~II-B then adds the following.
 \begin{newtext}
-Field curvature, distance to the critical point, formation size, measurement error, formation shape, and Jacobian conditioning enter through $M$, $\|\mathbf{e}\|$, $R$, $\bar{\epsilon}$, $\kappa_0$, and $\sigma_{\min}(\hat{\mathbf{J}})$.
+Let $\mathbf{p}_c = \frac{1}{3}\sum_i\mathbf{p}_i$ be the cluster centroid, $\mathbf{e} = \mathbf{p}_c - \mathbf{p}^*$ its displacement from the critical point, and $R$ the distance from $\mathbf{p}_c$ to each robot of the equilateral formation. The model error has two parts, and formation size moves them in opposite directions. Field curvature adds an error that grows with the second derivatives of the field and with $(R + \|\mathbf{e}\|)^2$, the square of the largest distance from a robot to $\mathbf{p}^*$, so a large formation raises it. Measurement error adds an error that grows with $\|\mathbf{e}\|/R$, the distance the fit extrapolates measured in formation sizes, so a small formation raises it. This extrapolation grows without bound as the robots approach collinearity.
 \end{newtext}
-The bound applies wherever $\hat{\mathbf{J}}$ is invertible, which Section~III-D guarantees from the true field when $\sigma_J > 0$. The existence test after (8) certifies, from the current fit and the bounds $M$ and $\bar{\epsilon}$, that a true critical point lies within a stated distance $\rho$ of the estimate. Section~II-B states the test without proof, which we give here. Consider the map $\mathbf{g}(\mathbf{p}) = \hat{\mathbf{p}}^* - \hat{\mathbf{J}}^{-1}(\mathbf{v}(\mathbf{p}) - \hat{\mathbf{v}}(\mathbf{p}))$. Because $\hat{\mathbf{v}}(\mathbf{p}) = \hat{\mathbf{J}}(\mathbf{p} - \hat{\mathbf{p}}^*)$, a fixed point of $\mathbf{g}$ is a zero of $\mathbf{v}$. On the disk of radius $\rho$ about $\hat{\mathbf{p}}^*$, the Taylor expansion behind (8) bounds $\|\mathbf{g}(\mathbf{p}) - \hat{\mathbf{p}}^*\|$ by the right-hand side of (8) with $\|\mathbf{e}\|$ replaced by $\|\hat{\mathbf{p}}^* - \mathbf{p}_c\| + \rho$. The test makes this at most $\rho$, so $\mathbf{g}$ maps the disk into itself, and Brouwer's fixed-point theorem gives the fixed point.
+Section~IV-D measures the curvature error, which in the gyre grows as the cube of the formation side, and Section~IV-A shows that the covariance (8) predicts the closed-loop error under measurement noise.
 
 % R1.1-4
-(e) Section~IV-C adds nonlinear fields, including a gyre cell with a center and four saddles (response to the Associate Editor, (b)). Limitation Four of Section~VI-C now names the regimes that remain untested.
+(e) Section~IV-D adds nonlinear fields, including a gyre cell with a center and four saddles (response to the Associate Editor, (b)). Limitation Four of Section~VI-C now names the regimes that remain untested.
 \begin{newtext}
-Section~IV-C probes this regime on a gyre cell and a curved saddle, but fields with stronger curvature, or with critical points closer together than one formation side, were not tested.
+Section~IV-D probes this regime on a gyre cell and a curved saddle, but fields with stronger curvature, or with critical points closer together than one formation side, were not tested.
 \end{newtext}
 
 \subsection*{Comment 1.2}
@@ -146,23 +146,23 @@ Section~IV-C probes this regime on a gyre cell and a curved saddle, but fields w
 % R1.2-2
 \resp (a, b, c) We agree that the submitted Section~VI-A claimed more than the analysis supported. That sentence was removed. The last paragraph of Section~VI-A now reads as follows.
 \begin{newtext}
-Across all four error sources, the estimation error enters the closed loop as the input $\boldsymbol{\delta}$ of (15). The attraction controller converges to the estimated critical point, and the orbital controller maintains circular motion around it. As a result, sensor noise and conditioning errors affect the accuracy of the final position, by (17) for attraction and (18) for orbits, but under the conditions of Proposition~2 not the stability of the attraction law. That guarantee lapses as $\hat{\mathbf{J}}$ approaches singularity.
+Across all four error sources, the estimation error enters the closed loop as the input $\boldsymbol{\delta}$ of (13). The attraction controller converges to the estimated critical point, and the orbital controller maintains circular motion around it. As a result, sensor noise and conditioning errors affect the accuracy of the final position, by the final error of Section~III-D for attraction and the radial bound of that section for orbits, but not the stability of the attraction law while the conditions of Section~III-D hold. That guarantee lapses as $\hat{\mathbf{J}}$ approaches singularity.
 \end{newtext}
 
 % R1.2-1, R1.2-3
 (d) Section~III-D gives the closed-loop analysis with its assumptions stated.
 \begin{itemize}
-\item \emph{Changing estimate.} The estimate is $\mathbf{p}^* + \boldsymbol{\delta}[j]$, and the error bound (8) gives $\|\boldsymbol{\delta}\| \le \eta\|\mathbf{e}\| + \bar{\delta}$ on the region the trajectory visits.
-\item \emph{Lag and sampling.} Section~III-A now models each robot as a sampled first-order lag with Coulomb friction (12)--(14). The centroid then follows the loop (15), whose exact Jury condition is (16).
-\item \emph{Stiction.} Coulomb friction enters (15) as a command disturbance of norm at most $v_c$.
-\item \emph{Saturation.} The command limit bounds the velocity, and Proposition~2 assumes that the command near rest is unsaturated.
+\item \emph{Changing estimate.} The estimate is $\mathbf{p}^* + \boldsymbol{\delta}[j]$, and its error grows with distance from the critical point (Section~II-B), so $\|\boldsymbol{\delta}\| \le \eta\|\mathbf{e}\| + \bar{\delta}$ on the region the trajectory visits, where $\bar{\delta}$ is the estimate error at the critical point and $\eta$ its growth with distance.
+\item \emph{Lag and sampling.} Section~III-A now models each robot as a sampled first-order lag with Coulomb friction (11)--(12). The centroid then follows the loop (13), whose exact Jury condition is (14).
+\item \emph{Stiction.} Coulomb friction enters (13) as a command disturbance of norm at most $v_c$.
+\item \emph{Saturation.} The command limit bounds the velocity, and the analysis assumes that the command is unsaturated near rest.
 \end{itemize}
-Proposition~2 then bounds the final error by (17). For the orbital law, (18) gives the radial error dynamics to first order and shows that a tangential estimate error is amplified by $k_t/(k_r r_d)$.
+Under these assumptions, the final error is bounded (Section~III-D). For the orbital law, Section~III-D bounds the radial error to first order, and a tangential estimate error is amplified by $k_t/(k_r r_d)$.
 
 % R1.2-4
 (e) Section~III-D ends with the following.
 \begin{newtext}
-The singular point $r = 0$ of (11) is not reached by the ideal dynamics, since $r(t) = r_d + (r(0) - r_d)e^{-k_r t} > 0$, but a noisy estimate can still land on $\mathbf{p}_c$. When $r < 10^{-6}$~m the implementation sets $\mathbf{n} = [1, 0]^T$, so the command stays defined and its tangential step $k_t\mathbf{t}$ carries the cluster off the singular point on the next cycle.
+The singular point $r = 0$ of (10) is not reached by the ideal dynamics, since $r(t) = r_d + (r(0) - r_d)e^{-k_r t} > 0$, but a noisy estimate can still land on $\mathbf{p}_c$. When $r < 10^{-6}$~m the implementation sets $\mathbf{n}$ to an arbitrary unit vector, so the command stays defined and its tangential step $k_t\mathbf{t}$ carries the cluster off the singular point on the next cycle.
 \end{newtext}
 
 \subsection*{Comment 1.3}
@@ -182,21 +182,21 @@ Both $\hat{\mathbf{J}}$ and $\hat{\mathbf{h}}$ come from the same measurements, 
 \end{newtext}
 
 % R1.3-2
-(c) Equation~(8) is the perturbation bound (response to the Associate Editor, (c)). Each robot carries its own color sensor, so measurement noise is independent across robots, and linearizing (7) in the noise gives the covariance (9),
+(c) The norm bound on (7) in Section~II-B is the perturbation bound (response to the Associate Editor, (c)). Each robot carries its own color sensor, so measurement noise is independent across robots, and linearizing (7) in the noise gives the covariance (8),
 \[
 \operatorname{Cov}(\hat{\mathbf{p}}^*) \approx \sigma_v^2\, c_w\, \mathbf{J}^{-1}\mathbf{J}^{-T},
 \]
-where $c_w = \frac{1}{3} + \frac{2}{3}\|\mathbf{e}\|^2/R^2$ for an equilateral formation. The factor is smallest when the critical point lies at the centroid and grows as the fit extrapolates farther from it.
+where $c_w = \frac{1}{3} + \frac{2}{3}\|\mathbf{e}\|^2/R^2$ for an equilateral formation.
 
 % R1.3-3
-(d) Propagated through the sampled loop, the covariance predicts the simulated closed-loop mean error on the analytical fields to a median ratio of \rev{1.004} (range \rev{0.98} to \rev{1.04}) over \rev{66} noise settings (Section~IV-C).
+(d) Propagated through the sampled loop, the covariance predicts the simulated closed-loop mean error on the analytical fields to a median ratio of \rev{1.004} (range \rev{0.98} to \rev{1.04}) over \rev{66} noise settings (Section~IV-A).
 
 % R1.3-4
 (e) We agree, and Section~VI-A now separates the two. The submitted text called the $\det\hat{\mathbf{J}} \to 0$ limit ``non-hyperbolic'', and it now reads ``degenerate critical points''. Section~VI-A also adds the following.
 \begin{newtext}
-A center is non-hyperbolic yet has $\sigma_{\min}(\mathbf{J}) > 0$, so (8) locates it as well as any other critical point, and only its type is fragile (Section~IV-D).
+A center is non-hyperbolic yet has $\det\mathbf{J} > 0$, so (6) locates it as well as any other critical point, and only its type is fragile (Section~IV-C).
 \end{newtext}
-Section~IV-D explains that the center and the canonical star nodes lie on boundaries between types, and states the band the classifier uses there. The conditioning discussion of Section~VI-A now uses $1/\sigma_{\min}(\hat{\mathbf{J}})$, the factor that multiplies the model error in (7), in place of $\kappa(\hat{\mathbf{J}})$.
+Section~IV-C explains that the center and the canonical star nodes lie on boundaries between types, and states the band the classifier uses there.
 
 \subsection*{Comment 1.4}
 
@@ -218,7 +218,7 @@ Below these radii the controller holds a bounded orbit about the critical point 
 (c) The opening of Section~IV defines a radius as practically achievable when the magnitude of its radial bias is at most $0.25\,r_d$. By that criterion the range in simulation is $r_d \ge \rev{0.3}$~m on the analytical fields and the reconstructed saddle and $r_d \ge \rev{0.4}$~m on the reconstructed vortex (Section~IV-B). Section~V-D reports the hardware range, \syn{$r_d \ge 0.40$~m in the vortex and $r_d \ge 0.50$~m in the saddle}.
 
 % R1.4-3
-(d) Section~VI-A now explains the small-radius bias with a closed form (19). The actuator lag delays the rotating tangential command, which turns part of it outward, and friction lowers the orbit speed to $V = k_t - v_c$. Balancing the radial loop gives
+(d) Section~VI-A now explains the small-radius bias with a closed form (15). Friction lowers the orbit speed to $V = k_t - v_c$, and the lag makes the cluster follow the rotating tangential command about $\tau$ late, so it drifts outward at $\tau V^2/r^*$. Balancing that drift against the radial term, $k_r(r^* - r_d) = \tau V^2/r^*$, gives
 \[
 r^* = \tfrac{1}{2}\bigl(r_d + \sqrt{r_d^2 + 4C}\bigr), \qquad C = \tau V^2/k_r,
 \]
@@ -264,7 +264,7 @@ The bias is smaller than the mean final error because final positions on opposit
 \end{newtext}
 
 % R1.6-3
-(c) The opening of Section~IV defines the convergence thresholds (0.03, 0.04, and 0.05~m), the precision as the RMS distance of the final positions from their mean, and failure as leaving the map or ending outside the threshold. Simulation and hardware use the same definitions, and hardware also reports the final centroid speed so that a cluster still moving is not counted as settled (Section~V-B).
+(c) The opening of Section~IV defines success for attraction as the critical point ending inside the triangle of the three robots, and for an orbit as the triangle touching the commanded circle on at least 95\% of the scored samples. It also defines the precision as the RMS distance of the final positions from their mean, the convergence thresholds (0.03, 0.04, and 0.05~m) that the tables report as shares of trials, and failure as leaving the map. Simulation and hardware use the same definitions, and hardware also reports the final centroid speed so that a cluster still moving is not counted as settled (Section~V-B).
 
 % R1.6-4
 (d) Tables~II and~IV give the median, the 95th percentile, and success at the three thresholds beside the mean and standard deviation of the per-trial errors. Fig.~3 shows simulated trials approaching the critical point, and \syn{Fig.~7 shows the hardware trials from each starting position with one-standard-deviation bands}.
@@ -274,7 +274,7 @@ The bias is smaller than the mean final error because final positions on opposit
 \begin{newtext}
 These reconstructed fields are a fixed spatial distortion of the analytical fields, fit to the robots' readings on the printed maps, and they add no noise that varies in time.
 \end{newtext}
-Section~V-A likewise calls them ``a fixed distortion model''. The two effects are evaluated separately. In simulation with lag and friction off, white measurement noise up to 0.03~m/s changes the final error on the reconstructed fields by at most \rev{1.7}~mm, so their error is the distortion (Section~IV-C). On the testbed a parked robot's reading changes by about \rev{$2\times10^{-5}$}~m/s between cycles, against a calibration error of about 0.02~m/s that is fixed at each location (Section~VI-A). Runs with the formation parked at fixed points measure the temporal noise directly \open{campaign block E}.
+Section~V-A likewise calls them ``a fixed distortion model''. The two effects are evaluated separately. In simulation with lag and friction off, white measurement noise up to 0.03~m/s changes the final error on the reconstructed fields by at most \rev{1.7}~mm, so their error is the distortion (Section~IV-A). On the testbed a parked robot's reading changes by about \rev{$2\times10^{-5}$}~m/s between cycles, against a calibration error of about 0.02~m/s that is fixed at each location (Section~VI-A). Runs with the formation parked at fixed points measure the temporal noise directly \open{campaign block E}.
 
 \subsection*{Comment 1.7}
 
@@ -294,9 +294,9 @@ Section~V-A likewise calls them ``a fixed distortion model''. The two effects ar
 (c) Proposition~1 states the minimum for instantaneous identification of every affine field with $\det\mathbf{J} \neq 0$ (response to the Associate Editor, (h)). The second contribution in Section~I now reads ``three non-collinear robots are the minimum number required for this estimation, and \ldots\ they suffice for every nondegenerate affine field.''
 
 % R1.7-4, R1.7-1
-(d) Classification is now evaluated in simulation. Section~IV-D and Table~II report the fraction of control cycles on which the type of $\hat{\mathbf{J}}$ matches the true type, with and without measurement noise. A center or star node lies on a boundary between types, so the classifier counts an eigenvalue pair within $\arcsin(\epsilon_c/2)$ of the imaginary or real axis as a center or a node, with $\epsilon_c = 0.2$ (about $6^\circ$). With white measurement noise of 0.02~m/s the center is labeled correctly on \rev{90}\% of cycles and the star nodes on \rev{95}\%, against \rev{100}\% for the saddle. The hardware metric is pending the campaign. The classifier labels $\hat{\mathbf{J}}$ on every cycle without feeding the controller (Section~V-B), and Section~V-C reports its accuracy \open{campaign}. The claim is qualified to match. Section~I now says that the eigenvalues ``indicate the type'' rather than ``fix the identity'', and Section~VI-D replaces the statement that classification is not exercised.
+(d) Classification is now evaluated in simulation. Section~IV-C and Table~II report the fraction of control cycles on which the type of $\hat{\mathbf{J}}$ matches the true type, with and without measurement noise. A center or star node lies on a boundary between types, so the classifier counts an eigenvalue pair within about $6^\circ$ of the imaginary or real axis as a center or a node. With white measurement noise of 0.02~m/s the center is labeled correctly on \rev{90}\% of cycles and the star nodes on \rev{95}\%, against \rev{100}\% for the saddle. The hardware metric is pending the campaign. The classifier labels $\hat{\mathbf{J}}$ on every cycle without feeding the controller (Section~V-B), and Section~V-C reports its accuracy \open{campaign}. The claim is qualified to match. Section~I now says that the eigenvalues ``indicate the type'' rather than ``fix the identity'', and Section~VI-D replaces the statement that classification is not exercised.
 \begin{newtext}
-The estimated Jacobian's eigenvalues determine the topological type of the nearby critical point (Table~I), and Sections~IV-D and V-C evaluate this classification with a fixed band around the center and node boundaries.
+The estimated Jacobian's eigenvalues determine the topological type of the nearby critical point (Table~I), and Sections~IV-C and V-C evaluate this classification with a fixed band around the center and node boundaries.
 \end{newtext}
 
 % R1.7-5
@@ -316,7 +316,7 @@ The estimated Jacobian's eigenvalues determine the topological type of the nearb
 \resp (a, b) Section~III now names the reused components and their sources, and the caption of Fig.~2 marks the new blocks (response to the Associate Editor, (j)).
 
 % R2.1-2
-(c) Section~I keeps the four contributions with ordinals and states each more precisely. The first adds the error bound and existence test, the second states the minimality proof for non-collinear robots, and the third adds the bounded-tracking result for the attraction law. The fourth is the hardware validation, whose trial count is \open{campaign}.
+(c) Section~I keeps the four contributions with ordinals and states each more precisely. The first adds the error bound, the second states the minimality proof for non-collinear robots, and the third adds the bounded-tracking result for the attraction law. The fourth is the hardware validation, whose trial count is \open{campaign}.
 
 \subsection*{Comment 2.2}
 
@@ -330,7 +330,7 @@ The estimated Jacobian's eigenvalues determine the topological type of the nearb
 \begin{newtext}
 With $n > 3$ robots the least-squares fit averages measurement errors across robots and survives the loss of one, but a wider footprint asks the affine model to hold over more of the field's curvature.
 \end{newtext}
-The error bound (8) quantifies the last point through the formation radius $R$.
+Section~II-B states this trade-off through the formation radius $R$. A larger formation lowers the measurement part of the estimate error and raises the curvature part.
 
 \subsection*{Comment 2.3}
 
@@ -353,7 +353,7 @@ The error bound (8) quantifies the last point through the formation radius $R$.
 \begin{newtext}
 With $\hat{\mathbf{e}} = \mathbf{p}_c - \hat{\mathbf{p}}^*$ and a stationary estimate, the closed-loop error dynamics are $\dot{\hat{\mathbf{e}}} = -k\hat{\mathbf{e}}$, so $\hat{\mathbf{e}}(t) = \hat{\mathbf{e}}(0)e^{-kt}$.
 \end{newtext}
-Section~III-D extends this to the sampled loop with lag (15).
+Section~III-D extends this to the sampled loop with lag (13).
 
 \subsection*{Comment 2.5}
 
@@ -386,7 +386,7 @@ Section~III-D extends this to the sampled loop with lag (15).
 \begin{newtext}
 The construction itself is two affine fits and a matrix inversion. This paper closes a feedback loop on their joint zero at every cycle, bounds the resulting errors, and demonstrates the loop in hardware.
 \end{newtext}
-The bounds are the estimation error bound and existence test of Section~II-B and the bounded-tracking result of Section~III-D under lag, sampling, and friction.
+The bounds are the estimation error bound of Section~II-B and the bounded-tracking result of Section~III-D under lag, sampling, and friction.
 
 % R3.1-2
 (d) Proposition~1 states the assumptions behind the minimum (response to the Associate Editor, (h)).
@@ -413,7 +413,7 @@ These affine fields therefore do not show how the estimate extrapolates to a non
 \end{newtext}
 
 % R3.2-2, R3.2-3, R3.2-4
-(d, e, f) Section~IV-C adds the requested benchmarks (response to the Associate Editor, (b)). Curvature is varied through the gyre cell and the cubic coefficient $\chi$ of the curved saddle. Starting distance is varied in both fields, and Fig.~4(a) shows starts beyond the gyre's $\det\mathbf{J} = 0$ curve reaching a neighboring saddle. The curvature error grows as the cube of the formation side.
+(d, e, f) Section~IV-D adds the requested benchmarks (response to the Associate Editor, (b)). Curvature is varied through the gyre cell and the cubic coefficient $\chi$ of the curved saddle. Starting distance is varied in both fields, and Fig.~4(a) shows starts beyond the gyre's $\det\mathbf{J} = 0$ curve reaching a neighboring saddle. The curvature error grows as the cube of the formation side.
 
 (g) We agree. On every analytical field the plane fit matches the oracle (Section~VI-B, Table~VI), so the differences reported on the nonlinear fields are estimation error.
 
@@ -428,24 +428,21 @@ These affine fields therefore do not show how the estimate extrapolates to a non
 \end{quote}
 
 % R3.3-1, R3.3-2
-\resp (a, b, c) We agree, and the unsupported sentence in Section~VI-A was removed (response to Reviewer~1, Comment~1.2). Section~III-D treats the estimate as $\mathbf{p}^* + \boldsymbol{\delta}[j]$, with a position-dependent part bounded through (8), rather than as a fixed displacement of the equilibrium.
+\resp (a, b, c) We agree, and the unsupported sentence in Section~VI-A was removed (response to Reviewer~1, Comment~1.2). Section~III-D treats the estimate as $\mathbf{p}^* + \boldsymbol{\delta}[j]$, with a part that grows with distance from the critical point (Section~II-B), rather than as a fixed displacement of the equilibrium.
 
 % R3.3-3
-(d) Proposition~2 states the conditions for bounded tracking error with actuator lag and sampled updates.
+(d) Section~III-D states the conditions for bounded tracking error with actuator lag and sampled updates.
 \begin{newtext}
-Assume the formation is held, (16) holds, the command near rest is unsaturated, $M$ bounds the second derivatives of the true field within $E + R$ of $\mathbf{p}^*$, the trajectory stays in $\|\mathbf{e}\| \le E$, $\underline{\sigma}_J > 0$, and $\gamma\eta < 1$. Then
-\[
-\limsup_{j\to\infty} \|\mathbf{e}[j]\| \le \frac{\gamma\,(\bar{\delta} + v_c/k)}{1 - \gamma\eta}.
-\]
+Coulomb friction stops the cluster wherever its command is at most $v_c$. The attraction law commands $k\|\mathbf{e} - \boldsymbol{\delta}\|$, so the cluster comes to rest within $v_c/k$ of the estimate, the friction ring of Section~III-A. The estimate error shrinks as the cluster nears the critical point (Section~II-B) and settles at the value it has there. Provided that moving the cluster a given distance changes the estimate error by less than that distance, the changing estimate causes neither instability nor continued hunting, and the cluster comes to rest. Its final distance from the critical point is then at most the friction ring plus the estimate error where it stops.
 \end{newtext}
-Here (16) is the exact gain condition $0 < k\Delta t < 2(1+\alpha)/(1-\alpha)$ of the sampled loop with lag factor $\alpha$, and $\gamma$ is the $\ell_1$ norm of its impulse response, \rev{1.0003} at the experimental settings.
+The cluster rests only where its command is at most $v_c$, so $\|\mathbf{e}\| \le \|\boldsymbol{\delta}\| + v_c/k$. With $\|\boldsymbol{\delta}\| \le \eta\|\mathbf{e}\| + \bar{\delta}$ (response to Reviewer~1, Comment~1.2), the limit $L$ of the centroid error under the stable loop (14) obeys $L \le \gamma(\eta L + \bar{\delta} + v_c/k)$, where $\gamma = \rev{1.0003}$ allows for the slight overshoot of the loop (13), whose poles are complex. This has a finite solution, $L \le \gamma(\bar{\delta} + v_c/k)/(1 - \gamma\eta)$, when $\gamma\eta < 1$. That is the condition stated in the text, since $\gamma \approx 1$: moving the cluster a given distance changes the estimate error by less than that distance.
 
 % R3.3-4
 (e) Section~III-D states how nearly singular estimates are handled.
 \begin{newtext}
-Both $\eta$ and $\bar{\delta}$ scale with $1/\underline{\sigma}_J$, so Proposition~2 gives no guarantee when $\hat{\mathbf{J}}$ is nearly singular, as in near-uniform flow far from a critical point. When $|\det\hat{\mathbf{J}}| < 10^{-10}$ the fit returns no estimate, and the controller \open{holds the last valid estimate}. Otherwise the memoryless estimator replaces a spurious estimate on the next cycle, and the command limit caps the centroid speed. No conditioning gate on $\sigma_{\min}(\hat{\mathbf{J}})$ was applied to (6).
+The fit matrix $\mathbf{A}$ is singular only if the robots become collinear, which the formation controller prevents by holding them in an equilateral triangle. The estimate can therefore become singular only through $\hat{\mathbf{J}}$, as in near-uniform flow far from a critical point. When $|\det\hat{\mathbf{J}}| < 10^{-10}$ the fit returns no estimate, and the controller \open{holds the last valid estimate}. The command limit caps the centroid speed in the meantime. No conditioning gate on $\sigma_{\min}(\hat{\mathbf{J}})$ was applied to (6).
 \end{newtext}
-Such cases are detectable at run time through $\sigma_{\min}(\hat{\mathbf{J}})$ and the existence test of Section~II-B (Section~VI-A).
+Such cases are detectable at run time through eigenvalue analysis of the estimated Jacobian (Section~VI-A).
 
 \subsection*{Comment 3.4}
 
@@ -464,7 +461,7 @@ Such cases are detectable at run time through $\sigma_{\min}(\hat{\mathbf{J}})$ 
 (c, d) Section~VI-B adds a baseline for the same fixed-radius task under comparable sensing. A magnitude-only estimate of the critical point, formed from the same three readings, drives the same orbital law with the same gains, robot model, and formation, so only the estimate differs. We chose this over a separate contour-following controller for that reason. Table~VI reports it over repeated trials, in attraction and in orbits at three commanded radii, beside the plane fit. In orbit, its inward estimate bias offsets the lag at 0.3 and 0.5~m on the affine fields but holds the orbit \rev{0.07}~m inside the commanded 0.1~m.
 
 % R3.4-4
-(e) Table~VI and Fig.~8 also drive both laws with the true critical point. On the affine fields the plane fit matches this oracle in every metric, so the remaining error belongs to the controller, and on the reconstructed fields the difference isolates the estimation error. Section~IV-C uses the true critical point the same way on the gyre cell, where it drew every start to the center.
+(e) Table~VI and Fig.~8 also drive both laws with the true critical point. On the affine fields the plane fit matches this oracle in every metric, so the remaining error belongs to the controller, and on the reconstructed fields the difference isolates the estimation error. Section~IV-D uses the true critical point the same way on the gyre cell, where it drew every start to the center.
 
 \subsection*{Comment 3.5}
 
@@ -480,7 +477,7 @@ Such cases are detectable at run time through $\sigma_{\min}(\hat{\mathbf{J}})$ 
 % R3.5-1, R3.5-2
 \resp (a, b) We agree. Table~IV now reports the per-trial mean error $\pm$ standard deviation, the median, and the 95th percentile beside the bias of the mean final position, and Section~V-C explains why the bias is smaller (response to Reviewer~1, Comment~1.6). Table~II does the same for simulation.
 
-(c) Small-radius orbits are now described as bounded orbits that do not track the commanded radius (response to Reviewer~1, Comment~1.4). Section~V-D reports the practically achievable range, and the closed form (19) of Section~VI-A explains why the actuator lag sets a smallest achievable orbit.
+(c) Small-radius orbits are now described as bounded orbits that do not track the commanded radius (response to Reviewer~1, Comment~1.4). Section~V-D reports the practically achievable range, and the closed form (15) of Section~VI-A explains why the actuator lag sets a smallest achievable orbit.
 
 % R3.5-3
 (d, e) Per-trial distance errors are summarized in Tables~II and~IV, Fig.~3 plots the distance over time for simulated trials, and \syn{Fig.~7 shows the hardware trials over time}. The opening of Section~IV defines the convergence thresholds numerically.

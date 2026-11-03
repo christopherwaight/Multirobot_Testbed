@@ -280,8 +280,10 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
         rec = dict(c=np.full((n, n_steps + 1, 2), np.nan), phat=np.full((n, n_steps, 2), np.nan),
                    vc=np.full((n, n_steps, 2), np.nan), cmd_speed=np.full((n, n_steps, 3), np.nan),
                    vel_speed=np.full((n, n_steps, 3), np.nan), active=np.zeros((n, n_steps), bool),
-                   J=np.full((n, n_steps, 4), np.nan))
+                   J=np.full((n, n_steps, 4), np.nan),
+                   pos=np.full((n, n_steps + 1, 3, 2), np.nan))
         rec["c"][:, 0] = c0
+        rec["pos"][:, 0] = pos
     active = np.ones(n, bool)
 
     for kstep in range(n_steps):
@@ -406,6 +408,7 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
         stuck |= ~active[:, None]
         if record:
             rec["c"][:, kstep + 1] = pos.mean(1)
+            rec["pos"][:, kstep + 1] = pos
             rec["phat"][:, kstep] = phat
             rec["vc"][:, kstep] = vc
             if method == "fit":
