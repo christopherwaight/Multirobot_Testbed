@@ -15,10 +15,12 @@ Multirobot_Testbed/
 │   │   ├── Separatrix_Control_testing/  # Notebook prototypes for the six-robot work
 │   │   └── Archive/                     # Retired experiments, including scalar fields
 │   ├── robots_3/, robots_4/             # 3- and 4-robot hardware data and MATLAB analysis
+│   ├── hardware_campaign_2026-11/       # Plan for the three-robot hardware campaign
 │   └── Deep_Learning/                   # MATLAB color-sensor calibration
 ├── Paper_Writing/
-│   ├── Systems Paper/                   # Vector field paper (3- and 4-robot, hardware)
-│   ├── Separatrix_and_OW_Paper/         # Separatrix paper (6-robot, simulation), Draft_12.tex
+│   ├── Systems Paper/                   # Vector field paper as submitted (frozen)
+│   ├── Systems Paper Revision/          # Its major revision, analysis notes, and revision tools
+│   ├── Separatrix_and_OW_Paper/         # Separatrix paper (6-robot, simulation), Draft_13.tex
 │   ├── PhD Thesis/                      # Generated from the papers by sources/assemble/
 │   └── mcp_paper_search/                # Vector-store search over the reference corpus
 ├── Manim_Viz/                           # Manim animations of the fields and controllers
@@ -44,7 +46,7 @@ venv/bin/python3 experiments/main_omni.py
 | `src/simulation/runner.py` | Simulation loop |
 | `cluster_builder/clusterbuilder.py` | Formation geometry, SAS parameterization (p, q, beta), symbolic Jacobians |
 
-Tests run from VF_Robot with `venv/bin/python3 -m pytest cluster_builder/tests/ tests/test_oecs_separatrix.py`.
+Tests run from VF_Robot with `venv/bin/python3 -m pytest cluster_builder/tests/ tests/test_oecs_separatrix.py experiments/revision_metrics/test_metrics.py`.
 
 ## Hardware
 
@@ -54,7 +56,7 @@ Decabots, omnidirectional robots with RGB color sensors, run in a 1.6 m by 1.6 m
 
 Both target IEEE Systems Journal. Authors are Christopher Waight and Christopher A. Kitts.
 
-- **Adaptive Navigation of Multirobot Systems to Critical Points in 2D Vector Fields in Simulation and Experiment.** Three- and four-robot clusters, validated in 169 hardware experiments. The cluster converged in all 157 convergence trials, with average position errors of 0.012 m or less. Source in `Paper_Writing/Systems Paper/cwaight_systems_paper/`.
+- **Adaptive Navigation of Multirobot Systems to Critical Points in 2D Vector Fields in Simulation and Experiment.** A three-robot cluster fits a plane to the sensed field, estimates the critical point, and drives to it or orbits it, in simulation and on the hardware testbed. IEEE Systems Journal returned it for major revision on 2026-10-27. The revision is in `Paper_Writing/Systems Paper Revision/`, and its hardware results will come from a new three-robot campaign. The submitted version, which also used four-robot runs, is in `Paper_Writing/Systems Paper/cwaight_systems_paper/`.
 - **Second-Order Cooperative Field Estimation for Multirobot Tracking of Coherent Flow Structures.** A six-robot pentagon-plus-center formation fits a quadratic field model and tracks separatrices on a double gyre benchmark and on Santa Barbara Channel HF radar data. Source in `Paper_Writing/Separatrix_and_OW_Paper/`.
 
 ## Dependencies
