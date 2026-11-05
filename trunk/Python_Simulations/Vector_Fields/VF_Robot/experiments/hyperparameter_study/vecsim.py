@@ -20,6 +20,10 @@ Estimators ("method"):
   oracle     the true critical point (separates estimation from control)
   magnitude  |v| only: attraction is scalar_gradient_descent on |v|; orbit
              uses p_hat = c - m g / |g|^2 from a plane fit of |v|
+  v2s        orbit only (added 2026-11-04): the vector-to-scalar orbit primitive, k_t times
+             the unit tangent of the fitted speed contour, with no radial term
+  v2s_oracle orbit only (added 2026-11-04): the same tangent plus k_r (r - r_d) about the
+             true critical point
 """
 import os
 import numpy as np
@@ -155,9 +159,21 @@ def _reconstructed(name):
                  "MLP fit to testbed color-sensor data; truth = printed map's critical point")
 
 
+def _node_aniso():
+    """Anisotropic stable node J = diag(-1, -0.2) (added 2026-11-04): affine, but its speed
+    |v| grows at different rates along the two axes."""
+    J = np.array([[-1.0, 0.0], [0.0, -0.2]])
+
+    def fn(x, y):
+        return J[0, 0] * x, J[1, 1] * y
+    return Field("node_aniso", "linear", fn, [(0.0, 0.0, 1.0)], J, 0.5, 10.0)
+
+
 def make_field(name, eps=1.0, family="potential"):
     if name in LINEAR_J:
         return _linear(name)
+    if name == "node_aniso":
+        return _node_aniso()
     if name == "gyre":
         return _gyre()
     if name == "curved_saddle":
@@ -326,6 +342,8 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
                 phat = c - (mb / gg)[:, None] * np.stack([gx, gy], 1)
             detJ = np.full(n, np.nan)
             fb = ~np.isfinite(phat).all(1) | (gg < 1e-18)
+            if method == "v2s_oracle":
+                phat = np.broadcast_to(tgt, (n, 2)).copy()
 
         # ---- navigation command
         w = phat - c
@@ -341,6 +359,14 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
                 spd = np.minimum(P["k"] * dist, P["vcmd_max"])
                 vc = wh * spd[:, None]
                 vc[dist < 1e-6] = 0.0
+        elif method in ("v2s", "v2s_oracle"):
+            ng = np.sqrt(gg)
+            with np.errstate(all="ignore"):
+                tang = np.stack([-gy, gx], 1) / ng[:, None]      # speed contour, same sense as Eq. 11
+            vc = P["kt"][:, None] * tang
+            if method == "v2s_oracle":
+                vr = np.clip(P["kr"] * (dist - P["rd"]), -P["rclamp"], P["rclamp"])
+                vc = vc + vr[:, None] * wh
         else:
             tang = np.stack([wh[:, 1], -wh[:, 0]], 1)
             vr = np.clip(P["kr"] * (dist - P["rd"]), -P["rclamp"], P["rclamp"])
@@ -350,7 +376,7 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
                 a = rng.uniform(0, 2 * PI, small.sum())
                 vc[small] = np.stack([np.cos(a), np.sin(a)], 1)
         if fb.any():   # reference falls back to vector_sum on a singular solve
-            if method == "magnitude":
+            if method in ("magnitude", "v2s", "v2s_oracle"):
                 vc[fb] = 0.0
             else:
                 vc[fb] = np.stack([U[fb].sum(1), V[fb].sum(1)], 1)

@@ -12,7 +12,7 @@ Usage (from anywhere):
     python3 survival.py                      # working revision vs submitted paper
     python3 survival.py path/to/other.tex    # any revised file vs submitted paper
 
-Targets set by Chris for the 2026-11 revision: 80% overall, 55% hard floor (lowered from 70% on 2026-11-03).
+Targets set by Chris for the 2026-11 revision: 60% overall (lowered from 80% on 2026-11-04), 55% hard floor (lowered from 70% on 2026-11-03).
 """
 import difflib
 import re
@@ -23,7 +23,7 @@ HERE = Path(__file__).resolve().parent
 SUBMITTED = HERE.parent / "Systems Paper" / "cwaight_systems_paper" / "cwaight_systems_paper.tex"
 REVISION = HERE / "cwaight_systems_paper" / "cwaight_systems_paper_with_revisions2.tex"
 MIN_RUN = 4
-TARGET, FLOOR = 80.0, 55.0
+TARGET, FLOOR = 60.0, 55.0
 
 
 def body(path):

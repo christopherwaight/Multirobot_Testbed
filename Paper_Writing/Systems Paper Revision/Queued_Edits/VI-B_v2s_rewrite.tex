@@ -1,0 +1,56 @@
+% QUEUED EDIT, 2026-11-04, for review. Not in the paper yet.
+% Replaces the whole of VI-B, from \subsection{Comparison with Matched Baselines} up to \subsection{Limitations},
+% in cwaight_systems_paper_with_revisions2.tex. Also update the roadmap sentence in the Introduction:
+%   "Section VI compares the proposed estimate with matched baselines" -> "Section VI compares the proposed estimate with the vector-to-scalar primitive"
+% Sources: experiments/revision_metrics/baselines_v2s.py (results/baselines_v2s_summary.json, tables/table_v2s.tex),
+%          experiments/revision_metrics/fig_v2s_effort.py (figures/fig_v2s_effort_A.pdf -> copy to the paper folder as fig_v2s_effort.pdf).
+% \newnum{} marks numbers not yet reviewed. Sentences in [S] are restored from the submitted paper.
+
+\subsection{Comparison with the Vector-to-Scalar Primitive}
+
+The modular architecture allows navigation controllers to be interchanged while cluster and robot controller layers remain fixed. As a result, performance differences between controllers reflect algorithmic rather than implementation variations. % [S] both sentences
+The vector-to-scalar primitive \cite{48} reduces the flow to its magnitude, the speed $S_i = \|\mathbf{v}(\mathbf{p}_i)\|$ at each robot, and a plane fit to the three speeds gives their gradient $\mathbf{g}$. For attraction the cluster descends $\mathbf{g}$. For orbits the primitive was modified to move tangentially to the direction of steepest descent. It was run in simulation with the robot model, gains, and formation of Section~IV in three forms (Table~\ref{tab:baselines}). The first is the primitive alone. The second adds the oracle, the true critical point, as the target of (\ref{eq:10}) and the center of the radial term of (\ref{eq:11}), which isolates the primitive from any estimate. The third uses only the sensed speeds. It places the critical point where the fitted speed reaches zero, $\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$ with $S_c$ the fitted speed at the centroid, and feeds that point to (\ref{eq:10}) and (\ref{eq:11}).
+
+On the six analytical fields the speed grows equally in every direction, so its gradient points directly away from $\mathbf{p}^*$, and the primitive reached $\mathbf{p}^*$ in every trial. Its dynamics differ from those of the Jacobian estimate (Fig.~\ref{fig:effort}(a)). The fitted gradient keeps the same length at every distance, so the command holds the robots at their speed limit until the cluster passes $\mathbf{p}^*$, overshoots by a median of \newnum{0.031}~m, and rebounds. The Jacobian estimate scales the command with distance, and the cluster slows along a smooth exponential. The primitive ends closer to $\mathbf{p}^*$, \newnum{0.003} against \rev{0.025}~m, because friction stops a proportional command on the ring $v_c/k$, and it settles in \newnum{1.1} against \rev{2.1}~s at \newnum{1.9} times the control effort. % [REVIEW] baselines_v2s_summary.json linear: v2s overshoot_med 0.031, e_mean 0.003, t_conv 1.1, E_u 0.137 against 0.074
+
+In orbit, the primitive alone has no mechanism to detect or correct radial error with respect to a specific point, and so centrifugal drift goes uncorrected. Every orbit spiraled outward off the map (Fig.~\ref{fig:effort}(b)). Given the oracle, the same tangent with the radial term of (\ref{eq:11}) matched the Jacobian method within \newnum{0.002}~m RMSE at every radius. The orbit law therefore holds the radius about whatever point it is given, and the Jacobian estimate supplies that point from the same three readings the primitive uses. With its own speed estimate the primitive also held the radius on these fields, at a lower RMSE than the Jacobian method, because the estimate's inward bias offsets the lag drift of Section~VI-A. That estimate never lets the cluster rest during attraction, however. The cluster still moved at \newnum{0.12}~m/s after 10~s, with \newnum{four} times the control effort. % [REVIEW] baselines_v2s_summary.json linear: v2s lost 100% at every r_d (all left the map); v2s_oracle RMSE 0.092/0.052/0.035 against 0.093/0.051/0.033; v2s_est RMSE 0.068/0.016/0.020, final_speed 0.116, E_u 0.306
+
+The speed points at the critical point only where it grows equally in every direction. The anisotropic node $\mathbf{J} = \operatorname{diag}(-1, -0.2)$ is affine, but its speed grows five times more slowly along one axis. There the primitive reached $\mathbf{p}^*$ in \newnum{7}\% of trials, and most of the rest ended on the slow axis, a median \newnum{0.67}~m from $\mathbf{p}^*$. Its speed estimate erred by \newnum{0.46}~m on average during orbits, and even with the oracle most orbits were lost, because the speed contours are ellipses. The Jacobian estimate is exact on any affine field, and on the node it reproduced its results on the analytical fields. In the gyre, the primitive reached the same critical point as the Jacobian method in \newnum{96}\% of trials. The speed vanishes at the center and at the saddles alike, however, so it cannot tell which it has reached, while the Jacobian method labeled the type on every cycle (Section~IV-C). The primitive lost every gyre orbit, and with the oracle every orbit from $r_d = 0.3$~m, where the gyre's speed contours no longer circle the center. The Jacobian method held its orbits at 0.1 and 0.3~m. % [REVIEW] baselines_v2s_summary.json node_aniso: v2s success 6.6% (467 failures, median |y| 0.67 m, |x| 0.03 m), v2s_est est_orb 0.455, v2s_oracle lost 90/82/100%; gyre: same point as jacobian 96.4%, jacobian type_acc 100%, v2s lost 100%, v2s_oracle lost 0/100/100%, jacobian lost 0/0/100%
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\columnwidth]{fig_v2s_effort.pdf}
+    \caption{Simulated attraction and orbit on the analytical vortex with the Jacobian estimate and the vector-to-scalar (V2S) primitive, mean and $\pm 1$ standard deviation of ten runs from evenly spaced starts. (a) Centroid speed from 0.4~m, with control effort $E_u$ in the legend. (b) Distance from the critical point at the commanded $r_d = 0.3$~m (dashed).} % [REVIEW] experiments/revision_metrics/fig_v2s_effort.py, draft A (Coulomb model, seed 0)
+    \label{fig:effort}
+\end{figure}
+
+\begin{table}[!t]
+\centering
+\scriptsize
+\caption{Comparison with the vector-to-scalar (V2S) primitive in simulation, \newnum{500} attraction trials of 10~s and \newnum{50} orbit runs of 60~s per field and setting. The accuracy rows use the trials that succeeded, gyre success counts the center, and a dash marks a radius at which most orbits were lost.}
+\label{tab:baselines}
+\setlength{\tabcolsep}{1.8pt}
+\newnum{\begin{tabular}{ll|cccc|ccc}
+\hline
+ & & \multicolumn{4}{c|}{\textbf{Attraction}} & \multicolumn{3}{c}{\textbf{Orbit RMSE (m)}} \\
+\textbf{Field} & \textbf{Navigation} & \textbf{Succ.} & \textbf{$\bar{e}_f$} & \textbf{$T_{\mathrm{conv}}$} & \textbf{$E_u$} & \multicolumn{3}{c}{\textbf{at $r_d$ (m)}} \\
+ & & \textbf{(\%)} & \textbf{(m)} & \textbf{(s)} & \textbf{(m$^2$/s)} & 0.1 & 0.3 & 0.5 \\
+\hline
+Linear (6) & Jacobian & 100 & 0.025 & 2.1 & 0.074 & 0.093 & 0.051 & 0.033 \\
+ & V2S & 100 & 0.003 & 1.1 & 0.137 & -- & -- & -- \\
+ & V2S + oracle & 100 & 0.025 & 2.1 & 0.074 & 0.092 & 0.052 & 0.035 \\
+ & V2S + speed est. & 100 & 0.012 & 1.3 & 0.306 & 0.068 & 0.016 & 0.020 \\
+\hline
+Aniso.\ node & Jacobian & 100 & 0.025 & 2.1 & 0.074 & 0.093 & 0.051 & 0.033 \\
+ & V2S & 7 & 0.063 & 6.8 & 0.103 & -- & -- & -- \\
+ & V2S + oracle & 100 & 0.025 & 2.1 & 0.074 & -- & -- & -- \\
+ & V2S + speed est. & 6 & 0.071 & 10.0 & 0.228 & -- & -- & -- \\
+\hline
+Gyre & Jacobian & 50 & 0.026 & 1.8 & 0.044 & 0.080 & 0.049 & -- \\
+ & V2S & 48 & 0.009 & 0.9 & 0.085 & -- & -- & -- \\
+ & V2S + oracle & 100 & 0.025 & 2.1 & 0.074 & 0.091 & -- & -- \\
+ & V2S + speed est. & 48 & 0.013 & 1.0 & 0.273 & 0.068 & -- & -- \\
+\hline
+\end{tabular}} % [REVIEW] experiments/revision_metrics/baselines_v2s.py --table -> tables/table_v2s.tex
+\end{table}
+
