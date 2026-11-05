@@ -1,0 +1,104 @@
+# Source comments stripped from cwaight_systems_paper_with_revisions2.tex, 2026-11-04
+
+Provenance for the \rev, \syn, \open, and \newnum numbers. Each entry gives the line number before stripping, the text the comment followed, and the comment.
+
+- L1 | after: ``
+  - %%
+- L3 | after: ``
+  - \documentclass[lettersize,journal,draft]{IEEEtran}
+- L22 | after: ``
+  - Revision-round number markers (2026-11-02). Every marked number is listed in
+- L23 | after: ``
+  - Queued_Edits/revision_numbers_ledger.md.
+- L24 | after: `\newcommand{\syn}[1]{\textcolor{red}{#1}}`
+  - placeholder data, replaced by the campaign
+- L25 | after: `\newcommand{\rev}[1]{#1}`
+  - simulation or analysis result, accepted 2026-11-03 (black); rerun if campaign settings change
+- L26 | after: `\newcommand{\open}[1]{\textcolor{magenta}{[#1]}}`
+  - protocol setting not yet decided
+- L27 | after: `\newcommand{\newnum}[1]{\textcolor{blue}{#1}}`
+  - simulation result added 2026-11-04, not yet reviewed (rename to \rev once approved)
+- L28 | after: ``
+  - For submission: redefine all three as {#1} (and \open as {}) after the placeholders are gone.
+- L39 | after: ``
+  - \IEEEpubid{0000--0000/00\$00.00~\copyright~2025 IEEE}
+- L47 | after: `ithin a quarter of the radius from \syn{0.40}~m (vortex) and \syn{0.50}~m (saddle) upward.`
+  - [SYNTHETIC] hardware numbers; [OPEN] orbit trial count and radii
+- L76 | after: `ents that demonstrate repeatable critical point estimation, attraction, and orbit control.`
+  - [OPEN] campaign trial count; the submitted 169 is superseded
+- L281 | after: `against a limit of \rev{11.3}, and both poles have magnitude $\sqrt{\alpha} = \rev{0.84}$.`
+  - [REVIEW] 11.3 = 2(1+alpha)/(1-alpha), 0.84 = sqrt(alpha); gamma from stability_note (outside the authorized source list)
+- L303 | after: ``
+  - 2026-11-04: nonlinear fields merged into IV-A to IV-C, former IV-D cut, former Tables II and III merged into Table II. \newnum{} marks numbers not yet reviewed.
+- L323 | after: `and lowers success at 0.03~m, while at least \rev{95}\% of trials still end within 0.05~m.`
+  - [REVIEW] revision_metrics/tables/table_II_revised.tex; triangle rule: revision_metrics/results/triangle_*.csv
+- L325 | after: `ev{4}\% wherever the field changes across the formation by at least three times the noise.`
+  - [REVIEW] hyperparameter study v3 E6: median ratio 1.004, range 0.98 to 1.04, over 66 noise settings
+- L330 | after: `ction ring $v_c/k$, and the reconstructed fields' distortion moves the rest point off it.}`
+  - [REVIEW] experiments/revision_metrics/fig_sim_convergence.py (Coulomb model, seed 0): final mean 0.0250, 0.0308 +- 0.0098, 0.0216 +- 0.0129 m
+- L374 | after: `\end{tabular}}`
+  - [REVIEW] experiments/revision_metrics/table_merged.py -> tables/table_sim_merged.tex. Eight-field cells: summary.json and triangle_summary.json (former Tables II and III). Nonlinear cells: nonlinear_summary.json (nonlinear.py, Coulomb model, seed 0; noise seed 1)
+- L377 | after: `g:nonlinear}(a)). Every start with all three robots inside the diamond reached the target.`
+  - [REVIEW] nonlinear.py, nonlinear_summary.json: success blocks (loc. error 5.7 mm in the gyre); size block (gyre mean loc. error 0.16, 1.15, 5.72, 24.98 mm at sides 0.10, 0.20, 0.33, 0.50 m); det_hat_sign_mismatch_n = 0 over the 2000 gyre and rotational trials; formation_in_region 154/154 (gyre) and 334/334 (rotational)
+- L382 | after: `rts with a robot outside the diamond. (b) Orbits at $r_d = 0.3$~m, kept, and 0.4~m, lost.}`
+  - [REVIEW] experiments/revision_metrics/fig_nonlinear.py (Coulomb model; trials from nonlinear.py)
+- L388 | after: `10~s) as a settling transient. Each run was repeated \rev{100} times per field and radius.`
+  - [REVIEW] revision_metrics/tables/table_III_revised.tex caption (100 trials per field and radius)
+- L391 | after: `ields and the reconstructed saddle, and $r_d \ge \rev{0.4}$~m on the reconstructed vortex.`
+  - [REVIEW] revision_metrics/tables/table_III_revised.tex
+- L393 | after: ` half the irrotational-saddle orbits at 0.3~m were lost past the points $(0, \pm 0.58)$~m.`
+  - [REVIEW] nonlinear.py, nonlinear_summary.json orbit and sweep blocks: gyre r_d 0.3 bias -0.044; rotational max shift +0.174 (chi -0.5, r_d 0.4, against +0.040); irrotational max 0.019 (chi -1, r_d 0.3, 59% kept); gyre lost 62% and 93% at 0.4 and 0.5 m (all crossed the diamond); irrotational chi = 1 lost 48% at 0.3 m
+- L397 | after: `on every cycle without noise, and the gyre's center on \newnum{86}\% of cycles with noise.`
+  - [REVIEW] revision_metrics/tables/table_classification_revised.tex, error note; nonlinear: nonlinear_summary.json success blocks cls_target, cls_target_noise; trials ending at another critical point any_cls_acc = 1.0
+- L425 | after: `ed reconstructions, and reconstruction error for vortex (top) and saddle (bottom) fields.}`
+  - submitted measurement_error_comparison.png redrawn 3x2 from the same robot readings
+- L436 | after: ` feeding the controller, and its accuracy is scored against the type of the printed field.`
+  - [OPEN] run length, formation side (CAMPAIGN_PROMPT 4.2, 6.2)
+- L438 | after: `ycles at 10~Hz, allowing the cluster to complete several orbits around the critical point.`
+  - [OPEN] number of radii, repeats, orbit run length (CAMPAIGN_PROMPT 6.2)
+- L442 | after: `to determine systematic bias and precision, matching the simulation metrics in Section~IV.`
+  - [SYNTHETIC] run counts of the old 3R logs, table_IV_revised.tex; replaced by the campaign
+- L444 | after: `ed field on \open{campaign}\% of cycles in the vortex and \open{campaign}\% in the saddle.`
+  - [SYNTHETIC] old 3R logs scored by revision_metrics (table_IV_revised.tex, V_VIA numbers.tex), replaced by the campaign; [OPEN] hardware classification
+- L448 | after: ``
+  - [PLACEHOLDER] submitted Figs. 8 and 9, reused until the campaign. (a, b): allrunsadjusted.png split into
+- L449 | after: ``
+  - its two panels; the vortex panel shows four-robot runs. (c): fig9.png with its title cropped; its vortex
+- L450 | after: ``
+  - curve is the four-robot set (n=79) and its distances are in map units (OptiTrack / 1.6764).
+- L451 | after: ``
+  - Replace all three panels with campaign data in metres.
+- L465 | after: `dard deviation. Negative error indicates the cluster orbited inside the commanded radius.}`
+  - [SYNTHETIC] table_IV_revised.tex run counts (old 3R logs); V_VIA results/tab_orbit_body.tex
+- L494 | after: `\end{tabular}}`
+  - [SYNTHETIC] revision_metrics/tables/table_IV_revised.tex (old 3R logs) and V_VIA results/tab_orbit_body.tex (three-robot columns, rows 0.05 and 0.15 m omitted), replaced by the campaign
+- L501 | after: `corded after the first 10~s, as in simulation (Table~\ref{tab:orbital_radius_comparison}).`
+  - [OPEN] orbit run length (CAMPAIGN_PROMPT 6.2)
+- L503 | after: `ex and \syn{three} saddle orbits failed by leaving the map, all at $r_d \ge \syn{0.40}$~m.`
+  - [SYNTHETIC] V_VIA numbers.tex and tab_orbit_body.tex (three-robot columns, six radii)
+- L514 | after: `eling all robots identically with the same friction level, speed limit, and time constant.`
+  - [REVIEW] revision_metrics/results/summary.json: analytical est_ss_mean 2e-18 m (Table II Loc. error < 0.0001)
+- L516 | after: `ev{0.067}~m, at the cost of increased sensitivity to noise in the critical point estimate.`
+  - [REVIEW] hyperparameter study v3 report_numbers.txt (closed form, table 3); C = T V k_t / k_r is theory.orbit_C
+- L518 | after: `c/k$, and the distortion sets their bias through the estimate error at the critical point.`
+  - [SYNTHETIC] old hardware logs (prose batch N1); campaign block E (static noise runs) replaces it
+- L520 | after: `rror grows with distance from the critical point, and the within-run spread grows with it.`
+  - [SYNTHETIC] V_VIA numbers.tex
+- L526 | after: `nce to the critical point is inflated, and the radial controller pulls the cluster inward.`
+  - [REVIEW] revision_metrics/results/summary.json, reconstructed orbit r_d 0.50 (bias_w1, ctrl_bias_w1)
+- L530 | after: `differences between controllers reflect algorithmic rather than implementation variations.`
+  - [S] both sentences
+- L533 | after: ` a proportional command on the ring $v_c/k$, but at \newnum{1.9} times the control effort.`
+  - [REVIEW] baselines_v2s_summary.json linear: v2s overshoot_med 0.031, e_mean 0.003, t_conv 1.1, E_u 0.137 against 0.074
+- L535 | after: `never let the cluster settle, and the cluster still moved at \newnum{0.12}~m/s after 10~s.`
+  - [REVIEW] baselines_v2s_summary.json linear: v2s lost 100% at every r_d (all left the map); v2s_oracle RMSE 0.092/0.052/0.035 against 0.093/0.051/0.033; v2s_est RMSE 0.068/0.016/0.020, final_speed 0.116, E_u 0.306
+- L537 | after: `ery orbit from $r_d = 0.3$~m, where the gyre's speed contours no longer circle the center.`
+  - [REVIEW] baselines_v2s_summary.json node_aniso: v2s success 6.6% (467 failures, median |y| 0.67 m, |x| 0.03 m), v2s_est est_orb 0.455, v2s_oracle lost 90/82/100%; gyre: same point as jacobian 96.4%, jacobian type_acc 100%, v2s lost 100%, v2s_oracle lost 0/100/100%, jacobian lost 0/0/100%
+- L542 | after: `the legend. (b) Distance from the critical point at the commanded $r_d = 0.3$~m (dashed).}`
+  - [REVIEW] experiments/revision_metrics/fig_v2s_effort.py, draft A (Coulomb model, seed 0)
+- L573 | after: `\end{tabular}}`
+  - [REVIEW] experiments/revision_metrics/baselines_v2s.py --table -> tables/table_v2s.tex
+- L597 | after: `addle) upward, and below that held bounded orbits that did not track the commanded radius.`
+  - [SYNTHETIC] hardware numbers
+- L610 | after: ``
+  - \balance % off while the last page has room; restore once the enlarged figures fill it

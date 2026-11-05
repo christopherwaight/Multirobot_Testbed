@@ -79,11 +79,11 @@ In adaptive
 navigation (AN), a vehicle or group of vehicles modifies its velocity and desired trajectory in real time
 as it creates a local map from measurements taken while moving \cite{3}. A single vehicle must translate to sense a
 gradient, which costs time and memory and misleads in a time-varying field,
-whereas an MRS can sample multiple locations simultaneously, enabling faster reaction times and better performance in non-static fields.
+whereas an MRS samples several locations at once, so it reacts faster and does not have to assume the field holds still while it moves.
 
 
 AN in scalar fields is well developed. Each
-robot contributes one scalar measurement to a control policy that controls the robots to reach or
+robot contributes one scalar measurement, and the policy drives the cluster to reach or
 follow a feature. For example, specific formations are held so that differential measurements across different robots
 recover the gradient and curvature needed for specific control policies
  \cite{5,6}. 
@@ -97,13 +97,11 @@ ridge/trench following, and saddle point station keeping \cite{3}, and
 verified ridge, trench, saddle, and front tracking experimentally on an
 indoor testbed \cite{4,7}.
 
-Some physical environments are better represented as vector fields, which can model certain features that have no scalar field equivalents. 
-Critical points, such as sinks, sources, and vortices, can model convergence zones \cite{8} and subsurface leaks \cite{9}. In \cite{10} a three-robot cluster
-estimated the location and type of a nearby critical point  from a linear fit of
-simultaneous local velocity measurements and used this estimate to adaptively navigate towards and orbit it. 
+Some flows are better described as vector fields, which carry features a scalar map cannot. Critical points, such as sinks, sources, and vortices, can model convergence zones \cite{8} and subsurface leaks \cite{9}. In \cite{10} a three-robot cluster
+estimated the location and type of a nearby critical point from a linear fit of
+simultaneous local velocity measurements and used this estimate to adaptively navigate towards and orbit it.
 
-Vector fields also have well-defined curves that are useful for modeling naturally occurring phenomena. 
-For example, dynamic ocean flows contain naturally occurring boundaries known as coherent structures that influence where floating materials like debris and larvae will accumulate or separate \cite{11,12}.
+A vector field also carries well-defined curves. In a dynamic ocean flow some of these are coherent structures, boundaries that influence where floating material such as debris and larvae accumulates or separates \cite{11,12}.
 Coherent structures are typically identified through one of two primary methods.
 The first relies on Lagrangian coherent structures (LCS) \cite{16}, typically computed as ridges in the finite-time Lyapunov exponent field \cite{17}. 
 The second method uses instantaneous Eulerian criteria, such as the Okubo-Weiss parameter, to partition flows based solely on the local velocity gradient \cite{8,22}.
@@ -111,18 +109,17 @@ This instantaneous approach has been generalized to three dimensions \cite{23}, 
 The tradeoffs between using a Lagrangian or an Eulerian approach are a matter of ongoing research \cite{18,19,20,21}.
 
 
-Mapping these curves allows teams to deploy resources in highly targeted search areas \cite{12,13,14,15}. 
-Traditionally, Without adaptive navigation, a large scale team must sample a much larger basin to determine where these structures lie using offline reconstruction.
-Adaptive navigation, however, allows for quick localized mapping of these curves with a small team. 
+Mapping these curves lets a team target its search \cite{12,13,14,15}. Without adaptive navigation a large-scale team must survey a much larger basin and reconstruct the structures offline; adaptive navigation maps them locally with a small team.
 
 
 Recent work has begun applying AN techniques with MRS to navigate along coherent structures.
  Michini et al. travel along a presumed stable or
 unstable manifold with three robots using only local velocity
-measurements \cite{26}, an approach inspired by the PIM triple
-procedure \cite{27,28}. The saddle point is addressed by neither the
+measurements \cite{26}, an approach its authors base on the PIM triple
+procedure and later extend to larger teams \cite{27} and to robots in a
+flow tank \cite{28}. The saddle point is addressed by neither the
 controller nor its analysis, and that work reports veering away from
-the structure near a saddle in flow-tank experiments.
+the structure near a saddle in simulations on measured flow-tank data.
  Kularatne and Hsieh confirm the boundary of the attracting surface by computing the local FTLE field on board at the cost of a nonzero integration horizon \cite{29}.
 In these studies, the robotic teams pre-straddle the structure, and do not acquire a structure if they aren't.
 
@@ -140,8 +137,8 @@ $s_1$;
 
 \item two AN primitives, the $D$ tracker and the $s_1$ tracker, that
 navigate to the structure and ride along it without pre-straddling;
-\item a comparison of the trackers showing the $D$ tracker tolerates more
-measurement noise while the $s_1$ tracker, being objective, holds its
+\item a comparison of the trackers: the $D$ tracker tolerates more
+measurement noise, while the objective $s_1$ tracker holds its
 path under a rotating observer, which matters when the measured flow
 carries the observer's own rotation.
 \end{itemize}
@@ -159,7 +156,7 @@ The critical point estimator of \cite{10} fits a plane to each
 component of the vector field and solves for the point where $\mathbf{v} = \mathbf{0}$. 
 
 In this work, we extend the linear approximation to the second-order Taylor expansion about the
-centroid, $\mathbf{p}_c$. 
+centroid $\mathbf{p}_c$, with $x$ and $y$ measured from $\mathbf{p}_c$.
 
 \begin{align}
     u(\mathbf{p}) &= a_1 + a_2 x + a_3 y
@@ -192,10 +189,10 @@ y_i)$, we define the quadratic basis vector
 
 
 
-Stacking the $n$ basis vectors row-wise gives us the $n \times 6$ formation matrix $\boldsymbol{\Theta}$, and the coefficient estimates $\hat{\boldsymbol{\theta}}_u$ and $\hat{\boldsymbol{\theta}}_v$ solve
+Stacking the $n$ basis vectors row-wise gives us the $n \times 6$ formation matrix $\boldsymbol{\Phi}$, and the coefficient estimates $\hat{\boldsymbol{\theta}}_u$ and $\hat{\boldsymbol{\theta}}_v$ solve
 \begin{equation}
-\boldsymbol{\Theta},\hat{\boldsymbol{\theta}}_u = \mathbf{m}_u, \qquad
-\boldsymbol{\Theta},\hat{\boldsymbol{\theta}}_v = \mathbf{m}_v,
+\boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_u = \mathbf{m}_u, \qquad
+\boldsymbol{\Phi}\,\hat{\boldsymbol{\theta}}_v = \mathbf{m}_v,
 \label{eq:solve}
 \end{equation}
 where $\mathbf{m}_u = [u_1, \ldots, u_n]^\top$ and $\mathbf{m}_v = [v_1, \ldots, v_n]^\top$ collect the measurements $u_i$ and $v_i$, 
@@ -207,21 +204,17 @@ the vector components sampled by the $i$-th robot.
 
 
 Six robots is the minimum for recovery of the unconstrained local
-quadratic model using 1 set of instantaneous measurements. . Each robot contributes one equation per component of
+quadratic model using one set of instantaneous measurements. Each robot contributes one equation per component of
 (\ref{eq:solve}). Each system of equations has six unknowns, so fewer than six
 robots leave the solution set a positive-dimensional affine subspace.
 
-%% You have made everything before this understandable.
-% Note to self, don't trust the AI
-% Line 210 of about 1400 or 1/7
-
 With five equations or fewer, a method either returns a family of solutions or imposes a structural prior, such as assuming
 divergence-free flow by imposing $\nabla\cdot\mathbf{v} = 0$. We do not impose any priors on the field, as horizontal surface
-currents are not divergence free, so imposing
+currents are not divergence-free, so imposing
 $\nabla\cdot\mathbf{v} = 0$ would bias every recovered coefficient.
 Six robots suffice provided $\boldsymbol{\Phi}$ is nonsingular. With
-more than six, $\boldsymbol{\Phi}$ has more rows than columns, the fit
-becomes least squares.
+more than six, $\boldsymbol{\Phi}$ has more rows than columns, and the fit
+becomes least squares, which needs $\boldsymbol{\Phi}$ to have full column rank.
 
 Either condition fails exactly when the robots lie on a common conic.
 For example, a standard ring formation is degenerate at any size, since
@@ -246,7 +239,7 @@ robot's position.
 
 \subsubsection{Formation}
 The rank of the formation matrix $\boldsymbol{\Phi}$ determines whether
-a unique fit exists, and its condition number $\kappa(\boldsymbol{\Phi})$
+a unique fit exists, and its 2-norm condition number $\kappa(\boldsymbol{\Phi})$
 indicates how much the fit amplifies noise. Condition numbers are
 reported on the radius-normalized $\boldsymbol{\Phi}$, with each column
 of order $q$ divided by $\rho^{\,q}$, where $\rho$ is the formation radius. Without this normalization, the
@@ -309,13 +302,8 @@ displacement. This error vanishes in uniform flow and grows with the
 local gradient, so unlike measurement noise it depends on the field.
 Its variance is $\lVert\nabla u\rVert^2\sigma_p^2$ for $u$ and
 $\lVert\nabla v\rVert^2\sigma_p^2$ for $v$, and the two average to
-$\tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\sigma_p^2$, with $\mathbf{J} = \nabla\mathbf{v}$ the velocity gradient tensor and $\lVert\cdot\rVert_F$ the Frobenius norm. Combining both noise
-sources gives one effective noise level
-\begin{equation}
-    \sigma_{\mathrm{eff}}^2 = \sigma_{uv}^2
-        + \tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\,\sigma_p^2 .
-    \label{eq:sigma_eff}
-\end{equation}
+$\tfrac{1}{2}\lVert\mathbf{J}\rVert_F^2\sigma_p^2$, with $\mathbf{J} = \nabla\mathbf{v}$ the velocity gradient tensor and $\lVert\cdot\rVert_F$ the Frobenius norm. Unlike measurement noise, the errors in $u$ and $v$ are
+correlated, since both readings move by the same $\boldsymbol{\xi}_i$.
 
 
 
@@ -424,7 +412,8 @@ them changes nothing in the estimator. Where the vorticity
 $\omega = \partial v/\partial x - \partial u/\partial y$ vanishes,
 $\mathbf{J}$ equals $\mathbf{S}$ and $D = s_1 s_2$, which is $-s_1^2$ in
 incompressible flow. Along such a curve the two fields share their
-trenches. Elsewhere the spin $\mathbf{W} = \mathbf{J} - \mathbf{S}$, the
+trenches in one direction: in incompressible flow a trench of $s_1$ there
+is also a trench of $D$, but a trench of $D$ need not be a trench of $s_1$. Elsewhere the spin $\mathbf{W} = \mathbf{J} - \mathbf{S}$, the
 antisymmetric part of $\mathbf{J}$ that carries the vorticity, separates
 them. It also separates them across observers. A frame rotating clockwise at rate
 $\Omega$, with rotation $\mathbf{Q}$, adds a uniform spin that raises
@@ -507,7 +496,7 @@ at the origin, so the crest of its $s_1$ trench sits at a kink of $s_1$.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.85\columnwidth]{figures/double_gyre_fields.png}
+    \includegraphics[width=\columnwidth]{figures/double_gyre_fields.png}
     \caption{Steady double gyre. (a) Streamlines, with the separatrix
     $x = 0$ (dashed), the saddle points (crosses), and the gyre centers
     (dots). (b) Signed $D$ as an elevation surface. The
@@ -574,7 +563,7 @@ to the layer above through the forward kinematics.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.8\columnwidth]{figures/pentagon_formation.png}
+    \includegraphics[width=\columnwidth]{figures/pentagon_formation.png}
     \caption{Pentagon-plus-center formation. Robot 1 sits at the centroid
     $\mathbf{p}_c$ and robots 2 to 6 on a ring (dotted). The cluster
     variables shown are the pair separations $L_2$, $L_3$, $L_4$, a pair
@@ -639,8 +628,8 @@ eigenvector $\mathbf{w}_2$ points across the trench and $\mathbf{w}_1$
 along it, signed by $\hat{\mathbf{v}}_0^\top \mathbf{w}_1 \geq 0$ to point
 downstream, where $\hat{\mathbf{v}}_0 = (\hat{a}_1, \hat{b}_1)$ is the
 measured flow at the centroid. This is the height-ridge definition of a
-trench \cite{33}, a curve on which the gradient is orthogonal to a Hessian
-eigenvector with positive eigenvalue. The identification is exact on the
+trench \cite{33}, a curve on which the gradient is orthogonal to the
+Hessian eigenvector of the larger eigenvalue, which is positive. The identification is exact on the
 benchmark, where $\mathbf{H}_D$ is diagonal, and approximate in general.
 
 Away from the crest, both channels take Newton steps of the fitted
@@ -665,7 +654,11 @@ where
 \end{equation}
 The left side of the second test is the Newton step to the stationary
 point, so $c_{\mathrm{crest}}$ is a fraction of the formation radius and
-needs no knowledge of the field's scale.
+needs no knowledge of the field's scale. The second test is evaluated only
+when $\lambda_1\lambda_2 < 0$, where $\hat{\mathbf{H}}_{D,0}$ is invertible,
+and the step is solved exactly. Near the boundary between indefinite and
+definite regions an eigenvalue approaches zero, the step grows without
+bound, and the test fails, so no pseudo-inverse is needed.
 
 Combining the two channels, the crest test selects the along-trench speed,
 \begin{equation}
@@ -689,6 +682,7 @@ and the centroid velocity command is
 Here $k$ is a navigation gain and
 $\mathrm{sat}(c) = c_{\max}\tanh(c/c_{\max})$ saturates each channel at
 speed $c_{\max}$, which caps the centroid speed at $\sqrt{2}\,k\,c_{\max}$.
+The same saturation bounds each Newton step where its eigenvalue nears zero.
 Both branches of $v_\parallel$ are nonnegative, so the along-trench
 motion never opposes the flow. The same law runs where the fitted Hessian
 is definite and no trench exists, with $\mathbf{w}_1$ still the
@@ -722,7 +716,7 @@ with the command $\mathbf{w}_2^\top\dot{\mathbf{p}}_c = k\,\mathrm{sat}(e)$,
 where $e = -\mathbf{w}_2^\top\hat{\mathbf{g}}_0/\lambda_2$ is the signed
 distance to the trench bottom. Assuming a stationary estimate, the
 Lyapunov function $V = \tfrac{1}{2}e^2$ yields $\dot{V} = -k\,e\,\mathrm{sat}(e) < 0$ for
-$e \neq 0$, guaranteeing convergence. This descent assumes positive
+$e \neq 0$ under realized kinematics, guaranteeing local convergence. This descent assumes positive
 curvature ($\lambda_2 > 0$), which holds intrinsically unless inverted by
 noise.
 
@@ -772,8 +766,8 @@ The across-trench channel sees only the component of $\nabla\hat{s}_1$
 along $\mathbf{t}_\perp$ (Fig.~\ref{fig:s1_channels}(b)), so the cluster
 descends only across the trench.
 
-The ride speed does not depend on the slope, so the cluster crosses the
-crest without the crest test the $D$ tracker needs. In incompressible
+The ride speed does not depend on the slope, so on the benchmark the
+cluster crosses the crest without the crest test the $D$ tracker needs. In incompressible
 flow $s_1 = -r \leq 0$, which reaches zero only at an isotropic point,
 where the strain vanishes. Such a point is in general an isolated peak,
 so the crest is a smooth saddle with $r > 0$. There $\nabla\hat{s}_1$
@@ -805,12 +799,16 @@ where $q$ is the fraction by which $\hat{s}_1$ changes across the
 footprint. The ratio is dimensionless, so $q_{\mathrm{cap}}$ needs no
 knowledge of the field's strain rate. It is large along the ride and
 wherever $\hat{s}_1$ nears zero, as at an isotropic point or a gyre
-center, and small only near a minimum. Once the test passes, the tracker
+center. It is also small at any other stationary point of $\hat{s}_1$
+with $\hat{s}_1 < 0$, so the test can pass at a smooth crest. On the
+benchmark the crest sits on an isotropic point, where $\hat{s}_1 = 0$, so
+only the minima pass. Once the test passes, the tracker
 drops the ride term and descends $\hat{s}_1$ for the rest of the run with
-$\dot{\mathbf{p}}_c = -k\,\mathrm{sat}(g_\perp\nabla\hat{s}_1)$. Here
-$\mathrm{sat}$ saturates the vector's magnitude at $c_{\max}$ and
-preserves its direction, which keeps the descent independent of the
-coordinate axes. If noise trips the test early on the trench, the descent
+$\dot{\mathbf{p}}_c = -k\,\mathrm{sat}_{\mathrm{v}}(g_\perp\nabla\hat{s}_1)$,
+where $\mathrm{sat}_{\mathrm{v}}(\mathbf{a}) =
+\mathrm{sat}(\|\mathbf{a}\|)\,\mathbf{a}/\|\mathbf{a}\|$ saturates the
+vector's magnitude and preserves its direction, which keeps the descent
+independent of the coordinate axes. If noise trips the test early on the trench, the descent
 still carries the cluster down the trench to the minimum.
 
 \begin{figure}[!tb]
@@ -835,8 +833,9 @@ command $\mathbf{t}_\perp^\top\dot{\mathbf{p}}_c =
 transverse distance $n$, assuming realized kinematics and an accurate
 gradient fit, the Lyapunov function $V = \tfrac{1}{2}n^2$ yields
 $\dot{V} = -k\,n\,\mathrm{sat}(g_\perp\mathbf{t}_\perp^\top\nabla\hat{s}_1) < 0$
-for $n \neq 0$, guaranteeing local convergence (and ultimate boundedness
-under disturbances below $k\,c_{\max}$). Because no fitted curvature
+for $n \neq 0$, guaranteeing local convergence. It also bounds the
+cluster near the trench under a disturbance smaller than the across-trench
+command at some distance from it, a bound always below $k\,c_{\max}$. Because no fitted curvature
 enters, this descent relies only on the true upward curvature of the
 trench, which holds intrinsically, even at smooth crests, unless an
 intersecting curve of isotropic points flattens the trench, leaving the
@@ -871,7 +870,7 @@ after their first straddle.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=1.0\columnwidth]{figures/traverse_vs_logic_c_seven.png}
+    \includegraphics[width=\columnwidth]{figures/traverse_vs_logic_c_seven.png}
     \caption{$s_1$ tracker versus $D$ tracker from seven matched starts
     ($\bullet$), noise-free, at S1 $(-0.10, 0.30)$, S2 $(0.15, 0.25)$, S3 $(0, 0.35)$,
     S4 $(0, 0)$, S5 $(0, -0.25)$, S6 $(0.15, -0.15)$, and S7 $(0.10, -0.20)$. From above the origin both
@@ -883,7 +882,7 @@ after their first straddle.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=1.0\columnwidth]{figures/separatrix_formation_seven.png}
+    \includegraphics[width=\columnwidth]{figures/separatrix_formation_seven.png}
     \caption{The six robots from start S1 (star) under both trackers,
     zoomed to the separatrix $x = 0$ (dashed). Thin lines are robot
     paths and the heavy line is the centroid. Outlines mark the
@@ -994,7 +993,7 @@ meet it near $y = -0.30$, where it is definite.
 
 \begin{figure}[!tb]
     \centering
-    \includegraphics[width=0.82\columnwidth]{figures/objectivity_rotating.png}
+    \includegraphics[width=\columnwidth]{figures/objectivity_rotating.png}
     \caption{Rotating-observer trial from S1 (star), $10^4$ trials per
     frame, pulled back to inertial coordinates. Lines are mean paths with
     one standard deviation shaded, and squares are median final
@@ -1065,7 +1064,7 @@ trials.
 \label{sec:ocean_sim}
 
 The ocean experiment uses the public HFRNet U.S.~West Coast surface-current
-product for the Santa Barbara Channel, on its 2~km grid \cite{34,38}. We
+product for the Santa Barbara Channel, on its 2~km grid \cite{34,36}. We
 use the record of \cite{26}, 29 hourly frames from May 16, 2012 08:00 GMT
 to May 17, 2012 12:00 GMT, in the same channel and month used by
 \cite{29}. Radar coverage is partial, with 74 to 87\% of the water cells
@@ -1165,7 +1164,9 @@ passage through the origin rests on the benchmark's vanishing shear
 strain. Without it the strain eigenvector
 can tilt off the trench, the open-loop ride along $\mathbf{t}$ then
 pushes the cluster across it, and the crest becomes a smooth saddle where
-tangent selection rests on a weak signal.
+tangent selection rests on a weak signal. Its capture test then passes
+there as well, since $\nabla\hat{s}_1$ vanishes with $\hat{s}_1 < 0$, so
+the tracker can latch before it reaches a minimum.
 
 The $D$ tracker relies on properties of the fitted quadratic and the
 inertial frame. It assumes the crest is a saddle of the fitted $D$, which
@@ -1187,7 +1188,8 @@ untested in a physical flow.
 
 Future work targets three extensions. First, a fit from more than six
 robots becomes least squares, which averages the measurement noise and
-leaves a residual that estimates it online. A cluster could then detect the
+leaves a residual that, where the truncation error is small, estimates
+it online. A cluster could then detect the
 high-noise regime in which neither tracker is reliable. Second, the
 $s_1$ tracker could take as its tangent the strain eigenvector nearest the
 previous tangent, holding the previous tangent where the eigenframe is
@@ -1365,7 +1367,7 @@ vol. 18, no. 2, pp. 1044--1055, 2024.
 
 
 
-\bibitem{38} E. Terrill et al., ``Data management and real-time distribution
+\bibitem{36} E. Terrill et al., ``Data management and real-time distribution
 in the HF-Radar National Network,'' in \textit{Proc. MTS/IEEE OCEANS},
 Boston, MA, USA, Sep. 2006.
 
