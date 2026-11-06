@@ -40,7 +40,7 @@
 \thanks{C. A. Kitts is Professor and Director of the Robotic Systems Laboratory, Department of Mechanical Engineering, Santa Clara University, Santa Clara, CA 95053 USA (e-mail: ckitts@scu.edu)}
 }
 \markboth{IEEE Systems Journal}%
-{Waight and Kitts: Second-Order Cooperative Field Estimation for Multirobot Tracking of Coherent Flow Structures}
+{Waight and Kitts: Second-Order Cooperative Field Estimation and Tracking of Coherent Flow Structures}
 
 \maketitle
 
@@ -55,9 +55,9 @@ We show that a computed second-order polynomial fit of the local flow can be rec
 This quadratic surrogate model can be used as a foundation to calculate two derived fields that map the vector field to scalar invariant fields, the Jacobian determinant field and the smaller rate-of-strain eigenvalue field.
 We develop two adaptive navigation primitives to steer on each of these derived fields along the transport boundaries. Each tracker locates the nearest separating boundary
 and navigates to and along it from instantaneous measurements, with no integration horizon or pre-straddling requirements.
-Monte Carlo analysis shows that the determinant tracker withstands more measurement noise than the rate-of-strain tracker from every tested starting position.
+Monte Carlo analysis shows that the determinant tracker withstands more measurement noise than the rate-of-strain tracker from every tested starting position, by the noise level at which half its runs keep the boundary.
 However, the rate-of-strain tracker is objective in nature and holds the desired trajectory when the observer is rotating while the Jacobian determinant tracker fails.
-On Santa Barbara Channel radar currents, both primitives follow the dominant transport corridor from coast to coast.
+On Santa Barbara Channel radar currents, both primitives follow the dominant transport corridor across the channel.
 
 \end{abstract}
 
@@ -1051,9 +1051,10 @@ transverse curvature $2\pi^6 A^2$, it moves the trench by
 $\Omega\sin(\pi y_f)/(\pi^3 A)$, which is 0.032 and 0.074 at the
 origin for the two rates. The transport velocity also moves the
 stagnation point of $\hat{\mathbf{v}}_0$ about $0.5|\Omega|/(\pi^2 A)$
-from $\mathbf{p}^*_1$. At $|\Omega| = 0.10$ the $D$ tracker captures and
-holds this shifted point, a median 0.067 from $\mathbf{p}^*_1$
-against 0.013 for the $s_1$ tracker. At $|\Omega| = 0.23$ the
+from $\mathbf{p}^*_1$. At $|\Omega| = 0.10$ the $D$ tracker captures this
+shifted point and trails it by a further $0.5|\Omega|/k$, since its hold
+must keep pace with the frame, ending a median 0.067 from
+$\mathbf{p}^*_1$ against 0.013 for the $s_1$ tracker. At $|\Omega| = 0.23$ the
 shift exceeds $\rho$, and its capture test passes in only 1\% of
 trials.
 
@@ -1126,28 +1127,32 @@ Both trackers follow the dominant ridge of the forward FTLE field from the
 channel entrance to the bifurcation and take the same branch past it
 (Fig.~\ref{fig:ocean_ftle}), with no changes to the primitives at the
 ocean operating point of Table~\ref{tab:params}. This agreement is not built
-in, as the field is divergent and not vorticity-free. Along both paths,
-however, the fit is strain-dominated, with $\hat{D} < 0$ on about 80\% of
+in, as the field is divergent and not vorticity-free. Along both paths
+the fit is strain-dominated, with $\hat{D} < 0$ on about 80\% of
 steps and a median $|\hat{\omega}|/2\hat{r}$ of 0.15 to 0.20 from 7 to 21~h.
 $D$ is then close to $s_1 s_2 = \mu^2 - r^2$, where divergence enters only
-as $\mu^2$, a tenth to a fifth of $r^2$. The paths average within 1.3~km of
-each other.
+as $\mu^2$, a tenth to a fifth of $r^2$. Divergence enters
+$s_1 = \mu - r$ linearly, however, so these ratios explain why $D$ follows
+the strain but not why the two trackers agree. That the paths average
+within 1.3~km of each other is an observation on this record.
 
 The $s_1$ tangent also types the structure. From 7 to 14~h it was
 $\mathbf{e}_2$ on 34 of 42 steps, an attracting OECS where floating
 material collects \cite{12}. From 14 to 21~h it was $\mathbf{e}_1$ on 37 of
-42 steps, a repelling OECS where the trench is also a ridge of $s_2$ (on
-58\% of those steps).
+42 steps. In this divergent field such a trench is a repelling OECS only
+where it is also a ridge of $s_2$, which held on 49\% of those steps.
 
 The trackers diverge in speed early in the trial. From 2 to 6.5~h the
 $s_1$ tracker crossed a rotation-dominated patch ($\hat{D} > 0$ on 70\% of
-steps), switching tangents 12 times in 27 steps and making 2.1~km of net
-progress against 8.4~km for the $D$ tracker. Once past it, both kept pace
-along the corridor, with an overall mean distance to the ridge of 1.6~km
-for the $D$ tracker and 2.1~km for the $s_1$ tracker. The $D$ tracker
-reaches land at 23~h. The $s_1$ tracker reached the southern channel
-($34.21^{\circ}\mathrm{N}$) 7~h later, where fitted strain had halved
-\cite{26}; its ridge distance grew to 3.8~km and it remained at sea at
+steps), switching tangents 12 times in 27 steps. Over the first 7~h it
+made 2.1~km of net progress against 8.4~km for the $D$ tracker. Once past
+the patch, both kept pace along the corridor, with an overall mean distance
+to the ridge of 1.6~km for the $D$ tracker and 2.1~km for the $s_1$
+tracker. The $D$ tracker reached the southern channel
+($34.21^{\circ}\mathrm{N}$) at 14~h and land at 23~h. The $s_1$ tracker
+reached the southern channel at 21~h, where fitted strain had halved. Its
+ridge distance then grew to 3.8~km, as the robots of \cite{26} also veered
+off this weakening structure to the south, and it remained at sea at
 28~h.
 
 \section{Limitations and Future Work}
@@ -1210,9 +1215,10 @@ coherent structures of the flow as trenches. On each field we built an
 adaptive navigation primitive that acquires and rides those trenches from
 instantaneous measurements, with no integration horizon and no
 pre-straddling. Without noise, both acquire and traverse the
-double-gyre separatrix from every start and hold the far saddle. The $D$
-tracker withstands more measurement and position noise than the $s_1$
-tracker from every start tested. The $s_1$ tracker is objective past its
+double-gyre separatrix from every start and hold the far saddle. Measured
+by the noise level at which retention falls to 50\%, the $D$ tracker
+withstands more measurement and position noise than the $s_1$ tracker from
+every start tested. The $s_1$ tracker is objective past its
 one seed step, and it alone holds the same path under a rotating observer.
 A cluster with an absolute heading reference, such as a compass or GNSS,
 should therefore carry the $D$ tracker, and one whose flow estimate

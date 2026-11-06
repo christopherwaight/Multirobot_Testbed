@@ -45,13 +45,13 @@
 
 
 \begin{IEEEkeywords}
-Multirobot systems, adaptive navigation, vector fields, critical points, cooperative estimation, cluster control
+Multirobot Systems, Adaptive Navigation, Vector Fields, Critical Points, Cooperative Estimation, Cluster Control
 \end{IEEEkeywords}
 
 
 \section{Introduction}
 
-\IEEEPARstart{M}{ultirobot} systems enhance redundancy, throughput, coverage, and reconfigurability of robotic systems in applications ranging from warehouse fulfillment to search and rescue \cite{1}. Equipped with instruments, they form mobile sensor networks that exploit their spatial distribution to estimate and characterize environmental features across a region \cite{2,3,4}. Adaptive navigation (AN) techniques use these estimates to direct the network to or along features of interest. Unlike survey-oriented navigation, which exhaustively traverses a field and identifies features afterward, AN quickly locates local features and follows them in dynamic environments \cite{5,6,7}.
+\IEEEPARstart{M}{ultirobot} systems enhance the redundancy, throughput, coverage, and reconfigurability of robotic systems in applications ranging from warehouse fulfillment to search and rescue \cite{1}. Equipped with instruments, they form mobile sensor networks that exploit their spatial distribution to estimate and characterize environmental features across a region \cite{2,3,4}. Adaptive navigation (AN) techniques use these estimates to direct the network to or along features of interest. Unlike survey-oriented navigation, which exhaustively traverses a field and identifies features afterward, AN quickly locates local features and follows them in dynamic environments \cite{5,6,7}.
 
 AN in scalar fields is well explored. Each robot collects a single scalar measurement as the input to a navigation policy that reaches and follows features such as extrema, saddle points, ridges, trenches, contour lines, and fronts \cite{5,6,7,8,9}. Strategies include gradient following \cite{10}, Hessian estimation \cite{4}, extended information consensus filters \cite{11,13}, constrained nonsmooth distributed optimization \cite{14}, and bio-inspired search \cite{15}, and several such systems have been field-deployed on ground, surface, and aerial vehicles for environmental monitoring, pollution tracking, and search and rescue \cite{10,18,19,20}.
 
@@ -85,7 +85,7 @@ Near a critical point, the field is well approximated by its linearization, and 
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=1.00\columnwidth]{six_vector_fields_3x2.png}
+    \includegraphics[width=0.98\columnwidth]{six_vector_fields_3x2.png}
     \caption{Six linear vector field types with critical points.}
     \label{fig:allfield}
 \end{figure}
@@ -174,7 +174,7 @@ where $c_w = \sum_i w_i^2 = \frac{1}{3} + \frac{2}{3}\|\mathbf{e}\|^2/R^2$ for a
 
 \subsection{Minimum Robot Requirements}
 
-Equations (\ref{eq:2})--(\ref{eq:3}) each contain three coefficients. From (\ref{eq:4}), each robot contributes one equation to each system: robot $i$ provides $u_i = ax_i + by_i + c$ for the U-component and $v_i = dx_i + ey_i + f$ for the V-component. To uniquely determine three unknowns requires at least three equations. Three robots are therefore the minimum required for critical point estimation.
+Equations (\ref{eq:2})--(\ref{eq:3}) each contain three coefficients. From (\ref{eq:4}), each robot contributes one equation to each system: robot $i$ provides $u_i = ax_i + by_i + c$ for the U-component and $v_i = dx_i + ey_i + f$ for the V-component. To uniquely determine three unknowns requires at least three equations. Therefore: three robots are the minimum required for critical point estimation.
 
 
 Three non-collinear robots are also sufficient: $\det(\mathbf{A})$ equals twice the signed area of the formation triangle, so $\mathbf{A}$ is invertible exactly when the robots are not collinear.
@@ -222,7 +222,7 @@ The multirobot system control architecture chosen is an established multilayer a
 
 Each robot's controller receives velocity commands and translates them into motion. Each robot also samples the local vector field $\mathbf{v}(\mathbf{p}_i) = (u_i, v_i)$ and reports its global position $\mathbf{p}_i$, providing the inputs to the estimation framework described in Section~II.
 
-Details of the hardware platform are described in Section~V. In simulation, each robot is modeled as a single omnidirectional point mass with a first-order response, Coulomb friction, and a speed limit. While the robot moves, its velocity $\mathbf{v}_{r,i} = \dot{\mathbf{p}}_i$ follows its command $\mathbf{v}_{\text{des},i}$ as
+Details of the hardware platform are described in Section~V. In simulation, each robot is modeled as a single omnidirectional point mass with a first order response, Coulomb friction, and a speed limit. While the robot moves, its velocity $\mathbf{v}_{r,i} = \dot{\mathbf{p}}_i$ follows its command $\mathbf{v}_{\text{des},i}$ as
 \begin{equation}
     \dot{\mathbf{v}}_{r,i}(t) = -\frac{1}{\tau}\mathbf{v}_{r,i}(t) + \frac{1}{\tau}\Bigl(\mathbf{v}_{\text{des},i}(t) - v_c\frac{\mathbf{v}_{r,i}(t)}{\|\mathbf{v}_{r,i}(t)\|}\Bigr),
     \label{eq:continuous}
@@ -242,7 +242,7 @@ where $s$ is the new speed and the momentum coefficient $\alpha = e^{-\Delta t/\
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=1.00\columnwidth]{control_architecture_2.png}
+    \includegraphics[width=0.98\columnwidth]{control_architecture_2.png}
     \caption{Hierarchical control architecture: robot, cluster space, and adaptive navigation layers, as in \cite{5,8}. The contents of the feature estimation and navigation controller blocks are new in this paper.}
     \label{fig:control_architecture}
 \end{figure}
@@ -297,7 +297,7 @@ In the sampled loop $T = \alpha'\Delta t/(1-\alpha') + \Delta t/2$, where $\alph
 
 \section{Control Performance in Simulation}
 
-A Python-based simulation implementing the three-layer control architecture described in Section~III was developed to verify the critical point estimation and control primitives in Section~II. Unless stated, all trials used a cluster of three robots in an equilateral triangular formation with a 0.33~m side length, matching the hardware configuration (Section~V), with control gains of $k = 1$~s$^{-1}$ in (\ref{eq:10}), and $k_t = 0.2$~m/s, $k_r = 0.5$~s$^{-1}$ in (\ref{eq:11}). The robots follow the model of Section~III-A, and the commanded centroid speed was limited to 0.5~m/s.
+A Python-based simulation implementing the three-layer control architecture described in Section~III was developed to verify the critical point estimation and control primitives in Section~II. Unless stated otherwise, all simulation trials used a cluster of three robots in an equilateral triangular formation with a 0.33~m side length, matching the hardware configuration (Section~V), with control gains of $k = 1$~s$^{-1}$ in (\ref{eq:10}), and $k_t = 0.2$~m/s, $k_r = 0.5$~s$^{-1}$ in (\ref{eq:11}). The robots follow the model of Section~III-A, and the commanded centroid speed was limited to 0.5~m/s.
 
 Six noise-free analytical fields, one for each of the canonical critical point types listed in Table~\ref{tab:field_summary}, were used for trials, each with its critical point at the origin: sink $(-x,-y)$, source $(x,y)$, saddle $(-y,-x)$, vortex $(-y,x)$, sinking vortex $0.4(-y,x)-0.15(x,y)$, and spewing vortex $0.4(y,-x)+0.15(x,y)$. After performance in noise-free environments was verified, simulations were performed on two fields reconstructed from robot-sensed measurements collected on the hardware testbed (vortex and saddle). These reconstructed fields are a fixed spatial distortion of the analytical fields, fit to the robots' readings on the printed maps, and they add no noise that varies in time.
 
@@ -321,7 +321,7 @@ With lag and friction off, white noise up to 0.03~m/s changes the reconstructed 
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.92\columnwidth]{fig_sim_convergence_band.pdf}
+    \includegraphics[width=0.90\columnwidth]{fig_sim_convergence_band.pdf}
     \caption{Centroid distance to the critical point in simulated plane-fit attraction, mean and $\pm 1$ standard deviation of ten trials per field from evenly spaced starts 0.4~m away. On the analytical vortex every trial parks on the friction ring $v_c/k$, and the reconstructed fields' distortion moves the rest point off it.}
     \label{fig:sim_convergence}
 \end{figure}
@@ -373,7 +373,7 @@ In the nonlinear fields, curvature affected both the localization error and whic
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.92\columnwidth]{fig_nonlinear_triangles.pdf}
+    \includegraphics[width=0.90\columnwidth]{fig_nonlinear_triangles.pdf}
     \caption{The gyre cell in simulation, with the $\det\mathbf{J} = 0$ diamond dashed and the formation to scale. (a) Attraction starts, blue where the cluster reached the center and orange where it reached a saddle. The orange trial starts with a robot outside the diamond. (b) Orbits at $r_d = 0.3$~m, kept, and 0.4~m, lost.}
     \label{fig:nonlinear}
 \end{figure}
@@ -400,7 +400,7 @@ The testbed used for validation is SCU's Robotic Systems Laboratory Decabot test
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.59\columnwidth]{testbed_with_four.png}
+    \includegraphics[width=0.58\columnwidth]{testbed_with_four.png}
     \caption{Experimental testbed: 1.6 m × 1.6 m printed vector field map, Decabot rovers, and OptiTrack system. Four Decabots are shown; the experiments here used three of this fleet.}
     \label{fig:fullbed}
     \end{figure}
@@ -416,7 +416,7 @@ This method of representing vector fields in printed floor maps has imperfection
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.92\columnwidth]{fig_reconstruction_3x2.png}
+    \includegraphics[width=0.90\columnwidth]{fig_reconstruction_3x2.png}
     \caption{Analytical fields, sensor-based reconstructions, and reconstruction error for vortex (top) and saddle (bottom) fields.}
     \label{fig:measurement_error}
 \end{figure}
@@ -428,7 +428,7 @@ This method of representing vector fields in printed floor maps has imperfection
 
 Hardware validation focused on two representative field types that encompass the key challenges of vector field navigation: rotational dynamics (vortex) and hyperbolic instability (saddle). The vortex field tests pure rotational dynamics and provides continuity with previous studies in our research group~\cite{22,48}. The saddle is the only canonical field type that contains separatrices, which act as Lagrangian coherent structures in steady flows. Testing on the saddle field validates that the framework operates reliably in the presence of these structures.
 
-For each field, eight starting locations were selected around the workspace perimeter and the attraction controller (\ref{eq:10}) was run 10 times from each location for \open{20}~s using the three-robot equilateral triangle formation with a \open{0.33 or 0.30}~m side, yielding 80 trials per field. Run order was randomized. Every trial is scored with the metrics of Section~IV, and its final centroid speed is reported so that a cluster still moving is not counted as settled. The classifier of Section~IV-C labels $\hat{\mathbf{J}}$ on every cycle without feeding the controller, and its accuracy is scored against the type of the printed field.
+For each field, eight starting locations were selected around the perimeter of the workspace and the attraction controller (\ref{eq:10}) was run 10 times from each location for \open{20}~s using the three-robot equilateral triangle formation with a \open{0.33 or 0.30}~m side, yielding 80 trials per field. Run order was randomized. Every trial is scored with the metrics of Section~IV, and its final centroid speed is reported so that a cluster still moving is not counted as settled. The classifier of Section~IV-C labels $\hat{\mathbf{J}}$ on every cycle without feeding the controller, and its accuracy is scored against the type of the printed field.
 
 Additionally, each field was used to test the critical point orbiting controller (\ref{eq:11}). A total of \open{six} commanded radii were chosen to match those in simulation, and each was run \open{three} times. Each orbiting controller experiment was run for \open{1800} cycles at 10~Hz, allowing the cluster to complete several orbits around the critical point.
 
@@ -442,9 +442,9 @@ Fig.~\ref{fig:vortextomiddle} shows convergence trajectories from all eight star
 
 \begin{figure}[!t]
     \centering
-    \begin{minipage}[b]{0.48\columnwidth}\centering\includegraphics[width=\textwidth]{placeholder_hw_trajectories_a.png}\end{minipage}\hspace{0.04\columnwidth}%
-    \begin{minipage}[b]{0.48\columnwidth}\centering\includegraphics[width=\textwidth]{placeholder_hw_trajectories_b.png}\end{minipage}\\[2pt]
-    \includegraphics[width=0.72\columnwidth]{placeholder_hw_distance.png}\\[-1pt]
+    \begin{minipage}[b]{0.47\columnwidth}\centering\includegraphics[width=\textwidth]{placeholder_hw_trajectories_a.png}\end{minipage}\hspace{0.04\columnwidth}%
+    \begin{minipage}[b]{0.47\columnwidth}\centering\includegraphics[width=\textwidth]{placeholder_hw_trajectories_b.png}\end{minipage}\\[2pt]
+    \includegraphics[width=0.71\columnwidth]{placeholder_hw_distance.png}\\[-1pt]
     {\footnotesize (c)}
     \caption{\syn{[Placeholder]} Convergence trajectories from eight starting positions to the center of the vortex (a) and saddle (b), with the solid line showing the mean path and the shaded region one standard deviation across the 10 repetitions. (c) Distance to center over time, with mean and standard deviation bounds.}
     \label{fig:vortextomiddle}\label{fig:Tomiddlewithtime}
@@ -506,7 +506,7 @@ Perfect convergence does not occur in simulation. On the analytical fields the e
 
 Positive radial bias at small orbital radii is also a result of robot dynamics. At small radii, the commanded angular rate $k_t / r_d$ is high relative to the radial correction bandwidth $k_r$, and the outward drift from the actuator lag sets the bias (\ref{eq:orbit_cf}). The closed form matches simulation to a median of \rev{0.03}~mm across sweeps of gains, lag, sample period, and friction. At the settings of Section~IV, $r_{\min} = \rev{0.133}$~m, and the error falls below 0.05~m only for $r_d \ge \rev{0.31}$~m. Lowering the orbital speed $k_t$ to 0.1~m/s cuts $r_{\min}$ to \rev{0.058}~m, and removing the lag cuts it to \rev{0.059}~m. Raising the radial gain $k_r$ to 2~s$^{-1}$ cuts it to \rev{0.067}~m, at the cost of increased sensitivity to noise in the critical point estimate.
 
-Comparing the noise-free and reconstructed fields in simulation isolates the effect of field distortion: the fixed distortion of the printed maps is the driving factor of the simulation-reality gap (Section~IV-A), with sensing errors propagating directly through the critical point estimation equations. Noise that varies in time is far smaller. With the formation parked at fixed points, a robot's reading changes by about \syn{$2\times10^{-5}$}~m/s between cycles \open{campaign block E}, while the calibration error of Section~V-A is about 0.02~m/s and fixed at each location. In the final error of Section~III-D, friction sets the spread of final positions through $v_c/k$, and the distortion sets their bias through the estimate error at the critical point.
+Comparing the noise-free and reconstructed fields in simulation isolates the effect of field distortion: the fixed distortion of the printed maps drives the simulation-reality gap (Section~IV-A). Noise that varies in time is far smaller; with the formation parked, a robot's reading changes by about \syn{$2\times10^{-5}$}~m/s between cycles \open{campaign block E}, while the calibration error of Section~V-A is about 0.02~m/s and fixed at each location. In the final error of Section~III-D, friction sets the spread of final positions through $v_c/k$, and the distortion sets their bias.
 
 The hardware orbit metrics separate estimation error from control error. The controller-only bias measures the radius about $\hat{\mathbf{p}}^*$, which (\ref{eq:11}) regulates, instead of about $\mathbf{p}^*$. At $r_d = 0.01$~m it was \syn{0.177}~m in the vortex against a true bias of \syn{0.166}~m, so the small-radius offset arises in the closed loop. At larger radii both the localization error and the within-run spread grow with distance from the critical point.
 
@@ -518,18 +518,18 @@ The measurement term of (\ref{eq:bound}) grows with the extrapolation distance $
 
 \subsection{Comparison with the Vector-to-Scalar Primitive}
 
-The modular architecture allows navigation controllers to be interchanged while cluster and robot controller layers remain fixed. As a result, performance differences between controllers reflect algorithmic rather than implementation variations.
-The vector-to-scalar primitive \cite{48} reduces the flow to its magnitude, and a plane fit to the speeds $S_i = \|\mathbf{v}(\mathbf{p}_i)\|$ at the three robots gives their gradient $\mathbf{g}$. For attraction the cluster descends $\mathbf{g}$, and for orbits the primitive was modified to move tangentially to the direction of steepest descent. To separate what the primitive lacks, an explicit critical point coordinate, from how it is pointed, it was run in simulation with the robot model, gains, and formation of Section~IV in three forms (Table~\ref{tab:baselines}). The first is the primitive alone. The second pairs its tangential steering with the laws (\ref{eq:10})--(\ref{eq:11}) given an oracle, the true critical point, as target and center. The third instead recovers a coordinate from magnitudes alone, placing the point where the fitted speed reaches zero, $\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$ with $S_c$ the fitted speed at the centroid, and feeds it to (\ref{eq:10}) and (\ref{eq:11}).
+The modular architecture lets navigation controllers be interchanged while the cluster and robot controller layers stay fixed, so performance differences reflect algorithmic rather than implementation variations.
+The vector-to-scalar primitive \cite{48} reduces the flow to its magnitude, and a plane fit to the speeds $S_i = \|\mathbf{v}(\mathbf{p}_i)\|$ at the three robots gives their gradient $\mathbf{g}$. For attraction the cluster descends $\mathbf{g}$, and for orbits the primitive was modified to move tangentially to the direction of steepest descent. To separate what the primitive lacks, an explicit critical point coordinate, from how it is pointed, it was run in simulation with the robot model, gains, and formation of Section~IV in three forms (Table~\ref{tab:baselines}): the primitive alone; its tangential steering paired with the laws (\ref{eq:10})--(\ref{eq:11}) given an oracle, the true critical point, as target and center; and a coordinate recovered from magnitudes alone, $\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$ with $S_c$ the fitted speed at the centroid, fed to the same laws.
 
-On the six analytical fields the speed grows equally in every direction, so its gradient points directly away from $\mathbf{p}^*$, and the primitive reached $\mathbf{p}^*$ in every trial (Fig.~\ref{fig:effort}(a)). The fitted gradient keeps the same length at every distance, so the command holds the robots at their speed limit until the cluster passes $\mathbf{p}^*$, overshoots by a median of \newnum{0.031}~m, and rebounds. The Jacobian estimate scales the command with distance, and the cluster slows along a smooth exponential. The primitive settles faster and closer to $\mathbf{p}^*$, because friction stops a proportional command on the ring $v_c/k$, but at \newnum{1.9} times the control effort.
+On the six analytical fields the speed grows equally in every direction, so its gradient points directly away from $\mathbf{p}^*$, and the primitive reached $\mathbf{p}^*$ in every trial (Fig.~\ref{fig:effort}(a)). The fitted gradient keeps its length at every distance, so the command holds the robots at their speed limit until the cluster passes $\mathbf{p}^*$ and overshoots by a median of \newnum{0.031}~m. The Jacobian estimate instead scales the command with distance, slowing the cluster along a smooth exponential. The primitive settles faster and closer to $\mathbf{p}^*$, because friction stops a proportional command on the ring $v_c/k$, but at \newnum{1.9} times the control effort.
 
-In orbit, the primitive alone has no mechanism to detect or correct radial error with respect to a specific point, and so centrifugal drift goes uncorrected. Every orbit spiraled outward off the map (Fig.~\ref{fig:effort}(b)). Given the oracle, the same tangent with the radial term of (\ref{eq:11}) matched the Jacobian method within \newnum{0.002}~m RMSE at every radius. With its own speed estimate the primitive held the radius at a lower RMSE, because the estimate's inward bias offsets the lag drift of Section~III-D. During attraction, however, that estimate never let the cluster settle, and the cluster still moved at \newnum{0.12}~m/s after 10~s.
+In orbit, the primitive alone cannot correct radial error about a specific point, so centrifugal drift went uncorrected and every orbit spiraled off the map (Fig.~\ref{fig:effort}(b)). Given the oracle, the same tangent with the radial term of (\ref{eq:11}) matched the Jacobian method within \newnum{0.002}~m RMSE at every radius. With its own speed estimate the primitive held the radius at a lower RMSE, because the estimate's inward bias offsets the lag drift of Section~III-D; during attraction, however, that estimate left the cluster still moving at \newnum{0.12}~m/s after 10~s.
 
-The speed gradient points away from the critical point only where the speed grows equally in every direction. The anisotropic node $\mathbf{J} = \operatorname{diag}(-1, -0.2)$ is affine, but its speed grows five times more slowly along one axis. There the primitive reached $\mathbf{p}^*$ in \newnum{7}\% of trials, and most of the rest ended on the slow axis, a median \newnum{0.67}~m from $\mathbf{p}^*$. Its speed estimate erred by \newnum{0.46}~m on average during orbits, and even with the oracle most orbits were lost, because the speed contours are ellipses. The Jacobian estimate is exact on any affine field, including the node. In the gyre, the primitive reached the same critical point as the Jacobian method in \newnum{96}\% of trials. The speed vanishes at the center and at the saddles alike, however, so it cannot tell which it has reached, while the Jacobian method labeled the type on every cycle (Section~IV-C). The primitive lost every gyre orbit, and with the oracle every orbit from $r_d = 0.3$~m.
+The speed gradient points away from the critical point only where the speed grows equally in every direction. The anisotropic node $\mathbf{J} = \operatorname{diag}(-1, -0.2)$ is affine, but its speed grows five times more slowly along one axis. There the primitive reached $\mathbf{p}^*$ in \newnum{7}\% of trials, and most of the rest ended on the slow axis, a median \newnum{0.67}~m from $\mathbf{p}^*$. Its speed estimate erred by \newnum{0.46}~m on average during orbits, and even with the oracle most orbits were lost, because the speed contours are ellipses; the Jacobian estimate is exact there, as on any affine field. In the gyre, the primitive reached the same critical point as the Jacobian method in \newnum{96}\% of trials, but the speed vanishes at the center and the saddles alike, so it cannot tell them apart, while the Jacobian method labeled the type on every cycle (Section~IV-C). The primitive lost every gyre orbit, and with the oracle every orbit from $r_d = 0.3$~m.
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.92\columnwidth]{fig_v2s_effort.pdf}
+    \includegraphics[width=0.90\columnwidth]{fig_v2s_effort.pdf}
     \caption{Simulated attraction and orbit on the analytical vortex with the Jacobian estimate and the vector-to-scalar (V2S) primitive, mean and $\pm 1$ standard deviation of ten runs from evenly spaced starts. (a) Centroid speed from 0.4~m, with control effort $E_u$ in the legend. (b) Distance from the critical point at the commanded $r_d = 0.3$~m (dashed).}
     \label{fig:effort}
 \end{figure}
@@ -602,13 +602,13 @@ The authors declare no other financial or non-financial competing interests.
 
 \begin{thebibliography}{99}
 
-\bibitem{1} C. Kitts and M. Egerstedt, "Design, control, and applications of real-world multirobot systems [from the guest editors]," \textit{IEEE Robot. Autom. Mag.}, vol. 15, no. 1, p. 8, Mar. 2008.
+\bibitem{1} C. Kitts and M. Egerstedt, "Design, control, and applications of real-world multirobot systems [from the guest editors]," \textit{IEEE Robotics \& Automation Magazine}, vol. 15, no. 1, p. 8, Mar. 2008.
 
-\bibitem{2} J. Cortés and M. Egerstedt, "Coordinated control of multi-robot systems: A survey," \textit{SICE J. Control Meas. Syst. Integr.}, vol. 10, no. 6, pp. 495--503, 2017.
+\bibitem{2} J. Cortés and M. Egerstedt, "Coordinated control of multi-robot systems: A survey," \textit{SICE Journal of Control, Measurement, and System Integration}, vol. 10, no. 6, pp. 495--503, 2017.
 
-\bibitem{3} P. Ögren, E. Fiorelli, and N. E. Leonard, "Cooperative control of mobile sensor networks: Adaptive gradient climbing in a distributed environment," \textit{IEEE Trans. Autom. Control}, vol. 49, no. 8, pp. 1292--1302, 2004.
+\bibitem{3} P. Ögren, E. Fiorelli, and N. E. Leonard, "Cooperative control of mobile sensor networks: Adaptive gradient climbing in a distributed environment," \textit{IEEE Transactions on Automatic Control}, vol. 49, no. 8, pp. 1292--1302, 2004.
 
-\bibitem{4} L. Briñón-Arranz, A. Renzaglia, and L. Schenato, "Multirobot symmetric formations for gradient and hessian estimation with application to source seeking," \textit{IEEE Trans. Robot.}, vol. 35, no. 3, pp. 782--789, 2019.
+\bibitem{4} L. Briñón-Arranz, A. Renzaglia, and L. Schenato, "Multirobot symmetric formations for gradient and hessian estimation with application to source seeking," \textit{IEEE Transactions on Robotics}, vol. 35, no. 3, pp. 782--789, 2019.
 
 \bibitem{5} C. A. Kitts, R. T. McDonald, and M. A. Neumann, "Adaptive navigation control primitives for multirobot clusters: Extrema finding, contour following, ridge/trench following, and saddle point station keeping," \textit{IEEE Access}, vol. 6, pp. 17625--17642, 2018.
 
@@ -616,81 +616,81 @@ The authors declare no other financial or non-financial competing interests.
 
 \bibitem{7} R. K. Lee et al., "Multiple UAV adaptive navigation for three-dimensional scalar fields," \textit{IEEE Access}, vol. 9, pp. 122626--122654, 2021.
 
-\bibitem{8} R. T. McDonald, C. A. Kitts, and M. A. Neumann, "Navigation of scalar fronts with multirobot clusters in simulation and experiment," \textit{IEEE Syst. J.}, vol. 14, no. 3, pp. 3755--3766, 2020.
+\bibitem{8} R. T. McDonald, C. A. Kitts, and M. A. Neumann, "Navigation of scalar fronts with multirobot clusters in simulation and experiment," \textit{IEEE Systems Journal}, vol. 14, no. 3, pp. 3755--3766, 2020.
 
-\bibitem{9} R. K. Lee, C. A. Kitts, M. A. Neumann, and R. T. McDonald, "3-d adaptive navigation: Multirobot formation control for seeking and tracking of a moving source," in \textit{Proc. IEEE Aerosp. Conf.}, pp. 1--12, 2020.
+\bibitem{9} R. K. Lee, C. A. Kitts, M. A. Neumann, and R. T. McDonald, "3-d adaptive navigation: Multirobot formation control for seeking and tracking of a moving source," in \textit{Proc. IEEE Aerospace Conference}, pp. 1--12, 2020.
 
-\bibitem{10} T. Adamek, C. A. Kitts, and I. Mas, "Gradient-based cluster space navigation for autonomous surface vessels," \textit{IEEE/ASME Trans. Mechatronics}, vol. 20, no. 2, pp. 506--518, 2014.
+\bibitem{10} T. Adamek, C. A. Kitts, and I. Mas, "Gradient-based cluster space navigation for autonomous surface vessels," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 20, no. 2, pp. 506--518, 2014.
 
-\bibitem{11} F. Pagano, N. De Carli, E. Restrepo, A. Marino, and P. Robuffo Giordano, "Distributed multi-robot active-sensing of a diffusive source," \textit{IEEE Robot. Autom. Lett.}, vol. 10, no. 10, pp. 10807--10814, 2025.
+\bibitem{11} F. Pagano, N. De Carli, E. Restrepo, A. Marino, and P. Robuffo Giordano, "Distributed multi-robot active-sensing of a diffusive source," \textit{IEEE Robotics and Automation Letters}, vol. 10, no. 10, pp. 10807--10814, 2025.
 
-\bibitem{13} S. Li, R. Kong, and Y. Guo, "Cooperative distributed source seeking by multiple robots: Algorithms and experiments," \textit{IEEE/ASME Trans. Mechatronics}, vol. 19, no. 6, pp. 1810--1820, 2014.
+\bibitem{13} S. Li, R. Kong, and Y. Guo, "Cooperative distributed source seeking by multiple robots: Algorithms and experiments," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 19, no. 6, pp. 1810--1820, 2014.
 
-\bibitem{14} Z. Deng and J. Luo, "Fully distributed algorithms for constrained nonsmooth optimization problems of general linear multiagent systems and their application," \textit{IEEE Trans. Autom. Control}, vol. 69, no. 2, pp. 1377--1384, 2023.
+\bibitem{14} Z. Deng and J. Luo, "Fully distributed algorithms for constrained nonsmooth optimization problems of general linear multiagent systems and their application," \textit{IEEE Transactions on Automatic Control}, vol. 69, no. 2, pp. 1377--1384, 2023.
 
-\bibitem{15} W. Li, J. A. Farrell, S. Pang, and R. M. Arrieta, "Moth-inspired chemical plume tracing on an autonomous underwater vehicle," \textit{IEEE Trans. Robot.}, vol. 22, no. 2, pp. 292--307, 2006.
+\bibitem{15} W. Li, J. A. Farrell, S. Pang, and R. M. Arrieta, "Moth-inspired chemical plume tracing on an autonomous underwater vehicle," \textit{IEEE Transactions on Robotics}, vol. 22, no. 2, pp. 292--307, 2006.
 
-\bibitem{18} S. R. Ramp et al., "Preparing to predict: the second autonomous ocean sampling network (AOSN-II) experiment in the Monterey Bay," \textit{Deep Sea Res. Part II: Top. Stud. Oceanogr.}, vol. 56, no. 3-5, pp. 68--86, 2009.
+\bibitem{18} S. R. Ramp et al., "Preparing to predict: the second autonomous ocean sampling network (AOSN-II) experiment in the Monterey Bay," \textit{Deep Sea Research Part II: Topical Studies in Oceanography}, vol. 56, no. 3-5, pp. 68--86, 2009.
 
-\bibitem{19} J. Das et al., "Coordinated sampling of dynamic oceanographic features with underwater vehicles and drifters," \textit{Int. J. Robot. Res.}, vol. 31, no. 5, pp. 626--646, 2012.
+\bibitem{19} J. Das et al., "Coordinated sampling of dynamic oceanographic features with underwater vehicles and drifters," \textit{The International Journal of Robotics Research}, vol. 31, no. 5, pp. 626--646, 2012.
 
-\bibitem{20} J. Wang et al., "Dynamic plume tracking by cooperative robots," \textit{IEEE/ASME Trans. Mechatronics}, vol. 24, no. 2, pp. 609--620, 2019.
+\bibitem{20} J. Wang et al., "Dynamic plume tracking by cooperative robots," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 24, no. 2, pp. 609--620, 2019.
 
-\bibitem{21} K. Garg and D. Panagou, "Finite-time estimation and control for multi-aircraft systems under wind and dynamic obstacles," \textit{J. Guid. Control Dyn.}, vol. 42, no. 7, pp. 1489--1505, 2019.
+\bibitem{21} K. Garg and D. Panagou, "Finite-time estimation and control for multi-aircraft systems under wind and dynamic obstacles," \textit{Journal of Guidance, Control, and Dynamics}, vol. 42, no. 7, pp. 1489--1505, 2019.
 
-\bibitem{22} C. Waight and C. Kitts, "A functional indoor testbed for multirobot adaptive navigation in vector field environments," in \textit{Proc. ASME Int. Design Eng. Tech. Conf. Comput. Inf. Eng. Conf.}, vol. 89251, 2025.
+\bibitem{22} C. Waight and C. Kitts, "A functional indoor testbed for multirobot adaptive navigation in vector field environments," in \textit{Proc. ASME Int. Design Engineering Technical Conf. Computers and Information in Engineering Conf.}, vol. 89251, 2025.
 
-\bibitem{23} M. Michini, M. A. Hsieh, E. Forgoston, and I. B. Schwartz, "Robotic tracking of coherent structures in flows," \textit{IEEE Trans. Robot.}, vol. 30, no. 3, pp. 593--603, 2014.
+\bibitem{23} M. Michini, M. A. Hsieh, E. Forgoston, and I. B. Schwartz, "Robotic tracking of coherent structures in flows," \textit{IEEE Transactions on Robotics}, vol. 30, no. 3, pp. 593--603, 2014.
 
-\bibitem{24} D. R. Nelson, D. B. Barber, T. W. McLain, and R. W. Beard, "Vector field path following for miniature air vehicles," \textit{IEEE Trans. Robot.}, vol. 23, no. 3, pp. 519--529, 2007.
+\bibitem{24} D. R. Nelson, D. B. Barber, T. W. McLain, and R. W. Beard, "Vector field path following for miniature air vehicles," \textit{IEEE Transactions on Robotics}, vol. 23, no. 3, pp. 519--529, 2007.
 
-\bibitem{25} W. Yao, H. G. de Marina, B. Lin, and M. Cao, "Singularity-free guiding vector field for robot navigation," \textit{IEEE Trans. Robot.}, vol. 37, no. 4, pp. 1206--1221, 2021.
+\bibitem{25} W. Yao, H. G. de Marina, B. Lin, and M. Cao, "Singularity-free guiding vector field for robot navigation," \textit{IEEE Transactions on Robotics}, vol. 37, no. 4, pp. 1206--1221, 2021.
 
-\bibitem{26} D. Panagou, "Motion planning and collision avoidance using navigation vector fields," in \textit{Proc. IEEE Int. Conf. Robot. Autom.}, 2014, pp. 2513--2518.
+\bibitem{26} D. Panagou, "Motion planning and collision avoidance using navigation vector fields," in \textit{Proc. IEEE International Conference on Robotics and Automation}, 2014, pp. 2513--2518.
 
-\bibitem{28} X. Wang et al., "Adaptive vector field guidance without a priori knowledge of course dynamics and wind," \textit{IEEE/ASME Trans. Mechatronics}, vol. 27, no. 6, pp. 4597--4607, 2022.
+\bibitem{28} X. Wang et al., "Adaptive vector field guidance without a priori knowledge of course dynamics and wind," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 27, no. 6, pp. 4597--4607, 2022.
 
-\bibitem{29} Y. Zhang, M. A. Godin, J. G. Bellingham, and J. P. Ryan, "Using an autonomous underwater vehicle to track a coastal upwelling front," \textit{IEEE J. Ocean. Eng.}, vol. 37, no. 3, pp. 338--347, 2012.
+\bibitem{29} Y. Zhang, M. A. Godin, J. G. Bellingham, and J. P. Ryan, "Using an autonomous underwater vehicle to track a coastal upwelling front," \textit{IEEE Journal of Oceanic Engineering}, vol. 37, no. 3, pp. 338--347, 2012.
 
-\bibitem{32} D. Kularatne and M. A. Hsieh, "Tracking attracting manifolds in flows," \textit{Auton. Robots}, vol. 41, no. 8, pp. 1575--1588, 2017.
+\bibitem{32} D. Kularatne and M. A. Hsieh, "Tracking attracting manifolds in flows," \textit{Autonomous Robots}, vol. 41, no. 8, pp. 1575--1588, 2017.
 
-\bibitem{36} X. Tricoche, G. Scheuermann, and H. Hagen, "Continuous topology simplification of planar vector fields," in \textit{Proc. IEEE Vis.}, pp. 159--166, 2001.
+\bibitem{36} X. Tricoche, G. Scheuermann, and H. Hagen, "Continuous topology simplification of planar vector fields," in \textit{Proc. IEEE Visualization}, pp. 159--166, 2001.
 
-\bibitem{37} W. G. Pichel et al., "Marine debris collects within the North Pacific subtropical convergence zone," \textit{Mar. Pollut. Bull.}, vol. 54, no. 8, pp. 1207--1211, 2007.
+\bibitem{37} W. G. Pichel et al., "Marine debris collects within the North Pacific subtropical convergence zone," \textit{Marine Pollution Bulletin}, vol. 54, no. 8, pp. 1207--1211, 2007.
 
-\bibitem{38} M. Mateus, R. Canelas, L. Pinto, and N. Vaz, "When tragedy strikes: potential contributions from ocean observation to search and rescue operations after drowning accidents," \textit{Front. Mar. Sci.}, vol. 7, p. 55, 2020.
+\bibitem{38} M. Mateus, R. Canelas, L. Pinto, and N. Vaz, "When tragedy strikes: potential contributions from ocean observation to search and rescue operations after drowning accidents," \textit{Frontiers in Marine Science}, vol. 7, p. 55, 2020.
 
-\bibitem{40} P. Keramea, K. Spanoudaki, G. Zodiatis, G. Gikas, and G. Sylaios, "Oil spill modeling: A critical review on current trends, perspectives, and challenges," \textit{J. Mar. Sci. Eng.}, vol. 9, no. 2, p. 181, 2021.
+\bibitem{40} P. Keramea, K. Spanoudaki, G. Zodiatis, G. Gikas, and G. Sylaios, "Oil spill modeling: A critical review on current trends, perspectives, and challenges," \textit{Journal of Marine Science and Engineering}, vol. 9, no. 2, p. 181, 2021.
 
-\bibitem{41} J. Wang, Y. Lin, R. Liu, and J. Fu, "Odor source localization of multi-robots with swarm intelligence algorithms: A review," \textit{Front. Neurorobot.}, vol. 16, p. 949888, 2022.
+\bibitem{41} J. Wang, Y. Lin, R. Liu, and J. Fu, "Odor source localization of multi-robots with swarm intelligence algorithms: A review," \textit{Frontiers in Neurorobotics}, vol. 16, p. 949888, 2022.
 
-\bibitem{43} C. Dong et al., "Oceanic mesoscale eddies," \textit{Ocean-Land-Atmos. Res.}, vol. 4, p. 0081, 2025.
+\bibitem{43} C. Dong et al., "Oceanic mesoscale eddies," \textit{Ocean-Land-Atmosphere Research}, vol. 4, p. 0081, 2025.
 
-\bibitem{44} Z. Li, X. Wang, J. Hu, F. P. Andutta, and Z. Liu, "A study on an anticyclonic-cyclonic eddy pair off Fraser Island, Australia," \textit{Front. Mar. Sci.}, vol. 7, p. 594358, 2020.
+\bibitem{44} Z. Li, X. Wang, J. Hu, F. P. Andutta, and Z. Liu, "A study on an anticyclonic-cyclonic eddy pair off Fraser Island, Australia," \textit{Frontiers in Marine Science}, vol. 7, p. 594358, 2020.
 
-\bibitem{45} R. Deogharia, H. Gupta, S. Sil, A. Gangopadhyay, and A. Shee, "On the evidence of helico-spiralling recirculation within coherent cores of eddies using Lagrangian approach," \textit{Sci. Rep.}, vol. 14, no. 1, p. 11014, 2024.
+\bibitem{45} R. Deogharia, H. Gupta, S. Sil, A. Gangopadhyay, and A. Shee, "On the evidence of helico-spiralling recirculation within coherent cores of eddies using Lagrangian approach," \textit{Scientific Reports}, vol. 14, no. 1, p. 11014, 2024.
 
-\bibitem{30} T. Inanc, S. C. Shadden, and J. E. Marsden, "Optimal trajectory generation in ocean flows," in \textit{Proc. Amer. Control Conf.}, pp. 674--679, 2005.
+\bibitem{30} T. Inanc, S. C. Shadden, and J. E. Marsden, "Optimal trajectory generation in ocean flows," in \textit{Proc. American Control Conference}, pp. 674--679, 2005.
 
-\bibitem{31} R. N. Smith, M. Schwager, S. L. Smith, B. H. Jones, D. Rus, and G. S. Sukhatme, "Persistent ocean monitoring with underwater gliders: Adapting sampling resolution," \textit{J. Field Robot.}, vol. 28, no. 5, pp. 714--741, 2011.
+\bibitem{31} R. N. Smith, M. Schwager, S. L. Smith, B. H. Jones, D. Rus, and G. S. Sukhatme, "Persistent ocean monitoring with underwater gliders: Adapting sampling resolution," \textit{Journal of Field Robotics}, vol. 28, no. 5, pp. 714--741, 2011.
 
-\bibitem{33} G. Knizhnik, P. Li, X. Yu, and M. A. Hsieh, "Flow-based control of marine robots in gyre-like environments," in \textit{Proc. IEEE Int. Conf. Robot. Autom. (ICRA)}, pp. 3047--3053, 2022.
+\bibitem{33} G. Knizhnik, P. Li, X. Yu, and M. A. Hsieh, "Flow-based control of marine robots in gyre-like environments," in \textit{Proc. IEEE International Conference on Robotics and Automation (ICRA)}, pp. 3047--3053, 2022.
 
-\bibitem{46} Y. Jiao, H. Hang, J. Merel, and E. Kanso, "Sensing flow gradients is necessary for learning autonomous underwater navigation," \textit{Nat. Commun.}, vol. 16, no. 1, p. 3044, 2025.
+\bibitem{46} Y. Jiao, H. Hang, J. Merel, and E. Kanso, "Sensing flow gradients is necessary for learning autonomous underwater navigation," \textit{Nature Communications}, vol. 16, no. 1, p. 3044, 2025.
 
-\bibitem{47} D. Rajabhandharaks, R. T. McDonald, M. A. Neumann, and C. A. Kitts, "Indoor testbed for vector field multirobot adaptive navigation: Feasibility study," in \textit{Proc. ASME Int. Design Eng. Tech. Conf. Comput. Inf. Eng. Conf.}, vol. 59292, p. V009T12A043, 2019.
+\bibitem{47} D. Rajabhandharaks, R. T. McDonald, M. A. Neumann, and C. A. Kitts, "Indoor testbed for vector field multirobot adaptive navigation: Feasibility study," in \textit{Proc. ASME Int. Design Engineering Technical Conf. Computers and Information in Engineering Conf.}, vol. 59292, p. V009T12A043, 2019.
 
-\bibitem{48} R. Cooper et al., "Initial Study of Multirobot Adaptive Navigation for Exploring Environmental Vector Fields," in \textit{Proc. IEEE Aerosp. Conf.}, 2019.
+\bibitem{48} R. Cooper et al., "Initial Study of Multirobot Adaptive Navigation for Exploring Environmental Vector Fields," in \textit{Proc. IEEE Aerospace Conference}, 2019.
 
-\bibitem{49} Z. Zhou, J. Liu, and J. Yu, "A survey of underwater multi-robot systems," \textit{IEEE/CAA J. Autom. Sinica}, vol. 9, no. 1, pp. 1--18, 2021.
+\bibitem{49} Z. Zhou, J. Liu, and J. Yu, "A survey of underwater multi-robot systems," \textit{IEEE/CAA Journal of Automatica Sinica}, vol. 9, no. 1, pp. 1--18, 2021.
 
-\bibitem{50} C. A. Kitts and I. Mas, "Cluster space specification and control of mobile multirobot systems," \textit{IEEE/ASME Trans. Mechatronics}, vol. 14, no. 2, pp. 207--218, 2009.
+\bibitem{50} C. A. Kitts and I. Mas, "Cluster space specification and control of mobile multirobot systems," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 14, no. 2, pp. 207--218, 2009.
 
-\bibitem{51} I. Mas and C. Kitts, "Obstacle avoidance policies for cluster space control of nonholonomic multirobot systems," \textit{IEEE/ASME Trans. Mechatronics}, vol. 17, no. 6, pp. 1068--1079, 2012.
+\bibitem{51} I. Mas and C. Kitts, "Obstacle avoidance policies for cluster space control of nonholonomic multirobot systems," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 17, no. 6, pp. 1068--1079, 2012.
 
-\bibitem{52} S. Tomer et al., "A low-cost indoor testbed for multirobot adaptive navigation research," in \textit{Proc. IEEE Aerosp. Conf.}, pp. 1--12, 2018.
+\bibitem{52} S. Tomer et al., "A low-cost indoor testbed for multirobot adaptive navigation research," in \textit{Proc. IEEE Aerospace Conference}, pp. 1--12, 2018.
 
-\bibitem{53} S. T. Hart and C. A. Kitts, "Unifying control architecture for reactive particle swarms," \textit{IEEE/ASME Trans. Mechatronics}, vol. 28, no. 2, pp. 873--883, 2022.
+\bibitem{53} S. T. Hart and C. A. Kitts, "Unifying control architecture for reactive particle swarms," \textit{IEEE/ASME Transactions on Mechatronics}, vol. 28, no. 2, pp. 873--883, 2022.
 
 \end{thebibliography}
 

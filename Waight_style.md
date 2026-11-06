@@ -113,6 +113,8 @@ be" and "could" are his; leave them.
 | trench, ridge | valley, crest line |
 | measurement noise, position noise | sensor error, localization error |
 | separatrix | boundary, dividing line |
+| attracting / repelling OECS | converging / diverging structure |
+| formation matrix Φ | design matrix |
 
 ---
 
