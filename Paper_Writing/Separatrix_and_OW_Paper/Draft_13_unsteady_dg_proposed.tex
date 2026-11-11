@@ -1,0 +1,1098 @@
+% Draft_13_unsteady_dg_proposed.tex
+%
+% SIDE NOTES for Draft_13.tex, written 2026-11-06. Not part of the paper.
+% Standalone: compile with
+%     pdflatex Draft_13_unsteady_dg_proposed.tex   (twice; Draft_13.aux must exist)
+% References to the paper's own equations, figures, and sections resolve
+% against Draft_13.aux through the xr package and print the paper's numbers.
+% Everything numbered inside these notes carries an N prefix.
+%
+% Every number here is new simulation output awaiting review. None is in
+% Draft_13.tex. Part III holds proposed paper text; nothing there is applied.
+%
+% Sources, all under trunk/Python_Simulations/Vector_Fields/VF_Robot/:
+%   experiments/unsteady_dg/mc_unsteady_double_gyre.py  --tag n1000, --tag eps025_vmax008
+%   experiments/unsteady_dg/mc_bent_double_gyre.py      --tag n500, --diag
+%   experiments/unsteady_dg/mc_bickley_jet.py           --tag n1000, --geom
+%   experiments/unsteady_dg/trench_offset.py, scope_ratio.py, path_ratio.py --tag n50
+%   experiments/unsteady_dg/analyze.py, fig_notes.py (all four figures)
+% Outputs: experiments/unsteady_dg/outputs/
+
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{url}
+\usepackage{xr}
+\externaldocument{Draft_13}
+\graphicspath{{figures/notes_unsteady/}}
+
+\renewcommand{\theequation}{N\arabic{equation}}
+\renewcommand{\thefigure}{N\arabic{figure}}
+\renewcommand{\thetable}{N\arabic{table}}
+\renewcommand{\thealgorithm}{N\arabic{algorithm}}
+\setlength{\parskip}{4pt}
+
+\newcommand{\Dtr}{$D$ tracker}
+\newcommand{\Str}{$s_1$ tracker}
+
+\title{What the $D$ and $s_1$ Trackers Track\\[2pt]
+\large Notes on Draft 13 beyond the steady double gyre}
+\author{Prepared for C. Waight}
+\date{November 6, 2026}
+
+\begin{document}
+\maketitle
+
+\noindent These notes collect one afternoon of new simulations on three
+fields that remove the special structure of the steady double gyre. Part~I
+summarizes what was found and what it means for the paper. Part~II gives
+the evidence field by field. Part~III holds proposed paper text in the
+paper's register, including old and new wording for four existing
+sentences of Draft~13. The appendices record where every number came
+from and which edits to Draft~13 were applied earlier in the session.
+Equation, figure, and section numbers without an N prefix refer to
+Draft~13.
+
+\tableofcontents
+
+%======================================================================
+\part{Summary}
+%======================================================================
+
+\section{Why these runs}
+
+Every simulated review of Draft~13 raised the same objection. The steady
+double gyre is a benchmark on which both surrogate fields mark the
+separatrix exactly, and a reviewer can fairly ask whether that is a
+property of the trackers or of the benchmark. Section~\ref{sec:dg_example}
+already lists the reasons. On the steady gyre the shear strain vanishes
+everywhere, the vorticity vanishes on the separatrix, so
+$\mathbf{J} = \mathbf{S}$ there and $D = -s_1^2$, the Hessian
+$\mathbf{H}_D$ is diagonal, and the separatrix is a straight, stationary
+line.
+
+Three test fields remove these properties one group at a time. The
+time-periodic double gyre adds shear and vorticity on the separatrix and
+sets it moving, but keeps it straight. A bent double gyre, constructed for
+these notes, keeps the flow steady but curves the separatrix and puts
+strong vorticity on it. A Bickley jet replaces the gyres with a sheared
+zonal jet whose cat's-eye eddies are bounded by curved separatrices on
+which rotation exceeds strain. Each field runs a seven-start Monte
+Carlo protocol modeled on Section~\ref{sec:dg_bench}, noise-free, with the
+paper's formation, gains, and primitives unchanged.
+
+\section{The short answer}
+
+The two trackers do what they were designed to do. Each one rides a trench
+of its own derived field: the \Dtr{} rides trenches of the Jacobian
+determinant, and the \Str{} rides trenches of the smaller strain
+eigenvalue. Neither field knows where the separatrix is. The trenches lie
+on the separatrix only when the separatrix carries little rotation
+compared with its strain, and the steady double gyre is the extreme case,
+with no rotation on the separatrix at all.
+
+As rotation on the separatrix grows, the trenches drift off it, and the
+trackers drift with them (Fig.~\ref{fig:structures}). Straddle retention
+against the true separatrix then falls in step with a single quantity the
+cluster can compute from its own fit, the rotation-to-strain ratio
+$|\hat\omega|/2\hat r$ at the centroid (Fig.~\ref{fig:scope}). Where its
+median along the ride is below about 0.1, the \Dtr{} keeps the straddle in
+97 to 100\% of trials. Near 0.3 both trackers keep it in a quarter to a
+half of trials. Above 0.5 neither keeps it in more than 10\% of trials. The Santa Barbara record of
+Section~\ref{sec:disc_ocean} sits at 0.15 to 0.20, between the regimes
+that work and the regimes that partly work.
+
+For the paper this is a framing problem, not a broken method. The
+estimator, both primitives as trench followers, the noise comparison of
+Section~\ref{sec:disc_noise}, and the objectivity result of
+Section~\ref{sec:rotating} all stand. The sentences that tie the trackers
+to separatrices in general need a scope condition, and the scope condition
+can be stated with a number the robots measure themselves.
+
+\section{What the trackers actually track}
+\label{sec:what}
+
+A separatrix is a property of the flow's topology. It is the streamline
+that leaves one saddle and arrives at another, and in a steady flow it is
+an exact transport boundary, since fluid never crosses a streamline. The
+two surrogate fields are properties of the local velocity gradient
+instead. Writing the fitted Jacobian through its mean, strain, and
+rotation parts,
+\begin{equation}
+    \mathbf{J} =
+    \begin{bmatrix}
+        \mu + s_n & s_s - \omega/2 \\
+        s_s + \omega/2 & \mu - s_n
+    \end{bmatrix},
+    \qquad
+    D = \det\mathbf{J} = \mu^2 - r^2 + \tfrac{1}{4}\omega^2,
+    \qquad
+    s_1 = \mu - r,
+    \label{eq:Jparts}
+\end{equation}
+with $r = \sqrt{s_n^2 + s_s^2}$ the strain rate. A trench of $D$ is a
+curve where strain most outweighs rotation, the Okubo-Weiss partition read
+as a landscape \cite{8,22}. A trench of $s_1$ is a curve of strongest
+instantaneous compression or stretching, which includes the attracting and
+repelling OECS of \cite{19}. Neither condition mentions streamlines.
+
+On the steady double gyre the two descriptions agree because the vorticity
+vanishes on the separatrix. There $\omega = 0$ and $\mu = 0$, so
+$D = -r^2 = -s_1^2$, and the separatrix sits at the bottom of both
+landscapes. Once the separatrix carries vorticity, the term
+$\tfrac{1}{4}\omega^2$ in (\ref{eq:Jparts}) acquires a transverse gradient
+and pushes the trench of $D$ sideways. This is the mechanism of
+Section~\ref{sec:rotating}, where a rotating observer adds a uniform spin
+$\Omega$ and the term $\Omega\omega$ of (\ref{eq:D_not_objective}) moves
+the trench of $D$ off the separatrix. Here the flow supplies the spin
+itself. The field $s_1$ contains no vorticity at all, and it marks curves
+of the strain geometry. The direction of a streamline, however, depends on
+the whole of $\mathbf{J}$, so where rotation enters $\mathbf{J}$ nothing
+ties the streamline to the trenches of $s_1$.
+
+Fig.~\ref{fig:structures} shows the result on all four fields. On the
+steady gyre the three curves coincide. On the time-periodic gyre at peak
+forcing both trenches sit within 0.035 of the separatrix. On the bent
+gyre with $\delta = 0.2$ the trench of $D$ bows up to 0.078 past the
+separatrix and the trench of $s_1$ up to 0.155, about twice the formation
+radius $\rho = 0.075$. On the Bickley jet the trench of $s_1$ runs nearly
+flat along the jet flank and crosses the U-shaped separatrix, and $D$ has
+no trench near the separatrix at 40\% of positions along it.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\textwidth]{notes_structures.png}
+    \caption{The separatrix (black) against the true trench of $D$
+    (orange, solid) and of $s_1$ (blue, dashed) on the four test fields,
+    computed from the analytic field rather than the fit. Light streamlines
+    show the flow, the shaded regions are rotation-dominated ($D > 0$),
+    crosses mark the saddles, and the dotted circle has the formation
+    radius $\rho = 0.075$ for scale. (a) Steady double gyre, where all
+    three curves coincide. (b) Time-periodic gyre, $\epsilon = 0.25$, at
+    peak forcing $\sin\omega t = 1$. (c) Bent gyre, $\delta = 0.2$.
+    (d) Bickley jet, with the eye center as a gray dot. Each trench is the
+    nearest local minimum across the separatrix, so gaps mark heights or
+    positions where none exists within the search window. Notice how far
+    the trenches bow in (c) and how the $s_1$ trench in (d) crosses the
+    separatrix instead of following it.}
+    \label{fig:structures}
+\end{figure}
+
+What the trackers follow is therefore meaningful, but it is a different
+object from the one the paper names. The case for the trackers is that
+$s_1$ trenches mark where floating material is attracted or repelled most
+strongly right now, and floating material has been observed at sea to
+collect onto attracting OECS \cite{12}. Furthermore, in unsteady flow
+streamlines are not particle paths, so the instantaneous separatrix is not
+a material boundary anyway. The case against
+is that on a steady flow the separatrix is the transport boundary, and a
+trench that leaves it is a curve that fluid crosses. Both cases are
+correct. The paper can keep its claims by naming the trench as the target
+and stating when the trench marks the separatrix.
+
+\section{How bad, in numbers}
+
+Table~\ref{tab:pooled} gives the pooled outcomes on every field, and
+Fig.~\ref{fig:scope} plots them against the median fitted
+$|\hat\omega|/2\hat r$ along each ride. Three regimes appear.
+
+\begin{itemize}
+\item Below about 0.1 (steady gyre, time-periodic gyre at
+$\epsilon = 0.1$), both trackers reach the downstream saddle in more than
+96\% of trials. The \Dtr{} keeps the straddle in 97 to 100\%, and the
+\Str{} in 59 to 100\%.
+\item Near 0.3 (bent gyre, $\delta = 0.1$), success holds or falls modestly
+(71\% for the \Dtr{}, 99.7\% for the \Str{}), while retention falls to
+53\% and 24\%.
+\item Above 0.5 (bent gyre at $\delta = 0.2$, Bickley jet), retention is
+under 10\% for both, and on the Bickley jet neither tracker reaches the
+downstream saddle in more than 4.1\% of trials.
+\end{itemize}
+
+The time-periodic gyre at $\epsilon = 0.25$ fails for a different reason.
+Its separatrix moves faster than either tracker's across-trench channel
+can command, and doubling $c_{\max}$ recovers most of the loss
+(Section~\ref{sec:tp}). It is drawn hollow in Fig.~\ref{fig:scope} and
+left out of the regimes above.
+
+Success is a weaker signal than retention. A trench that leaves the
+separatrix in mid-span still meets it near the saddles on the gyres, so a
+tracker can lose the separatrix and still arrive. Retention measures
+whether the cluster stayed on the separatrix, which is what the paper
+claims.
+
+\section{What survives and what changes}
+
+The estimator, the minimality result, the sensitivity analysis, both
+surrogate fields, both primitives, the noise comparison, and the
+objectivity comparison are untouched. They are statements about the fit
+and about trench following, and none of the new runs contradicts them.
+
+Four passages tie the trackers to separatrices in general and need a scope
+condition. Part~III gives old and new wording for each.
+\begin{enumerate}
+\item Section~\ref{sec:surrogates}: ``In the flows studied here,
+separatrices run along the trenches of $D$ inside the strain-dominated
+regions.''
+\item The abstract: ``Each tracker locates the nearest separating
+boundary and navigates to and along it.''
+\item Section~\ref{sec:disc_limits}: the $s_1$ tracker's ``passage through
+the origin rests on the benchmark's vanishing shear strain,'' which the
+time-periodic gyre now tests directly.
+\item Section~\ref{sec:disc_limits} gains one paragraph on the scope
+condition and on the ratio as an online check.
+\end{enumerate}
+
+One addition could become a contribution. The cluster computes
+$|\hat\omega|/2\hat r$ from the first-order coefficients of the same fit,
+the least noisy ones (Section~\ref{sec:sensitivity}), so it could flag
+online when its trench is unlikely to mark a transport boundary.
+Algorithm~\ref{alg:indicator} states the computation. It has not been
+built into either primitive.
+
+\section{Open items}
+
+\begin{enumerate}
+\item \textbf{Score each tracker against its own true trench.} The
+retention numbers here are measured against the separatrix. The same
+trials scored against the true trench of each tracker's own field would
+separate ``wrong target'' from ``lost target.'' Fig.~\ref{fig:rides}
+suggests wrong target for the \Str{} on the Bickley jet, since its rides
+end on its own flat trench. The \Dtr{} failures from S6 and S7 on the bent
+gyre are not yet explained.
+\item \textbf{Threshold or trend.} Five steady-structure conditions in
+three families give a monotone trend, not a threshold. Intermediate
+values of $\delta$ and $\epsilon$, and one or two more field families,
+would show whether a usable cutoff exists.
+\item \textbf{Noise.} Every run here is noise-free. The fitted ratio uses
+first-order coefficients, so it should degrade slowly with noise, but that
+is untested.
+\item \textbf{Lagrangian reference.} On the time-periodic gyre the
+material boundary is the FTLE ridge of the unsteady flow, not the
+instantaneous separatrix. No comparison against it was run.
+\item \textbf{Bickley citation.} The paper-search corpus holds no primary
+source for the Bickley jet, so Part~III cites none. A source would need
+to be checked and added before the subsection could go in.
+\item \textbf{Constructed field.} The bent gyre was built for these notes
+and has no literature source. If it goes in the paper it should be
+described as constructed.
+\end{enumerate}
+
+%======================================================================
+\part{Evidence}
+%======================================================================
+
+\section{Common protocol}
+\label{sec:protocol}
+
+Every field uses the paper's pentagon-plus-center formation with
+$\rho = 0.075$, the double-gyre operating point of Table~\ref{tab:params},
+and the two primitives exactly as in Sections~\ref{sec:sep_controller}
+and \ref{sec:s1_controller}. The runs are noise-free. Each trial draws a
+random heading, and on the time-periodic gyre a random forcing phase, and
+the two trackers share both draws, so every comparison between them is
+paired. Algorithm~\ref{alg:trial} gives one trial.
+
+The scoring follows Section~\ref{sec:dg_bench} with two changes. First,
+straddle, acquisition, and success are measured against the moving or
+curved separatrix and saddles instead of $x = 0$ and fixed points. Second,
+one stopping rule serves both trackers, which answers the reviewer comment
+on inconsistent criteria. After contact with the downstream saddle the run
+continues for 100 steps, one forcing period of the time-periodic gyre, and
+the hold is the fraction of those steps spent within 0.06 of it.
+
+\begin{algorithm}[H]
+\caption{One Monte Carlo trial on a test field}
+\label{alg:trial}
+\begin{tabbing}
+\hspace{1.5em}\=\hspace{1.5em}\=\hspace{1.5em}\=\kill
+\textbf{Input:} field $\mathbf{v}(\mathbf{p}, t)$; separatrix $\Gamma(t)$;
+downstream saddle $\mathbf{p}^*_1(t)$; upstream saddle $\mathbf{p}^*_2(t)$;
+start $\mathbf{p}_0$; primitive $\pi \in \{D, s_1\}$\\
+Draw heading $\theta_0 \sim U[0, 2\pi)$; on the time-periodic gyre draw
+$\omega t_0 \sim U[0, 2\pi)$, else $t_0 \leftarrow 0$\\
+Place the formation at $\mathbf{p}_0$ with heading $\theta_0$;
+$t \leftarrow t_0$; outcome $\leftarrow$ timeout\\
+\textbf{Loop} for $k = 1, \ldots, 500$:\\
+\> Sample $\mathbf{v}$ at the six robots at time $t$, fit, and command
+$\dot{\mathbf{p}}_c \leftarrow \pi(\text{fit})$\\
+\> Move the robots one control period; $t \leftarrow t + \Delta t$\\
+\> Record whether robots lie on both sides of $\Gamma(t)$ (straddle)\\
+\> \textbf{If} $\|\mathbf{p}_c - \mathbf{p}^*_1(t)\| < 0.06$:
+outcome $\leftarrow$ success; \textbf{break}\\
+\> \textbf{If} $\|\mathbf{p}_c - \mathbf{p}^*_2(t)\| < 0.06$:
+outcome $\leftarrow$ reversal; \textbf{break}\\
+\> \textbf{If} $\mathbf{p}_c$ leaves the domain box:
+outcome $\leftarrow$ exit; \textbf{break}\\
+\textbf{If} outcome is success: run 100 more steps and record the
+fraction within 0.06 of $\mathbf{p}^*_1(t)$ (hold)\\
+Retained $\leftarrow$ success \textbf{and} straddle held at every step
+from the first straddle to contact
+\end{tabbing}
+\end{algorithm}
+
+Three controls check the harness. At $\epsilon = 0$ the time-periodic
+runner and at $\delta = 0$ the bent runner both reproduce the paper's
+noise-free result, with 100\% success, retention, and hold for both
+trackers from every start. The bent field at $\delta = 0$ equals the
+paper's field to machine precision. The first 200 trials of each 1000-trial
+time-periodic cell repeat an earlier 200-trial run exactly in every
+column.
+
+\begin{table}[t]
+\centering
+\caption{The test fields. The separatrix vorticity is its largest
+magnitude along the separatrix. Trench offsets are the largest distance
+from the separatrix to the nearest local minimum of the true $D$ or $s_1$
+across it, horizontal on the gyres (excluding $|y| < 0.1$) and vertical on
+the jet; for the time-periodic gyre they are taken at peak forcing.}
+\label{tab:fields}
+\small
+\begin{tabular}{p{0.2\textwidth}p{0.22\textwidth}p{0.13\textwidth}p{0.17\textwidth}p{0.11\textwidth}}
+\toprule
+Field & Removes & Separatrix vorticity & $D$ trench offset & $s_1$ trench offset \\
+\midrule
+Steady gyre                 & nothing                       & 0          & 0     & 0     \\
+Time-periodic, $\epsilon=0.1$  & zero shear, stationarity   & 0.063      & 0.019 & 0.019 \\
+Time-periodic, $\epsilon=0.25$ & zero shear, stationarity   & 0.157      & 0.035 & 0.035 \\
+Bent, $\delta=0.1$           & straightness, $\omega = 0$ on it & 0.60    & 0.041 & 0.085 \\
+Bent, $\delta=0.2$           & straightness, $\omega = 0$ on it & 1.19    & 0.078 & 0.155 \\
+Bickley jet                  & all of the above             & 0.82 to 1.96 & absent at 40\% of positions, else $\le 0.148$ & 0.133 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Pooled outcomes, noise-free. Rates in percent over all trials
+of the condition; hold is the median over successful trials. Trials:
+$7 \times 10^3$ per tracker on the time-periodic gyre and the Bickley jet,
+$3.5 \times 10^3$ on the bent gyre. The row marked $2c_{\max}$ is a
+diagnostic with $c_{\max} = 0.08$.}
+\label{tab:pooled}
+\begin{tabular}{llrrrrrr}
+\toprule
+Field & Tracker & Success & Retention & Reversal & Exit & Timeout & Hold \\
+\midrule
+Steady gyre & $D$ & 100 & 100 & 0 & 0 & 0 & 1.00 \\
+            & $s_1$ & 100 & 100 & 0 & 0 & 0 & 1.00 \\
+Time-periodic, $\epsilon=0.1$ & $D$ & 97.3 & 97.3 & 2.7 & 0 & 0 & 1.00 \\
+            & $s_1$ & 96.2 & 59.1 & 3.8 & 0 & 0 & 1.00 \\
+Time-periodic, $\epsilon=0.25$ & $D$ & 30.0 & 8.6 & 16.1 & 53.9 & 0 & 0.39 \\
+            & $s_1$ & 59.4 & 15.5 & 28.0 & 12.6 & 0 & 0.27 \\
+\quad same, $2c_{\max}$ & $D$ & 62.4 & 46.3 & 18.4 & 19.2 & 0 & 0.89 \\
+            & $s_1$ & 61.7 & 28.0 & 25.5 & 12.8 & 0 & 1.00 \\
+Bent, $\delta=0.1$ & $D$ & 71.4 & 52.5 & 0 & 28.6 & 0 & 1.00 \\
+            & $s_1$ & 99.7 & 23.5 & 0.3 & 0 & 0 & 1.00 \\
+Bent, $\delta=0.2$ & $D$ & 62.1 & 9.7 & 0 & 37.9 & 0 & 1.00 \\
+            & $s_1$ & 53.4 & 0.5 & 9.6 & 28.8 & 8.2 & 1.00 \\
+Bickley jet & $D$ & 4.1 & 0 & 9.3 & 55.9 & 30.7 & 1.00 \\
+            & $s_1$ & 0 & 0 & 0 & 0.3 & 99.7 & n/a \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Time-periodic double gyre}
+\label{sec:tp}
+
+\subsection{Field}
+
+The time-periodic gyre is the unsteady member of the family of \cite{17},
+the field the paper already uses with $\epsilon = 0$. It replaces $x_f$ in
+(\ref{eq:dg_u}) by
+$f(x_f, t) = \epsilon\sin(\omega t)\,x_f^2 + (1 - 2\epsilon\sin\omega t)\,x_f$
+and multiplies $v$ by $\partial f/\partial x_f$, with $\omega = 2\pi/10$.
+The instantaneous separatrix, the line $u = 0$, is where $f = 1$. It
+stays straight but swings sideways, with amplitude 0.099 at
+$\epsilon = 0.1$ and 0.236 at $\epsilon = 0.25$ and peak speeds of 0.063
+and 0.157. The saddles ride along the walls with it, and the flow on it
+still runs downward, so $\mathbf{p}^*_1(t)$ stays the downstream saddle.
+
+On the separatrix $\sin\pi f = 0$, which removes every term of the
+gradient except the one carrying $\partial^2 f/\partial x_f^2 =
+2\epsilon\sin\omega t$. The vorticity there is therefore
+$-2\pi A\epsilon\sin(\omega t)\sin(\pi y_f)$ and the shear strain half of
+it, with peaks $2\pi A\epsilon$ and $\pi A\epsilon$. Both vanish on the
+steady gyre. At the crest, where $u_x$ also vanishes, the ratio
+$|\omega|/2r$ is exactly 1 whenever $\sin\omega t \neq 0$, while the
+median along the separatrix is only 0.018 at $\epsilon = 0.1$
+(Table~\ref{tab:ratio}). Rotation matters at a single point near the
+crest and nowhere else.
+
+\subsection{Results at $\epsilon = 0.1$}
+
+Both trackers reach $\mathbf{p}^*_1(t)$ in more than 96\% of trials and
+hold it for the full period in every successful trial, since the saddle
+moves at most 0.063 along the wall, below the $k\,c_{\max} = 0.12$ each
+component of either hold law can command. The \Dtr{} keeps the straddle
+in every trial that succeeds. Its median tracking error of 0.017 is close
+to the 0.015 to 0.019 offset of its own trench at peak forcing, so the
+\Dtr{} follows its trench closely and the trench sits close to the
+separatrix.
+
+The \Str{} reaches the saddle as often but keeps the straddle in only
+59\% of trials, and in 9 to 14\% from the three starts above the origin
+(Table~\ref{tab:perstart}). Fig.~\ref{fig:crest} shows where it loses it.
+Of the 2595 successful trials that lose the straddle, 97\% lose it within
+0.1 of $y = 0$. Near the crest the strain on the separatrix falls to at
+most $\pi A\epsilon = 0.031$, against $\pi^2 A = 0.99$ at the saddles, so
+$s_1$ is nearly flat across the trench. The across-trench command of
+(\ref{eq:s1_law}) scales with the slope of $s_1$, and a flat trench gives
+it too little to keep pace with a moving one. The \Dtr{}'s across-trench
+command is a Newton step, a distance, which the flattening does not
+weaken. The steady gyre hides this weakness because its separatrix does
+not move.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.62\textwidth]{notes_crest_loss.png}
+    \caption{Time-periodic gyre, $\epsilon = 0.1$. Height of the centroid
+    at the first step on which the \Str{} loses the straddle, over the 2595
+    successful trials that lose it. The shaded band is $|y| < 0.1$ around
+    the crest, which holds 97\% of the losses. The \Dtr{} loses the
+    straddle in no successful trial.}
+    \label{fig:crest}
+\end{figure}
+
+Reversals at $\epsilon = 0.1$ come only from S1 and S2, and for the
+\Str{} also from S4, in 7 to 11\% of their trials. None of them rides down
+first, and each reaches $\mathbf{p}^*_2(t)$ in a median of 17 to 20 steps.
+Every reversing trial starts at a phase where the displaced separatrix is
+nearly as far from the start as the top-wall trench, with a median ratio
+of the two distances of 0.98 and a minimum of 0.89, against 0.47 in trials
+that do not reverse. The cluster acquires the wrong trench rather than
+turning on the right one. This is the behavior the abstract claims, since
+the tracker goes to the nearest trench, but on the time-periodic gyre the
+nearest trench is sometimes the wall's.
+
+\subsection{Results at $\epsilon = 0.25$}
+
+At $\epsilon = 0.25$ the separatrix moves at up to 0.157, faster than the
+0.12 cap on either tracker's across-trench channel. The \Dtr{} succeeds in
+30\% of trials and the \Str{} in 59\%, and neither holds the saddle, which
+outruns both hold laws along the wall. Reversals rise to 16\% and 28\%, and
+in 91\% of the \Dtr{}'s reversals and 86\% of the \Str{}'s the top-wall
+trench was nearer to the start than the displaced separatrix. The
+\Dtr{}'s remaining failures, 54\% of its trials, leave the basin at a
+bottom corner after missing the moving saddle.
+
+A diagnostic run with $c_{\max}$ doubled to 0.08, which lifts the cap to
+0.24, separates the speed limit from the structure. The \Dtr{}'s success
+rises to 62\% and its hold to 0.89 of the period, and the \Str{}'s success
+to 62\% with a full hold. Reversals stay at 18\% and 26\%, since they come
+from the start geometry rather than the speed limit. The $\epsilon = 0.25$
+failures therefore belong to the operating point, not to the surrogate
+fields, and Fig.~\ref{fig:scope} draws them hollow for that reason.
+
+\begin{table}[t]
+\centering
+\caption{Success and straddle retention by start, in percent. Starts
+S1 to S7 are those of Fig.~\ref{fig:traverse_vs_logic_c}. The Bickley
+starts B1 to B7 are on the separatrix at $x = -0.3$, 0, and 0.3, then off
+it by $2\rho$ above and below at $x = -0.25$ and by $1.3\rho$ above and
+below at $x = 0.15$.}
+\label{tab:perstart}
+\small
+\begin{tabular}{lll rrrrrrr}
+\toprule
+Field & Tracker & Metric & S1 & S2 & S3 & S4 & S5 & S6 & S7 \\
+\midrule
+TP, $\epsilon=0.1$ & $D$ & success & 90.7 & 90.7 & 100 & 100 & 100 & 100 & 100 \\
+ & & retention & 90.7 & 90.7 & 100 & 100 & 100 & 100 & 100 \\
+ & $s_1$ & success & 88.9 & 93.0 & 100 & 91.5 & 100 & 100 & 100 \\
+ & & retention & 9.1 & 9.8 & 13.6 & 81.4 & 100 & 100 & 100 \\
+\midrule
+TP, $\epsilon=0.25$ & $D$ & success & 28.1 & 22.7 & 29.2 & 52.7 & 26.6 & 27.3 & 23.6 \\
+ & & retention & 0 & 0 & 0 & 0 & 17.1 & 23.0 & 19.9 \\
+ & $s_1$ & success & 50.0 & 61.1 & 27.0 & 49.3 & 59.0 & 88.5 & 80.7 \\
+ & & retention & 0 & 0 & 0 & 0 & 26.6 & 41.4 & 40.7 \\
+\midrule
+Bent, $\delta=0.1$ & $D$ & success & 100 & 100 & 100 & 100 & 100 & 0 & 0 \\
+ & & retention & 69.6 & 44.8 & 55.2 & 97.8 & 100 & 0 & 0 \\
+ & $s_1$ & success & 100 & 100 & 100 & 98.2 & 100 & 100 & 100 \\
+ & & retention & 0 & 0 & 0 & 0.8 & 49.6 & 49.4 & 65.0 \\
+\midrule
+Bent, $\delta=0.2$ & $D$ & success & 100 & 100 & 100 & 100 & 34.4 & 0 & 0 \\
+ & & retention & 0 & 0 & 0 & 33.2 & 34.4 & 0 & 0 \\
+ & $s_1$ & success & 96.4 & 55.6 & 94.6 & 91.8 & 8.4 & 1.4 & 25.8 \\
+ & & retention & 0 & 0 & 0 & 0 & 0 & 0 & 3.2 \\
+\midrule
+ & & & B1 & B2 & B3 & B4 & B5 & B6 & B7 \\
+Bickley jet & $D$ & success & 0 & 3.5 & 25.1 & 0 & 0 & 0 & 0 \\
+ & $s_1$ & success & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Bent double gyre}
+\label{sec:bent_notes}
+
+\subsection{Field}
+
+The time-periodic gyre keeps its separatrix straight. The bent gyre curves
+it while staying steady and incompressible, by bending the stream function
+of the paper's gyre,
+\begin{equation}
+    \psi = A\sin(\pi g)\sin(\pi y_f), \qquad
+    g = x_f + \delta\sin(\pi y_f), \qquad
+    u = -\frac{\partial\psi}{\partial y}, \quad
+    v = \frac{\partial\psi}{\partial x}.
+    \label{eq:bent}
+\end{equation}
+At $\delta = 0$ it is (\ref{eq:dg_u}) exactly. For $\delta > 0$ the
+separatrix is the streamline $g = 1$, the curve $x = -\delta\cos(\pi y)$,
+bowed by $\delta$ at $y = 0$ between the unchanged saddles $(0, \pm 0.5)$.
+Two checks confirm the construction. The flow on the curve is tangent to
+it, with $v/u$ equal to its slope at every point tested, and it runs
+downward, so $\mathbf{p}^*_1 = (0, -0.5)$ stays the downstream saddle.
+The bend was chosen for these notes and has no literature source.
+
+The vorticity on the separatrix reaches 0.60 at $\delta = 0.1$ and 1.19 at
+$\delta = 0.2$, comparable to the strain $\pi^2 A = 0.99$ at the saddles.
+Both trenches bow further than the separatrix toward its concave side and
+meet it near the saddles (Fig.~\ref{fig:structures}(c)). The $s_1$ trench
+lies up to 0.085 off at $\delta = 0.1$, already more than $\rho$, and up
+to 0.155 off at $\delta = 0.2$. The $D$ trench lies up to 0.041 and 0.078
+off.
+
+\subsection{Results}
+
+From the four starts at or above the origin, the \Dtr{} reaches
+$\mathbf{p}^*_1$ in every trial at both bends, and the \Str{} in 98 to
+100\% at $\delta = 0.1$ and 56 to 96\% at $\delta = 0.2$
+(Table~\ref{tab:perstart}). Both hold the saddle in every successful trial
+at $\delta = 0.1$. Retention falls for both, and furthest for the \Str{},
+whose trench lies further from the separatrix. At $\delta = 0.1$ the
+\Str{} keeps the straddle in none of the trials from S1 to S3, while still
+reaching the saddle in all of them. Its rides in Fig.~\ref{fig:rides}(f)
+swing well off the separatrix through mid-height and rejoin it near the
+downstream saddle.
+
+From S6 and S7 the \Dtr{} fails in every trial at both bends. In
+Fig.~\ref{fig:rides}(b) and (c) these rides descend to the bottom wall and
+ride the bottom-wall trench east until they leave the basin. The bend
+moves the separatrix away from these two starts. At $\delta = 0.1$ they
+sit 0.24 and 0.18 from it, $3.2\rho$ and $2.4\rho$, against $2\rho$ and
+$1.3\rho$ on the steady gyre, and further still from the bowed $D$ trench.
+Why the \Dtr{} takes the wall trench from there, while the \Str{} still
+succeeds from all three lower starts at $\delta = 0.1$, is not yet
+diagnosed.
+
+\begin{figure}[p]
+    \centering
+    \includegraphics[width=\textwidth]{notes_rides.png}
+    \caption{One ride per start with heading 0 (and forcing phase 0 on the
+    time-periodic gyre), \Dtr{} on top and \Str{} below. Gray dots are
+    starts. A filled end marker reached the downstream saddle; a hollow one
+    did not. Black curves are separatrices, and on the time-periodic gyre
+    the shaded band is its sweep with the dotted line its mean. Thin
+    colored curves on the bent gyre and the jet are the tracker's own true
+    trench. (a, e) Time-periodic, $\epsilon = 0.1$: all fourteen rides
+    succeed, and the \Str{} rides swing across the band near the crest.
+    (b, c, f, g) Bent gyre: the \Dtr{} rides from S6 and S7 descend to the
+    bottom wall and leave the basin along it, and the \Str{} rides follow
+    its bowed trench. (d, h) Bickley jet: the \Dtr{} rides scatter, and the
+    \Str{} rides end on its nearly flat trench below the saddles. These
+    single rides illustrate the mechanisms; the rates are in
+    Tables~\ref{tab:pooled} and \ref{tab:perstart}.}
+    \label{fig:rides}
+\end{figure}
+
+\section{Bickley jet}
+\label{sec:bickley_notes}
+
+\subsection{Field}
+
+The gyres have separatrices on which strain dominates over most of their
+length. A Bickley jet is a sheared zonal jet whose traveling waves roll the
+flow on each flank into a row of cat's-eye eddies. Seen in the frame of
+its wave, a single-mode jet is steady,
+\begin{equation}
+    \psi = -UL\tanh(y/L) + c\,y
+        + UL\epsilon\,\mathrm{sech}^2(y/L)\cos k(x + 0.5),
+    \label{eq:bickley}
+\end{equation}
+with $u = -\partial\psi/\partial y$ and $v = \partial\psi/\partial x$. The
+parameters $U = 0.3$, $L = 0.2$, $c = 0.3U$, $\epsilon = 0.3$, and
+$k = 2\pi$ match the gyre benchmark in speed (about 0.3) and separatrix
+length (about 1). The northern eye centered at $(0, 0.172)$ is bounded
+below by a separatrix that runs east from the saddle at $(-0.5, 0.292)$ to
+the saddle at $(0.5, 0.292)$, dipping 0.26 below them in a U, with
+maximum slope 0.73 and length 1.14. The eye is 0.28 tall at $x = 0$, so
+the formation fits inside it.
+
+The separatrix is traced numerically along the unstable manifold of the
+upstream saddle. It ends 0.0009 from the downstream saddle, $\psi$ stays
+constant along it to $1.5 \times 10^{-13}$, and the flow on it is tangent
+and runs east. On it the vorticity ranges from 0.82 to 1.96, against a
+strain rate of 0.33 at the saddles, so rotation exceeds strain over most
+of its length (Table~\ref{tab:ratio}).
+
+\subsection{Results}
+
+Neither tracker follows this separatrix. Over $10^3$ trials from each of
+the seven starts, the \Dtr{} reaches the downstream saddle in 4.1\% of
+trials, all from B2 and B3, and the \Str{} in none. Neither keeps the
+straddle in any trial. The \Dtr{} leaves the domain in 56\% of trials and
+reaches the upstream saddle in 9\%. The \Str{} runs the full 500 steps
+without reaching either saddle in 99.7\% of trials.
+
+Fig.~\ref{fig:structures}(d) and Fig.~\ref{fig:rides}(h) together explain
+the \Str{}. Its trench near the separatrix runs nearly flat along the jet
+flank near $y = 0.15$, crossing the U-shaped separatrix twice and passing
+0.13 to 0.14 below the saddles. In the full runs the median final height
+is 0.16 from every start except B5, which starts below the jet core, and
+in Fig.~\ref{fig:rides}(h) the rides from the other starts end on that
+trench. The \Str{} follows its own trench, and the trench is not the
+separatrix. The \Dtr{}'s rides scatter in Fig.~\ref{fig:rides}(d), as
+expected where $D$ has no trench near the separatrix at 40\% of
+positions along it, and their individual mechanisms are not diagnosed.
+
+\section{The scope indicator}
+\label{sec:scope_notes}
+
+\subsection{Along the true separatrix}
+
+Table~\ref{tab:ratio} reports the true ratio $|\omega|/2r$ along each
+separatrix, weighted by arc length. A ratio below 1 means strain
+dominates, which in incompressible flow is $D < 0$. The median orders the
+fields in the same sequence as their retention, from 0 on the steady gyre
+to 0.79 on the Bickley jet. The maximum is a poor summary on the gyres,
+since it reaches exactly 1 at the crest of every perturbed gyre. Only the
+Bickley jet has stretches of separatrix that are rotation-dominated, 40\%
+of its length.
+
+\begin{table}[t]
+\centering
+\caption{Rotation-to-strain ratio $|\omega|/2r$ along the true separatrix
+(arc-length weighted; the time-periodic gyre averaged over 40 phases), and
+the median over trials of the fitted $|\hat\omega|/2\hat r$ at the
+centroid along each ride (50 trials per start), with retention from
+Table~\ref{tab:pooled}. The Santa Barbara value is the fitted median along
+the tracker paths from 7 to 21~h in Section~\ref{sec:disc_ocean}.}
+\label{tab:ratio}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrr rr rr}
+\toprule
+ & \multicolumn{4}{c}{True, along separatrix} & \multicolumn{2}{c}{Fitted, along ride} & \multicolumn{2}{c}{Retention (\%)} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+Field & median & 90th pct. & $>0.5$ & $>1$ & $D$ & $s_1$ & $D$ & $s_1$ \\
+\midrule
+Steady gyre                & 0.000 & 0.000 & 0\%    & 0\%    & 0.007 & 0.027 & 100  & 100 \\
+Time-periodic, $\epsilon=0.1$  & 0.018 & 0.126 & 2.2\%  & 0\% & 0.083 & 0.083 & 97.3 & 59.1 \\
+Time-periodic, $\epsilon=0.25$ & 0.042 & 0.285 & 5.2\%  & 0\% & 0.055 & 0.236 & 8.6  & 15.5 \\
+Bent, $\delta=0.1$         & 0.250 & 0.673 & 14.5\% & 0\%    & 0.257 & 0.327 & 52.5 & 23.5 \\
+Bent, $\delta=0.2$         & 0.460 & 0.862 & 39.7\% & 0\%    & 0.517 & 0.578 & 9.7  & 0.5 \\
+Bickley jet                & 0.786 & 2.976 & 100\%  & 39.5\% & 0.591 & 0.569 & 0    & 0 \\
+\midrule
+Santa Barbara record       & & & & & \multicolumn{2}{c}{0.15 to 0.20} & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Along the cluster's own ride}
+
+The true ratio along the separatrix is not available to a cluster that
+does not know where the separatrix is. The fitted ratio at the centroid
+is. It uses only the first-order coefficients of the fit,
+Algorithm~\ref{alg:indicator}, and it is the quantity
+Section~\ref{sec:disc_ocean} already reports for the ocean record. The fitted medians track the true ones on
+the steady fields, 0.257 against 0.250 on the bent gyre at $\delta = 0.1$,
+and they run higher on the time-periodic gyre, where the rides spend time
+off the separatrix near the crest. The $\epsilon = 0.25$ \Dtr{} value is
+low because most of its trials leave the separatrix early and ride
+elsewhere.
+
+\begin{algorithm}[H]
+\caption{Online scope indicator from the cluster's own fit}
+\label{alg:indicator}
+\begin{tabbing}
+\hspace{1.5em}\=\hspace{1.5em}\=\hspace{1.5em}\=\kill
+\textbf{Input:} fitted first-order coefficients
+$\hat a_2, \hat a_3, \hat b_2, \hat b_3$ at the centroid, each step\\
+$\hat s_n \leftarrow (\hat a_2 - \hat b_3)/2$; \quad
+$\hat s_s \leftarrow (\hat a_3 + \hat b_2)/2$; \quad
+$\hat r \leftarrow \sqrt{\hat s_n^2 + \hat s_s^2}$\\
+$\hat\omega \leftarrow \hat b_2 - \hat a_3$\\
+$q_\omega \leftarrow |\hat\omega| / 2\hat r$ \quad (rotation-to-strain ratio)\\
+Keep a running median of $q_\omega$ over the ride\\
+\textbf{If} the running median exceeds a threshold $q^*$: report that the
+trench being ridden is unlikely to mark a separatrix\\
+\textbf{Note:} $q^*$ is not chosen. Fig.~\ref{fig:scope} suggests a value
+between 0.1 and 0.3, and the open items above list what would fix it.
+\end{tabbing}
+\end{algorithm}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\textwidth]{notes_scope.png}
+    \caption{Straddle retention (left) and downstream-saddle success
+    (right) against the median fitted $|\hat\omega|/2\hat r$ along the
+    ride, for the \Dtr{} (orange circles) and the \Str{} (blue triangles).
+    Ratios come from 50 reruns per start, rates from the full runs of
+    Table~\ref{tab:pooled}. Hollow markers are the time-periodic gyre at
+    $\epsilon = 0.25$, which fails on the speed limit rather than on
+    rotation. The shaded band is the Santa Barbara record. Notice that
+    retention falls steadily with the ratio for both trackers, while
+    success holds longer, because the trenches on the gyres rejoin the
+    separatrix near the saddles.}
+    \label{fig:scope}
+\end{figure}
+
+\subsection{What the ocean number means}
+
+The Santa Barbara record's fitted median of 0.15 to 0.20 sits between the
+time-periodic gyre at $\epsilon = 0.1$ (0.083) and the bent gyre at
+$\delta = 0.1$ (0.26 to 0.33). On the synthetic fields that range keeps
+the straddle in roughly half or more of the \Dtr{}'s trials. The ocean
+comparison is not one to one. Its reference is an FTLE ridge, not a
+separatrix, its formation spans five grid cells of interpolated radar
+data, and its trackers ran at a different operating point. The
+agreement with the FTLE ridge in Section~\ref{sec:disc_ocean} is
+therefore consistent with these results, and it sits in the range where
+the synthetic fields predict partial rather than guaranteed agreement.
+
+%======================================================================
+\part{Proposed paper text}
+%======================================================================
+
+\noindent The text below is in the paper's register and uses the paper's
+labels, which resolve here against Draft~13. Equations and tables carry
+N numbers in these notes and would take the paper's numbering on
+insertion. With all three subsections added the paper compiles at 13
+pages.
+
+\section{New subsections for Section~\ref{sec:dg_bench}}
+
+\subsection*{IV-E \quad Time-Periodic Double Gyre}
+
+The steady benchmark has zero shear strain everywhere, a diagonal
+$\mathbf{H}_D$, and a stationary separatrix on which
+$\mathbf{J} = \mathbf{S}$. The time-periodic member of the family of
+\cite{17} removes all three. It replaces $x_f$ in (\ref{eq:dg_u}) by
+\begin{equation}
+    f(x_f, t) = \epsilon \sin(\omega t)\, x_f^2
+        + \bigl(1 - 2\epsilon \sin(\omega t)\bigr) x_f
+    \label{eq:dg_f}
+\end{equation}
+and multiplies $v$ by $\partial f/\partial x_f$, with $\omega = 2\pi/10$.
+The instantaneous separatrix, the line $u = 0$, stays straight at the $x$
+where $f = 1$, but it oscillates sideways with amplitude 0.099 at
+$\epsilon = 0.1$ and 0.236 at $\epsilon = 0.25$, at peak speeds of 0.063
+and 0.157. The saddles move with it along the walls, and the flow on it
+still runs downward, so $\mathbf{p}^*_1(t)$ remains the downstream saddle.
+On the separatrix the vorticity reaches $2\pi A\epsilon$ and the shear
+strain $\pi A\epsilon$, so $\mathbf{J} \neq \mathbf{S}$ there. At peak
+forcing the true trenches of $D$ and $s_1$ sit up to 0.019
+($\epsilon = 0.1$) and 0.035 ($\epsilon = 0.25$) off the separatrix, on
+the side toward which it has moved.
+
+Both trackers run from the seven starts of
+Fig.~\ref{fig:traverse_vs_logic_c} at $\epsilon = 0$, 0.1, and 0.25,
+noise-free, with $10^3$ trials per start, tracker, and $\epsilon$. Each
+trial draws its heading and its initial phase $\omega t_0$ uniformly from
+$[0, 2\pi)$, and the two trackers share both. Straddle, acquisition, and
+success are scored against the moving separatrix $x_s(t)$ and saddles. A
+trial ends at contact with either instantaneous saddle (centroid within
+0.06), when the centroid leaves the box $|x| < 1$, $|y| < 0.6$, or after
+500 steps. After contact with $\mathbf{p}^*_1(t)$ it continues for one
+forcing period, 100 steps, and the hold is the fraction of those steps
+spent within 0.06 of $\mathbf{p}^*_1(t)$. At $\epsilon = 0$ both trackers
+succeed, keep the straddle, and hold in every trial, as in
+Section~\ref{sec:disc_clean}.
+
+\begin{table}[H]
+\centering
+\caption{Time-periodic double gyre, noise-free, $10^3$ trials per start
+pooled over the seven starts. Rates in percent. Error is the median over
+trials of the mean $|x_c - x_s(t)|$ after acquisition, and hold is the
+median over successful trials. Error is not reported at
+$\epsilon = 0.25$, where only 35\% ($D$) and 15\% ($s_1$) of trials
+acquire the separatrix.}
+\label{tab:unsteady}
+\begin{tabular}{llrrrrr}
+\toprule
+$\epsilon$ & Tracker & Success & Retention & Reversal & Error & Hold \\
+\midrule
+0    & $D$   & 100  & 100  & 0    & 0.004 & 1.00 \\
+0    & $s_1$ & 100  & 100  & 0    & 0.010 & 1.00 \\
+0.1  & $D$   & 97.3 & 97.3 & 2.7  & 0.017 & 1.00 \\
+0.1  & $s_1$ & 96.2 & 59.1 & 3.8  & 0.025 & 1.00 \\
+0.25 & $D$   & 30.0 & 8.6  & 16.1 & n/a   & 0.39 \\
+0.25 & $s_1$ & 59.4 & 15.5 & 28.0 & n/a   & 0.27 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+At $\epsilon = 0.1$ both trackers reach $\mathbf{p}^*_1(t)$ in more than
+96\% of trials and hold it for the full period
+(Table~\ref{tab:unsteady}), since the saddle moves along the wall at no
+more than 0.063, below the $k\,c_{\max} = 0.12$ that each component of
+either hold law can command. The $D$ tracker keeps the straddle in every
+trial that succeeds, and its median tracking error of 0.017 is close to
+the 0.015 to 0.019 offset of the true $D$ trench from the separatrix at
+peak forcing. The $s_1$ tracker reaches the saddle as often but keeps the
+straddle in only 59\% of trials, and in 9 to 14\% from S1, S2, and S3. Of
+the successful trials that lose it, 97\% lose it within 0.1 of $y = 0$.
+At $y = 0$ the strain on the separatrix falls to at most
+$\pi A\epsilon = 0.031$, against $\pi^2 A = 0.99$ at the saddles, so $s_1$
+is nearly flat across the trench there, and the across-trench command of
+(\ref{eq:s1_law}), which scales with the slope, cannot keep pace with the
+moving trench. The $D$ tracker's across-trench command is a Newton step,
+a distance, which the flattening does not weaken.
+
+Reversals at $\epsilon = 0.1$ occur only from S1 and S2, and for the
+$s_1$ tracker also from S4, in 7 to 11\% of their trials. None of them
+rides down first. Each starts at a phase where the displaced separatrix
+is nearly as far from the start as the top-wall trench, with a median
+ratio of the two distances of 0.98, against 0.47 in trials that do not
+reverse. The cluster acquires the wrong trench rather than turning on the
+right one.
+
+At $\epsilon = 0.25$ the separatrix moves at up to 0.157, faster than the
+0.12 cap on either tracker's across-trench channel, and neither tracker
+keeps up. The $D$ tracker succeeds in 30\% of trials and the $s_1$
+tracker in 59\%, and neither holds the saddle, which outruns both hold
+laws along the wall. In 91\% of the $D$ tracker's reversals and 86\% of
+the $s_1$ tracker's, the top-wall trench was nearer to the start than the
+displaced separatrix. The $D$ tracker's other failures, 54\% of its
+trials, miss the moving saddle and leave the basin at a bottom corner.
+With $c_{\max}$ doubled to 0.08, which raises the cap to 0.24, the $D$
+tracker succeeds in 62\% of trials and holds for a median 0.89 of the
+period, and the $s_1$ tracker in 62\% with a full hold. Reversals remain at
+18\% and 26\%, since they come from the start geometry rather than the
+speed limit.
+
+\subsection*{IV-F \quad Bent Double Gyre}
+
+The time-periodic gyre keeps a straight separatrix. A bent gyre curves it
+while staying steady and incompressible, with stream function
+$\psi = A\sin(\pi g)\sin(\pi y_f)$, $g = x_f + \delta\sin(\pi y_f)$,
+$u = -\partial\psi/\partial y$, and $v = \partial\psi/\partial x$. At
+$\delta = 0$ it is (\ref{eq:dg_u}). For $\delta > 0$ the separatrix is the
+curve $x = -\delta\cos(\pi y)$, bowed by $\delta$ at $y = 0$, between the
+same saddles, and the flow on it still runs downward. On it the vorticity
+reaches 0.60 at $\delta = 0.1$ and 1.19 at $\delta = 0.2$, comparable to
+the strain $\pi^2 A = 0.99$ at the saddles. Neither surrogate's trench
+follows the curve. Both bow further than the separatrix and meet it near
+the saddles, the trench of $D$ by up to 0.041 and 0.078 and the trench of
+$s_1$ by up to 0.085 and 0.155, so at mid-height the $s_1$ trench lies
+more than $\rho$ from the separatrix.
+
+\begin{table}[H]
+\centering
+\caption{Bent double gyre, noise-free, 500 trials per start. Success is
+split between the starts at or above the origin (S1 to S4) and below it
+(S5 to S7). Retention and reversal are pooled over all seven starts.
+Rates in percent.}
+\label{tab:bent}
+\begin{tabular}{llrrrr}
+\toprule
+$\delta$ & Tracker & S1--S4 & S5--S7 & Retention & Reversal \\
+\midrule
+0   & $D$   & 100  & 100  & 100  & 0   \\
+0   & $s_1$ & 100  & 100  & 100  & 0   \\
+0.1 & $D$   & 100  & 33.3 & 52.5 & 0   \\
+0.1 & $s_1$ & 99.6 & 100  & 23.5 & 0.3 \\
+0.2 & $D$   & 100  & 11.5 & 9.7  & 0   \\
+0.2 & $s_1$ & 84.6 & 11.9 & 0.5  & 9.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+From the starts at or above the origin, the $D$ tracker reaches
+$\mathbf{p}^*_1$ in every trial at both bends, and the $s_1$ tracker in
+99.6\% at $\delta = 0.1$ and 84.6\% at $\delta = 0.2$
+(Table~\ref{tab:bent}). Both hold it in every successful trial at
+$\delta = 0.1$. Straddle retention falls for both, and furthest for the
+$s_1$ tracker, because each follows its own trench rather than the
+separatrix. Its median offset from the separatrix after acquisition is
+0.048 for the $D$ tracker and 0.075 for the $s_1$ tracker at
+$\delta = 0.1$. From S6 and S7 the $D$ tracker fails in every trial at
+both bends, leaving the basin at its bottom-right corner, while the $s_1$
+tracker succeeds from all three lower starts at $\delta = 0.1$.
+
+\subsection*{IV-G \quad Bickley Jet}
+
+Both gyres have separatrices on which strain dominates over most of their
+length. A Bickley jet seen in the frame of its wave,
+$\psi = -UL\tanh(y/L) + cy + UL\epsilon\,\mathrm{sech}^2(y/L)\cos k(x + 0.5)$,
+has a row of cat's-eye eddies on each flank, each bounded by curved
+separatrices that run from saddle to saddle inside a sheared jet. With
+$U = 0.3$, $L = 0.2$, $c = 0.3U$, $\epsilon = 0.3$, and $k = 2\pi$, the
+lower separatrix of one northern eye runs east from the saddle at
+$(-0.5, 0.29)$ to the saddle at $(0.5, 0.29)$, dipping 0.26 below them,
+with length 1.14 and an eye 0.28 high. On it the vorticity ranges from
+0.82 to 1.96, against a strain rate of 0.33 at the saddles. The trench of
+$s_1$ lies within 0.13 of the separatrix, and $D$ has no trench within
+0.15 of it at 40\% of positions along it.
+
+Neither tracker follows this separatrix. Over $10^3$ trials from each of
+seven starts, three on the separatrix and four off it by $1.3\rho$ or
+$2\rho$, the $D$ tracker reaches the downstream saddle in 4.1\% of trials,
+all from the two starts nearest it, and the $s_1$ tracker in none, and
+neither keeps the straddle in any trial. The $D$ tracker leaves the
+domain in 56\% of trials and reaches the upstream saddle in 9\%. The $s_1$
+tracker runs the full 500 steps without reaching either saddle in 99.7\%
+of trials, ending on its own trench, which runs nearly flat along the jet
+flank below the saddles. Both trackers steer on the trenches of their
+surrogate fields, and on a separatrix where rotation outweighs strain
+those trenches do not mark it.
+
+\section{Edits to existing sentences of Draft 13}
+
+Each pair below quotes the current text exactly as it stands in
+Draft~13.tex and gives the proposed replacement. None is applied.
+
+\paragraph{1. Section~\ref{sec:surrogates}, Determinant Field.}
+\emph{Current:} ``In the flows studied here, separatrices run along the
+trenches of $D$ inside the strain-dominated regions.''\\
+\emph{Proposed:} ``A separatrix runs along a trench of $D$ where the
+vorticity on it is small against the strain, as on the steady double
+gyre, where the vorticity on the separatrix vanishes.''\\
+\emph{Ripple:} Section~\ref{sec:dg_example} already states the vanishing
+vorticity, so nothing there changes.
+
+\paragraph{2. Abstract.}
+\emph{Current:} ``Each tracker locates the nearest separating boundary
+and navigates to and along it from instantaneous measurements, with no
+integration horizon or pre-straddling requirements.''\\
+\emph{Proposed:} ``Each tracker locates the nearest trench of its derived
+field and navigates to and along it from instantaneous measurements, with
+no integration horizon or pre-straddling requirements. These trenches
+mark the separating boundary where strain outweighs rotation on it.''\\
+\emph{Ripple:} the preceding sentence says the primitives steer ``along
+the transport boundaries,'' which reads as a general claim; it could
+become ``toward the transport boundaries.''
+
+\paragraph{3. Section~\ref{sec:disc_limits}, first $s_1$ sentence.}
+\emph{Current:} ``The $s_1$ tracker's tangent selection weakens near the
+saddles, and its passage through the origin rests on the benchmark's
+vanishing shear strain.''\\
+\emph{Proposed:} ``The $s_1$ tracker's tangent selection weakens near the
+saddles. On the time-periodic gyre, where the shear strain no longer
+vanishes, it still passes the crest, but at $\epsilon = 0.1$ it reaches the
+saddle without keeping the straddle in 37\% of trials, and 97\% of those
+lose it within 0.1 of the crest, where $s_1$ flattens across the
+trench.''\\
+\emph{Ripple:} the next sentence begins ``Without it the strain
+eigenvector can tilt off the trench,'' and its ``it'' would need a new
+antecedent.
+
+\paragraph{4. Section~\ref{sec:disc_limits}, new paragraph after the
+evaluation paragraph.}
+\emph{Proposed:} ``Both trackers follow trenches of their surrogate
+fields, and these mark the separatrix only where strain outweighs
+rotation on it. On the time-periodic gyre, where the median
+rotation-to-strain ratio $|\omega|/2r$ along the separatrix is 0.018 at
+$\epsilon = 0.1$, the $D$ tracker keeps the straddle in 97\% of trials. On
+the bent gyre the median rises to 0.25 and 0.46 and retention falls to
+53\% and 10\%, and on the Bickley jet, at 0.79, neither tracker keeps it.
+The cluster measures the same ratio from the first-order coefficients of
+its fit, and its median along the Santa Barbara paths was 0.15 to 0.20. A
+cluster could therefore flag online when the trench it rides is unlikely
+to mark a separatrix.''\\
+\emph{Ripple:} the 37\% and 97\% figures depend on IV-E being accepted,
+and the bent and Bickley figures on IV-F and IV-G.
+
+%======================================================================
+\appendix
+\part*{Appendices}
+\addcontentsline{toc}{part}{Appendices}
+%======================================================================
+
+\section{Provenance}
+
+All scripts are under
+\begin{center}\small\path{trunk/Python_Simulations/Vector_Fields/VF_Robot/experiments/unsteady_dg/}\end{center}
+with outputs in its \texttt{outputs/} folder, run from \texttt{VF\_Robot}
+with \texttt{venv/bin/python3}. Nothing is committed.
+
+\begin{center}
+\small
+\begin{tabular}{p{0.36\textwidth}p{0.58\textwidth}}
+\toprule
+Command & Produces \\
+\midrule
+\texttt{mc\_unsteady\_double\_gyre.py --trials 1000 --eps 0 0.1 0.25 --tag n1000} & \texttt{trials\_n1000.csv}, 42\,000 trials, 500\,s \\
+\texttt{mc\_unsteady\_double\_gyre.py --trials 1000 --eps 0.25 --vmax 0.08 --tag eps025\_vmax008} & the $2c_{\max}$ diagnostic, 14\,000 trials \\
+\texttt{mc\_bent\_double\_gyre.py --trials 500 --tag n500} & \texttt{bent\_n500.csv}, 21\,000 trials, 258\,s \\
+\texttt{mc\_bent\_double\_gyre.py --diag} & bent-gyre vorticity and trench offsets \\
+\texttt{mc\_bickley\_jet.py --trials 1000 --tag n1000} & \texttt{bickley\_n1000.csv}, 14\,000 trials, 372\,s \\
+\texttt{mc\_bickley\_jet.py --geom} & jet geometry, separatrix checks \\
+\texttt{trench\_offset.py} & time-periodic amplitudes, speeds, offsets \\
+\texttt{scope\_ratio.py} & Table~\ref{tab:ratio}, true columns \\
+\texttt{path\_ratio.py --trials 50 --tag n50} & Table~\ref{tab:ratio}, fitted columns \\
+\texttt{analyze.py --tag n1000} & per-start, phase, reversal, and exit summaries \\
+\texttt{fig\_notes.py} & Figs.~\ref{fig:structures}, \ref{fig:crest}, \ref{fig:rides}, and \ref{fig:scope}, and the fine-sampled trench offsets of Table~\ref{tab:fields} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The fitted-ratio reruns wrap both primitives in each worker process to log
+the fit before each step. The primitives' code is unchanged, and the
+reruns reproduce the full runs' success and retention to within sampling
+error (for example 98.0\% against 97.3\% for the \Dtr{} at
+$\epsilon = 0.1$). The trench offsets in Table~\ref{tab:fields} come from
+fine sampling (197 heights or positions) and supersede coarser values
+quoted earlier in the session (0.093 for the $s_1$ trench on the jet, and
+7 of 17 positions without a $D$ trench).
+
+\section{Edits applied to Draft 13 earlier in this session}
+
+These are in \texttt{Draft\_13.tex} now. The paper compiles at 11 pages
+with the same warnings as before the edits.
+\begin{enumerate}
+\item Section~\ref{sec:dg_bench}: the task is stated as riding the
+separatrix downstream to $\mathbf{p}^*_1$, a run ending at
+$\mathbf{p}^*_2$ fails, and the straddle is defined as robots on both
+sides of $x = 0$.
+\item ``Far saddle'' became ``downstream saddle'' in all seven places.
+\item Section~\ref{sec:disc_ocean}: the $s_1$ typing now reports the
+eigenvector followed and notes that the forward FTLE reference cannot
+confirm the attracting segment.
+\item Section~\ref{sec:arch} and the caption of
+Fig.~\ref{fig:control_architecture} name the reused architecture and the
+two blocks new in this paper; the formation cites \cite{5}.
+\item To hold 11 pages, Fig.~\ref{fig:pentagon} is drawn at 0.8 and
+Fig.~\ref{fig:dg_fields} at 0.95 of the column width.
+\end{enumerate}
+Still open from that session: Fig.~\ref{fig:flip_resolution} marks the
+50\% crossings of the success curves while the text and abstract compare
+retention, and from S6 and S7 the two point opposite ways; the scoring
+code also fails a run whose formation collapses (pair-distance RMS error
+above 0.30), which the paper does not mention; and \texttt{Ready to
+Submit/} is out of date.
+
+% Keys are display-only: \cite{N} resolves to Draft_13's [N] through xr,
+% which imports its \bibcite entries.
+\nocite{list5,list8,list12,list17,list19,list22}
+\begin{thebibliography}{99}
+\bibitem[5]{list5} L. Bri\~{n}\'{o}n-Arranz, A. Renzaglia, and L. Schenato,
+``Multirobot symmetric formations for gradient and Hessian estimation with
+application to source seeking,'' \textit{IEEE Trans. Robot.}, vol. 35,
+no. 3, pp. 782--789, 2019.
+\bibitem[8]{list8} A. Okubo, ``Horizontal dispersion of floatable particles in
+the vicinity of velocity singularities such as convergences,''
+\textit{Deep-Sea Res.}, vol. 17, no. 3, pp. 445--454, 1970.
+\bibitem[12]{list12} M. Serra et al., ``Search and rescue at sea aided by
+hidden flow structures,'' \textit{Nat. Commun.}, vol. 11, no. 1, p. 2525,
+2020.
+\bibitem[17]{list17} S. C. Shadden, F. Lekien, and J. E. Marsden,
+``Definition and properties of Lagrangian coherent structures from
+finite-time Lyapunov exponents in two-dimensional aperiodic flows,''
+\textit{Physica D}, vol. 212, no. 3-4, pp. 271--304, 2005.
+\bibitem[19]{list19} M. Serra and G. Haller, ``Objective Eulerian coherent
+structures,'' \textit{Chaos}, vol. 26, no. 5, p. 053110, 2016.
+\bibitem[22]{list22} J. Weiss, ``The dynamics of enstrophy transfer in
+two-dimensional hydrodynamics,'' \textit{Physica D}, vol. 48, no. 2-3,
+pp. 273--294, 1991.
+\end{thebibliography}
+
+\end{document}
