@@ -20,6 +20,8 @@ Run from VF_Robot:
     venv/bin/python3 experiments/revision_metrics/fig_nonlinear.py
 """
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 
 import numpy as np
@@ -34,7 +36,7 @@ import nonlinear as nl  # noqa: E402
 import sim  # noqa: E402
 import vecsim as vs  # noqa: E402
 
-OUT = os.path.join(HERE, "figures")
+OUT = paths.FIGURES
 BLUE, ORANGE, GRAY = "#2468c8", "#e8692c", "#b4b4b4"
 plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
                      "mathtext.fontset": "stix", "font.size": 8, "axes.linewidth": 0.6,
@@ -92,7 +94,7 @@ def frame(ax, title):
 def main():
     os.makedirs(OUT, exist_ok=True)
     F = nl.make(dict(name="gyre"))
-    att = pd.read_csv(os.path.join(HERE, "results", "nonlinear_attraction_per_trial.csv"))
+    att = pd.read_csv(os.path.join(paths.RES, "nonlinear_attraction_per_trial.csv"))
     g = att[att.field == "gyre"].reset_index(drop=True)
     P = vs.params(len(g))
     out, _ = vs.simulate(F, "attract", "fit", P, 10.0, seed=0, stiction_model=sim.MODEL, record=True)
@@ -138,7 +140,7 @@ def main():
         runs[rd] = o["rec"]
         th = np.linspace(0, 2 * np.pi, 200)
         ax.plot(rd * np.cos(th), rd * np.sin(th), color="0.35", lw=0.5, ls=(0, (1, 1.5)), zorder=2)
-    orb = pd.read_csv(os.path.join(HERE, "results", "nonlinear_orbit_per_trial.csv"))
+    orb = pd.read_csv(os.path.join(paths.RES, "nonlinear_orbit_per_trial.csv"))
     go = orb[(orb.field == "gyre")]
     k3 = int(go[np.isclose(go.rd, 0.3) & go.kept].trial.iloc[0])
     lost4 = go[np.isclose(go.rd, 0.4) & ~go.kept].trial.values

@@ -23,6 +23,8 @@ Run from VF_Robot:
 import argparse
 import json
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 import time
 
@@ -35,7 +37,7 @@ import hardware as hw  # noqa: E402
 import metrics as mt  # noqa: E402
 import sim  # noqa: E402
 
-RES = os.path.join(HERE, "results")
+RES = paths.RES
 
 
 def inside(tri, pt):
@@ -91,11 +93,12 @@ def orbit_row(pos, rd, target, transient=mt.TRANSIENT_STEPS):
 
 def configs():
     """(label, make_field kwargs, side, group). Group 'base' is the 8 table fields at the paper side."""
-    out = [(f, dict(name=f), 0.33, "base") for f in sim.FIELDS]
-    out.append(("gyre", dict(name="gyre"), 0.33, "nonlinear"))
+    side = sim.vs.DEFAULTS["side"]
+    out = [(f, dict(name=f), side, "base") for f in sim.FIELDS]
+    out.append(("gyre", dict(name="gyre"), side, "nonlinear"))
     for fam in ("potential", "cellular"):
         for e in (-1.0, -0.5, 0.0, 0.5, 1.0):
-            out.append((f"curved_saddle_{fam}_{e:+g}", dict(name="curved_saddle", eps=e, family=fam), 0.33, "nonlinear"))
+            out.append((f"curved_saddle_{fam}_{e:+g}", dict(name="curved_saddle", eps=e, family=fam), side, "nonlinear"))
     for side in (0.20, 0.45):
         out.append((f"gyre_side{side:.2f}", dict(name="gyre"), side, "ablation"))
         for fam in ("potential", "cellular"):

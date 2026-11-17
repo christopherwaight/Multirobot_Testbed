@@ -14,6 +14,8 @@ pipeline (labelled provisional) until the orbit experiments are redone.
 import argparse
 import json
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 import time
 
@@ -27,7 +29,7 @@ import metrics as mt  # noqa: E402
 import sim  # noqa: E402
 import theory as th  # noqa: E402  (hyperparameter_study, on the path through sim)
 
-RES = os.path.join(HERE, "results")
+RES = paths.RES
 SIGMA_HW = 0.02          # white measurement noise per component, sized to the testbed's fixed calibration
                          # error (Section V-A); a stress level, far above the measured cycle-to-cycle noise
 TRUE_TYPE = {"vortex": 6, "saddle": 1}   # printed maps: a center and a saddle

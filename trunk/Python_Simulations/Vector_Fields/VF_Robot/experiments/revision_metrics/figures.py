@@ -5,6 +5,8 @@ Diagnostic figures for the revision, sized for IEEE columns (PNG at 300 dpi and 
 """
 import json
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 
 import matplotlib
@@ -14,8 +16,8 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-RES = os.path.join(HERE, "results")
-OUT = os.path.join(HERE, "figures")
+RES = paths.RES
+OUT = paths.FIGURES
 
 # validated categorical slots 1-3 (light mode) and neutral inks
 BLUE, ORANGE, AQUA = "#2a78d6", "#eb6834", "#1baf7a"
@@ -62,8 +64,8 @@ def orbit_radius(S, hw_orb):
     T = S["theory"]
     rds = np.array(T["rd"])
     fig, axes = plt.subplots(1, 2, figsize=(7.16, 2.7), sharey=True)
-    panels = [("vortex", "vortex", "vortex_nn", "Simulink 3R (k_t 0.15, k_r 0.2)", "Vortex"),
-              ("saddle", "saddle", "saddle_nn", "Simulink 3R (k_t 0.15, k_r 0.2)", "Saddle")]
+    panels = [("vortex", "vortex", "vortex_nn_2026", "Simulink 3R (k_t 0.15, k_r 0.2)", "Vortex"),
+              ("saddle", "saddle", "saddle_nn_2026", "Simulink 3R (k_t 0.15, k_r 0.2)", "Saddle")]
     lin = S["sim"]["orbit"]["vortex"]
     for ax, (field, series, nn, sim_gain, title) in zip(axes, panels):
         ax.plot([0, 0.72], [0, 0.72], color=GRID, lw=0.8, zorder=0, label="$r = r_d$")

@@ -1,6 +1,8 @@
 """
 Omnibot - Individual robot with momentum-based dynamics
 """
+from collections import deque
+
 import numpy as np
 
 
@@ -16,6 +18,12 @@ class Omnibot:
         velocity = alpha * velocity_old + (1 - alpha) * velocity_commanded
         position += timestep * velocity
 
+    Command gain and input delay (added 2026-11-16, both off by default):
+        velocity_commanded = command_gain * u(t - input_delay)
+    The command is held over each step, so a delay of (d + f) steps applies
+    (1 - f) u(k - d) + f u(k - d - 1). Stiction thresholds compare the
+    delayed command before the gain. See OmniCluster for the fitted values.
+
     Parameter note (audit 2026-07-03): the paper derives
     alpha = exp(-dt/tau) = exp(-0.1/0.3) ~= 0.717 for the measured Decabot
     time constant tau = 0.3 s. The default here is the fixed value 0.7,
@@ -27,7 +35,7 @@ class Omnibot:
 
     def __init__(self, x, y, timestep=0.1, momentum_alpha=0.7,
                  max_velocity=0.3, stiction_threshold=0.025, stiction_model="legacy",
-                 kinetic_threshold=None):
+                 kinetic_threshold=None, command_gain=1.0, input_delay=0.0):
         """
         Initialize an Omnibot.
 
@@ -73,6 +81,8 @@ class Omnibot:
                 it). OmniCluster defaults to "coulomb" from 2026-10-29.
             kinetic_threshold: v_k for "coulomb", 0 <= v_k <= v_s. None
                 means v_k = v_s (no static excess). Ignored by other models.
+            command_gain: share of the commanded velocity the robot reaches.
+            input_delay: delay (s) between a command and the motion it causes.
         """
         self.position = np.array([x, y], dtype=float)
         self.velocity = np.array([0.0, 0.0], dtype=float)
@@ -87,7 +97,29 @@ class Omnibot:
                                   else kinetic_threshold)
         if stiction_model == "coulomb" and not 0 <= self.kinetic_threshold <= stiction_threshold:
             raise ValueError("coulomb needs 0 <= kinetic_threshold <= stiction_threshold")
+        if input_delay < 0:
+            raise ValueError("input_delay must be >= 0")
+        self.command_gain = command_gain
+        self.input_delay = input_delay
+        steps = input_delay / timestep
+        self._delay_steps = int(np.floor(steps + 1e-9))
+        self._delay_frac = max(steps - self._delay_steps, 0.0)
+        if self._delay_frac < 1e-9:
+            self._delay_frac = 0.0
+        self.reset_dynamics()
+
+    def reset_dynamics(self):
+        """Zero the velocity and the command history, and park the robot."""
+        self.velocity = np.zeros(2)
         self.stuck = True        # "coulomb" only: held by static friction
+        n = self._delay_steps + 2
+        self._commands = deque([np.zeros(2)] * n, maxlen=n)
+
+    def _delayed(self, u):
+        """The command acting this step, u(t - input_delay)."""
+        self._commands.append(u)
+        d, f = self._delay_steps, self._delay_frac
+        return (1 - f) * self._commands[-1 - d] + f * self._commands[-2 - d]
 
     def command_velocity(self, vx_cmd, vy_cmd):
         """
@@ -98,7 +130,7 @@ class Omnibot:
             vy_cmd: Commanded y velocity
         """
         # Apply momentum dynamics
-        velocity_commanded = np.array([vx_cmd, vy_cmd], dtype=float)
+        velocity_commanded = self._delayed(np.array([vx_cmd, vy_cmd], dtype=float))
         if (self.stiction_model == "deadzone"
                 and np.linalg.norm(velocity_commanded) < self.stiction_threshold):
             velocity_commanded = np.zeros(2)
@@ -106,7 +138,7 @@ class Omnibot:
             self._coulomb_update(velocity_commanded)
         else:
             self.velocity = (self.momentum_alpha * self.velocity +
-                            (1 - self.momentum_alpha) * velocity_commanded)
+                            (1 - self.momentum_alpha) * self.command_gain * velocity_commanded)
 
         # ========================================================================
         # PHYSICAL CONSTRAINTS
@@ -156,7 +188,8 @@ class Omnibot:
                 self.velocity = np.zeros(2)
                 return
             self.stuck = False   # breakaway, kinetic friction from here on
-        free = self.momentum_alpha * self.velocity + (1 - self.momentum_alpha) * u
+        free = (self.momentum_alpha * self.velocity
+                + (1 - self.momentum_alpha) * self.command_gain * u)
         free_mag = np.linalg.norm(free)
         drop = (1 - self.momentum_alpha) * self.kinetic_threshold
         if free_mag <= drop:

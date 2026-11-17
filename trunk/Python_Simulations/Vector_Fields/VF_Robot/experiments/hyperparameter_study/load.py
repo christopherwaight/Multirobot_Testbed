@@ -5,8 +5,11 @@ import os
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FLOAT_COLS = ["eps", "N", "dt", "T", "window", "side", "alpha", "vs", "vmax", "k", "vcmd_max",
-              "kt", "kr", "rclamp", "rd", "sigma_n", "kf", "kb", "r0"]
+FLOAT_COLS = ["eps", "N", "dt", "T", "window", "side", "alpha", "vs", "vmax", "gain", "delay", "k",
+              "vcmd_max", "vaxis", "kt", "kr", "rclamp", "turn", "rd", "sigma_n", "kf", "kb", "r0"]
+# Results made before 2026-11-16 have no gain, delay, per-axis clip or turn; they ran at gain 1,
+# delay 0, no per-axis clip and turn +1.
+MISSING = dict(gain=1.0, delay=0.0, vaxis=1e9, turn=1.0)
 
 CONV = 0.05          # convergence radius (m) for attraction
 ORBIT_FAIL_REVS = 0.25
@@ -16,7 +19,7 @@ def manifest(res="results"):
     rows = list(csv.DictReader(open(os.path.join(HERE, res, "manifest.csv"))))
     for r in rows:
         for k in FLOAT_COLS:
-            r[k] = float(r.get(k, "nan"))
+            r[k] = float(r.get(k, MISSING.get(k, "nan")))
         r["random"] = r["random"] == "1"
         r["stiction"] = r.get("stiction") or "legacy"
         r["hw"] = r.get("hw") or ""
@@ -26,7 +29,10 @@ def manifest(res="results"):
 
 def trials(row):
     with np.load(row["path"]) as z:
-        return {k: z[k].astype(np.float64) for k in z.files}
+        M = {k: z[k].astype(np.float64) for k in z.files}
+    for k, v in MISSING.items():
+        M.setdefault("p_" + k, np.full(len(M["escaped"]), v))
+    return M
 
 
 def attract_summary(row, M):

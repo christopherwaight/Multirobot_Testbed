@@ -39,7 +39,9 @@ def ref_run(fieldfn, task, start, theta, side, alpha, vsn, rd, model="legacy", v
 
 
 def vec_run(field, task, start, theta, side, alpha, vsn, rd, model="legacy", vk=None):
-    P = vs.params(1, side=side, alpha=alpha, vs=vsn, rd=rd)
+    # the reference classes' controller: primitive gains, formation gains from equilateral_default.yaml,
+    # no per-axis clip; the robot model (gain, delay, cap) is the shared default
+    P = vs.params(1, side=side, alpha=alpha, vs=vsn, rd=rd, kt=0.2, kr=0.5, kf=0.5, kb=0.01, vaxis=1e9)
     _, tr = vs.simulate(field, task, "fit", P, STEPS * 0.1, starts=np.array([start]),
                         thetas=np.array([theta]), keep=1, keep_stride=1,
                         stiction_model=model, vk=vk)
@@ -57,7 +59,7 @@ if __name__ == "__main__":
         F = vs.make_field(name)
         err = max(np.hypot(*(np.array(f(x, y)) - np.array(F.fn(x, y)))) for x, y in pts)
         print(f"field {name:15s} max |v_src - v_vec| = {err:.1e}")
-    for name, d in [("vortex_nn", "vortex_predictors"), ("saddle_nn", "saddle_predictors")]:
+    for name, d in [("vortex_nn_2026", "vortex_predictors_2026"), ("saddle_nn_2026", "saddle_predictors_2026")]:
         F = vs.make_field(name)
         ref = NNField(d)
         u, v = F.fn(pts[:, 0] * 0.6, pts[:, 1] * 0.6)
@@ -68,8 +70,8 @@ if __name__ == "__main__":
     cases = [("vortex", "attract", 0.33, 0.7, 0.025, 0.3), ("saddle", "attract", 0.10, 0.0, 0.0, 0.3),
              ("gyre", "attract", 0.33, 0.7, 0.025, 0.3), ("sinking_vortex", "orbit", 0.33, 0.7, 0.025, 0.2),
              ("gyre", "orbit", 0.33, 0.5, 0.0, 0.3), ("saddle", "orbit", 0.2, 0.9, 0.0, 0.1),
-             ("curved_saddle", "orbit", 0.1, 0.01, 0.0, 0.3), ("vortex_nn", "attract", 0.33, 0.7, 0.025, 0.3),
-             ("saddle_nn", "orbit", 0.33, 0.7, 0.025, 0.3)]
+             ("curved_saddle", "orbit", 0.1, 0.01, 0.0, 0.3), ("vortex_nn_2026", "attract", 0.33, 0.7, 0.025, 0.3),
+             ("saddle_nn_2026", "orbit", 0.33, 0.7, 0.025, 0.3)]
     for name, task, side, alpha, vsn, rd in cases:
         F = vs.make_field(name)
         worst = 0.0
@@ -80,8 +82,8 @@ if __name__ == "__main__":
                 ph = rng.uniform(0, 2 * np.pi)
                 start = rd * np.array([np.cos(ph), np.sin(ph)])
             theta = rng.uniform(0, 2 * np.pi)
-            if name.endswith("_nn"):
-                ref = NNField("vortex_predictors" if name == "vortex_nn" else "saddle_predictors")
+            if name in vs.NETS:
+                ref = NNField(vs.NETS[name])
                 fn = ref.get_value
             else:
                 fn = F.fn

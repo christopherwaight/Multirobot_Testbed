@@ -5,13 +5,15 @@ Numbers here are for review; none goes into the paper .tex without approval.
 """
 import json
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 
 import numpy as np
 import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-RES = os.path.join(HERE, "results")
+RES = paths.RES
 
 
 def r2(y, yhat):
@@ -86,7 +88,7 @@ def main(tag=""):
           f"{s['success_3cm']:.0f}/{s['success_4cm']:.0f}/{s['success_5cm']:.0f} %, settle (5 cm) {s['t_settle_med_5cm']:.1f} s")
     p("")
     p("SIMULATION ORBIT (100 trials per field and r_d, 10 s excluded): bias / RMSE / ctrl-only bias, mm")
-    for f in ("vortex", "vortex_nn", "saddle_nn"):
+    for f in ("vortex", "vortex_nn_2026", "saddle_nn_2026"):
         row = "  ".join(f"{float(rd):.2f}: {v['bias_w1'] * 1000:+.0f}/{v['rmse_w1'] * 1000:.0f}/{v['ctrl_bias_w1'] * 1000:+.0f}"
                         for rd, v in S["sim"]["orbit"][f].items())
         p(f"  {f:10s} {row}")

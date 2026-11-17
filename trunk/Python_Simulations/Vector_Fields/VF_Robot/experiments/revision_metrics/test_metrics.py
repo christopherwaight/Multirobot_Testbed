@@ -62,7 +62,8 @@ def test_offset_orbit_bias_signs():
     ph = np.tile([0.05, 0.0], (601, 1))
     out, _ = mt.orbit_run(c, ph, rd=0.2)
     assert np.isclose(out["ctrl_bias_w1"], 0.05)
-    assert out["direction"] == -1.0 and out["n_laps"] == 4   # 499 intervals = 4.99 laps
+    n_after = 600 - mt.TRANSIENT_STEPS                # intervals after the transient
+    assert out["direction"] == -1.0 and out["n_laps"] == n_after // 100   # 100 samples per lap
     assert out["rmse_w1"] >= abs(out["bias_w1"]) and out["mae_w1"] <= out["rmse_w1"] + 1e-15
 
 

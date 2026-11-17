@@ -393,7 +393,8 @@ def build_parser(description, default_out):
     p.add_argument("--eps", type=float, default=1.0,
                    help="curvature for potential_saddle / cellular_saddle (ignored otherwise)")
     p.add_argument("--side", type=float, default=0.33, help="triangle side length (m)")
-    p.add_argument("--alpha", type=float, default=0.7, help="robot velocity lag (momentum_alpha)")
+    p.add_argument("--alpha", type=float, default=float(np.exp(-0.1 / 0.02)),
+                   help="robot velocity lag (momentum_alpha) at dt 0.1; default is the 2026-11-16 model (tau 0.02 s), 0.7 the old one")
     p.add_argument("--stiction", type=float, default=0.025, help="stiction threshold (m/s)")
     p.add_argument("--attract-steps", type=int, default=300)
     p.add_argument("--orbit-steps", type=int, default=1500)

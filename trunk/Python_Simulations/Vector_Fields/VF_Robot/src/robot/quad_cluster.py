@@ -25,19 +25,32 @@ class QuadCluster:
     6. Commands individual robots
     """
 
-    def __init__(self, formation_config_path, field, timestep=0.1, momentum_alpha=0.7):
+    def __init__(self, formation_config_path, field, timestep=0.1, momentum_alpha=None,
+                 stiction_threshold=0.025, stiction_model="deadzone", kinetic_threshold=None,
+                 max_velocity=0.3, time_constant=0.02, command_gain=0.86, input_delay=0.055):
         """
         Initialize QuadCluster.
+
+        Robot model: the 2026-11-16 hardware fit, the same as OmniCluster (see
+        its docstring). Runs before 2026-11-16 used momentum_alpha=0.7,
+        stiction_model="legacy", max_velocity=0.3, command_gain=1.0,
+        input_delay=0.0.
 
         Args:
             formation_config_path: Path to YAML formation configuration file
             field: VectorField object for environment sensing
             timestep: Time step for robot integration
-            momentum_alpha: Momentum coefficient for robots
+            momentum_alpha: None sets alpha = exp(-timestep / time_constant)
+            Remaining arguments: passed to each Omnibot (see OmniCluster)
         """
         self.field = field
         self.timestep = timestep
+        if momentum_alpha is None:
+            momentum_alpha = float(np.exp(-timestep / time_constant)) if time_constant > 0 else 0.0
         self.momentum_alpha = momentum_alpha
+        self.robot_kwargs = dict(max_velocity=max_velocity, stiction_threshold=stiction_threshold,
+                                 stiction_model=stiction_model, kinetic_threshold=kinetic_threshold,
+                                 command_gain=command_gain, input_delay=input_delay)
 
         # For angle unwrapping
         self.prev_theta_c = None
@@ -104,10 +117,8 @@ class QuadCluster:
 
         # Create 4 robots
         self.robots = [
-            Omnibot(x1, y1, self.timestep, self.momentum_alpha),
-            Omnibot(x2, y2, self.timestep, self.momentum_alpha),
-            Omnibot(x3, y3, self.timestep, self.momentum_alpha),
-            Omnibot(x4, y4, self.timestep, self.momentum_alpha)
+            Omnibot(x, y, self.timestep, self.momentum_alpha, **self.robot_kwargs)
+            for x, y in ((x1, y1), (x2, y2), (x3, y3), (x4, y4))
         ]
 
         print(f"Initialized 4 robots at centroid ({x_c_init:.3f}, {y_c_init:.3f})")
@@ -270,9 +281,9 @@ class QuadCluster:
         self.robots[2].set_position(x3, y3)
         self.robots[3].set_position(x4, y4)
 
-        # Reset velocities
+        # Reset velocities, pending (delayed) commands and stiction state
         for robot in self.robots:
-            robot.velocity = np.array([0.0, 0.0])
+            robot.reset_dynamics()
 
         # Clear history
         self.center_history = []

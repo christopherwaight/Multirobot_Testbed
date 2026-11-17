@@ -26,6 +26,8 @@ Estimators ("method"):
              true critical point
 """
 import os
+from collections import deque
+
 import numpy as np
 
 PI = np.pi
@@ -43,7 +45,11 @@ LINEAR_J = {
 }
 LINEAR = list(LINEAR_J)
 NONLINEAR = ["gyre", "curved_saddle"]
-RECONSTRUCTED = ["vortex_nn", "saddle_nn"]
+# Reconstructed (MLP) fields. The campaign uses the 2026 rebuilds; the 2025 nets keep their old names
+# so results made with them (v3) stay reproducible.
+NETS = {"vortex_nn_2026": "vortex_predictors_2026", "saddle_nn_2026": "saddle_predictors_2026",
+        "vortex_nn": "vortex_predictors", "saddle_nn": "saddle_predictors"}
+RECONSTRUCTED = ["vortex_nn_2026", "saddle_nn_2026"]
 FIELDS = LINEAR + NONLINEAR + RECONSTRUCTED
 
 
@@ -152,9 +158,10 @@ def _reconstructed(name):
     import sys
     if VF_ROOT not in sys.path:
         sys.path.insert(0, VF_ROOT)
-    fn = _NN("vortex_predictors" if name == "vortex_nn" else "saddle_predictors")
-    J = LINEAR_J["vortex" if name == "vortex_nn" else "saddle"]
-    idx = 1.0 if name == "vortex_nn" else -1.0
+    kind = "vortex" if name.startswith("vortex") else "saddle"
+    fn = _NN(NETS[name])
+    J = LINEAR_J[kind]
+    idx = 1.0 if kind == "vortex" else -1.0
     return Field(name, "reconstructed", fn, [(0.0, 0.0, idx)], J, 0.5, 0.5,
                  "MLP fit to testbed color-sensor data; truth = printed map's critical point")
 
@@ -178,7 +185,7 @@ def make_field(name, eps=1.0, family="potential"):
         return _gyre()
     if name == "curved_saddle":
         return _curved_saddle(eps, family)
-    if name in RECONSTRUCTED:
+    if name in NETS:
         return _reconstructed(name)
     raise ValueError(name)
 
@@ -186,8 +193,17 @@ def make_field(name, eps=1.0, family="potential"):
 # ============================================================================
 # Simulation
 # ============================================================================
-DEFAULTS = dict(side=0.33, alpha=float(np.exp(-0.1 / 0.28)), vs=0.025, vmax=0.4, k=1.0, vcmd_max=0.5,
-                kt=0.2, kr=0.5, rclamp=0.3, rd=0.3, sigma_n=0.0, kf=0.5, kb=0.01, r0=np.nan)
+# Robot model from 2026-11-16 (OmniCluster defaults): tau 0.02 s (alpha is for dt 0.1;
+# recompute it for another dt), gain 0.86, delay 0.055 s, dead zone 0.025 m/s, cap 0.3 m/s.
+# Side 0.30 m and orbit gains k_t 0.15, k_r 1 match the 2026-11 hardware (decided 2026-11-16);
+# before that: side 0.33, k_t 0.2, k_r 0.5. The 2026-10-29 model was alpha exp(-0.1/0.28), gain 1,
+# delay 0, vmax 0.4 with stiction_model "coulomb".
+# Controller settings match the 2026 hardware (run_config): formation gain 1 on p, q and beta;
+# attraction command clipped to +-0.3 m/s per axis (vaxis; with k = 1 this is the hardware's +-0.3 m
+# error clip); orbit turn +1 (counter-clockwise in the field frame; use -1 in a mirrored frame).
+# Before 2026-11-16: kf 0.5, kb 0.01, no per-axis clip.
+DEFAULTS = dict(side=0.30, alpha=float(np.exp(-0.1 / 0.02)), vs=0.025, vmax=0.3, gain=0.86, delay=0.055, k=1.0, vcmd_max=0.5,
+                vaxis=0.3, kt=0.15, kr=1.0, rclamp=0.3, turn=1.0, rd=0.3, sigma_n=0.0, kf=1.0, kb=1.0, r0=np.nan)
 STICTION_MODELS = ("legacy", "deadzone", "scaled", "coulomb")
 PARAM_KEYS = list(DEFAULTS)
 
@@ -230,12 +246,12 @@ def _fit(pos, c, f):
 
 
 def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None,
-             window=20.0, escape=None, keep=0, keep_stride=5, stiction_model="coulomb",
+             window=20.0, escape=None, keep=0, keep_stride=5, stiction_model="deadzone",
              vk=None, record=False):
     """Run len(P['side']) trials for T seconds. task 'attract' or 'orbit'.
     starts: (n, 2) centroid starts; default uniform box (attract) or on the
     circle of radius r0 (default r_d) for orbits.
-    stiction_model: as Omnibot, default "coulomb" to match OmniCluster
+    stiction_model: as Omnibot, default "deadzone" to match OmniCluster
     (run_study passes each cell's rule explicitly). "legacy" zeroes the lagged velocity below v_s;
     "deadzone" zeroes commands below v_s before the lag (exact ZOH
     discretization, sample-period invariant); "scaled" is legacy with
@@ -269,6 +285,13 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
         assert np.all((vk >= 0) & (vk <= vs)), "coulomb needs 0 <= vk <= vs"
     stuck = np.ones((n, 3), bool)
     al3 = al[:, None, None]
+    gain3 = P["gain"][:, None, None]
+    delay = float(P["delay"][0])
+    assert np.all(P["delay"] == delay), "one input delay per call"
+    steps = delay / dt
+    ddel = int(np.floor(steps + 1e-9))
+    fdel = steps - ddel if steps - ddel >= 1e-9 else 0.0
+    hist = deque([np.zeros_like(pos)] * (ddel + 2), maxlen=ddel + 2)
     n_steps = int(round(T / dt))
     w0 = int(round(window / dt))
     c0 = pos.mean(1)
@@ -358,6 +381,7 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
             else:
                 spd = np.minimum(P["k"] * dist, P["vcmd_max"])
                 vc = wh * spd[:, None]
+                vc = np.clip(vc, -P["vaxis"][:, None], P["vaxis"][:, None])
                 vc[dist < 1e-6] = 0.0
         elif method in ("v2s", "v2s_oracle"):
             ng = np.sqrt(gg)
@@ -368,7 +392,7 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
                 vr = np.clip(P["kr"] * (dist - P["rd"]), -P["rclamp"], P["rclamp"])
                 vc = vc + vr[:, None] * wh
         else:
-            tang = np.stack([wh[:, 1], -wh[:, 0]], 1)
+            tang = np.stack([wh[:, 1], -wh[:, 0]], 1) * P["turn"][:, None]
             vr = np.clip(P["kr"] * (dist - P["rd"]), -P["rclamp"], P["rclamp"])
             vc = P["kt"][:, None] * tang + vr[:, None] * wh
             small = dist < 1e-6
@@ -401,12 +425,14 @@ def simulate(field, task, method, P, T, dt=0.1, seed=0, starts=None, thetas=None
         ct, st = np.cos(th)[:, None], np.sin(th)[:, None]
         cmd = np.stack([ct * lx - st * ly + vc[:, None, 0], st * lx + ct * ly + vc[:, None, 1]], -1)
 
-        # ---- Omnibot: lag, speed cap, stiction (pre-cap magnitude)
+        # ---- Omnibot: input delay, lag with command gain, speed cap, stiction (pre-cap magnitude)
+        hist.append(cmd)
+        ud = (1 - fdel) * hist[-1 - ddel] + fdel * hist[-2 - ddel]
         if stiction_model == "deadzone":
-            cmd[np.hypot(cmd[..., 0], cmd[..., 1]) < vs[:, None]] = 0.0
-        new = al3 * vel + (1 - al3) * cmd
+            ud[np.hypot(ud[..., 0], ud[..., 1]) < vs[:, None]] = 0.0
+        new = al3 * vel + (1 - al3) * gain3 * ud
         if stiction_model == "coulomb":
-            um = np.hypot(cmd[..., 0], cmd[..., 1])
+            um = np.hypot(ud[..., 0], ud[..., 1])
             stuck &= ~(vel != 0).any(-1)
             stuck &= ~(um > vs[:, None])
             fm = np.hypot(new[..., 0], new[..., 1])

@@ -55,9 +55,10 @@ def _seed(s):
     return zlib.crc32(s.encode()) & 0x7FFFFFFF
 
 
-def _adder(C, stiction="legacy", scale=None, base=None):
+def _adder(C, stiction="legacy", scale=None, base=None, timing=(0.2, 0.5, 0.7)):
     """base: parameter values every cell takes unless it sets its own. They
-    are not part of the cell id (each version writes to its own folder)."""
+    are not part of the cell id (each version writes to its own folder).
+    timing: (k_t, k_r, alpha) assumed by orbit_timing when a cell does not set them."""
     scale = scale or {}
     base = base or {}
 
@@ -73,8 +74,8 @@ def _adder(C, stiction="legacy", scale=None, base=None):
         if task == "attract":
             T, w0 = (T or T_ATTRACT), 0.0
         else:
-            T, w0 = orbit_timing(p.get("rd", 0.3), p.get("kt", 0.2), p.get("kr", 0.5),
-                                 p.get("alpha", 0.7), dt)
+            T, w0 = orbit_timing(p.get("rd", 0.3), p.get("kt", timing[0]), p.get("kr", timing[1]),
+                                 p.get("alpha", timing[2]), dt)
         mult = next((v for k, v in scale.items() if exp.startswith(k)), 1)
         C.append(dict(id=cid, exp=exp, task=task, method=method, field=field, eps=eps,
                       family=family, N=int(N * mult), dt=dt, T=T, window=w0, params={**base, **p},
@@ -217,9 +218,11 @@ def build_extra(stiction="deadzone", base=OLD_BASE):
     return C
 
 
-def random_batches(n_batches=1000, per_batch=1000, seed=7, stiction="legacy", base=OLD_BASE):
+def random_batches(n_batches=1000, per_batch=1000, seed=7, stiction="legacy", base=OLD_BASE, delays=None):
     """E7: each batch fixes (field, method, task, dt); every other parameter is
-    drawn per trial in run_study.random_params from the batch seed."""
+    drawn per trial in run_study.random_params from the batch seed.
+    delays (v4): each batch also fixes one input delay drawn from this list,
+    because vecsim runs one delay per call."""
     rng = np.random.default_rng(seed)
     B = []
     fields = vs.FIELDS
@@ -234,11 +237,16 @@ def random_batches(n_batches=1000, per_batch=1000, seed=7, stiction="legacy", ba
         dt = float(rng.choice([0.05, 0.1, 0.2]))
         T = T_ATTRACT if task == "attract" else 180.0
         cid = f"E7|{b:04d}|{task}|{method}|{field}|{fam}{eps:+g}|dt{dt:g}"
+        params = dict(base)
+        if delays is not None:
+            params["delay"] = float(rng.choice(delays))
+            cid += f"|delay{params['delay']:g}"
         if stiction != "legacy":
             cid += f"|st={stiction}"
         B.append(dict(id=cid, exp="E7", task=task, method=method, field=field, eps=eps,
                       family=fam, N=per_batch, dt=dt, T=T, window=60.0 if task == "orbit" else 0.0,
-                      params=dict(base), seed=_seed(cid), random=True, stiction=stiction, hw=None))
+                      params=params, seed=_seed(cid), random=True, stiction=stiction, hw=None,
+                      v4=delays is not None))
     return B
 
 
@@ -250,16 +258,214 @@ def build_v2():
         random_batches(per_batch=10000, stiction="deadzone")
 
 
+V3_MODEL = dict(alpha=float(np.exp(-0.1 / TAU)), vmax=0.4, gain=1.0, delay=0.0, side=0.33, kt=0.2, kr=0.5,
+                kf=0.5, kb=0.01, vaxis=1e9, turn=1.0)
+
+
 def build_v3():
     """Version 3 (2026-10-29): the paper's robot model, first-order lag plus
-    Coulomb friction (v_s is the friction level v_c, static = kinetic)."""
-    return build("coulomb", V2_SCALE, {}) + build_extra("coulomb", {}) + \
-        random_batches(per_batch=10000, stiction="coulomb", base={})
+    Coulomb friction (v_s is the friction level v_c, static = kinetic).
+    Pinned to V3_MODEL (every setting v3 ran with) since vecsim.DEFAULTS moved to the 2026 hardware."""
+    return build("coulomb", V2_SCALE, V3_MODEL) + build_extra("coulomb", V3_MODEL) + \
+        random_batches(per_batch=10000, stiction="coulomb", base=V3_MODEL)
+
+
+# ============================================================================
+# Version 4 (2026-11-16): the hardware-fitted robot model in vecsim.DEFAULTS
+# (gain 0.86, delay 0.055 s, tau 0.02 s, dead zone 0.025 m/s, cap 0.3 m/s),
+# side 0.30 m and the hardware orbit gains k_t 0.15, k_r 1. alpha is always
+# set from tau and the cell's dt. The lag sweeps of v3 become tau, delay and
+# gain sweeps, and k sweeps straddle the new limit k < 1/(g L) = 21 /s.
+# ============================================================================
+TAU4 = 0.02
+SIDE4 = 0.30
+TAUS4 = [0.0, 0.01, 0.02, 0.05, 0.1, 0.28]
+DELAYS4 = [0.0, 0.025, 0.055, 0.1, 0.15, 0.2]
+GAINS4 = [0.7, 0.8, 0.86, 0.93, 1.0]
+KS4 = [0.1, 0.3, 1.0, 3.0, 10.0, 15.0, 20.0, 25.0, 30.0, 100.0]
+KTS4 = [0.05, 0.1, 0.15, 0.2, 0.3, 0.5]
+SIDES4 = [0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1.0]
+IDEAL4 = dict(alpha=0.0, vs=0.0, vmax=1e9, gain=1.0, delay=0.0)
+# (delay, tau) pairs for the transient experiments E8
+LAGS4 = [(0.0, 0.0), (0.055, 0.0), (0.055, 0.02), (0.055, 0.1), (0.055, 0.28),
+         (0.1, 0.02), (0.2, 0.02), (0.0, 0.28)]
+
+
+VNN, SNN = "vortex_nn_2026", "saddle_nn_2026"   # reconstructed fields of the campaign (2026 rebuilds)
+
+
+def alpha_of(dt, tau=TAU4):
+    return float(np.exp(-dt / tau)) if tau > 0 else 0.0
+
+
+# Trial multipliers by experiment prefix (first match wins, so "E1" also covers E10 and E11).
+V4_SCALE = {"E1": 10, "E2": 10, "E3": 10, "E4": 5, "E5": 5, "E6": 5}
+
+
+def build_v4(scale=V4_SCALE):
+    """Cell list for version 4 (see the block comment above). Experiments keep
+    their v3 names and meaning; E2tau/E2delay/E2gain, E3delay/E3tau/E3gain and
+    E11 are new."""
+    C = []
+    raw = _adder(C, "deadzone", scale, {}, timing=(vs.DEFAULTS["kt"], vs.DEFAULTS["kr"], alpha_of(0.1)))
+
+    def add(exp, task, method, field, N, eps=1.0, family="potential", dt=0.1, tau=TAU4, **p):
+        if "alpha" not in p:
+            p["alpha"] = alpha_of(dt, tau)
+        raw(exp, task, method, field, N, eps, family, dt, **p)
+
+    def max_rd(field):
+        return 10.0 if field in vs.LINEAR else (1.0 if field == "gyre" else 0.5)
+
+    # E1 baseline: every field and estimator, hardware model and ideal robots
+    for field in vs.FIELDS:
+        for m in METHODS:
+            for tag, base in (("hw", {}), ("ideal", IDEAL4)):
+                add("E1" + tag, "attract", m, field, 10000, **base)
+                for rd in PAPER_RDS:
+                    add("E1" + tag, "orbit", m, field, 1000, rd=rd, **base)
+
+    # E2 achievable orbit radius
+    for field in ("vortex", "saddle", "gyre", VNN):
+        for m in ("fit", "oracle"):
+            for rd in RDS:
+                if rd > max_rd(field):
+                    continue
+                for tau in TAUS4:
+                    add("E2tau", "orbit", m, field, 200, rd=rd, tau=tau)
+                for L in DELAYS4:
+                    add("E2delay", "orbit", m, field, 200, rd=rd, delay=L)
+    for m in ("fit", "oracle"):
+        for rd in RDS:
+            for g in GAINS4:
+                add("E2gain", "orbit", m, "vortex", 200, rd=rd, gain=g)
+            for kt in KTS4:
+                add("E2kt", "orbit", m, "vortex", 200, rd=rd, kt=kt)
+            for kr in KRS:
+                add("E2kr", "orbit", m, "vortex", 200, rd=rd, kr=kr)
+            for dt in DTS:
+                add("E2dt", "orbit", m, "vortex", 200, dt=dt, rd=rd)
+            for v in STICTIONS:
+                for L in (0.055, 0.1):
+                    add("E2vs", "orbit", m, "vortex", 200, rd=rd, vs=v, delay=L)
+
+    # E3 attraction dynamics
+    for field in ("vortex", "saddle", "gyre", SNN):
+        for k in KS4:
+            for L in DELAYS4:
+                add("E3delay", "attract", "fit", field, 1000, k=k, delay=L)
+            for tau in TAUS4:
+                add("E3tau", "attract", "fit", field, 1000, k=k, tau=tau)
+        for v in STICTIONS:
+            for k in (1.0, 3.0):
+                add("E3vs", "attract", "fit", field, 1000, vs=v, k=k)
+        for g in GAINS4:
+            for k in (1.0, 10.0, 20.0):
+                add("E3gain", "attract", "fit", field, 1000, gain=g, k=k)
+    for k in KS4:
+        for L in DELAYS4:
+            add("E3delay", "attract", "oracle", "vortex", 1000, k=k, delay=L)
+    for dt in DTS:
+        for k in KS4:
+            add("E3dt", "attract", "fit", "vortex", 1000, dt=dt, k=k)
+
+    # E4 formation size
+    size_fields = [("vortex", 1.0, "potential"), ("gyre", 1.0, "potential"),
+                   ("curved_saddle", 1.0, "potential"), ("curved_saddle", 1.0, "cellular"),
+                   (VNN, 1.0, "potential"), (SNN, 1.0, "potential")]
+    for field, eps, fam in size_fields:
+        for s in SIDES4:
+            for m in ("fit", "magnitude"):
+                for tag, base in (("hw", {}), ("ideal", IDEAL4)):
+                    add("E4" + tag, "attract", m, field, 1000, eps, fam, side=s, **base)
+                    for rd in (0.1, 0.2, 0.3):
+                        add("E4" + tag, "orbit", m, field, 300, eps, fam, side=s, rd=rd, **base)
+
+    # E5 curvature
+    for fam in ("potential", "cellular"):
+        for eps in EPSS:
+            for s in (0.1, SIDE4):
+                for tag, base in (("hw", {}), ("ideal", IDEAL4)):
+                    for rd in (0.1, 0.2, 0.3, 0.4):
+                        add("E5" + tag, "orbit", "fit", "curved_saddle", 300, eps, fam, side=s, rd=rd, **base)
+                add("E5basin", "attract", "fit", "curved_saddle", 2000, eps, fam, side=s)
+    for s in (0.1, 0.2, SIDE4):
+        add("E5basin", "attract", "fit", "gyre", 2000, side=s)
+
+    # E6 sensor noise
+    for field in vs.LINEAR:
+        for sg in SIGMAS:
+            for s in (0.1, SIDE4, 1.0):
+                for tag, base in (("hw", {}), ("ideal", IDEAL4)):
+                    add("E6" + tag, "attract", "fit", field, 1000, side=s, sigma_n=sg, **base)
+            for rd in (0.2, 0.5):
+                add("E6hw", "orbit", "fit", field, 500, rd=rd, sigma_n=sg)
+                add("E6ideal", "orbit", "fit", field, 500, rd=rd, sigma_n=sg, **IDEAL4)
+    for field in vs.RECONSTRUCTED:
+        for sg in SIGMAS:
+            add("E6hw", "attract", "fit", field, 1000, sigma_n=sg)
+            add("E6ideal", "attract", "fit", field, 1000, sigma_n=sg, **IDEAL4)
+
+    # E8 transients: (delay, tau) x dt x k (attraction) or k_r (orbit), with and without caps
+    OFF = dict(vmax=1e9, vcmd_max=1e9, vaxis=1e9)
+    for L, tau in LAGS4:
+        for dt in (0.01, 0.02, 0.05, 0.1, 0.2):
+            for k in (0.3, 1.0, 3.0, 10.0, 30.0):
+                for caps, base in (("hw", {}), ("off", OFF)):
+                    for v in (0.0, 0.025):
+                        add("E8a" + caps, "attract", "fit", "vortex", 500, dt=dt, tau=tau, delay=L, k=k, vs=v, **base)
+            if dt in (0.02, 0.1, 0.2):
+                for kr in (0.25, 0.5, 1.0, 2.0, 5.0):
+                    for r0 in (0.05, 0.6):
+                        for caps, base in (("hw", {}), ("off", dict(vmax=1e9, rclamp=1e9))):
+                            add("E8o" + caps, "orbit", "fit", "vortex", 200, dt=dt, tau=tau, delay=L, kr=kr,
+                                rd=0.3, r0=r0, **base)
+
+    # E9 raised caps
+    for vm in (0.1, 0.3, 1.0, 3.0, 1e9):
+        for tau in (0.0, 0.02, 0.1, 0.28):
+            for k in (1.0, 3.0, 10.0, 30.0, 100.0, 300.0):
+                add("E9a", "attract", "fit", "vortex", 1000, tau=tau, k=k, vmax=vm, vcmd_max=1e9, vaxis=1e9)
+    for vm in (0.3, 1.0, 3.0, 1e9):
+        for kt in (0.1, 0.15, 0.2, 0.3, 0.5, 1.0, 2.0):
+            for rd in (0.1, 0.3, 1.0, 3.0):
+                for rc in (0.3, 1e9):
+                    add("E9o", "orbit", "fit", "vortex", 200, kt=kt, rd=rd, vmax=vm, rclamp=rc)
+
+    # E10 stiction rules, with the hardware attraction starts
+    for model in ("legacy", "scaled", "deadzone", "coulomb"):
+        for dt in (0.01, 0.02, 0.05, 0.1, 0.2):
+            for v in (0.01, 0.025, 0.05):
+                for k in (1.0, 10.0):
+                    add("E10", "attract", "fit", "vortex", 1000, dt=dt, st=model, vs=v, k=k)
+                for kt in (0.05, 0.15):
+                    add("E10", "orbit", "fit", "vortex", 200, dt=dt, st=model, vs=v, kt=kt, rd=0.3)
+        for field, hw in (("vortex", "vortex"), (VNN, "vortex"), ("saddle", "saddle"), (SNN, "saddle")):
+            add("E10hw", "attract", "fit", field, 50, T=10.0, st=model, hw=hw)
+
+    # E11 sensitivity of the headline results to the fitted parameters
+    for L in (0.04, 0.055, 0.075):
+        for tau in (0.0, 0.02, 0.03):
+            for g in (0.80, 0.86, 0.93):
+                for v in (0.02, 0.025, 0.035):
+                    p = dict(delay=L, tau=tau, gain=g, vs=v)
+                    for field in ("vortex", "saddle", VNN, SNN):
+                        add("E11", "attract", "fit", field, 400, **p)
+                    for field in ("vortex", SNN):
+                        for rd in (0.01, 0.1, 0.3):
+                            add("E11", "orbit", "fit", field, 40, rd=rd, **p)
+                    for field, hw in (("vortex", "vortex"), ("saddle", "saddle")):
+                        add("E11hw", "attract", "fit", field, 10, T=10.0, hw=hw, **p)
+
+    return C + random_batches(per_batch=10000, stiction="deadzone", base={}, delays=DELAYS4)
 
 
 if __name__ == "__main__":
     import sys
-    if "--v3" in sys.argv:
+    if "--v4" in sys.argv:
+        C = [c for c in build_v4() if not c.get("random")]
+        R = [c for c in build_v4() if c.get("random")]
+    elif "--v3" in sys.argv:
         C = [c for c in build_v3() if not c.get("random")]
         R = [c for c in build_v3() if c.get("random")]
     elif "--v2" in sys.argv:

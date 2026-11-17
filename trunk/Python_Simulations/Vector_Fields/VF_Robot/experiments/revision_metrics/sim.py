@@ -2,10 +2,13 @@
 Simulation runs for the revised Tables II and III, scored with metrics.py.
 
 Uses the hyperparameter study's vectorized simulator (vecsim.py), which
-reproduces OmniCluster with the 2026-10-28 heading fix. Robot model: Coulomb
-friction (the OmniCluster default, chosen 2026-10-30), with vecsim's hardware
-baseline otherwise: side 0.33 m, tau 0.28 s, v_c 0.025 m/s, 0.4 m/s robot cap,
-k = 1 /s with a 0.5 m/s command cap, k_t 0.2 m/s, k_r 0.5 /s.
+reproduces OmniCluster with the 2026-10-28 heading fix. Robot model: the
+2026-11-16 hardware fit (the OmniCluster default): gain 0.86, input delay
+0.055 s, lag tau 0.02 s, dead zone 0.025 m/s, 0.3 m/s robot cap. Results made before
+2026-11-16 used Coulomb friction with tau 0.28 s, v_c 0.025 m/s and a 0.4 m/s
+cap. vecsim's baseline otherwise: side 0.30 m, k = 1 /s with a 0.5 m/s command
+cap, k_t 0.15 m/s, k_r 1 /s (the 2026-11 hardware; before 2026-11-16 side 0.33,
+k_t 0.2, k_r 0.5).
 
 Fields: the six linear fields of Table I and the two reconstructed (MLP)
 fields, as in the current Table II.
@@ -31,7 +34,7 @@ import metrics as mt  # noqa: E402
 
 FIELDS = vs.LINEAR + vs.RECONSTRUCTED
 PAPER_RDS = [0.01, 0.10, 0.20, 0.30, 0.40, 0.50]
-MODEL = "coulomb"
+MODEL = "deadzone"
 
 
 def _cls(J, truth, start, prefix=""):
@@ -57,7 +60,7 @@ def run_attraction(field_name, n=1000, T=10.0, seed=0, sigma_n=0.0):
     return rows
 
 
-def run_orbit(field_name, rd, n=100, T=60.0, seed=0, sigma_n=0.0):
+def run_orbit(field_name, rd, n=100, T=30.0, seed=0, sigma_n=0.0):
     F = vs.make_field(field_name)
     P = vs.params(n, rd=rd, sigma_n=sigma_n)
     truth = int(mt.classify(F.J0))

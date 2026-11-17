@@ -11,6 +11,8 @@ Run from VF_Robot:
     venv/bin/python3 experiments/revision_metrics/fig_v2s_effort.py
 """
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 
 import numpy as np
@@ -23,7 +25,7 @@ sys.path.insert(0, HERE)
 import sim  # noqa: E402
 import vecsim as vs  # noqa: E402
 
-OUT = os.path.join(HERE, "figures")
+OUT = paths.FIGURES
 FIELD, R0, RD, N = "vortex", 0.4, 0.3, 10
 ATT = [("fit", "Jacobian", "#2468c8", "-"), ("magnitude", "V2S", "#e8692c", (0, (5, 2)))]
 ORB = [("fit", "Jacobian", "#2468c8", "-"), ("v2s", "V2S", "#e8692c", (0, (5, 2))),

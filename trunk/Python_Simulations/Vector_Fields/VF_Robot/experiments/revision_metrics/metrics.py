@@ -31,7 +31,7 @@ CLASSIFICATION (Table I), per cycle from the estimated Jacobian J = [a b; d e]
     Scores: fraction of valid cycles correct (strict and coarse), over a window,
     time of the first correct label and time from which the label stays correct.
 
-ORBIT, per run, window W1 = samples j > 100 (10 s transient excluded), W2 = j >= 1
+ORBIT, per run, window W1 = samples j > TRANSIENT_STEPS (3 s transient excluded), W2 = j >= 1
     r*[j] = |c[j] - p*|, r_est[j] = |c[j] - phat[j]|
     bias = mean(r* - r_d), sd_within = std(r*), MAE, RMSE, ctrl_bias = mean(r_est - r_d)
     Estimates outside the printed map (near-singular fits) are counted (n_est_outside) and
@@ -45,7 +45,7 @@ DT = 0.1
 EPS_CONV = (0.03, 0.04, 0.05)
 MAP_SIDE = 1.6764                 # printed map side, OptiTrack metres
 HALF_WORKSPACE = MAP_SIDE / 2
-TRANSIENT_STEPS = 100             # 10 s at 10 Hz
+TRANSIENT_STEPS = 30              # 3 s at 10 Hz (was 10 s; see analysis/hardware/outputs/transient_choice.md)
 
 
 def _norm(a):

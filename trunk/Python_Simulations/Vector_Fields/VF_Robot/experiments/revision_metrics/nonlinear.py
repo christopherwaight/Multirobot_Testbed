@@ -5,7 +5,7 @@ same tables as the eight linear and reconstructed fields (Section IV restructure
 
 Fields (vecsim): the gyre cell, and the curved saddle v = -y + chi y^3 at chi = 1
 in its irrotational (vecsim family "potential") and rotational ("cellular") forms.
-Robot model and gains are sim.py's (Coulomb, side 0.33 m, k = 1, k_t 0.2, k_r 0.5).
+Robot model and gains are sim.py's (2026-11-16 model, side 0.30 m, k = 1, k_t 0.15, k_r 1).
 
 Attraction: 1000 trials, 10 s, seed 0, starts uniform in the 1 m x 1 m box and
 random headings. The gyre's vecsim default box (+-0.45 m) is widened to +-0.5 m,
@@ -30,7 +30,7 @@ revolutions about the target after the 10 s transient (the hyperparameter study'
 ORBIT_FAIL_REVS rule). The triangle orbit rule is also scored.
 Curvature sweep: the same orbit protocol at chi in {-1, -0.5, 0.5} for both forms
 (chi = 1 is in the main run, chi = 0 is the linear saddle).
-Formation-size sweep: the attraction protocol at sides 0.10, 0.20, 0.33 and 0.50 m,
+Formation-size sweep: the attraction protocol at sides 0.10, 0.20, 0.30 and 0.50 m,
 localization error over the trials that succeeded.
 Summary blocks per field: all trials, in_region / out_region, and success (the
 trials whose final triangle holds the target), the subset the merged table's
@@ -43,6 +43,8 @@ Run from VF_Robot:
 import argparse
 import json
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 import time
 
@@ -56,14 +58,14 @@ import metrics as mt  # noqa: E402
 import triangle_rescore as tr  # noqa: E402
 import vecsim as vs  # noqa: E402  (on the path through sim)
 
-RES = os.path.join(HERE, "results")
+RES = paths.RES
 SIGMA_NOISE = 0.02
 KEEP_REVS = 0.25
 START_HALF = 0.5
 MAIN = [("gyre", dict(name="gyre")),
         ("curved_saddle_irrot", dict(name="curved_saddle", eps=1.0, family="potential")),
         ("curved_saddle_rot", dict(name="curved_saddle", eps=1.0, family="cellular"))]
-SIDES = (0.10, 0.20, 0.33, 0.50)
+SIDES = (0.10, 0.20, 0.30, 0.50)
 DIAMOND = {"gyre": 0.5, "curved_saddle_rot": np.pi / (2 * np.sqrt(6.0))}   # det J = 0 on |x| + |y| = h
 SWEEP = [(f"curved_saddle_{lab}_chi{e:+g}", dict(name="curved_saddle", eps=e, family=fam), e, lab)
          for fam, lab in (("potential", "irrot"), ("cellular", "rot")) for e in (-1.0, -0.5, 0.5)]
@@ -278,7 +280,7 @@ def main():
         df.to_csv(os.path.join(RES, f"nonlinear_{name}_per_trial{tag}.csv"), index=False)
     S = _clean(summarize(att, natt, orb, sw, sz))
     S["meta"] = dict(model=sim.MODEL, n_attraction=n_att, n_orbit=n_orb, start_half=START_HALF,
-                     sigma_noise=SIGMA_NOISE, keep_revs=KEEP_REVS, side=0.33)
+                     sigma_noise=SIGMA_NOISE, keep_revs=KEEP_REVS, side=vs.DEFAULTS["side"])
     with open(os.path.join(RES, f"nonlinear_summary{tag}.json"), "w") as fh:
         json.dump(S, fh, indent=1)
     print("done", flush=True)

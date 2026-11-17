@@ -5,9 +5,13 @@ Run the hyperparameter study (design.py) with vecsim, saving per-trial results.
     venv/bin/python3 experiments/hyperparameter_study/run_study.py --pilot      # 5% of trials, separate folder
     venv/bin/python3 experiments/hyperparameter_study/run_study.py --only E2alpha E3k
     venv/bin/python3 experiments/hyperparameter_study/run_study.py --v3         # Coulomb model (results_v3/)
+    venv/bin/python3 experiments/hyperparameter_study/run_study.py --v4         # 2026-11-16 model, writes to
+                                                        # <repo>/data_simulation_campaign/hyperparameter_v4/
 
 Output: results/cells/<hash>.npz (per-trial metrics as float32, plus E7 per-trial
-parameters), results/manifest.csv, results/progress.log.
+parameters), results/manifest.csv, results/progress.log. Each cell is written
+atomically when it finishes and skipped on a re-run, so an interrupted run resumes
+by running the same command again.
 """
 import argparse
 import csv
@@ -31,6 +35,16 @@ _FIELDS = {}
 MAP_SCALE = 1.6764
 
 
+def repo_root():
+    p = HERE
+    while not os.path.isdir(os.path.join(p, ".git")):
+        parent = os.path.dirname(p)
+        if parent == p:
+            raise RuntimeError("repository root (.git) not found above " + HERE)
+        p = parent
+    return p
+
+
 def field_of(cell):
     key = (cell["field"], cell["eps"], cell["family"])
     if key not in _FIELDS:
@@ -43,10 +57,19 @@ def random_params(cell, n, F):
 
     def logu(a, b):
         return np.exp(rng.uniform(np.log(a), np.log(b), n))
-    P = dict(side=logu(0.01, 1.0),
-             alpha=np.where(rng.random(n) < 0.2, 0.0, rng.uniform(0, 0.95, n)),
+    side = logu(0.01, 1.0)                     # drawn first, as in v1 to v3
+    if cell.get("v4"):
+        tau = np.where(rng.random(n) < 0.2, 0.0, logu(0.005, 0.3))
+        alpha = np.where(tau > 0, np.exp(-cell["dt"] / np.maximum(tau, 1e-12)), 0.0)
+    else:
+        alpha = np.where(rng.random(n) < 0.2, 0.0, rng.uniform(0, 0.95, n))
+    P = dict(side=side,
+             alpha=alpha,
              vs=np.where(rng.random(n) < 0.25, 0.0, rng.uniform(0, 0.1, n)),
              vmax=np.where(rng.random(n) < 0.2, 1e9, cell["params"].get("vmax", vs.DEFAULTS["vmax"])),
+             gain=(rng.uniform(0.7, 1.0, n) if cell.get("v4")
+                   else cell["params"].get("gain", vs.DEFAULTS["gain"])),
+             delay=cell["params"].get("delay", vs.DEFAULTS["delay"]),
              k=logu(0.1, 100.0), kt=rng.uniform(0.05, 0.5, n), kr=logu(0.1, 5.0),
              rd=logu(1e-4, F.max_rd),
              sigma_n=np.where(rng.random(n) < 0.4, 0.0, logu(1e-4, 0.1)))
@@ -92,14 +115,21 @@ def main():
     ap.add_argument("--pilot", action="store_true", help="5%% of trials into results_pilot/")
     ap.add_argument("--v2", action="store_true", help="dead-zone stiction, larger N, E8-E10 (results_v2/)")
     ap.add_argument("--v3", action="store_true", help="as --v2 with Coulomb friction (results_v3/)")
+    ap.add_argument("--v4", action="store_true",
+                    help="2026-11-16 model, into <repo>/data_simulation_campaign/hyperparameter_v4/")
     ap.add_argument("--only", nargs="+", default=None)
     ap.add_argument("--workers", type=int, default=max(1, (os.cpu_count() or 2) - 1))
     a = ap.parse_args()
     version = "results_v3" if a.v3 else ("results_v2" if a.v2 else "results")
     out_dir = os.path.join(HERE, version + ("_pilot" if a.pilot else ""))
+    if a.v4:
+        out_dir = os.path.join(repo_root(), "data_simulation_campaign",
+                               "hyperparameter_v4" + ("_pilot" if a.pilot else ""))
     os.makedirs(os.path.join(out_dir, "cells"), exist_ok=True)
     scale = 0.05 if a.pilot else 1.0
-    if a.v3:
+    if a.v4:
+        cells = design.build_v4()
+    elif a.v3:
         cells = design.build_v3()
     elif a.v2:
         cells = design.build_v2()

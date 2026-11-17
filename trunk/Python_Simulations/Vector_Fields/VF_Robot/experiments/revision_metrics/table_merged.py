@@ -25,14 +25,16 @@ Run from VF_Robot:
 import json
 import os
 
+import paths  # noqa: E402  (output folders; REVISION_OUT)
+
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-RES = os.path.join(HERE, "results")
-OUT = os.path.join(HERE, "tables", "table_sim_merged.tex")
+RES = paths.RES
+OUT = os.path.join(paths.TABLES, "table_sim_merged.tex")
 LIN = ["sink", "source", "vortex", "sinking_vortex", "spewing_vortex", "saddle"]
 NL = ["gyre", "curved_saddle_irrot", "curved_saddle_rot"]
-OLD = ["sink", "vortex_nn", "saddle_nn"]
+OLD = ["sink", "vortex_nn_2026", "saddle_nn_2026"]
 
 
 def num(x, nd=4):
@@ -88,7 +90,7 @@ def build():
 
     orb, partial = {}, []
     for rd in sorted(O["sink"], key=float):
-        c = [sgn(np.mean([O[f][rd]["bias_w1"] for f in LIN]))] + [sgn(O[f][rd]["bias_w1"]) for f in ("vortex_nn", "saddle_nn")]
+        c = [sgn(np.mean([O[f][rd]["bias_w1"] for f in LIN]))] + [sgn(O[f][rd]["bias_w1"]) for f in ("vortex_nn_2026", "saddle_nn_2026")]
         for f in NL:
             o = N["orbit"][f][rd]
             if o["kept_pct"] < 50:
@@ -102,10 +104,10 @@ def build():
 
     nf, ns = list(C)
     lin_n = [100 * C[ns][f]["attract"]["acc"] for f in LIN]
-    cls = {"No noise": ["100"] + [pct(100 * C[nf][f]["attract"]["acc"]) for f in ("vortex_nn", "saddle_nn")]
+    cls = {"No noise": ["100"] + [pct(100 * C[nf][f]["attract"]["acc"]) for f in ("vortex_nn_2026", "saddle_nn_2026")]
            + [new(pct(NA[f]["success"]["cls_target"])) for f in NL],
            f"Noise {S['classification']['sigma_noise']}~m/s": [f"{pct(min(lin_n))}--{pct(max(lin_n))}"]
-           + [pct(100 * C[ns][f]["attract"]["acc"]) for f in ("vortex_nn", "saddle_nn")]
+           + [pct(100 * C[ns][f]["attract"]["acc"]) for f in ("vortex_nn_2026", "saddle_nn_2026")]
            + [new(pct(NA[f]["success"]["cls_target_noise"])) for f in NL]}
 
     def rows(d):

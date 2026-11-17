@@ -18,6 +18,8 @@ Run from VF_Robot:  venv/bin/python3 experiments/revision_metrics/baselines.py [
 """
 import json
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 
 import numpy as np
@@ -29,13 +31,13 @@ import metrics as mt  # noqa: E402
 import sim  # noqa: E402  (puts hyperparameter_study on the path)
 import vecsim as vs  # noqa: E402
 
-RES = os.path.join(HERE, "results")
-OUT = os.path.join(HERE, "tables")
+RES = paths.RES
+OUT = paths.TABLES
 METHODS = ["fit", "oracle", "magnitude_p"]
 EXTRA_ATTRACT = ["magnitude"]          # unit-gain descent of the speed gradient, not matched
 FIELDS = vs.LINEAR + vs.RECONSTRUCTED + ["gyre", "curved_saddle"]
-GROUPS = {"Linear (6)": vs.LINEAR, "Vortex (reconstructed)": ["vortex_nn"],
-          "Saddle (reconstructed)": ["saddle_nn"], "Gyre": ["gyre"], "Curved saddle": ["curved_saddle"]}
+GROUPS = {"Linear (6)": vs.LINEAR, "Vortex (reconstructed)": ["vortex_nn_2026"],
+          "Saddle (reconstructed)": ["saddle_nn_2026"], "Gyre": ["gyre"], "Curved saddle": ["curved_saddle"]}
 RDS = [0.10, 0.30, 0.50]
 
 

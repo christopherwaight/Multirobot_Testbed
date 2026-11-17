@@ -1,10 +1,11 @@
 """Gyre attraction split by start: inside the det J = 0 diamond |x|+|y| < 0.5 m or outside it.
-Coulomb model, side 0.33 m, 10 s, starts uniform in the +-0.45 m box (vecsim default for the gyre)."""
+2026-11-16 model, vecsim default side, 10 s, starts uniform in the +-0.45 m box (vecsim default for the gyre)."""
 import os, sys
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import triangle_rescore as tr  # noqa: E402
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sim  # noqa: E402
 import metrics as mt  # noqa: E402
 import vecsim as vs  # noqa: E402
@@ -27,7 +28,7 @@ for i in range(N):
     rows.append(r)
 import pandas as pd
 d = pd.DataFrame(rows)
-d.to_csv(os.path.join(HERE, "results", "triangle_gyre_diamond_split.csv"), index=False)
+d.to_csv(os.path.join(paths.RES, "triangle_gyre_diamond_split.csv"), index=False)
 for name, m in (("inside diamond", d.inside), ("outside diamond", ~d.inside)):
     s = d[m]
     print(f"{name:16s} n={len(s):5d}  center in triangle {100*s.tri_final.mean():5.1f}%  reached a saddle {100*(s.reached_index<0).mean():5.1f}%  "

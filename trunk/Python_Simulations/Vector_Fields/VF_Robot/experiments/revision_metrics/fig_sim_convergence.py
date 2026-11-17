@@ -9,6 +9,8 @@ Run from VF_Robot:
     venv/bin/python3 experiments/revision_metrics/fig_sim_convergence.py
 """
 import os
+
+import paths  # noqa: E402  (output folders; REVISION_OUT)
 import sys
 
 import numpy as np
@@ -21,10 +23,10 @@ sys.path.insert(0, HERE)
 import sim  # noqa: E402
 import vecsim as vs  # noqa: E402
 
-OUT = os.path.join(HERE, "figures")
+OUT = paths.FIGURES
 FIELDS = [("vortex", "Analytical vortex", "#2468c8", "-"),
-          ("vortex_nn", "Vortex (recon.)", "#e8692c", (0, (5, 2))),
-          ("saddle_nn", "Saddle (recon.)", "#2a9d5c", (0, (1.2, 1.4)))]
+          ("vortex_nn_2026", "Vortex (recon.)", "#e8692c", (0, (5, 2))),
+          ("saddle_nn_2026", "Saddle (recon.)", "#2a9d5c", (0, (1.2, 1.4)))]
 R0, N_START = 0.4, 10
 plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "Times", "DejaVu Serif"],
                      "mathtext.fontset": "stix", "font.size": 8, "axes.linewidth": 0.6,
