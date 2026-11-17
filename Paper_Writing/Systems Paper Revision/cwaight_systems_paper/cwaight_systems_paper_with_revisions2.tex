@@ -38,7 +38,7 @@
     There are a variety of interesting phenomena that exist at the critical points of environmental vector fields. Existing approaches for navigation to critical points either require prior knowledge of the environment or use local information to provide directional guidance only. This paper presents a multirobot method for estimating critical point locations without prior field knowledge, using only real-time local measurements from a minimum of three robots. The sensing is spatially distributed across the robots, while the estimate and control laws are computed on a central computer.
     This estimation enables new control laws to navigate to these points and to orbit them at a fixed radius.
     An error bound is derived for the estimate, and the attraction error is shown to stay bounded under actuator lag, sampling, and friction.
-    Simulation verifies both attraction and orbital control laws across six canonical linear vector fields and three nonlinear fields using three omnidirectional robots. Hardware validation within a lab-based experimental testbed demonstrates a \syn{100}\% (saddle) and \syn{86}\% (vortex) attraction convergence success rate within 0.05~m across \syn{158} trials, with mean position errors of \syn{0.037}~m or less from the true critical points. An additional \open{36} orbital trials demonstrated bounded orbits at \open{six} commanded radii across two fields, with radial bias below a quarter of the commanded radius at radii of \syn{0.40}~m (vortex) and \syn{0.50}~m (saddle) and above.
+    Simulation verifies both attraction and orbital control laws across six canonical linear vector fields and three nonlinear fields using three omnidirectional robots. Hardware validation within a lab-based experimental testbed demonstrates a \rev{99}\% (saddle) and \rev{91}\% (vortex) attraction convergence success rate within 0.05~m across \rev{160} trials, with mean position errors of \rev{0.034}~m or less from the true critical points. An additional \rev{120} orbital trials demonstrated bounded orbits at \rev{six} commanded radii across two fields, with radial bias below a quarter of the commanded radius at radii of \rev{0.20}~m and above in both fields. A four-robot formation converged within 0.05~m in all \rev{79} vortex trials.
     These findings establish this estimation method as a viable approach to navigation in vector fields such as oceanic and atmospheric flows, though the printed lab fields do not yet advect the robots as a physical flow would.
 
 \end{abstract}
@@ -67,7 +67,7 @@ The implementation problem is that the local field must be reconstructed on phys
 
 This paper introduces a cooperative estimation strategy that recovers the local linear structure of the field. Using a minimum of three robots, the cluster estimates the local Jacobian in a single time step and treats critical point navigation as a local-to-global inference. Inverting the Jacobian predicts the location of the nearby critical point that organizes the surrounding flow, and its eigenvalues indicate the type, with no global map required. The same estimate supports two control laws, a proportional law that drives the cluster centroid onto the critical point, and an orbital law that holds the centroid at a commanded standoff radius. The sensing is spatially distributed across the robots, and in the present implementation a central computer gathers their readings, forms the estimate, and computes the commands.
 
-This paper makes four contributions. First, it presents an algorithm that estimates critical point locations from instantaneous, spatially distributed measurements alone. It also shows how field curvature, formation size, and measurement error set the error of the estimate. Second, it proves that three non-collinear robots are the minimum number required for this estimation, and that they suffice for every nondegenerate affine field. Third, it demonstrates that this estimate suffices to drive navigation to and around critical points across six vector field types and three nonlinear fields. It also states conditions under which the attraction error stays bounded despite actuator lag, sampled updates, and friction. Fourth, it validates the cooperative estimation and resulting navigation in \open{campaign} hardware experiments that demonstrate repeatable critical point estimation, attraction, and orbit control.
+This paper makes four contributions. First, it presents an algorithm that estimates critical point locations from instantaneous, spatially distributed measurements alone. It also shows how field curvature, formation size, and measurement error set the error of the estimate. Second, it proves that three non-collinear robots are the minimum number required for this estimation, and that they suffice for every nondegenerate affine field. Third, it demonstrates that this estimate suffices to drive navigation to and around critical points across six vector field types and three nonlinear fields. It also states conditions under which the attraction error stays bounded despite actuator delay and lag, sampled updates, and friction. Fourth, it validates the cooperative estimation and resulting navigation in \rev{459} hardware experiments that demonstrate repeatable critical point estimation, attraction, and orbit control.
 
 The remainder of this paper is organized as follows. Section II develops the mathematical framework for Jacobian estimation and critical point prediction, and presents the control strategies for approach and orbit. Section III describes the control architecture used to evaluate these strategies in simulation and hardware. Section IV presents simulation results across six vector field types and three nonlinear fields. Section V describes the hardware testbed and presents validation results. Section VI compares performance against alternative navigation strategies and discusses limitations and future work. Section VII concludes.
 
@@ -222,22 +222,22 @@ The multirobot system control architecture chosen is an established multilayer a
 
 Each robot's controller receives velocity commands and translates them into motion. Each robot also samples the local vector field $\mathbf{v}(\mathbf{p}_i) = (u_i, v_i)$ and reports its global position $\mathbf{p}_i$, providing the inputs to the estimation framework described in Section~II.
 
-Details of the hardware platform are described in Section~V. In simulation, each robot is modeled as a single omnidirectional point mass with a first order response, Coulomb friction, and a speed limit. While the robot moves, its velocity $\mathbf{v}_{r,i} = \dot{\mathbf{p}}_i$ follows its command $\mathbf{v}_{\text{des},i}$ as
+Details of the hardware platform are described in Section~V. In simulation, each robot is modeled as a single omnidirectional point mass that follows its command after a transport delay, through a first order response, with a dead zone and a speed limit. A command reaches the robot a time $L$ after it is computed, and the robot attains the fraction $g$ of it, so its velocity $\mathbf{v}_{r,i} = \dot{\mathbf{p}}_i$ follows
 \begin{equation}
-    \dot{\mathbf{v}}_{r,i}(t) = -\frac{1}{\tau}\mathbf{v}_{r,i}(t) + \frac{1}{\tau}\Bigl(\mathbf{v}_{\text{des},i}(t) - v_c\frac{\mathbf{v}_{r,i}(t)}{\|\mathbf{v}_{r,i}(t)\|}\Bigr),
+    \tau\,\dot{\mathbf{v}}_{r,i}(t) = -\mathbf{v}_{r,i}(t) + g\,\mathbf{u}_i(t - L),
     \label{eq:continuous}
 \end{equation}
-where $\tau$ is the actuator time constant \cite{4,7} and the last term models Coulomb friction as an opposing command of magnitude $v_c$. The time constant on the Decabot hardware was found to be approximately 0.28 s.  The robots are also modeled with a maximum speed of $v_{\max} = 0.4$~m/s and a minimum speed of $v_c = 0.025$~m/s needed to overcome stiction (remeasured for this work; an earlier characterization of the testbed reported 0.05~m/s \cite{22}).
+where $\tau$ is the actuator time constant \cite{4,7}. The command passes through a dead zone that models static friction: $\mathbf{u}_i = \mathbf{v}_{\text{des},i}$ when $\|\mathbf{v}_{\text{des},i}\| \ge v_c$, and $\mathbf{u}_i = \mathbf{0}$ otherwise. Fitting (\ref{eq:continuous}) to the logged commands and tracked positions of the hardware runs of Section~V gave $g = \rev{0.86}$ and fixed the sum $L + \tau = \rev{0.075}$~s more tightly than either term. The robots reach their commanded speed within one cycle, so we take $\tau = \rev{0.02}$~s and $L = \rev{0.055}$~s. The robots are also modeled with a maximum speed of $v_{\max} = \rev{0.3}$~m/s and a dead zone of $v_c = 0.025$~m/s (remeasured for this work; an earlier characterization of the testbed reported 0.05~m/s \cite{22}).
 
-For digital implementation at control period $\Delta t$ and cycle $j$, the command is held over each period and friction acts against the frictionless update $\tilde{\mathbf{v}}$, so discretization of (\ref{eq:continuous}) yields
+For digital implementation at control period $\Delta t$ and cycle $j$, each command is held over its period. A delay $L = f\Delta t$ with $0 \le f < 1$ means the robot spends the first fraction $f$ of each period on the previous command, so
 \begin{equation}\label{eq:momentum}
 \begin{split}
-&\tilde{\mathbf{v}} = \alpha\,\mathbf{v}_{r,i}[j] + (1-\alpha)\,\mathbf{v}_{\text{des},i}[j],\\
-&s = \min\bigl\{v_{\max},\, \max\{0,\, \|\tilde{\mathbf{v}}\| - (1-\alpha)v_c\}\bigr\},\\
-&\mathbf{v}_{r,i}[j+1] = s\,\tilde{\mathbf{v}}/\|\tilde{\mathbf{v}}\|,
+&\bar{\mathbf{u}}_i[j] = (1-f)\,\mathbf{u}_i[j] + f\,\mathbf{u}_i[j-1],\\
+&\tilde{\mathbf{v}} = \alpha\,\mathbf{v}_{r,i}[j] + (1-\alpha)\,g\,\bar{\mathbf{u}}_i[j],\\
+&\mathbf{v}_{r,i}[j+1] = \tilde{\mathbf{v}}\,\min\{1,\ v_{\max}/\|\tilde{\mathbf{v}}\|\},
 \end{split}
 \end{equation}
-where $s$ is the new speed and the momentum coefficient $\alpha = e^{-\Delta t/\tau}$. At a 10~Hz control rate, $\alpha \approx 0.70$. Friction removes $(1-\alpha)v_c$ of speed each cycle and stops the robot without reversing it, so a robot at rest moves only once its command exceeds $v_c$. The cap $v_{\max}$ applies last, and the position advances as $\mathbf{p}_i[j+1] = \mathbf{p}_i[j] + \Delta t\,\mathbf{v}_{r,i}[j+1]$. The sensed field enters only the estimate, not the robot dynamics.
+where $\alpha = e^{-\Delta t/\tau}$ and the dead zone acts on $\bar{\mathbf{u}}_i$. At a 10~Hz control rate, $f = \rev{0.55}$ and $\alpha \approx \rev{0.007}$, so the robot reaches $g$ times its command within one cycle, and the delay, not the lag, shapes its response. The position advances as $\mathbf{p}_i[j+1] = \mathbf{p}_i[j] + \Delta t\,\mathbf{v}_{r,i}[j+1]$. The sensed field enters only the estimate, not the robot dynamics.
 
 
 \begin{figure}[!t]
@@ -259,26 +259,25 @@ The adaptive navigation layer is the highest level of the control architecture a
 \subsection{Closed-Loop Stability and Tracking Bounds}
 \label{sec:stability}
 
-The control laws of Section~II-D were analyzed under a stationary estimate and an ideal centroid. In practice the estimate changes every cycle and the centroid responds through the sampled lag and Coulomb friction, so this section checks that the loop stays stable and bounds the error those effects leave.
+The control laws of Section~II-D were analyzed under a stationary estimate and an ideal centroid. In practice the estimate changes every cycle and the centroid responds through the delay, the lag, and the dead zone, so this section checks that the loop stays stable and bounds the error those effects leave.
 
 \subsubsection{Sampled Loop}
-At cycle $j$, write the estimate as $\hat{\mathbf{p}}^*[j] = \mathbf{p}^* + \boldsymbol{\delta}[j]$, so that the attraction law commands $-k(\mathbf{e} - \boldsymbol{\delta})$, where $\mathbf{e}$ is the centroid error of Section~II-B. With the formation held, and apart from friction and the cap, the centroid velocity follows the frictionless update $\tilde{\mathbf{v}}$ of (\ref{eq:momentum}). The $x$ and $y$ axes then decouple, and for each axis $a$ the state $\mathbf{x} = [e_a,\ \dot{p}_{c,a}]^T$ evolves as
+At cycle $j$, write the estimate as $\hat{\mathbf{p}}^*[j] = \mathbf{p}^* + \boldsymbol{\delta}[j]$, so that the attraction law commands $-k(\mathbf{e} - \boldsymbol{\delta})$, where $\mathbf{e}$ is the centroid error of Section~II-B. With the formation held, and apart from the dead zone and the cap, the centroid follows (\ref{eq:momentum}) with $\alpha \approx 0$. The $x$ and $y$ axes then decouple, and for each axis $a$
 \begin{equation}\label{eq:cl}
-\mathbf{x}[j{+}1] = \boldsymbol{\Phi}\,\mathbf{x}[j] + \boldsymbol{\Gamma}\,\delta_a[j],
+\begin{split}
+e_a[j{+}1] = e_a[j] &- gk\Delta t\bigl((1-f)(e_a[j] - \delta_a[j])\\
+&+ f(e_a[j-1] - \delta_a[j-1])\bigr).
+\end{split}
 \end{equation}
-where
-\[
-\boldsymbol{\Phi} = \begin{bmatrix} 1{-}(1{-}\alpha)k\Delta t & \alpha\Delta t \\ -(1{-}\alpha)k & \alpha \end{bmatrix}, \quad \boldsymbol{\Gamma} = (1{-}\alpha)k\begin{bmatrix}\Delta t\\ 1\end{bmatrix}.
-\]
-The Jury test on the characteristic polynomial $z^2 - (1 + \alpha - (1-\alpha)k\Delta t)z + \alpha$ of $\boldsymbol{\Phi}$ gives exponential stability if and only if
+The Jury test on its characteristic polynomial $z^2 - (1 - gk\Delta t(1-f))z + gk\Delta t f$ gives exponential stability if and only if $gk\Delta t f < 1$ and $gk\Delta t(1-2f) < 2$, with $k > 0$. For $f \ge 1/4$ the first condition binds, and since $f\Delta t = L$,
 \begin{equation}\label{eq:kmax}
-0 < k\Delta t < 2(1+\alpha)/(1-\alpha).
+0 < k < 1/(gL).
 \end{equation}
-At $\Delta t = 0.1$~s, $\alpha = 0.70$, and $k = 1$~s$^{-1}$, $k\Delta t = 0.1$ against a limit of \rev{11.3}, and both poles have magnitude $\sqrt{\alpha} = \rev{0.84}$.
-A stable linear loop is input-to-state stable, so a bounded estimate error $\boldsymbol{\delta}$, and friction acting as a command disturbance of size at most $v_c$, leave the centroid error bounded. The speed cap shortens the velocity without turning it, and it is inactive within $v_{\max}/k$ of the estimate, where this linear analysis applies.
+At $g = 0.86$ and $L = 0.055$~s the limit is \rev{21.1}~s$^{-1}$, and at $k = 1$~s$^{-1}$ the poles have magnitudes \rev{0.91} and \rev{0.05}. Including the lag changes the limit by less than 0.01~s$^{-1}$.
+A stable linear loop is input-to-state stable, so a bounded estimate error $\boldsymbol{\delta}$, and the dead zone acting as a command disturbance of size at most $v_c$, leave the centroid error bounded. The speed cap shortens the velocity without turning it, and it is inactive within $v_{\max}/k$ of the estimate, where this linear analysis applies.
 
 \subsubsection{Friction and Estimate Error}
-The second effect is friction, and it sets where the cluster finally comes to rest. Coulomb friction stops the cluster wherever its command is at most $v_c$. The attraction law commands a speed of $k$ times the distance to the estimate, so the cluster comes to rest inside a friction ring of radius $v_c/k$ (0.025~m at $k = 1$~s$^{-1}$) around the estimate. The estimate moves as the cluster moves, but its error shrinks as the cluster nears the critical point (\ref{eq:bound}). Under ideal kinematics, as long as the estimate moves less than the cluster does, the cluster closes on it and comes to rest without hunting. Its final error is then at most the ring radius plus the estimate error there, $\|\mathbf{e}_{\text{final}}\| \le v_c/k + \|\boldsymbol{\delta}_{\text{final}}\|$.
+The second effect is friction, and it sets where the cluster finally comes to rest. The dead zone stops each robot whenever its command is below $v_c$. The attraction law commands a speed of $k$ times the distance to the estimate, so the cluster comes to rest inside a friction ring of radius $v_c/k$ (0.025~m at $k = 1$~s$^{-1}$) around the estimate. The estimate moves as the cluster moves, but its error shrinks as the cluster nears the critical point (\ref{eq:bound}). Under ideal kinematics, as long as the estimate moves less than the cluster does, the cluster closes on it and comes to rest without hunting. Its final error is then at most the ring radius plus the estimate error there, $\|\mathbf{e}_{\text{final}}\| \le v_c/k + \|\boldsymbol{\delta}_{\text{final}}\|$.
 
 \subsubsection{Near-Singular Estimates}
 The fit matrix $\mathbf{A}$ is singular only if the robots become collinear, which the equilateral formation prevents. The estimate can therefore become singular only through $\hat{\mathbf{J}}$, as in near-uniform flow far from a critical point or on a curve where $\det\mathbf{J} = 0$ between two critical points. When $|\det\hat{\mathbf{J}}|$ falls below a small threshold such as $10^{-10}$, the fit gives no usable estimate, and the controller needs a fallback, such as holding the last valid estimate.
@@ -287,17 +286,17 @@ The command limit caps the centroid speed in the meantime, so a brief ill-condit
 \subsubsection{Orbits}
 One edge case remains. The orbital law (\ref{eq:11}) is undefined at $r = 0$, which the ideal dynamics never reach but a noisy estimate can. When $r < 10^{-6}$~m, the controller could take a step in a random direction, which carries the cluster off the singular point on the next cycle.
 
-Even with an exact estimate, lag and friction leave a predictable offset in the steady orbit radius. Friction takes $v_c$ off the orbit speed, leaving $V = k_t - v_c$, and passes only the fraction $V/k_t$ of the radial command. The lag makes the cluster follow the turning command a time $T$ late, so in a steady orbit of radius $r^*$ it drifts outward at $TV^2/r^*$. The orbit settles where the attenuated inward radial command balances this drift, giving
+Even with an exact estimate, the delay and lag leave a predictable offset in the steady orbit radius. The robots reach the fraction $g$ of each command, so the orbit speed is $V = gk_t$ and the radial correction has gain $gk_r$. The cluster follows the turning command a time $T$ late, so in a steady orbit of radius $r^*$ it drifts outward at $TV^2/r^*$. The orbit settles where the inward radial command balances this drift, giving
 \begin{equation}\label{eq:orbit_cf}
-r^* = \tfrac{1}{2}\bigl(r_d + \sqrt{r_d^2 + 4C}\bigr), \qquad C = TVk_t/k_r.
+r^* = \tfrac{1}{2}\bigl(r_d + \sqrt{r_d^2 + 4C}\bigr), \qquad C = TV^2/(gk_r).
 \end{equation}
-In the sampled loop $T = \alpha'\Delta t/(1-\alpha') + \Delta t/2$, where $\alpha' = \alpha V/(\alpha V + (1-\alpha)k_t)$ is the lag pole after friction; without sampling or friction this reduces to $T = \tau$ and $C = \tau V^2/k_r$. Equation (\ref{eq:orbit_cf}) accounts for two behaviors seen in Sections~IV and~V: the error $r^* - r_d$ cannot shrink below the lag-set floor $r_{\min} = \sqrt{C}$ as $r_d \to 0$, while at large radii it decays as $C/r_d$.
+In the sampled loop $T \approx L + \tau + \Delta t/2$: the delay, the lag, and half a period of command hold. Equation (\ref{eq:orbit_cf}) accounts for two behaviors seen in Sections~IV and~V: the error $r^* - r_d$ cannot shrink below the floor $r_{\min} = \sqrt{C}$ as $r_d \to 0$, while at large radii it decays as $C/r_d$.
 
 
 
 \section{Control Performance in Simulation}
 
-A Python-based simulation implementing the three-layer control architecture described in Section~III was developed to verify the critical point estimation and control primitives in Section~II. Unless stated otherwise, all simulation trials used a cluster of three robots in an equilateral triangular formation with a 0.33~m side length, matching the hardware configuration (Section~V), with control gains of $k = 1$~s$^{-1}$ in (\ref{eq:10}), and $k_t = 0.2$~m/s, $k_r = 0.5$~s$^{-1}$ in (\ref{eq:11}). The robots follow the model of Section~III-A, and the commanded centroid speed was limited to 0.5~m/s.
+A Python-based simulation implementing the three-layer control architecture described in Section~III was developed to verify the critical point estimation and control primitives in Section~II. Unless stated otherwise, all simulation trials used a cluster of three robots in an equilateral triangular formation with a \rev{0.30}~m side length, matching the hardware configuration (Section~V), with control gains of $k = 1$~s$^{-1}$ in (\ref{eq:10}), and $k_t = \rev{0.15}$~m/s, $k_r = \rev{1}$~s$^{-1}$ in (\ref{eq:11}). The robots follow the model of Section~III-A, and the commanded centroid velocity was limited to \rev{0.3}~m/s on each axis.
 
 Six noise-free analytical fields, one for each of the canonical critical point types listed in Table~\ref{tab:field_summary}, were used for trials, each with its critical point at the origin: sink $(-x,-y)$, source $(x,y)$, saddle $(-y,-x)$, vortex $(-y,x)$, sinking vortex $0.4(-y,x)-0.15(x,y)$, and spewing vortex $0.4(y,-x)+0.15(x,y)$. After performance in noise-free environments was verified, simulations were performed on two fields reconstructed from robot-sensed measurements collected on the hardware testbed (vortex and saddle). These reconstructed fields are a fixed spatial distortion of the analytical fields, fit to the robots' readings on the printed maps, and they add no noise that varies in time.
 
@@ -307,7 +306,7 @@ Simulation and hardware trials used the one set of metrics below, so the two com
 
 \emph{Attraction.} A trial of duration $T$ is a success if the critical point lay inside the robots' triangle and the centroid never left the map. Its final error $e_f = \|\mathbf{p}_c(T) - \mathbf{p}^*\|$ is summarized by its mean $\bar{e}_f$, standard deviation $s_e$, median, and 95th percentile (p95), with the share of trials ending within 0.03, 0.04, and 0.05~m. The bias is the distance of the mean final position from $\mathbf{p}^*$ and the precision $\sigma$ the RMS distance of the final positions from that mean, so bias$^2 + \sigma^2$ is the mean of $e_f^2$. Three metrics describe the approach: the convergence time $T_{\mathrm{conv}}$, the median time after which the centroid stays within 0.05~m; the localization error, the mean of $\|\hat{\mathbf{p}}^* - \mathbf{p}^*\|$ over the last 20\% of a trial; and the control effort $E_u = \sum_j \|\mathbf{p}_c[j+1] - \mathbf{p}_c[j]\|^2/\Delta t$. With several critical points, success was also scored at the one nearest the final centroid, and the other metrics use only trials that succeeded at the target $\mathbf{p}^*$.
 
-\emph{Orbit.} Each orbit run was scored on its radial error $\|\mathbf{p}_c - \mathbf{p}^*\| - r_d$ after the first 10~s. The mean of this error is the radial bias, its RMS value is the orbit RMSE, and its standard deviation is the within-run spread. Across repeated runs, the standard deviation of the run means gives the between-trial spread. A radius was considered practically achievable if the magnitude of its radial bias was at most $0.25\,r_d$. A run is lost if the centroid leaves the map or turns less than a quarter revolution about $\mathbf{p}^*$ after the first 10~s, and the statistics use only the runs that were not lost.
+\emph{Orbit.} Each orbit run was scored on its radial error $\|\mathbf{p}_c - \mathbf{p}^*\| - r_d$ after the first \rev{3}~s. The mean of this error is the radial bias, its RMS value is the orbit RMSE, and its standard deviation is the within-run spread. Across repeated runs, the standard deviation of the run means gives the between-trial spread. A radius was considered practically achievable if the magnitude of its radial bias was at most $0.25\,r_d$. A run is lost if the centroid leaves the map or turns less than a quarter revolution about $\mathbf{p}^*$ after the first \rev{3}~s, and the statistics use only the runs that were not lost.
 
 \emph{Classification.} Classification accuracy was measured as the fraction of cycles on which the type of $\hat{\mathbf{J}}$ matched the type of the critical point the trial reached.
 
@@ -315,13 +314,13 @@ Simulation and hardware trials used the one set of metrics below, so the two com
 
 To test convergence to critical points, the following simulation experiments were performed. For each of the eleven fields, the cluster was initialized at a random position drawn uniformly from a 1~m $\times$ 1~m box centered on the target critical point and the simulation was run for 100 time steps at 10~Hz. This was performed 1000 times per field, from the same starts and headings in every field, and the final centroid position of the cluster in each trial was used to determine the metrics. In the gyre and the rotational saddle, the starts with all three robots inside the $\det\mathbf{J} = 0$ diamond around the target are also scored on their own.
 
- The cluster converged to the critical point in \rev{100}\% of 1000 trials for every analytical field at every threshold (Table~\ref{tab:simulation_results}). There the estimate is exact, and every trial parks on the friction ring of Section~III-D (Fig.~\ref{fig:sim_convergence}). The reconstructed fields' fixed distortion moves the rest point off that ring and lowers success at 0.03~m, while at least \rev{95}\% of trials still end within 0.05~m.
+ The cluster converged to the critical point in \rev{100}\% of 1000 trials for every analytical field at every threshold (Table~\ref{tab:simulation_results}). There the estimate is exact, and every trial parks on the friction ring of Section~III-D (Fig.~\ref{fig:sim_convergence}). The reconstructed fields' fixed distortion moves the rest point off that ring and lowers success at 0.03~m, while every trial still ends within 0.05~m.
 
-With lag and friction off, white noise up to 0.03~m/s changes the reconstructed fields' final error by at most \rev{1.7}~mm, so nearly all of their error comes from the fixed distortion. On the analytical fields the covariance (\ref{eq:cov}), propagated through the sampled loop, predicts the closed-loop mean error within \rev{4}\% wherever the field changes across the formation by at least three times the noise.
+With the delay, lag, and friction off, white noise up to 0.03~m/s changes the reconstructed fields' final error by at most \rev{3.0}~mm, so nearly all of their error comes from the fixed distortion. On the analytical fields the covariance (\ref{eq:cov}), propagated through the sampled loop, predicts the closed-loop mean error within \rev{5}\% wherever the field changes across the formation by at least three times the noise.
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.90\columnwidth]{fig_sim_convergence_band.pdf}
+    \includegraphics[width=0.90\columnwidth]{fig_sim_convergence_band_2026.pdf}
     \caption{Centroid distance to the critical point in simulated plane-fit attraction, mean and $\pm 1$ standard deviation of ten trials per field from evenly spaced starts 0.4~m away. On the analytical vortex every trial parks on the friction ring $v_c/k$, and the reconstructed fields' distortion moves the rest point off it.}
     \label{fig:sim_convergence}
 \end{figure}
@@ -329,7 +328,7 @@ With lag and friction off, white noise up to 0.03~m/s changes the reconstructed 
 \begin{table}[!t]
 \scriptsize
 \centering
-\caption{Simulation results on eleven fields. Brackets mark starts with all three robots inside the $\det\mathbf{J} = 0$ diamond, and accuracy rows use successful trials. A dash marks a radius where most orbits were lost, $^{a}$ one where \newnum{48}\% were.}
+\caption{Simulation results on eleven fields. Brackets mark starts with all three robots inside the $\det\mathbf{J} = 0$ diamond, and accuracy rows use successful trials. A dash marks a radius where most orbits were lost.}
 \label{tab:simulation_results}
 \setlength{\tabcolsep}{1.3pt}
 \rev{\begin{tabular}{l|c|cc|ccc}
@@ -339,57 +338,57 @@ With lag and friction off, white noise up to 0.03~m/s changes the reconstructed 
 \hline
 \multicolumn{7}{l}{\textit{(a) Attraction}} \\
 \hline
-Succ.\ triangle (\%) & 100 & 100 & 100 & \newnum{49 [100]} & \newnum{99.9} & \newnum{72 [100]} \\
-Succ.\ any c.p.\ (\%) & 100 & 100 & 100 & \newnum{99.9} & \newnum{99.9} & \newnum{100} \\
-Bias (m) & 0.0013 & 0.0205 & 0.0127 & \newnum{0.0018} & \newnum{0.0010} & \newnum{0.0012} \\
-$\sigma$ (m) & 0.0249 & 0.0247 & 0.0252 & \newnum{0.0262} & \newnum{0.0242} & \newnum{0.0259} \\
-$\bar{e}_f$ (m) & 0.0249 & 0.0293 & 0.0262 & \newnum{0.0259} & \newnum{0.0238} & \newnum{0.0258} \\
-$s_e$ (m) & 0.0008 & 0.0132 & 0.0104 & \newnum{0.0044} & \newnum{0.0044} & \newnum{0.0027} \\
-Median (m) & 0.0250 & 0.0321 & 0.0271 & \newnum{0.0249} & \newnum{0.0231} & \newnum{0.0253} \\
-p95 (m) & 0.0250 & 0.0500 & 0.0437 & \newnum{0.0334} & \newnum{0.0309} & \newnum{0.0299} \\
-Loc.\ error (m) & $<$0.0001 & 0.0222 & 0.0137 & \newnum{0.0057} & \newnum{0.0066} & \newnum{0.0034} \\
-$T_{\mathrm{conv}}$ (s) & 2.1 & 2.3 & 2.3 & \newnum{1.8} & \newnum{2.1} & \newnum{1.9} \\
-$E_u$ (m$^2$/s) & 0.075 & 0.071 & 0.072 & \newnum{0.047} & \newnum{0.082} & \newnum{0.063} \\
-Succ.\ 3/4/5~cm (\%) & 100 & 45/79/95 & 62/89/100 & \newnum{76/100/100} & \newnum{88/100/100} & \newnum{97/100/100} \\
+Succ.\ triangle (\%) & 100 & 100 & 100 & 50 [100] & 100 & 72 [100] \\
+Succ.\ any c.p.\ (\%) & 100 & 100 & 100 & 99.9 & 100 & 100 \\
+Bias (m) & 0.0012 & 0.0031 & 0.0091 & 0.0017 & 0.0011 & 0.0012 \\
+$\sigma$ (m) & 0.0226 & 0.0212 & 0.0242 & 0.0240 & 0.0224 & 0.0235 \\
+$\bar{e}_f$ (m) & 0.0226 & 0.0201 & 0.0247 & 0.0238 & 0.0221 & 0.0234 \\
+$s_e$ (m) & 0.0009 & 0.0073 & 0.0075 & 0.0034 & 0.0035 & 0.0022 \\
+Median (m) & 0.0226 & 0.0208 & 0.0266 & 0.0233 & 0.0218 & 0.0232 \\
+p95 (m) & 0.0236 & 0.0307 & 0.0343 & 0.0292 & 0.0275 & 0.0267 \\
+Loc.\ error (m) & $<$0.0001 & 0.0101 & 0.0134 & 0.0043 & 0.0049 & 0.0026 \\
+$T_{\mathrm{conv}}$ (s) & 2.3 & 2.4 & 2.5 & 1.9 & 2.4 & 2.1 \\
+$E_u$ (m$^2$/s) & 0.068 & 0.065 & 0.066 & 0.042 & 0.070 & 0.055 \\
+Succ.\ 3/4/5~cm (\%) & 100 & 91/100/100 & 68/100/100 & 99/100/100 & 100 & 100 \\
 \hline
 \multicolumn{7}{l}{\textit{(b) Orbit radial bias (m), by $r_d$ (m)}} \\
 \hline
-\quad 0.01 & +0.129 & +0.133 & +0.131 & \newnum{+0.127} & \newnum{+0.129} & \newnum{+0.128} \\
-\quad 0.10 & +0.093 & +0.094 & +0.089 & \newnum{+0.080} & \newnum{+0.092} & \newnum{+0.085} \\
-\quad 0.20 & +0.067 & +0.089 & +0.067 & \newnum{+0.023} & \newnum{+0.067} & \newnum{+0.038} \\
-\quad 0.30 & +0.051 & +0.087 & +0.063 & \newnum{$-$0.044} & \newnum{+0.064$^{a}$} & \newnum{$-$0.017} \\
-\quad 0.40 & +0.040 & +0.063 & +0.040 & \newnum{--} & \newnum{--} & \newnum{$-$0.081} \\
-\quad 0.50 & +0.033 & +0.026 & +0.001 & \newnum{--} & \newnum{--} & \newnum{--} \\
+\quad 0.01 & +0.042 & +0.039 & +0.034 & +0.044 & +0.042 & +0.043 \\
+\quad 0.10 & +0.018 & +0.006 & $-$0.000 & +0.018 & +0.018 & +0.018 \\
+\quad 0.20 & +0.010 & +0.038 & +0.045 & $-$0.013 & +0.011 & $-$0.005 \\
+\quad 0.30 & +0.007 & +0.048 & +0.050 & $-$0.064 & +0.021 & $-$0.044 \\
+\quad 0.40 & +0.005 & +0.046 & +0.043 & -- & -- & $-$0.097 \\
+\quad 0.50 & +0.004 & +0.027 & +0.019 & -- & -- & -- \\
 \hline
 \multicolumn{7}{l}{\textit{(c) Classification (\%)}} \\
 \hline
-No noise & 100 & 91 & 100 & \newnum{100} & \newnum{100} & \newnum{100} \\
-Noise 0.02~m/s & 90--100 & 65 & 100 & \newnum{86} & \newnum{100} & \newnum{100} \\
+No noise & 100 & 73 & 100 & 100 & 100 & 100 \\
+Noise 0.02~m/s & 86--100 & 52 & 100 & 83 & 100 & 100 \\
 \hline
 \end{tabular}}
 \end{table}
 
-In the nonlinear fields, curvature affected both the localization error and which critical point the cluster reached. Trials that reached the target settled as tightly as in the analytical fields, but the estimate stayed \newnum{5.7}~mm from the gyre's center. The field's cubic terms do not cancel over an equilateral triangle, so this error grew roughly as the cube of the formation side, from \newnum{0.16}~mm at 0.10~m to \newnum{25}~mm at 0.50~m. To see why the $\det\hat{\mathbf{J}} = 0$ curve acts as a basin boundary in Fig.~\ref{fig:nonlinear}(a), evaluate the fitted plane at the centroid, $\hat{\mathbf{v}}(\mathbf{p}_c) = \hat{\mathbf{J}}(\mathbf{p}_c - \hat{\mathbf{p}}^*)$, and substitute into (\ref{eq:10}): the attraction law becomes $\dot{\mathbf{p}}_c = -k\hat{\mathbf{J}}^{-1}\hat{\mathbf{v}}(\mathbf{p}_c)$, a continuous-time Newton step toward a zero of the local fit. A continuous Newton flow cannot cross a curve where $\det\hat{\mathbf{J}} = 0$, so the sign of $\det\hat{\mathbf{J}}$ on the first cycle decided the type of critical point reached in all \newnum{2000} gyre and rotational-saddle trials (Fig.~\ref{fig:nonlinear}(a)). Every start with all three robots inside the diamond reached the target.
+In the nonlinear fields, curvature affected both the localization error and which critical point the cluster reached. Trials that reached the target settled as tightly as in the analytical fields, but the estimate stayed \rev{4.3}~mm from the gyre's center. The field's cubic terms do not cancel over an equilateral triangle, so this error grew roughly as the cube of the formation side, from \rev{0.15}~mm at 0.10~m to \rev{25}~mm at 0.50~m. To see why the $\det\hat{\mathbf{J}} = 0$ curve acts as a basin boundary in Fig.~\ref{fig:nonlinear}(a), evaluate the fitted plane at the centroid, $\hat{\mathbf{v}}(\mathbf{p}_c) = \hat{\mathbf{J}}(\mathbf{p}_c - \hat{\mathbf{p}}^*)$, and substitute into (\ref{eq:10}): the attraction law becomes $\dot{\mathbf{p}}_c = -k\hat{\mathbf{J}}^{-1}\hat{\mathbf{v}}(\mathbf{p}_c)$, a continuous-time Newton step toward a zero of the local fit. A continuous Newton flow cannot cross a curve where $\det\hat{\mathbf{J}} = 0$, so the sign of $\det\hat{\mathbf{J}}$ on the first cycle decided the type of critical point reached in all \rev{2000} gyre and rotational-saddle trials (Fig.~\ref{fig:nonlinear}(a)). Every start with all three robots inside the diamond reached the target.
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.90\columnwidth]{fig_nonlinear_triangles.pdf}
+    \includegraphics[width=0.90\columnwidth]{fig_nonlinear_triangles_2026.pdf}
     \caption{The gyre cell in simulation, with the $\det\mathbf{J} = 0$ diamond dashed and the formation to scale. (a) Attraction starts, blue where the cluster reached the center and orange where it reached a saddle. The orange trial starts with a robot outside the diamond. (b) Orbits at $r_d = 0.3$~m, kept, and 0.4~m, lost.}
     \label{fig:nonlinear}
 \end{figure}
 
 \subsection{Orbital Control}
 
-Orbital control was evaluated on the same eleven fields at different commanded radii. For each radius, the cluster was positioned at the desired radius to initialize the run, then the orbital controller (\ref{eq:11}) was used for 600 time steps. The mean radial error and standard deviation were computed after discarding the first 100 time steps (10~s) as a settling transient. Each run was repeated \rev{100} times per field and radius.
+Orbital control was evaluated on the same eleven fields at different commanded radii. For each radius, the cluster was positioned at the desired radius to initialize the run, then the orbital controller (\ref{eq:11}) was used for \rev{300} time steps. The mean radial error and standard deviation were computed after discarding the first \rev{30} time steps (\rev{3}~s) as a settling transient. Each run was repeated \rev{100} times per field and radius.
 
 
-    Table~\ref{tab:simulation_results}(b) presents the orbital tracking results. The six noise-free fields produced identical performance at each radius, with standard deviations below \rev{0.001}~m. This is expected: on an exactly linear noise-free field the three-robot fit recovers the critical point exactly at every step, so the controller input, and hence the trajectory, is independent of the field type. Mean radial errors had a positive bias, and decreased with increasing radius. The reconstructed fields repeat the trend, with error standard deviations that increase with the commanded radius. By the $0.25\,r_d$ criterion the practical range is $r_d \ge \rev{0.3}$~m on the analytical fields and the reconstructed saddle, and $r_d \ge \rev{0.4}$~m on the reconstructed vortex.
+    Table~\ref{tab:simulation_results}(b) presents the orbital tracking results. The six noise-free fields produced identical performance at each radius, with standard deviations below \rev{0.001}~m. This is expected: on an exactly linear noise-free field the three-robot fit recovers the critical point exactly at every step, so the controller input, and hence the trajectory, is independent of the field type. Mean radial errors had a positive bias, and decreased with increasing radius. The reconstructed fields share the bias at $r_d = 0.01$~m and nearly cancel it at 0.10~m. From 0.20~m their bias lies between \rev{0.019} and \rev{0.050}~m, with within-run standard deviations that increase with the commanded radius. By the $0.25\,r_d$ criterion the practical range is $r_d \ge \rev{0.10}$~m on the analytical and reconstructed fields.
 
-In the nonlinear fields, curvature shifted the orbit radius, and orbits were lost once the formation reached a set where $\det\mathbf{J} = 0$. The gyre's speed grows more slowly than in proportion to the distance from its center, so the fit places the center beyond its true position and the cluster orbits inside $r_d$, by \newnum{0.044}~m at $r_d = 0.3$~m. Across $\chi$ from $-1$ to 1, this effect moved the rotational saddle's mean radius by up to \newnum{0.17}~m, while the irrotational form's opposite shifts along its two axes cancelled to within \newnum{0.02}~m. Most gyre orbits from $r_d = 0.4$~m were lost after crossing the diamond (Fig.~\ref{fig:nonlinear}(b)), and about half the irrotational-saddle orbits at 0.3~m were lost past the points $(0, \pm 0.58)$~m.
+In the nonlinear fields, curvature shifted the orbit radius, and orbits were lost once the formation reached a set where $\det\mathbf{J} = 0$. The gyre's speed grows more slowly than in proportion to the distance from its center, so the fit places the center beyond its true position and the cluster orbits inside $r_d$, by \rev{0.064}~m at $r_d = 0.3$~m. Across $\chi$ from $-1$ to 1, this effect moved the rotational saddle's mean radius by up to \newnum{0.17}~m, while the irrotational form's opposite shifts along its two axes cancelled to within \rev{0.01}~m. Most gyre orbits from $r_d = 0.4$~m were lost after crossing the diamond (Fig.~\ref{fig:nonlinear}(b)), and about half the irrotational-saddle orbits at 0.3~m were lost past the points $(0, \pm 0.58)$~m.
 
 \subsection{Classification}
 
-A center ($\operatorname{tr}\mathbf{J} = 0$) and the canonical sink and source ($\mathbf{J} = \mp\mathbf{I}$, with repeated eigenvalues) each lie on a boundary between types in Table~\ref{tab:field_summary}, and any error in $\hat{\mathbf{J}}$ can move them across it. The classifier therefore counts an eigenvalue pair within about $6^\circ$ of the imaginary or real axis as a center or a node. Table~\ref{tab:simulation_results}(c) gives its accuracy over the last 2~s of each attraction trial. Without noise every field except the reconstructed vortex is labeled correctly on every cycle. With white measurement noise of 0.02~m/s on every reading, the center is labeled correctly on \rev{90}\% of cycles and the star nodes on \rev{95}\%, against \rev{100}\% for the saddle. In the nonlinear fields, the type of whichever critical point the cluster reached was labeled correctly on every cycle without noise, and the gyre's center on \newnum{86}\% of cycles with noise.
+A center ($\operatorname{tr}\mathbf{J} = 0$) and the canonical sink and source ($\mathbf{J} = \mp\mathbf{I}$, with repeated eigenvalues) each lie on a boundary between types in Table~\ref{tab:field_summary}, and any error in $\hat{\mathbf{J}}$ can move them across it. The classifier therefore counts an eigenvalue pair within about $6^\circ$ of the imaginary or real axis as a center or a node. Table~\ref{tab:simulation_results}(c) gives its accuracy over the last 2~s of each attraction trial. Without noise every field except the reconstructed vortex is labeled correctly on every cycle. With white measurement noise of 0.02~m/s on every reading, the center is labeled correctly on \rev{86}\% of cycles and the star nodes on \rev{94}\%, against \rev{100}\% for the saddle. In the nonlinear fields, the type of whichever critical point the cluster reached was labeled correctly on every cycle without noise, and the gyre's center on \rev{83}\% of cycles with noise.
 
 \section{Hardware Validation}
 
@@ -416,7 +415,7 @@ This method of representing vector fields in printed floor maps has imperfection
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.90\columnwidth]{fig_reconstruction_3x2.png}
+    \includegraphics[width=0.90\columnwidth]{fig_reconstruction_3x2_2026.png}
     \caption{Analytical fields, sensor-based reconstructions, and reconstruction error for vortex (top) and saddle (bottom) fields.}
     \label{fig:measurement_error}
 \end{figure}
@@ -428,70 +427,90 @@ This method of representing vector fields in printed floor maps has imperfection
 
 Hardware validation focused on two representative field types that encompass the key challenges of vector field navigation: rotational dynamics (vortex) and hyperbolic instability (saddle). The vortex field tests pure rotational dynamics and provides continuity with previous studies in our research group~\cite{22,48}. The saddle is the only canonical field type that contains separatrices, which act as Lagrangian coherent structures in steady flows. Testing on the saddle field validates that the framework operates reliably in the presence of these structures.
 
-For each field, eight starting locations were selected around the perimeter of the workspace and the attraction controller (\ref{eq:10}) was run 10 times from each location for \open{20}~s using the three-robot equilateral triangle formation with a \open{0.33 or 0.30}~m side, yielding 80 trials per field. Run order was randomized. Every trial is scored with the metrics of Section~IV, and its final centroid speed is reported so that a cluster still moving is not counted as settled. The classifier of Section~IV-C labels $\hat{\mathbf{J}}$ on every cycle without feeding the controller, and its accuracy is scored against the type of the printed field.
+For each field, eight starting locations were selected around the perimeter of the workspace and the attraction controller (\ref{eq:10}) was run 10 times from each location for \rev{10}~s using the three-robot triangle formation, yielding 80 trials per field. The logged positions give a mean side of \rev{0.30}~m in the saddle trials and \rev{0.26}~m in the vortex trials. Run order was randomized. Two saddle trials missing from the original set were filled by later runs started within \rev{9}~cm of the same locations, with their positions rotated into the original frame of the printed map. Every trial is scored with the metrics of Section~IV, and its final centroid speed is reported so that a cluster still moving is not counted as settled. The classifier of Section~IV-C labels $\hat{\mathbf{J}}$ on every cycle without feeding the controller, and its accuracy is scored against the type of the printed field.
 
-Additionally, each field was used to test the critical point orbiting controller (\ref{eq:11}). A total of \open{six} commanded radii were chosen to match those in simulation, and each was run \open{three} times. Each orbiting controller experiment was run for \open{1800} cycles at 10~Hz, allowing the cluster to complete several orbits around the critical point.
+Additionally, each field was used to test the critical point orbiting controller (\ref{eq:11}). A total of \rev{six} commanded radii were chosen to match those in simulation, and each was run \rev{ten} times. Each orbiting controller experiment was run for \rev{200 to 300} cycles at 10~Hz, long enough for at least one full orbit at the largest radius and up to eight at the smallest. The vortex attraction trials and both fields' orbit trials were repeated with four robots in a square formation, with $\hat{\mathbf{J}}$ from a least squares fit to the four readings. The square's diagonals measured \rev{0.33}~m in the attraction trials and \rev{0.31}~m in the orbit trials, and the four-robot orbits used five radii, from 0.01 to 0.40~m.
 
  \subsection{Attraction Controller Results}
 
-Following the test plan above, \syn{80} vortex trials and \syn{78} saddle trials were analyzed. The final centroid position of each trial was used to determine systematic bias and precision, matching the simulation metrics in Section~IV.
+Following the test plan above, \rev{80} vortex trials and \rev{80} saddle trials were analyzed. The final centroid position of each trial was used to determine systematic bias and precision, matching the simulation metrics in Section~IV.
 
-The cluster converged to the critical point in \syn{100}\% of the saddle trials and \syn{86}\% of the vortex trials at the 0.05~m threshold, and in \syn{77}\% and \syn{34}\% at 0.03~m. No trial left the map, and the critical point ended inside the robots' triangle in \syn{100}\% of trials. Table~\ref{tab:estimation_results} summarizes the results. In the vortex field, systematic bias was \syn{0.018}~m with precision of \syn{0.036}~m. In the saddle field, systematic bias was \syn{0.007}~m with precision of \syn{0.024}~m. The bias is smaller than the mean final error because final positions on opposite sides of $\mathbf{p}^*$ cancel in the mean, and the estimate ended closer to $\mathbf{p}^*$ than the cluster. The type of $\hat{\mathbf{J}}$ matched the printed field on \open{campaign}\% of cycles in the vortex and \open{campaign}\% in the saddle.
+The cluster converged to the critical point in \rev{99}\% of the saddle trials and \rev{91}\% of the vortex trials at the 0.05~m threshold, and in \rev{80}\% and \rev{39}\% at 0.03~m. No trial left the map, and the critical point ended inside the robots' triangle in \rev{100}\% of trials. Table~\ref{tab:estimation_results} summarizes the results. In the vortex field, systematic bias was \rev{0.007}~m with precision of \rev{0.036}~m. In the saddle field, systematic bias was \rev{0.002}~m with precision of \rev{0.025}~m. The bias is smaller than the mean final error because final positions on opposite sides of $\mathbf{p}^*$ cancel in the mean, and the estimate ended closer to $\mathbf{p}^*$ than the cluster.
 
 Fig.~\ref{fig:vortextomiddle} shows convergence trajectories from all eight starting positions and mean centroid distance to the critical point over time for the same trials.
 
 \begin{figure}[!t]
     \centering
-    \begin{minipage}[b]{0.47\columnwidth}\centering\includegraphics[width=\textwidth]{placeholder_hw_trajectories_a.png}\end{minipage}\hspace{0.04\columnwidth}%
-    \begin{minipage}[b]{0.47\columnwidth}\centering\includegraphics[width=\textwidth]{placeholder_hw_trajectories_b.png}\end{minipage}\\[2pt]
-    \includegraphics[width=0.71\columnwidth]{placeholder_hw_distance.png}\\[-1pt]
+    \begin{minipage}[b]{0.47\columnwidth}\centering\includegraphics[width=\textwidth]{fig_hw_trajectories_vortex.pdf}\end{minipage}\hspace{0.04\columnwidth}%
+    \begin{minipage}[b]{0.47\columnwidth}\centering\includegraphics[width=\textwidth]{fig_hw_trajectories_saddle.pdf}\end{minipage}\\[2pt]
+    \includegraphics[width=0.71\columnwidth]{fig_hw_distance.pdf}\\[-1pt]
     {\footnotesize (c)}
-    \caption{\syn{[Placeholder]} Convergence trajectories from eight starting positions to the center of the vortex (a) and saddle (b), with the solid line showing the mean path and the shaded region one standard deviation across the 10 repetitions. (c) Distance to center over time, with mean and standard deviation bounds.}
+    \caption{Convergence trajectories from eight starting positions to the center of the vortex (a) and saddle (b), with thin lines showing each run and the thick line the mean path from each start. (c) Distance to $\mathbf{p}^*$ over time, mean and one standard deviation across runs, for three robots in both fields and four robots in the vortex.}
     \label{fig:vortextomiddle}\label{fig:Tomiddlewithtime}
 \end{figure}
 
 \begin{table}[!t]
-    \footnotesize
+    \scriptsize
     \centering
-    \caption{Hardware experimental results \syn{(placeholder data)}. (a) Attraction, vortex: \syn{80} runs, saddle: \syn{78} runs. Bias measures mean offset from origin; precision ($\sigma$) measures repeatability. (b) Orbital control, radial errors in metres after the first 10~s. $\bar e_r$ is the radial bias, $s_b$ the between-trial spread, and $s_w$ the within-run standard deviation. Negative error indicates the cluster orbited inside the commanded radius.}
+    \caption{Hardware experimental results, three robots (3R) and four (4R). (a) Attraction (2025 runs): vortex 3R \rev{80}, vortex 4R \rev{79}, saddle 3R \rev{80} runs, two of them 2026 runs filling missing slots; no four-robot saddle attraction was run. Bias measures mean offset from $\mathbf{p}^*$; precision ($\sigma$) measures repeatability. (b), (c) Orbital control (2026 runs, ten per radius), radial errors in metres after the first \rev{3}~s. $\bar e_r$ is the radial bias, $s_b$ the between-trial spread, and $s_w$ the within-run standard deviation. Negative error indicates the cluster orbited inside the commanded radius.}
     \label{tab:estimation_results}\label{tab:orbital_radius_comparison}
-    \setlength{\tabcolsep}{4pt}
-    \syn{\begin{tabular}{l|ccc|ccc}
-    \hline
-     & \multicolumn{3}{c|}{\textbf{Vortex (printed map)}} & \multicolumn{3}{c}{\textbf{Saddle (printed map)}} \\
-    \hline
-    \multicolumn{7}{l}{\textit{(a) Attraction}} \\
-    \hline
-    Bias (m) & \multicolumn{3}{c|}{0.018} & \multicolumn{3}{c}{0.007} \\
-    $\sigma$ (m) & \multicolumn{3}{c|}{0.036} & \multicolumn{3}{c}{0.024} \\
-    $\bar{e}_f \pm s_e$ (m) & \multicolumn{3}{c|}{0.037 $\pm$ 0.017} & \multicolumn{3}{c}{0.023 $\pm$ 0.009} \\
-    Median [p95] (m) & \multicolumn{3}{c|}{0.036 [0.070]} & \multicolumn{3}{c}{0.024 [0.037]} \\
-    Loc.\ error (m) & \multicolumn{3}{c|}{0.028} & \multicolumn{3}{c}{0.018} \\
-    $T_{\mathrm{conv}}$ (s) & \multicolumn{3}{c|}{3.6} & \multicolumn{3}{c}{3.3} \\
-    $E_u$ (m$^2$/s) & \multicolumn{3}{c|}{0.187} & \multicolumn{3}{c}{0.205} \\
-    Succ.\ 3/4/5 cm (\%) & \multicolumn{3}{c|}{34/60/86} & \multicolumn{3}{c}{77/99/100} \\
-    \hline
-    \multicolumn{7}{l}{\textit{(b) Orbit}} \\
-    \hline
-    $r_d$ (m) & $\bar e_r$ & $s_b$ & $s_w$ & $\bar e_r$ & $s_b$ & $s_w$ \\
-    \hline
-    0.01 & +0.166 & 0.031 & 0.027 & +0.111 & 0.014 & 0.018 \\
-    0.10 & +0.151 & 0.028 & 0.061 & +0.074 & 0.015 & 0.028 \\
-    0.20 & +0.128 & 0.027 & 0.064 & +0.071 & 0.018 & 0.047 \\
-    0.30 & +0.112 & 0.027 & 0.097 & +0.091 & 0.033 & 0.059 \\
-    0.40 & +0.081 & 0.036 & 0.119 & +0.102 & 0.040 & 0.079 \\
-    0.50 & +0.018 & 0.020 & 0.079 & +0.088 & 0.041 & 0.095 \\
-    \hline
-    \end{tabular}}
+    \setlength{\tabcolsep}{1.5pt}
+    \rev{\begin{tabular}{l|cc|cc}
+\hline
+ & \multicolumn{2}{c|}{\textbf{Vortex}} & \multicolumn{2}{c}{\textbf{Saddle}} \\
+ & \textbf{3R} & \textbf{4R} & \textbf{3R} & \textbf{4R} \\
+\hline
+\multicolumn{5}{l}{\textit{(a) Attraction}} \\
+\hline
+Runs & 80 & 79 & 80 & -- \\
+Bias (m) & 0.007 & 0.024 & 0.002 & -- \\
+$\sigma$ (m) & 0.036 & 0.014 & 0.025 & -- \\
+$\bar{e}_f \pm s_e$ (m) & 0.034$\pm$0.014 & 0.026$\pm$0.009 & 0.023$\pm$0.009 & -- \\
+Median [p95] (m) & 0.035 [0.058] & 0.025 [0.043] & 0.021 [0.038] & -- \\
+Loc.\ error (m) & 0.015 & 0.025 & 0.014 & -- \\
+$T_{\mathrm{conv}}$ (s) & 3.9 & 2.8 & 3.4 & -- \\
+$E_u$ (m$^2$/s) & 0.187 & 0.218 & 0.204 & -- \\
+Succ.\ 3/4/5 cm (\%) & 39/69/91 & 65/86/100 & 80/98/99 & -- \\
+\hline
+\multicolumn{5}{l}{\textit{(b) Orbit radial bias $\bar e_r \pm s_b$ (m), by $r_d$ (m)}} \\
+\hline
+\quad 0.01 & +0.060$\pm$0.011 & +0.057$\pm$0.011 & +0.066$\pm$0.015 & +0.057$\pm$0.014 \\
+\quad 0.10 & +0.028$\pm$0.002 & +0.028$\pm$0.007 & +0.036$\pm$0.011 & +0.027$\pm$0.006 \\
+\quad 0.20 & +0.007$\pm$0.014 & +0.036$\pm$0.025 & $-$0.001$\pm$0.005 & +0.031$\pm$0.025 \\
+\quad 0.30 & +0.043$\pm$0.027 & +0.098$\pm$0.020 & +0.033$\pm$0.016 & +0.040$\pm$0.019 \\
+\quad 0.40 & +0.073$\pm$0.023 & +0.098$\pm$0.008 & +0.032$\pm$0.010 & $-$0.013$\pm$0.073 \\
+\quad 0.50 & +0.020$\pm$0.009 & -- & +0.005$\pm$0.011 & -- \\
+\hline
+\multicolumn{5}{l}{\textit{(c) Orbit within-run spread $s_w$ (m)}} \\
+\hline
+\quad 0.01 & 0.020 & 0.018 & 0.012 & 0.023 \\
+\quad 0.10 & 0.014 & 0.017 & 0.012 & 0.022 \\
+\quad 0.20 & 0.036 & 0.038 & 0.015 & 0.032 \\
+\quad 0.30 & 0.057 & 0.057 & 0.056 & 0.055 \\
+\quad 0.40 & 0.069 & 0.055 & 0.071 & 0.076 \\
+\quad 0.50 & 0.076 & -- & 0.083 & -- \\
+\hline
+\end{tabular}}
     \end{table}
 
 
 
 \subsection{Orbital Control Results}
 
-Orbital control was evaluated on both fields at commanded radii from 0.01~m to 0.50~m. For each radius, the orbital controller (\ref{eq:11}) was run for \open{1800} cycles at 10~Hz, and the mean radial error and its standard deviation were recorded after the first 10~s, as in simulation (Table~\ref{tab:orbital_radius_comparison}).
+Orbital control was evaluated on both fields at commanded radii from 0.01~m to 0.50~m. For each radius, the orbital controller (\ref{eq:11}) was run for \rev{200 to 300} cycles at 10~Hz, and the mean radial error and its standard deviation were recorded after the first \rev{3}~s, as in simulation (Table~\ref{tab:orbital_radius_comparison}).
 
- In the vortex field, mean radial errors decreased from \syn{0.166}~m at a commanded radius of 0.01~m to \syn{0.018}~m at 0.50~m, with within-run standard deviations ranging from \syn{0.027} to \syn{0.119}~m. In the saddle field, mean radial errors ranged from \syn{0.111}~m to \syn{0.088}~m over the same commanded radii, with within-run standard deviations increasing from \syn{0.018} to \syn{0.095}~m. From $r_d = \syn{0.10}$~m upward the fluctuation within one orbit exceeds the variation between repeats. By the $0.25\,r_d$ criterion the practical range is $r_d \ge \syn{0.40}$~m in the vortex and $r_d \ge \syn{0.50}$~m in the saddle. Below these radii the controller holds a bounded orbit about the critical point but does not track the commanded radius. \syn{One} vortex and \syn{three} saddle orbits failed by leaving the map, all at $r_d \ge \syn{0.40}$~m.
+ In the vortex field, mean radial errors decreased from \rev{0.060}~m at a commanded radius of 0.01~m to \rev{0.020}~m at 0.50~m, with within-run standard deviations ranging from \rev{0.014} to \rev{0.076}~m. In the saddle field, mean radial errors ranged from \rev{0.066}~m to \rev{0.005}~m over the same commanded radii, with within-run standard deviations increasing from \rev{0.012} to \rev{0.083}~m. From $r_d = \rev{0.10}$~m upward the fluctuation within one orbit exceeds the variation between repeats. By the $0.25\,r_d$ criterion the practical range is $r_d \ge \rev{0.20}$~m in both fields. Below these radii the controller holds a bounded orbit about the critical point but does not track the commanded radius. No orbit run left the map.
+
+At $r_d = 0.10$~m in the vortex the cluster does not hold the commanded circle but settles onto a closed curve of its own (Fig.~\ref{fig:limit_cycle}). Ten hardware runs, four started inside the curve and six outside, converged to the same curve, with a mean radius of \rev{0.127}~m that varies by \rev{0.043}~m around the loop and \rev{2.9}~mm between runs. On the reconstructed vortex in simulation, starts inside and outside meet on a curve of mean radius \rev{0.111}~m.
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=0.95\textwidth]{fig_limit_cycle_2026.pdf}
+    \caption{Limit cycle in the vortex at $r_d = 0.10$~m (dotted circle). (a) Simulation on the reconstructed vortex from starts inside (blue) and outside (red) the cycle, which meet on one closed curve (black). (b) Ten hardware runs overlaid, with the hardware cycle (black) and the simulated cycle (dashed). (c) Distance to $\mathbf{p}^*$ over time for the simulated starts and the hardware runs.}
+    \label{fig:limit_cycle}
+\end{figure*}
+
+The classifier labeled $\hat{\mathbf{J}}$ on every cycle of the orbit runs. It matched the printed saddle on \rev{100}\% of cycles. In the vortex, \rev{99.9}\% of cycles were labeled rotational, but only \rev{45}\% as a center, because the center's eigenvalues lie on the boundary between the two spiral types (Section~IV-C), so a small real part from distortion or noise moves the label to a spiral.
 
 
 
@@ -504,32 +523,32 @@ Estimation and control errors arise from four sources: robot dynamics, field dis
 
 Perfect convergence does not occur in simulation. On the analytical fields the estimate $\hat{\mathbf{p}}^*$ matched $\mathbf{p}^*$ to machine precision, yet every trial stopped on the friction ring of radius $v_c/k$ (Section~III-D), where the attraction gain $k$ times the remaining distance no longer overcomes the friction level $v_c$. The residual error is therefore a property of the robot dynamics, not of the estimation method. Some errors may also have arisen from modeling discrepancies such as modeling all robots identically with the same friction level, speed limit, and time constant.
 
-Positive radial bias at small orbital radii is also a result of robot dynamics. At small radii, the commanded angular rate $k_t / r_d$ is high relative to the radial correction bandwidth $k_r$, and the outward drift from the actuator lag sets the bias (\ref{eq:orbit_cf}). The closed form matches simulation to a median of \rev{0.03}~mm across sweeps of gains, lag, sample period, and friction. At the settings of Section~IV, $r_{\min} = \rev{0.133}$~m, and the error falls below 0.05~m only for $r_d \ge \rev{0.31}$~m. Lowering the orbital speed $k_t$ to 0.1~m/s cuts $r_{\min}$ to \rev{0.058}~m, and removing the lag cuts it to \rev{0.059}~m. Raising the radial gain $k_r$ to 2~s$^{-1}$ cuts it to \rev{0.067}~m, at the cost of increased sensitivity to noise in the critical point estimate.
+Positive radial bias at small orbital radii is also a result of robot dynamics. At small radii, the commanded angular rate $k_t / r_d$ is high relative to the radial correction bandwidth $gk_r$, and the outward drift from the delay and lag sets the bias (\ref{eq:orbit_cf}). The closed form matches simulation within \rev{3}~mm at every commanded radius at the settings of Section~IV. Across sweeps of the gains, delay, lag, sample period, and dead zone, it matches to a median of \rev{1.2}~mm. There $r_{\min} = \rev{0.047}$~m, so the error stays below 0.05~m at every commanded radius. Lowering the orbital speed $k_t$ to 0.1~m/s cuts $r_{\min}$ to \rev{0.031}~m, and removing the delay and lag cuts it to \rev{0.032}~m. Raising the radial gain $k_r$ to 2~s$^{-1}$ cuts it to \rev{0.034}~m, at the cost of increased sensitivity to noise in the critical point estimate.
 
-Comparing the noise-free and reconstructed fields in simulation isolates the effect of field distortion: the fixed distortion of the printed maps drives the simulation-reality gap (Section~IV-A). Noise that varies in time is far smaller; with the formation parked, a robot's reading changes by about \syn{$2\times10^{-5}$}~m/s between cycles \open{campaign block E}, while the calibration error of Section~V-A is about 0.02~m/s and fixed at each location. In the final error of Section~III-D, friction sets the spread of final positions through $v_c/k$, and the distortion sets their bias.
+Comparing the noise-free and reconstructed fields in simulation isolates the effect of field distortion: the fixed distortion of the printed maps drives the simulation-reality gap (Section~IV-A). Noise that varies in time is far smaller; with the formation parked, a robot's reading changes by about \rev{$2\times10^{-4}$}~m/s between cycles, while the calibration error of Section~V-A is about 0.02~m/s and fixed at each location. In the final error of Section~III-D, friction sets the spread of final positions through $v_c/k$, and the distortion sets their bias.
 
-The hardware orbit metrics separate estimation error from control error. The controller-only bias measures the radius about $\hat{\mathbf{p}}^*$, which (\ref{eq:11}) regulates, instead of about $\mathbf{p}^*$. At $r_d = 0.01$~m it was \syn{0.177}~m in the vortex against a true bias of \syn{0.166}~m, so the small-radius offset arises in the closed loop. At larger radii both the localization error and the within-run spread grow with distance from the critical point.
+The hardware orbit metrics separate estimation error from control error. The controller-only bias measures the radius about $\hat{\mathbf{p}}^*$, which (\ref{eq:11}) regulates, instead of about $\mathbf{p}^*$. At $r_d = 0.01$~m it was \rev{0.071}~m in the vortex against a true bias of \rev{0.060}~m, so the small-radius offset arises in the closed loop. At larger radii both the localization error and the within-run spread grow with distance from the critical point.
 
 To avoid errors arising from robots becoming collinear (the condition number of $\mathbf{A}$ becomes infinite), an equilateral triangle was chosen as the cluster shape. This shape minimizes the condition number of $\mathbf{A}$ in (\ref{eq:4}) among formations of the same size centered on the sampled region, making this formation optimal for sampling.
 
 Poor conditioning of the estimated Jacobian amplifies coefficient errors into errors in the critical point estimate (\ref{eq:9}) by the factor $1/\sigma_{\min}(\hat{\mathbf{J}})$ in (\ref{eq:bound}). Unlike the condition number of $\mathbf{A}$, it is a property of the field and is not under the designer's control. Where $\det\hat{\mathbf{J}}$ approaches zero, so does $\sigma_{\min}(\hat{\mathbf{J}})$, and Section~III-D describes how the controller handles it. A center is non-hyperbolic yet has $\det\mathbf{J} > 0$, so (\ref{eq:9}) locates it as well as any other critical point. Its type is harder to label, because its eigenvalues lie on the boundary between the two spiral types (Section~IV-C).
 
-The measurement term of (\ref{eq:bound}) grows with the extrapolation distance $\|\mathbf{e}\|/R$, and the reconstructed field degrades near the edge of the mapped region. Together they account for the orbital bias at the largest commanded radius falling below the controller-only bias on both reconstructed fields, to \rev{+0.026} against \rev{+0.035}~m on the vortex and \rev{+0.001} against \rev{+0.017}~m on the saddle. There the estimated distance to the critical point is inflated, and the radial controller pulls the cluster inward.
+The measurement term of (\ref{eq:bound}) grows with the extrapolation distance $\|\mathbf{e}\|/R$, and the reconstructed field degrades near the edge of the mapped region. Together they set the localization error at the largest commanded radius. There the orbital bias on both reconstructed fields exceeds the controller-only bias, \rev{+0.027} against \rev{+0.013}~m on the vortex and \rev{+0.019} against \rev{$-$0.003}~m on the saddle, so the estimate lies closer to the cluster than the critical point does, and a cluster holding its estimated radius orbits outside $r_d$.
 
 \subsection{Comparison with the Vector-to-Scalar Primitive}
 
 The modular architecture lets navigation controllers be interchanged while the cluster and robot controller layers stay fixed, so performance differences reflect algorithmic rather than implementation variations.
 The vector-to-scalar primitive \cite{48} reduces the flow to its magnitude, and a plane fit to the speeds $S_i = \|\mathbf{v}(\mathbf{p}_i)\|$ at the three robots gives their gradient $\mathbf{g}$. For attraction the cluster descends $\mathbf{g}$, and for orbits the primitive was modified to move tangentially to the direction of steepest descent. To separate what the primitive lacks, an explicit critical point coordinate, from how it is pointed, it was run in simulation with the robot model, gains, and formation of Section~IV in three forms (Table~\ref{tab:baselines}): the primitive alone; its tangential steering paired with the laws (\ref{eq:10})--(\ref{eq:11}) given an oracle, the true critical point, as target and center; and a coordinate recovered from magnitudes alone, $\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$ with $S_c$ the fitted speed at the centroid, fed to the same laws.
 
-On the six analytical fields the speed grows equally in every direction, so its gradient points directly away from $\mathbf{p}^*$, and the primitive reached $\mathbf{p}^*$ in every trial (Fig.~\ref{fig:effort}(a)). The fitted gradient keeps its length at every distance, so the command holds the robots at their speed limit until the cluster passes $\mathbf{p}^*$ and overshoots by a median of \newnum{0.031}~m. The Jacobian estimate instead scales the command with distance, slowing the cluster along a smooth exponential. The primitive settles faster and closer to $\mathbf{p}^*$, because friction stops a proportional command on the ring $v_c/k$, but at \newnum{1.9} times the control effort.
+On the six analytical fields the speed grows equally in every direction, so its gradient points directly away from $\mathbf{p}^*$, and the primitive reached $\mathbf{p}^*$ in every trial (Fig.~\ref{fig:effort}(a)). The fitted gradient keeps its length at every distance, so the command holds the robots at their speed limit until the cluster passes $\mathbf{p}^*$ and overshoots by a median of \rev{0.003}~m. The Jacobian estimate instead scales the command with distance, slowing the cluster along a smooth exponential. The primitive settles faster and closer to $\mathbf{p}^*$, because friction stops a proportional command on the ring $v_c/k$, but at \rev{1.6} times the control effort.
 
-In orbit, the primitive alone cannot correct radial error about a specific point, so centrifugal drift went uncorrected and every orbit spiraled off the map (Fig.~\ref{fig:effort}(b)). Given the oracle, the same tangent with the radial term of (\ref{eq:11}) matched the Jacobian method within \newnum{0.002}~m RMSE at every radius. With its own speed estimate the primitive held the radius at a lower RMSE, because the estimate's inward bias offsets the lag drift of Section~III-D; during attraction, however, that estimate left the cluster still moving at \newnum{0.12}~m/s after 10~s.
+In orbit, the primitive alone cannot correct radial error about a specific point, so centrifugal drift went uncorrected and every orbit drifted outward, with a mean radial error of \rev{0.14}~m at $r_d = 0.3$~m (Fig.~\ref{fig:effort}(b)). Given the oracle, the same tangent with the radial term of (\ref{eq:11}) matched the Jacobian method within \rev{0.004}~m RMSE at every radius. With its own speed estimate the primitive orbited inside the commanded radius, by \rev{0.075}~m at $r_d = 0.1$~m, because the estimate's inward bias outweighs the lag drift of Section~III-D; during attraction, that estimate left the cluster still moving at \rev{0.21}~m/s after 10~s.
 
-The speed gradient points away from the critical point only where the speed grows equally in every direction. The anisotropic node $\mathbf{J} = \operatorname{diag}(-1, -0.2)$ is affine, but its speed grows five times more slowly along one axis. There the primitive reached $\mathbf{p}^*$ in \newnum{7}\% of trials, and most of the rest ended on the slow axis, a median \newnum{0.67}~m from $\mathbf{p}^*$. Its speed estimate erred by \newnum{0.46}~m on average during orbits, and even with the oracle most orbits were lost, because the speed contours are ellipses; the Jacobian estimate is exact there, as on any affine field. In the gyre, the primitive reached the same critical point as the Jacobian method in \newnum{96}\% of trials, but the speed vanishes at the center and the saddles alike, so it cannot tell them apart, while the Jacobian method labeled the type on every cycle (Section~IV-C). The primitive lost every gyre orbit, and with the oracle every orbit from $r_d = 0.3$~m.
+The speed gradient points away from the critical point only where the speed grows equally in every direction. The anisotropic node $\mathbf{J} = \operatorname{diag}(-1, -0.2)$ is affine, but its speed grows five times more slowly along one axis. There the primitive reached $\mathbf{p}^*$ in \rev{6}\% of trials, and most of the rest ended on the slow axis, a median \rev{0.64}~m from $\mathbf{p}^*$. Its speed estimate erred by \rev{0.50}~m on average during orbits, and even with the oracle \rev{88}\% of orbits at $r_d = 0.1$~m and \rev{30}\% at 0.5~m were lost, because the speed contours are ellipses; the Jacobian estimate is exact there, as on any affine field. In the gyre, the primitive reached the same critical point as the Jacobian method in \rev{97}\% of trials, but the speed vanishes at the center and the saddles alike, so it cannot tell them apart, while the Jacobian method labeled the type on every cycle (Section~IV-C). The primitive lost every gyre orbit, and with the oracle \rev{92}\% at $r_d = 0.3$~m and all at 0.5~m.
 
 \begin{figure}[!t]
     \centering
-    \includegraphics[width=0.90\columnwidth]{fig_v2s_effort.pdf}
+    \includegraphics[width=0.90\columnwidth]{fig_v2s_effort_2026.pdf}
     \caption{Simulated attraction and orbit on the analytical vortex with the Jacobian estimate and the vector-to-scalar (V2S) primitive, mean and $\pm 1$ standard deviation of ten runs from evenly spaced starts. (a) Centroid speed from 0.4~m, with control effort $E_u$ in the legend. (b) Distance from the critical point at the commanded $r_d = 0.3$~m (dashed).}
     \label{fig:effort}
 \end{figure}
@@ -540,26 +559,26 @@ The speed gradient points away from the critical point only where the speed grow
 \caption{Comparison with the vector-to-scalar (V2S) primitive in simulation, \newnum{500} attraction trials of 10~s and \newnum{50} orbit runs of 60~s per field and setting. The accuracy rows use the trials that succeeded, gyre success counts the center, and a dash marks a radius at which most orbits were lost.}
 \label{tab:baselines}
 \setlength{\tabcolsep}{1.8pt}
-\newnum{\begin{tabular}{ll|cccc|ccc}
+\rev{\begin{tabular}{ll|cccc|ccc}
 \hline
  & & \multicolumn{4}{c|}{\textbf{Attraction}} & \multicolumn{3}{c}{\textbf{Orbit RMSE (m)}} \\
 \textbf{Field} & \textbf{Navigation} & \textbf{Succ.} & \textbf{$\bar{e}_f$} & \textbf{$T_{\mathrm{conv}}$} & \textbf{$E_u$} & \multicolumn{3}{c}{\textbf{at $r_d$ (m)}} \\
  & & \textbf{(\%)} & \textbf{(m)} & \textbf{(s)} & \textbf{(m$^2$/s)} & 0.1 & 0.3 & 0.5 \\
 \hline
-Linear (6) & Jacobian & 100 & 0.025 & 2.1 & 0.074 & 0.093 & 0.051 & 0.033 \\
- & V2S & 100 & 0.003 & 1.1 & 0.137 & -- & -- & -- \\
- & V2S + oracle & 100 & 0.025 & 2.1 & 0.074 & 0.092 & 0.052 & 0.035 \\
- & V2S + speed est. & 100 & 0.012 & 1.3 & 0.306 & 0.068 & 0.016 & 0.020 \\
+Linear (6) & Jacobian & 100 & 0.023 & 2.3 & 0.067 & 0.018 & 0.007 & 0.004 \\
+ & V2S & 100 & 0.005 & 1.3 & 0.106 & 0.252 & 0.158 & 0.111 \\
+ & V2S + oracle & 100 & 0.023 & 2.3 & 0.067 & 0.018 & 0.010 & 0.008 \\
+ & V2S + speed est. & 100 & 0.017 & 1.4 & 0.568 & 0.075 & 0.052 & 0.035 \\
 \hline
-Aniso.\ node & Jacobian & 100 & 0.025 & 2.1 & 0.074 & 0.093 & 0.051 & 0.033 \\
- & V2S & 7 & 0.063 & 6.8 & 0.103 & -- & -- & -- \\
- & V2S + oracle & 100 & 0.025 & 2.1 & 0.074 & -- & -- & -- \\
- & V2S + speed est. & 6 & 0.071 & 10.0 & 0.228 & -- & -- & -- \\
+Aniso.\ node & Jacobian & 100 & 0.023 & 2.3 & 0.067 & 0.018 & 0.007 & 0.004 \\
+ & V2S & 6 & 0.057 & 5.6 & 0.082 & -- & -- & -- \\
+ & V2S + oracle & 100 & 0.023 & 2.3 & 0.067 & -- & 0.125 & 0.117 \\
+ & V2S + speed est. & 6 & 0.067 & 9.9 & 0.376 & -- & -- & -- \\
 \hline
-Gyre & Jacobian & 50 & 0.026 & 1.8 & 0.044 & 0.080 & 0.049 & -- \\
- & V2S & 48 & 0.009 & 0.9 & 0.085 & -- & -- & -- \\
- & V2S + oracle & 100 & 0.025 & 2.1 & 0.074 & 0.091 & -- & -- \\
- & V2S + speed est. & 48 & 0.013 & 1.0 & 0.273 & 0.068 & -- & -- \\
+Gyre & Jacobian & 50 & 0.024 & 1.8 & 0.041 & 0.018 & 0.066 & -- \\
+ & V2S & 49 & 0.005 & 1.0 & 0.073 & -- & -- & -- \\
+ & V2S + oracle & 100 & 0.023 & 2.3 & 0.067 & 0.019 & -- & -- \\
+ & V2S + speed est. & 49 & 0.017 & 1.1 & 0.579 & 0.075 & 0.273 & -- \\
 \hline
 \end{tabular}}
 \end{table}
@@ -587,7 +606,7 @@ Beyond critical point detection and orbital control, vector fields contain other
 \section{Conclusion}
 \noindent
 
-This paper presents a framework for multirobot navigation in vector fields containing critical points. A Jacobian-based approach uses instantaneous measurements from three robots to identify critical point locations without prior field knowledge, supporting attraction and orbital control laws built on these estimates. Simulation across six canonical field types confirmed convergence of these control primitives. On curved fields the estimate degraded as the cube of the formation side, and the sign of $\det\hat{\mathbf{J}}$ on the first cycle decided which type of critical point the cluster reached. In \syn{158} hardware convergence trials, the system achieved a \syn{100}\% (saddle) and \syn{86}\% (vortex) success rate within 0.05~m, with mean position errors of \syn{0.037}~m or less. Orbital control experiments maintained commanded radii within a quarter of the radius from \syn{0.40}~m (vortex) and \syn{0.50}~m (saddle) upward, and below that held bounded orbits that did not track the commanded radius.
+This paper presents a framework for multirobot navigation in vector fields containing critical points. A Jacobian-based approach uses instantaneous measurements from three robots to identify critical point locations without prior field knowledge, supporting attraction and orbital control laws built on these estimates. Simulation across six canonical field types confirmed convergence of these control primitives. On curved fields the estimate degraded as the cube of the formation side, and the sign of $\det\hat{\mathbf{J}}$ on the first cycle decided which type of critical point the cluster reached. In \rev{160} hardware convergence trials, the system achieved a \rev{99}\% (saddle) and \rev{91}\% (vortex) success rate within 0.05~m, with mean position errors of \rev{0.034}~m or less. Orbital control experiments maintained commanded radii within a quarter of the radius from \rev{0.20}~m upward in both fields, and below that held bounded orbits that did not track the commanded radius.
 Together these results establish cooperative Jacobian estimation as a practical kinematic foundation for multirobot critical point navigation. The printed fields do not advect the robots, so compensating for a physical flow that carries the platform is the natural next step toward field deployment.
 
 

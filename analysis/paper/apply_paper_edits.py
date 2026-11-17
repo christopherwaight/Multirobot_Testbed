@@ -1,7 +1,7 @@
 """Apply the numeric edits to the revision tex, and write the numbers map.
 
 Scope (2026-11-16 answer): tables, figures and numbers only. A number whose sentence still holds is
-replaced and marked \\newnum{} (blue) for review. A sentence whose claim changed is left as is and
+replaced and marked \\rev{} (plan answer, 2026-11-16). A sentence whose claim changed is left as is and
 listed in queued_prose_batch.md with its new numbers. Every edit is matched on exact text first;
 any mismatch aborts the whole batch and nothing is written.
 
@@ -28,7 +28,7 @@ EDITS = {
     2: ("86", "91", f"{HWOUT}: vortex 3R success 5 cm"),
     3: ("158", "160", f"{HWOUT}: 3R attraction runs (80 vortex + 80 saddle)"),
     4: ("0.037", "0.034", f"{HWOUT}: largest 3R mean final error (vortex 0.034)"),
-    5: ("36", "220", f"{HWOUT}: 2026 orbit runs (3R 120, 4R 100)"),
+    5: ("36", "120", f"{HWOUT}: 2026 3R orbit runs (abstract reports 3R; 4R sentence queued)"),
     6: ("six", "six", "2026 orbit radii (3R)"),
     7: ("0.40", "0.20", f"{HWOUT}: vortex 3R practical range (|bias| <= 0.25 r_d)"),
     8: ("0.50", "0.20", f"{HWOUT}: saddle 3R practical range"),
@@ -57,7 +57,6 @@ EDITS = {
     106: ("0.036", "0.036", f"{HWOUT}: vortex 3R precision"),
     107: ("0.007", "0.002", f"{HWOUT}: saddle 3R bias"),
     108: ("0.024", "0.025", f"{HWOUT}: saddle 3R precision"),
-    109: ("campaign", "45", f"{HWOUT}: 2026 vortex orbits, cycles labeled center (99.9% center or spiral)"),
     110: ("campaign", "100", f"{HWOUT}: 2026 saddle orbits, cycles labeled saddle"),
     116: ("1800", "200 to 300", "2026 orbit runs: 20 to 30 s"),
     117: ("0.166", "0.060", f"{HWOUT}: vortex 3R bias r_d 0.01"),
@@ -94,6 +93,7 @@ PROSE = {   # marker index -> why the sentence goes to the queued batch (new num
     10: "Jury limit changes form under the delay model (k_max = 1/(g L) = 21.1 /s; k dt limit 2.11)",
     11: "pole magnitude at k = 1: 0.91 and 0.05 (was sqrt(alpha) = 0.84)",
     13: "every reconstructed-field trial now ends within 0.05 m ('at least 95%' would read 'at least 100%')",
+    109: "vortex: strict center label 45% (the center sits on the class boundary), rotational class 99.9%; needs a sentence",
     15: "covariance prediction (error note) not regenerated with the delay model",
     84: "practical range is r_d >= 0.10 m on every simulated field; the sentence's split collapses",
     85: "as 84",
@@ -114,21 +114,21 @@ PROSE = {   # marker index -> why the sentence goes to the queued batch (new num
 
 STRINGS = [   # unmarked protocol numbers that changed: (exact old text, new text, source)
     ("in an equilateral triangular formation with a 0.33~m side length",
-     "in an equilateral triangular formation with a \\newnum{0.30}~m side length", "D8: 2026 hardware p = q = 0.30 m"),
+     "in an equilateral triangular formation with a \\rev{0.30}~m side length", "D8: 2026 hardware p = q = 0.30 m"),
     ("and $k_t = 0.2$~m/s, $k_r = 0.5$~s$^{-1}$ in (\\ref{eq:11})",
-     "and $k_t = \\newnum{0.15}$~m/s, $k_r = \\newnum{1}$~s$^{-1}$ in (\\ref{eq:11})", "D2: hardware orbit gains"),
+     "and $k_t = \\rev{0.15}$~m/s, $k_r = \\rev{1}$~s$^{-1}$ in (\\ref{eq:11})", "D2: hardware orbit gains"),
     ("and the commanded centroid speed was limited to 0.5~m/s.",
-     "and the commanded centroid velocity was limited to \\newnum{0.3}~m/s on each axis.", "2026 hardware per-axis clip"),
+     "and the commanded centroid velocity was limited to \\rev{0.3}~m/s on each axis.", "2026 hardware per-axis clip"),
     ("its radial error $\\|\\mathbf{p}_c - \\mathbf{p}^*\\| - r_d$ after the first 10~s.",
-     "its radial error $\\|\\mathbf{p}_c - \\mathbf{p}^*\\| - r_d$ after the first \\newnum{3}~s.", "D11: transient trim 3 s"),
+     "its radial error $\\|\\mathbf{p}_c - \\mathbf{p}^*\\| - r_d$ after the first \\rev{3}~s.", "D11: transient trim 3 s"),
     ("turns less than a quarter revolution about $\\mathbf{p}^*$ after the first 10~s,",
-     "turns less than a quarter revolution about $\\mathbf{p}^*$ after the first \\newnum{3}~s,", "D11"),
+     "turns less than a quarter revolution about $\\mathbf{p}^*$ after the first \\rev{3}~s,", "D11"),
     ("then the orbital controller (\\ref{eq:11}) was used for 600 time steps.",
-     "then the orbital controller (\\ref{eq:11}) was used for \\newnum{300} time steps.", "sim.py run_orbit T = 30 s"),
+     "then the orbital controller (\\ref{eq:11}) was used for \\rev{300} time steps.", "sim.py run_orbit T = 30 s"),
     ("after discarding the first 100 time steps (10~s) as a settling transient.",
-     "after discarding the first \\newnum{30} time steps (\\newnum{3}~s) as a settling transient.", "D11"),
+     "after discarding the first \\rev{30} time steps (\\rev{3}~s) as a settling transient.", "D11"),
     ("were recorded after the first 10~s, as in simulation",
-     "were recorded after the first \\newnum{3}~s, as in simulation", "D11"),
+     "were recorded after the first \\rev{3}~s, as in simulation", "D11"),
     ("\\caption{\\syn{[Placeholder]} Convergence trajectories", "\\caption{Convergence trajectories", "hardware figure"),
     ("placeholder_hw_trajectories_a.png", "fig_hw_trajectories_vortex.pdf", "analysis/hardware/figures"),
     ("placeholder_hw_trajectories_b.png", "fig_hw_trajectories_saddle.pdf", "analysis/hardware/figures"),
@@ -137,6 +137,9 @@ STRINGS = [   # unmarked protocol numbers that changed: (exact old text, new tex
     ("{fig_sim_convergence_band.pdf}", "{fig_sim_convergence_band_2026.pdf}", "revision_metrics/fig_sim_convergence.py"),
     ("{fig_nonlinear_triangles.pdf}", "{fig_nonlinear_triangles_2026.pdf}", "revision_metrics/fig_nonlinear.py"),
     ("{fig_v2s_effort.pdf}", "{fig_v2s_effort_2026.pdf}", "revision_metrics/fig_v2s_effort.py (draft A)"),
+    ("with the solid line showing the mean path and the shaded region one standard deviation across the 10 repetitions. (c) Distance to center over time, with mean and standard deviation bounds.}",
+     "with thin lines showing each run and the thick line the mean path from each start. (c) Distance to $\\mathbf{p}^*$ over time, mean and one standard deviation across runs, for three robots in both fields and four robots in the vortex.}",
+     "figures_hardware.py: no shaded band; (c) adds vortex 4R"),
     (", $^{a}$ one where \\newnum{48}\\% were.}", ".}", "no radius now has about half its orbits lost below the dash threshold"),
 ]
 FIGS = {   # source -> name in the paper folder
@@ -193,7 +196,7 @@ def main(dry):
             if body != old:
                 sys.exit(f"ABORT: marker {k} reads {body!r}, expected {old!r}; file changed since extract_markers.py")
             out.append(s[last:a])
-            out.append("" if new is None else f"\\newnum{{{new}}}")
+            out.append("" if new is None else f"\\rev{{{new}}}")
             last = b
             log.append(dict(n=k, marker=kind, old=old, new="" if new is None else new, action="edit", source=src))
         elif k in PROSE:
@@ -206,9 +209,9 @@ def main(dry):
         sys.exit("ABORT: expected the campaign block E marker")
     s = s.replace(" between cycles , while", " between cycles, while")
     # 2. tables
-    for label, new_body, wrapper in (("tab:simulation_results", sim_table(), "newnum"),
-                                     ("tab:estimation_results", tabular_body(os.path.join(HERE, "table_hardware.tex")), "newnum"),
-                                     ("tab:baselines", tabular_body(os.path.join(SIMTAB, "table_v2s.tex")), "newnum")):
+    for label, new_body, wrapper in (("tab:simulation_results", sim_table(), "rev"),
+                                     ("tab:estimation_results", tabular_body(os.path.join(HERE, "table_hardware.tex")), "rev"),
+                                     ("tab:baselines", tabular_body(os.path.join(SIMTAB, "table_v2s.tex")), "rev")):
         i = s.index(f"\\label{{{label}}}")
         j = re.compile(r"\\(syn|rev|newnum)\{\\begin\{tabular\}").search(s, i)
         end = balanced(s, j.end() - len("\\begin{tabular}") - 1)
@@ -219,10 +222,10 @@ def main(dry):
     if not cap_old:
         sys.exit("ABORT: hardware table caption not found")
     s = s[:cap_old.start()] + ("\\caption{Hardware experimental results, three robots (3R) and four (4R). (a) Attraction (2025 runs): "
-                               "vortex 3R \\newnum{80}, vortex 4R \\newnum{79}, saddle 3R \\newnum{80} runs, two of them 2026 runs filling "
+                               "vortex 3R \\rev{80}, vortex 4R \\rev{79}, saddle 3R \\rev{80} runs, two of them 2026 runs filling "
                                "missing slots; no four-robot saddle attraction was run. Bias measures mean offset from $\\mathbf{p}^*$;") + s[cap_old.end():]
     s = s.replace("(b) Orbital control, radial errors in metres after the first 10~s. $\\bar e_r$ is the radial bias, $s_b$ the between-trial spread, and $s_w$ the within-run standard deviation.",
-                  "(b), (c) Orbital control (2026 runs, ten per radius), radial errors in metres after the first \\newnum{3}~s. $\\bar e_r$ is the radial bias, $s_b$ the between-trial spread, and $s_w$ the within-run standard deviation.")
+                  "(b), (c) Orbital control (2026 runs, ten per radius), radial errors in metres after the first \\rev{3}~s. $\\bar e_r$ is the radial bias, $s_b$ the between-trial spread, and $s_w$ the within-run standard deviation.")
     if "(b), (c) Orbital control" not in s:
         sys.exit("ABORT: hardware caption part (b) not found")
     # 3. exact strings

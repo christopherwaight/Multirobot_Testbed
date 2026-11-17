@@ -1,0 +1,380 @@
+% Response to the reviewers, IEEE Systems Journal ISJ-RE-26-22639. Written 2026-11-05 against
+% cwaight_systems_paper/cwaight_systems_paper_with_revisions2.tex (12 pages, saved 2026-11-05 09:41).
+% Section, equation, table, and figure numbers follow that build's .aux. Quoted passages are checked
+% against the paper by check_letter_quotes.py; rerun it after any paper edit.
+% Numbers carry the same markers as the paper.
+\documentclass[10pt]{article}
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage{amsmath,amsfonts}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.4em}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\newcommand{\syn}[1]{\textcolor{red}{#1}}            % placeholder data, replaced by the campaign
+\newcommand{\rev}[1]{#1}                             % accepted simulation or analysis number
+\newcommand{\open}[1]{\textcolor{magenta}{[#1]}}     % protocol setting not yet decided
+\newcommand{\newnum}[1]{\textcolor{blue}{#1}}        % simulation number not yet reviewed
+% For submission: redefine all four as {#1} (and \open as {}) after the placeholders are gone.
+\newcommand{\resp}{\par\textbf{Response.}~}
+\newenvironment{newtext}{\begin{quote}\small\sloppy}{\end{quote}}
+\begin{document}
+
+\begin{center}
+{\large\bfseries Response to the Associate Editor and Reviewers}\\[3pt]
+Manuscript ISJ-RE-26-22639, ``Adaptive Navigation of Multirobot Systems to Critical Points in 2D Vector Fields in Simulation and Experiment''\\[2pt]
+C. Waight and C. A. Kitts
+\end{center}
+
+Dear Associate Editor,
+
+We thank you and the three reviewers for a careful and constructive review. The comments were well taken, and the paper is stronger for them. \syn{All hardware experiments were repeated in a new campaign designed around the reviewers' requests, and every hardware result in the revision comes from it.} Every change is marked in the accompanying marked-up PDF.
+
+\syn{In re-examining the original logs we found that the vortex rows of the submitted Tables~IV and~V came from four-robot runs; the new campaign uses the three-robot formation throughout.}
+
+Each response quotes the comment, split into lettered sentences, then points to the change. Each pointer names a section or equation and, where it helps, a phrase to search for. Section, equation, table, and figure numbers refer to the revised manuscript. The submitted simulation Tables~II and~III are merged into Table~II, and the submitted hardware Tables~IV and~V into Table~III.
+
+% =====================================================================
+\section*{Associate Editor}
+
+\begin{quote}\itshape
+\textbf{(a)}~To sum up, three reviewers have examined the manuscript and found the topic meaningful, but substantial technical revisions are required.
+\textbf{(b)}~Please add nonlinear field benchmarks
+\textbf{(c)}~and an estimation error analysis that accounts for field curvature, measurement noise, conditioning, and Jacobian invertibility.
+\textbf{(d)}~The stability discussion should be strengthened for changing estimates, actuator lag, sampled updates, and nearly singular cases.
+\textbf{(e)}~Please also include matched fixed radius baselines,
+\textbf{(f)}~repeated trials,
+\textbf{(g)}~and clearly defined convergence, localization, radial tracking, control effort, and failure metrics.
+\textbf{(h)}~In addition, formalize the three robot minimum,
+\textbf{(i)}~clarify the centralized and distributed implementation and the practical scope of the results,
+\textbf{(j)}~distinguish the prior framework components from the new contributions,
+\textbf{(k)}~and discuss the limitations of the static laboratory setup.
+\textbf{(l)}~Please revise the manuscript according to all reviewer comments.
+\end{quote}
+
+\resp (a) We treated the synthesis as the checklist for the revision. Items (b) through (k) are answered below; the reviewer responses refer back to these.
+
+(b) \emph{Nonlinear benchmarks.} We agree. Section~IV adds three nonlinear fields (search ``test how the estimate extrapolates''), including a gyre cell with five critical points (Fig.~4); Table~II reports every metric on all three.
+
+(c) \emph{Estimation error analysis in curvature, noise, conditioning, and invertibility.} We agree. Section~II-B derives the exact relation (7) and the bound (8), ``$\|\hat{\mathbf{p}}^* - \mathbf{p}^*\| \le [\ldots]/\sigma_{\min}(\hat{\mathbf{J}})$'', carrying curvature ($M$), formation size ($R$), measurement error ($\bar\varepsilon$), and conditioning and invertibility ($\sigma_{\min}$). Equation~(9) adds the covariance, validated in Section~IV-A.
+
+(d) \emph{Stability for changing estimates, lag, sampling, and nearly singular cases.} We agree. The new Section~III-D treats all four: the changing estimate $\hat{\mathbf{p}}^*[j] = \mathbf{p}^* + \boldsymbol\delta[j]$ in the sampled loop (14), the gain condition (15), the final-error bound, and a paragraph headed ``Near-Singular Estimates''.
+
+(e) \emph{Matched fixed-radius baselines.} We agree. Section~VI-B and Table~IV drive the fixed-radius law (11) with three estimates: the vector-to-scalar primitive alone, the same primitive given a magnitude-only critical point, and an oracle given the true point. The oracle isolates the controller from the estimate.
+
+(f) \emph{Repeated trials.} We agree; every result uses repeated trials (1000 attraction and \rev{100} orbit per field in simulation, 10 per start and \open{three} per radius on hardware), with a stated first-10~s exclusion. Table~III reports the between-trial and within-run spreads.
+
+(g) \emph{Defined metrics.} We agree. The opening of Section~IV defines convergence, localization error $\|\hat{\mathbf{p}}^* - \mathbf{p}^*\|$, radial tracking, control effort $E_u$, and failure (search ``never left the map'') once for both simulation and hardware.
+
+(h) \emph{Formalize the three-robot minimum.} We agree. Section~II-C adds Proposition~1 with a proof:
+\begin{newtext}
+For an affine field $\mathbf{v}(\mathbf{p}) = \mathbf{J}(\mathbf{p}-\mathbf{p}^*)$ with $\det(\mathbf{J}) \neq 0$, locating $\mathbf{p}^*$ of every such field from instantaneous measurements requires at least three non-collinear robots, and three suffice.
+\end{newtext}
+
+(i) \emph{Centralized vs.\ distributed, practical scope.} We agree. The abstract and Section~I now state the sensing is ``spatially distributed across the robots, while the estimate and control laws are computed on a central computer''; Section~V-A describes that computer, and Section~VI-C (final limitation) what a distributed version would require.
+
+(j) \emph{Prior framework vs.\ new contributions.} We agree. Section~III opens with ``The architecture is taken from that prior work'', the Fig.~2 caption marks ``the feature estimation and navigation controller blocks are new'', and Section~I restates the four contributions (see Reviewer~2, Comment~2.1).
+
+(k) \emph{Static-lab limitations.} We agree. Limitation Two of Section~VI-C states that the printed field ``does not advect the robots'' and gives the destabilizing condition; the final limitation covers dropouts and latency (see Reviewer~2, Comment~2.5).
+
+(l) Responses to every reviewer comment follow.
+
+% =====================================================================
+\section*{Reviewer 1}
+
+We thank Reviewer~1 for a rigorous review and have addressed each comment.
+
+\subsection*{Comment 1.1}
+
+\begin{quote}\itshape
+\textbf{(a)}~The scope of the estimation result needs to be clarified.
+\textbf{(b)}~Equation (6) exactly recovers the critical point of the fitted affine field, but this point need not correspond to a nearby zero of the true nonlinear field.
+\textbf{(c)}~Please establish conditions under which this inference is valid
+\textbf{(d)}~and quantify the estimation error in terms of field curvature, formation size, measurement errors, and Jacobian invertibility.
+\textbf{(e)}~Validation on nonlinear fields, including fields with multiple critical points, would substantially strengthen the paper.
+\end{quote}
+
+\resp (a, b) We agree; the estimate is the zero of the fitted affine field, not the true field. Section~II-B makes this exact: the relation (7), $\hat{\mathbf{p}}^* - \mathbf{p}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{v}}(\mathbf{p}^*)$, displaces the estimate by the affine-model error at the true point.
+
+(c) Section~II-B states the validity conditions after (7) (search ``affine over a region''): exact recovery where the field is affine, a curvature-scaled error otherwise.
+
+(d) The bound (8) quantifies the error in curvature ($M$), formation size ($R$), measurement error ($\bar\varepsilon$), and invertibility ($\sigma_{\min}$), and exposes the sizing trade-off (search ``design trade-off in formation sizing''); Section~IV-A confirms it numerically.
+
+(e) We agree. The gyre cell of Section~IV holds five critical points, and Table~II scores success both at the target and at the point reached. A related result: on it, ``the sign of $\det\hat{\mathbf{J}}$ on the first cycle decided the type of critical point reached in all \newnum{2000} [\ldots] trials'' (Fig.~4(a)).
+
+\subsection*{Comment 1.2}
+
+\begin{quote}\itshape
+\textbf{(a)}~The stability analysis considers an ideal centroid model with a stationary critical point estimate.
+\textbf{(b)}~In implementation, the estimate changes with robot positions and sensor measurements, while actuator lag, saturation, stiction, and sampled control introduce additional dynamics.
+\textbf{(c)}~The statement in Section VI-A that estimation errors affect accuracy but preserve stability therefore requires justification.
+\textbf{(d)}~Please provide a closed-loop robustness analysis with explicit assumptions
+\textbf{(e)}~and address the singularity of the orbital law at (r=0).
+\end{quote}
+
+\resp (a, b, c) We agree; the submitted claim outran its analysis. We removed it and added the closed-loop analysis in the new Section~III-D, which Section~VI-A now traces every error source to.
+
+(d) Section~III-D gives the analysis with its assumptions: the changing estimate as input to the sampled loop (14), the stability condition (15), friction as a bounded disturbance, and the result
+\begin{newtext}
+A stable linear loop is input-to-state stable, so a bounded estimate error $\boldsymbol{\delta}$, and friction acting as a command disturbance of size at most $v_c$, leave the centroid error bounded.
+\end{newtext}
+with final error ``$\|\mathbf{e}_{\text{final}}\| \le v_c/k + \|\boldsymbol{\delta}_{\text{final}}\|$''.
+
+(e) We agree. Section~III-D treats the $r = 0$ singularity (search ``undefined at $r = 0$''): the ideal dynamics never reach it, and a guard carries the cluster off it when a noisy estimate does.
+
+\subsection*{Comment 1.3}
+
+\begin{quote}\itshape
+\textbf{(a)}~The conditioning and noise analysis needs greater rigor.
+\textbf{(b)}~Equation (6) involves errors in both the estimated Jacobian and the offset vector, which are obtained from the same measurements and may be correlated.
+\textbf{(c)}~Please derive an appropriate perturbation bound or covariance approximation
+\textbf{(d)}~and validate it numerically.
+\textbf{(e)}~The discussion should also distinguish Jacobian singularity from non-hyperbolicity: a center with purely imaginary, nonzero eigenvalues is non-hyperbolic despite having a nonsingular Jacobian.
+\end{quote}
+
+\resp (a, b) We agree; the errors in $\hat{\mathbf{J}}$ and $\hat{\mathbf{h}}$ are correlated. Section~II-B handles this exactly, since (7) ``carries their combined effect through a single quantity, the model error $\hat{\mathbf{v}}(\mathbf{p}^*)$''.
+
+(c) We give both forms the reviewer offers: the perturbation bound (8), ``$\|\hat{\mathbf{p}}^* - \mathbf{p}^*\| \le \|\hat{\mathbf{v}}(\mathbf{p}^*)\|/\sigma_{\min}(\hat{\mathbf{J}})$'', and the covariance approximation (9), $\operatorname{Cov}(\hat{\mathbf{p}}^*) \approx \sigma_v^2\, c_w\, \mathbf{J}^{-1}\mathbf{J}^{-T}$.
+
+(d) Section~IV-A validates the covariance numerically (search ``propagated through the sampled loop''), to within \rev{4}\%.
+
+(e) We agree; Section~VI-A now separates Jacobian singularity from non-hyperbolicity, noting a center ``is non-hyperbolic yet has $\det\mathbf{J} > 0$''. Section~IV-C carries this into the classifier.
+
+\subsection*{Comment 1.4}
+
+\begin{quote}\itshape
+\textbf{(a)}~The orbital results indicate substantial deviations from the commanded radii, particularly for small radii.
+\textbf{(b)}~For example, Table V reports a mean radial error of 0.246 m for a commanded radius of 0.01 m in the vortex field.
+\textbf{(c)}~Please define the practically achievable radius range,
+\textbf{(d)}~quantify its dependence on actuator dynamics and controller gains,
+\textbf{(e)}~and report repeated trials with consistent transient exclusion criteria for simulation and hardware.
+\end{quote}
+
+\resp (a, b) We agree; 0.246~m at a commanded 0.01~m is not radius tracking. Section~V-D and the conclusion now say the controller ``holds a bounded orbit about the critical point but does not track the commanded radius''.
+
+(c) Section~IV defines the range by a numerical criterion (``radial bias [\ldots] at most $0.25\,r_d$''): $r_d \ge \syn{0.40}$~m (vortex) and $\syn{0.50}$~m (saddle) on hardware (Section~V-D).
+
+(d) The dependence on actuator dynamics and gains is given in closed form, (16) in Section~III-D, with the floor $r_{\min} = \sqrt{C}$; Section~VI-A tabulates $r_{\min}$ for each gain setting (search ``matches simulation to a median'').
+
+(e) Simulation and hardware repeat each radius (\rev{100} and \open{three} times) with the same first-10~s exclusion; Table~III(b) reports the between-trial and within-run spreads.
+
+\subsection*{Comment 1.5}
+
+\begin{quote}\itshape
+\textbf{(a)}~The comparative evaluation is insufficient to establish the advantages of the proposed method.
+\textbf{(b)}~The direction-based alternatives lack explicit radial error feedback, making drift unsurprising.
+\textbf{(c)}~Please include quantitative comparisons for both attraction and orbital navigation under matched sensing and actuator constraints.
+\textbf{(d)}~Report convergence time, localization error, radial tracking error, and control effort,
+\textbf{(e)}~and clarify how the modified vector-to-scalar baseline is implemented and tuned.
+\end{quote}
+
+\resp (a, b) We agree; the alternatives lacked radial feedback. Section~VI-B now gives the vector-to-scalar primitive that feedback, through an oracle and through a magnitude-only critical point, so the comparison no longer rests on its absence.
+
+(c, d) The comparison covers attraction and orbit under matched sensing and actuators (search ``in three forms''), over \newnum{500} attraction and \newnum{50} orbit trials per setting. Table~IV reports success, mean error, $T_{\mathrm{conv}}$, control effort $E_u$, and orbit RMSE; Fig.~8 plots speed and distance. On the anisotropic node the primitive ``reached $\mathbf{p}^*$ in \newnum{7}\% of trials'' against 100\% for the Jacobian estimate.
+
+(e) Section~VI-B specifies the implementation (search ``reduces the flow to its magnitude'') and the coordinate $\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$; every form uses the gains of Section~IV, so none is tuned separately.
+
+\subsection*{Comment 1.6}
+
+\begin{quote}\itshape
+\textbf{(a)}~The experimental statistics and noise model need clearer definitions.
+\textbf{(b)}~The reported mean-position bias is not the same as the mean Euclidean localization error across trials.
+\textbf{(c)}~Please define the convergence threshold, precision metric, and failure criteria explicitly,
+\textbf{(d)}~and report per-trial error distributions.
+\textbf{(e)}~In addition, clarify whether the reconstructed MLP fields represent fixed spatial distortion or temporally varying measurement noise;
+\textbf{(f)}~these effects should be evaluated separately.
+\end{quote}
+
+\resp (a, b) We agree; bias is not the mean Euclidean error. Tables~II and~III now report both, and Section~V-C explains the difference (search ``opposite sides of'').
+
+(c) We agree. Section~IV defines the thresholds (0.03, 0.04, 0.05~m), the precision (``RMS distance of the final positions''), and failure (``never left the map''); hardware also reports final speed.
+
+(d) The per-trial distributions appear in Tables~II(a) and~III(a) as mean, standard deviation, median, 95th percentile, and success at three thresholds, with the time history in Fig.~3 and \syn{Fig.~7}.
+
+(e) We agree; the MLP fields are a fixed spatial distortion, ``fit to the robots' readings on the printed maps, and they add no noise that varies in time'' (Section~IV).
+
+(f) The two are evaluated separately: in simulation (search ``white noise up to 0.03'', at most \rev{1.7}~mm of temporal effect) and on hardware in Section~VI-A \open{campaign block E}.
+
+\subsection*{Comment 1.7}
+
+\begin{quote}\itshape
+\textbf{(a)}~Several claims should be aligned with the demonstrated scope.
+\textbf{(b)}~The implementation uses a central computer and global motion capture, so ``distributed'' should be distinguished from spatially distributed sensing.
+\textbf{(c)}~The three-robot minimum applies to instantaneous identification of an unrestricted affine field and should be stated accordingly.
+\textbf{(d)}~Finally, critical point classification is not experimentally evaluated,
+\textbf{(e)}~and the printed fields do not physically advect the robots.
+\textbf{(f)}~Please validate these additional capabilities or qualify the corresponding claims in the abstract, introduction, and conclusion.
+\end{quote}
+
+\resp (a, b) We agree; ``distributed'' now describes only the sensing. The first contribution reads ``spatially distributed measurements alone'', and the abstract and Section~V-A name the central computer (see Associate Editor, (i)).
+
+(c) We agree; the minimum is now scoped to an unrestricted affine field. The second contribution reads ``they suffice for every nondegenerate affine field'' (Proposition~1).
+
+(d) We validated the capability. Section~IV-C and Table~II(c) report classification accuracy on all eleven fields; under 0.02~m/s noise ``the center is labeled correctly on \rev{90}\% of cycles'' against \rev{100}\% for the saddle. Hardware accuracy is in Section~V-C \open{campaign}.
+
+(e, f) We agree. The abstract, Section~III-A (``enters only the estimate, not the robot dynamics''), and Section~VII now state that the printed fields do not advect the robots; Limitation Two gives the destabilizing condition.
+
+% =====================================================================
+\section*{Reviewer 2}
+
+We thank Reviewer~2 and have followed each suggestion.
+
+\subsection*{Comment 2.1}
+
+\begin{quote}\itshape
+\textbf{(a)}~The cluster space control framework is adopted from earlier publications.
+\textbf{(b)}~Please clearly separate the existing layered cluster space infrastructure reused in this paper.
+\textbf{(c)}~Also, please genuinely highlight new contributions: instantaneous distributed Jacobian estimation, minimum robot count proof, attraction/orbital control laws built on Jacobian outputs, and the large scale hardware experimental campaign.
+\end{quote}
+
+\resp (a, b) We agree. Section~III separates the reused infrastructure (search ``taken from that prior work'', citing [5], [8], [10], [7], [9]) from the new blocks, which the Fig.~2 caption marks as ``new in this paper''.
+
+(c) Section~I now states the four contributions in the reviewer's order, Jacobian estimation, the minimum-count proof, the control laws, and the hardware campaign (search ``This paper makes four contributions'').
+
+\subsection*{Comment 2.2}
+
+\begin{quote}\itshape
+\textbf{(a)}~The theoretical derivation handles robot numbers greater than three via least squares, but simulation and hardware only test the minimal three robot case.
+\textbf{(b)}~Please add a brief discussion about expected benefits/trade-offs when deploying larger robot teams.
+\end{quote}
+
+\resp (a, b) We agree. Limitation Three of Section~VI-C discusses larger teams (search ``supports larger teams''): averaging and fault tolerance against a wider footprint, with the trade-off tied to the bound (8).
+
+\subsection*{Comment 2.3}
+
+\begin{quote}\itshape
+\textbf{(a)}~The proof that three non collinear robots form the minimum set for unique estimation is given in plain text prose.
+\textbf{(b)}~It is better to formalise this as a short proposition/lemma with clear assumptions.
+\end{quote}
+
+\resp (a, b) We agree. Section~II-C now states the result as Proposition~1 with a proof (see Associate Editor, (h)).
+
+\subsection*{Comment 2.4}
+
+\begin{quote}\itshape
+\textbf{(a)}~For Equation (7), please show the closed loop error dynamics explicitly, to make exponential convergence directly visible.
+\end{quote}
+
+\resp (a) We agree. Section~II-D now shows the error dynamics after (10): ``$\dot{\hat{\mathbf{e}}} = -k\hat{\mathbf{e}}$, so $\hat{\mathbf{e}}(t) = \hat{\mathbf{e}}(0)e^{-kt}$''.
+
+\subsection*{Comment 2.5}
+
+\begin{quote}\itshape
+\textbf{(a)}~All hardware tests use static printed vector fields.
+\textbf{(b)}~Please explicitly summarise open practical challenges for real world fluid environments: robot advection by physical flow, time varying / drifting critical points, communication drop outs, and non ideal sensor sampling latency.
+\textbf{(c)}~Distinguish results obtained under lab conditions from real world applicability.
+\end{quote}
+
+\resp (a, b) We agree. Section~VI-C summarizes the four challenges: advection and drifting points in Limitation Two (search ``does not advect the robots''), dropouts and latency in the final limitation (search ``dropout below three readings''), and time-varying fields in Section~VI-D.
+
+(c) The abstract and Section~VII distinguish the lab results from field use (search ``do not yet advect the robots as a physical flow would'').
+
+% =====================================================================
+\section*{Reviewer 3}
+
+We thank Reviewer~3 for an incisive review; its requests for nonlinear benchmarks and a matched baseline shaped the main new results.
+
+\subsection*{Comment 3.1}
+
+\begin{quote}\itshape
+\textbf{(a)}~The main advance seems to be estimating critical-point coordinates rather than providing directional guidance alone.
+\textbf{(b)}~In Section II, however, the construction consists of two affine fits followed by Jacobian inversion, and the three-robot minimum is specific to that reconstruction problem.
+\textbf{(c)}~Please explain the methodological novelty beyond this construction
+\textbf{(d)}~and state the assumptions behind the minimum requirement more precisely.
+\textbf{(e)}~The centralized implementation in Section V-A also needs to be distinguished from distributed computation, even though the measurements are spatially distributed.
+\end{quote}
+
+\resp (a, b) We agree on both points: the advance is the critical-point coordinate, and the construction is two affine fits and an inversion. That compactness is deliberate, since it runs each 10~Hz cycle from one instant with no map or memory.
+
+(c) The novelty is what the estimate enables in closed loop: the error relation and bound (Section~II-B), the Newton-step basin behavior (Section~IV-A, search ``continuous-time Newton step''), the sampled-loop stability and orbit bounds (Section~III-D), and the matched comparison showing a heading-only method ``reached $\mathbf{p}^*$ in \newnum{7}\% of trials'' on an affine node (Section~VI-B).
+
+(d) Proposition~1 states the assumptions precisely (see Associate Editor, (h)).
+
+(e) We agree. Section~V-A states the layers ``run in MATLAB/Simulink on a central computer'', the abstract and Section~I keep the sensing distributed, and Section~VI-C notes a robot ``could compute it'' from its neighbors' readings.
+
+\subsection*{Comment 3.2}
+
+\begin{quote}\itshape
+\textbf{(a)}~The six canonical fields provide a particularly favorable test because they are affine.
+\textbf{(b)}~Section IV-B explicitly notes that exact critical-point recovery makes the controller trajectories independent of field type.
+\textbf{(c)}~These results therefore do not establish how reliably the method extrapolates from local measurements in nonlinear environments.
+\textbf{(d)}~Please add nonlinear benchmarks with different field curvatures
+\textbf{(e)}~and starting distances,
+\textbf{(f)}~and examine how formation size affects localization accuracy.
+\textbf{(g)}~This would test the proposed estimation capability more directly than adding further trials on affine fields.
+\end{quote}
+
+\resp (a, b, c) We agree; the affine fields cannot show extrapolation. Section~IV adds three nonlinear fields (search ``test how the estimate extrapolates'').
+
+(d) Curvature varies across the fields and through $\chi \in [-1, 1]$ on the curved saddle; Table~II reports every metric, and Section~IV-B gives the curvature-driven radius shift (search ``moved the rotational saddle's mean radius'').
+
+(e) Starts span a 1~m box reaching past the gyre diamond; Fig.~4(a) maps the outcome by start distance (search ``all three robots inside the diamond reached the target'').
+
+(f) Section~IV-A reports localization against formation size: ``this error grew roughly as the cube of the formation side, from \newnum{0.16}~mm [\ldots] to \newnum{25}~mm''.
+
+(g) We agree. Section~VI-C, Fourth, names the untested frontier (search ``critical points closer together than one formation side'').
+
+\subsection*{Comment 3.3}
+
+\begin{quote}\itshape
+\textbf{(a)}~The stability discussion makes a stronger claim than the analysis supports.
+\textbf{(b)}~Section II-D limits the attraction convergence result to a stationary estimate, but Section VI-A states that estimation and conditioning errors preserve stability.
+\textbf{(c)}~An estimate that changes with noisy measurements and robot positions cannot simply be treated as a fixed displacement of the equilibrium.
+\textbf{(d)}~Please establish conditions for bounded tracking errors with actuator lag and sampled updates,
+\textbf{(e)}~and explain how nearly singular Jacobian estimates are handled.
+\end{quote}
+
+\resp (a, b, c) We agree; the submitted claim treated a changing estimate as a fixed displacement. We removed it and added Section~III-D, which uses the changing input $\hat{\mathbf{p}}^*[j] = \mathbf{p}^* + \boldsymbol\delta[j]$ (see Reviewer~1, Comment~1.2).
+
+(d) Section~III-D gives the bounded-tracking result under lag and sampling: stability by (15), then
+\begin{newtext}
+A stable linear loop is input-to-state stable, so a bounded estimate error $\boldsymbol{\delta}$, and friction acting as a command disturbance of size at most $v_c$, leave the centroid error bounded.
+\end{newtext}
+with final error ``$\|\mathbf{e}_{\text{final}}\| \le v_c/k + \|\boldsymbol{\delta}_{\text{final}}\|$''.
+
+(e) Section~III-D explains the near-singular case (search ``singular only through $\hat{\mathbf{J}}$''): a threshold, a last-valid-estimate fallback, and the command limit guarding a transient.
+
+\subsection*{Comment 3.4}
+
+\begin{quote}\itshape
+\textbf{(a)}~The comparison in Section VI-B is not yet convincing as evidence of algorithmic superiority.
+\textbf{(b)}~Neither the vector-sum controller nor the modified vector-to-scalar controller explicitly regulates a commanded radius, so their outward drift mainly demonstrates the absence of radial feedback.
+\textbf{(c)}~Please include a baseline designed for the same fixed-radius task under comparable sensing assumptions
+\textbf{(d)}~and report quantitative results over repeated trials.
+\textbf{(e)}~A separate comparison using the true critical-point location would help distinguish estimation errors from limitations of the orbital controller itself.
+\end{quote}
+
+\resp (a, b) We agree; the alternatives lacked radial feedback. Section~VI-B is rebuilt so the comparison no longer rests on that (see Reviewer~1, Comment~1.5).
+
+(c) Section~VI-B adds the matched fixed-radius baseline, a magnitude-only coordinate ``$\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$'' driving the same law (11).
+
+(d) Table~IV reports the comparison over \newnum{500} attraction and \newnum{50} orbit trials per setting, with success, mean error, $T_{\mathrm{conv}}$, effort, and orbit RMSE.
+
+(e) We agree. The oracle drives the law with the true point (search ``Given the oracle''), isolating the controller from the estimate; the closed form (16) explains the residual.
+
+\subsection*{Comment 3.5}
+
+\begin{quote}\itshape
+\textbf{(a)}~The accuracy claims need more careful interpretation.
+\textbf{(b)}~Table IV reports the displacement of the average final position, which is not the same as the average distance error across individual trials.
+\textbf{(c)}~Table V also gives a radial error of 0.246 m for a commanded radius of 0.01 m, so bounded orbital motion should not be presented as accurate radius tracking at that setting.
+\textbf{(d)}~Please report per-trial distance errors,
+\textbf{(e)}~define a numerical convergence threshold,
+\textbf{(f)}~and repeat the orbital conditions to distinguish between-trial variability from fluctuations within one trajectory.
+\end{quote}
+
+\resp (a, b) We agree; bias is not the per-trial distance error. Table~III now reports both, and Section~V-C explains the difference (see Reviewer~1, Comment~1.6).
+
+(c) We agree; small-radius orbits are now described as bounded, not tracking (Section~V-D, Section~VII), with the achievable range defined (see Reviewer~1, Comment~1.4).
+
+(d, e) Per-trial distance errors are in Tables~II(a) and~III(a) with the time history in Fig.~3 and \syn{Fig.~7}; Section~IV defines the numerical thresholds (0.03, 0.04, 0.05~m).
+
+(f) Each condition is repeated (\rev{100} and \open{three} times); Table~III(b) separates the between-trial spread $s_b$ from the within-run spread $s_w$ (search ``fluctuation within one orbit exceeds'').
+
+\vspace{6pt}
+We thank the Associate Editor and the reviewers once more, and hope the revision meets the journal's standard.
+
+Sincerely,\\
+Christopher Waight and Christopher A. Kitts
+
+\end{document}

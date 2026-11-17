@@ -35,7 +35,7 @@ def main():
              r"\multicolumn{5}{l}{\textit{(a) Attraction}} \\", r"\hline"]
     rows = [("Runs", lambda s: f"{s['n']:.0f}"), ("Bias (m)", lambda s: f(s["bias"])),
             (r"$\sigma$ (m)", lambda s: f(s["scatter"])),
-            (r"$\bar{e}_f \pm s_e$ (m)", lambda s: f"{f(s['e_mean'])} $\\pm$ {f(s['e_sd'])}"),
+            (r"$\bar{e}_f \pm s_e$ (m)", lambda s: f"{f(s['e_mean'])}$\\pm${f(s['e_sd'])}"),
             ("Median [p95] (m)", lambda s: f"{f(s['e_med'])} [{f(s['e_p95'])}]"),
             (r"Loc.\ error (m)", lambda s: f(s["est_ss_mean"])),
             (r"$T_{\mathrm{conv}}$ (s)", lambda s: f"{s['t_conv_med']:.1f}"),
@@ -50,7 +50,7 @@ def main():
         cells = []
         for fld, nr in order:
             g = SO[(SO.field == fld) & (SO.nr == nr) & (SO.rd == rd)]
-            cells.append("--" if g.empty else f"{f(g.bias.iloc[0], signed=True)} $\\pm$ {f(g.s_b.iloc[0])}")
+            cells.append("--" if g.empty else f"{f(g.bias.iloc[0], signed=True)}$\\pm${f(g.s_b.iloc[0])}")
         lines.append(f"\\quad {rd:.2f} & " + " & ".join(cells) + r" \\")
     lines += [r"\hline", r"\multicolumn{5}{l}{\textit{(c) Orbit within-run spread $s_w$ (m)}} \\", r"\hline"]
     for rd in sorted(SO.rd.unique()):

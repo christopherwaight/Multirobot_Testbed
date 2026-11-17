@@ -5,7 +5,7 @@
        e[j+1] = e[j] + dt v[j]
    Stability limit k_max from the eigenvalues of this linear system (bisection). For alpha ~ 0 and
    L < dt (d = 0): characteristic z^2 - (1 - a(1-f)) z + a f, a = k g dt, stable iff a f < 1 and
-   a (1 - 2f) < 2, so k_max = 1 / (g L) when f >= 1/3.
+   a (1 - 2f) < 2, so k_max = 1 / (g L) when f >= 1/4.
 2. Orbit floor. The orbit command turns at V / r; the robot follows it T late, which moves the
    centroid outward at about T V^2 / r; the radial correction g k_r (r - r_d) balances it:
        r* = (r_d + sqrt(r_d^2 + 4 C)) / 2,   C = V^2 T / (g k_r),   V = g k_t.
