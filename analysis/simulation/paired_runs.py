@@ -1,7 +1,8 @@
 """Re-simulate every hardware run from its own start (hardware-matched simulation), 3R and 4R.
 
 Each run is simulated once, deterministically, from its first sample: the same centroid start
-(relative to the session's p*), the robots' actual formation offsets at that moment, the same r_d
+(relative to the session's p*), the formation the run held (held_shape: median over the run, in the
+first sample's orientation; until 2026-11-17 the first sample's offsets, which were 1.5 to 4.5 cm larger), the same r_d
 and duration, the 2026 controller and the 2026-11-16 robot model (rigidsim). Two fields:
   linear   the canonical vortex (-y, x) or saddle (-y, -x), in the Motive frame (orbit turn +1);
   recon    the 2026 reconstructed field, after mapping the start into its frame (common/frames.py;
@@ -32,6 +33,19 @@ HWOUT = os.path.join(paths.OUT_HW, "outputs")
 RECON = {"vortex": "vortex_nn_2026", "saddle": "saddle_nn_2026"}
 
 
+def held_shape(pos):
+    """Formation the run held: robot offsets about the centroid at every sample, rotated onto the first
+    sample's orientation, then the median over the run, re-centred (pos is samples x robots x 2)."""
+    Q = pos - pos.mean(1, keepdims=True)
+    Q = Q[np.isfinite(Q).all((1, 2))]
+    ref = Q[0]
+    phi = np.arctan2((Q[..., 0] * ref[:, 1] - Q[..., 1] * ref[:, 0]).sum(1), (Q * ref).sum((1, 2)))
+    c, s = np.cos(phi)[:, None], np.sin(phi)[:, None]
+    R = np.stack([c * Q[..., 0] - s * Q[..., 1], s * Q[..., 0] + c * Q[..., 1]], -1)
+    M = np.median(R, 0)
+    return M - M.mean(0)          # the median shape can sit up to 1 mm off its centroid
+
+
 def simulate_batch(field_name, task, starts, offsets, T, rd=0.3, turn=1.0):
     n = len(starts)
     P = vs.params(n, rd=rd, turn=turn)
@@ -48,7 +62,7 @@ def orbits():
     for (field, nr, rd), g in sorted(groups.items()):
         ps = np.array(fits[f"{field}_pooled"]["p_star"])
         start = np.array([r["c"][0] - ps for r in g])
-        off = np.array([r["pos"][0] - r["c"][0] for r in g])
+        off = np.array([held_shape(r["pos"]) for r in g])
         T = max(r["t"][-1] for r in g)
         fr = frames.frame_2026(field, ps)
         res = {"linear": simulate_batch(field, "orbit", start, off, T, rd=rd, turn=1.0),
@@ -74,7 +88,7 @@ def attraction():
         fr, reg = frames.register(field, Pr - ps, H)
         keys = sorted(runs)
         start = np.array([runs[n]["pos"][0].mean(0) - ps for n in keys])
-        off = np.array([runs[n]["pos"][0] - runs[n]["pos"][0].mean(0) for n in keys])
+        off = np.array([held_shape(runs[n]["pos"]) for n in keys])
         T = 10.0
         res = {"linear": simulate_batch(field, "attract", start, off, T),
                "recon": simulate_batch(RECON[field], "attract", fr(start), off @ fr.A.T, T)}

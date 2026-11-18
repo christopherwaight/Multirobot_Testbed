@@ -1,5 +1,8 @@
 # Revision results report, 2026-11-16
 
+Note, 2026-11-17: the paper is now a rewrite in Chris's own frame, not a reply to reviewers. The survival targets and
+letter syncing recorded in secs. 10 and 11 no longer apply; the numbers here still back the paper.
+
 This report covers every hardware and simulation result behind the vector field revision after the 2026-11-16 robot model refit:
 gain 0.86, delay 0.055 s, lag 0.02 s, dead zone 0.025 m/s, cap 0.3 m/s. The sims use the hardware controller settings: formation side 0.30 m,
 k = 1 with a 0.3 m/s per-axis clip, formation gains 1, and orbit gains k_t 0.15 and k_r 1. They also use only the 2026 reconstructed
@@ -102,18 +105,25 @@ The numbers that kept their sentence are in the tex: overshoot 0.003 m, effort r
 
 ## 6. Hardware against simulation, run by run (paired runs from the hardware starts)
 
+Re-run 2026-11-17 with each run's held formation (`paired_runs.held_shape`: median shape over the run, re-centred). The first
+version used the first sample's offsets, 1.5 to 4.5 cm larger than the formation held (vortex 3R 0.288 vs 0.255 m, saddle 3R
+0.345 vs 0.299 m, 4R diagonals 0.350 vs 0.333 m); the 2026 orbit formations barely change. Old outputs: `simulation/paired_firstsample_2026-11-16/`.
+
 Attraction, mean final error (m):
 
-| | Hardware | Linear sim | Recon. sim |
+| | Hardware | Analytical sim | Recon. sim |
 |---|---|---|---|
 | Vortex 3R | 0.034 | 0.023 | 0.019 |
-| Saddle 3R | 0.023 | 0.023 | 0.024 |
-| Vortex 4R | 0.026 | 0.022 | 0.018 |
+| Saddle 3R | 0.023 | 0.023 | 0.026 |
+| Vortex 4R | 0.026 | 0.022 | 0.019 |
 
-The saddle matches. The hardware vortex ends 0.4 to 1.5 cm farther out than the sims. Orbit bias at r_d = 0.01 m runs 1.4 to 1.8 cm
-above the reconstructed sim in every column: 0.057 to 0.066 m on hardware against 0.039 to 0.052 m in the reconstructed sim. The
-rest of the gap varies by radius. The 2025 vortex 3R attraction formation measured 0.26 m per side against 0.30 m in the sims, which may
-account for part of the vortex gap. The paired vortex attraction runs could be repeated at 0.26 m. Full rows are in `simulation/paired/paired_orbits_summary.csv`.
+- The saddle matches. The hardware vortex ends 0.4 to 1.5 cm farther out, so the 0.26 m formation does not explain that gap.
+- Orbit bias at r_d = 0.01 m: hardware exceeds the reconstructed sim by 14 to 19 mm. The campaign report measured a 1.5 to 2 cm lead of
+  the live estimate along the motion (cause unknown, not sensor delay); adding a 1.5 cm lead to the model brings the vortex orbits at
+  0.01 and 0.10 m within 7 mm of hardware (SIM_RERUN_PLAN sec. 1).
+- Within-run spread from r_d = 0.30 m: the reconstructed sims give 27 to 63% of the hardware spread (hardware 1.6 to 3.7 times larger,
+  median 2.1); the analytical sims at most 1.0 mm. RMS bias gap over all groups: 27 mm (reconstructed), 36 mm (analytical).
+- Figure: `simulation/figures/fig_sim_vs_hw.pdf` (`figure_paired.py`), Fig. 8 in the paper.
 
 ## 7. Theory (`simulation/theory_check.py`)
 
@@ -129,7 +139,7 @@ Hardware: ten 3R runs start inside the cycle (4) and outside it (6), from 0.057 
 curve with mean radius 0.127 m and a peak-to-peak swing of 0.043 m. The across-run spread is 2.9 mm. Simulation on the reconstructed vortex
 gives a cycle of mean radius 0.111 m and swing 0.029 m. Starts from inside and outside meet within 0.03 mm. The two
 curves agree in size but only modestly in shape (correlation 0.38, median gap 13 mm). The figure is
-`limit_cycle/figures/fig_limit_cycle.pdf`. It is proposed, not inserted (queued item P).
+`limit_cycle/figures/fig_limit_cycle_column.pdf` (Fig. 9, Sec. VI-B since 2026-11-17). The closed form (16) gives r* = 0.120 m at r_d = 0.10 m.
 
 ## 9. v4 sweep (finished 2026-11-16 23:51, 8635 cells; `simulation/v4_numbers.py`)
 
@@ -154,3 +164,14 @@ curves agree in size but only modestly in shape (correlation 0.38, median gap 13
   sentences whose claims changed, the test-plan wording, the abstract 4R sentence, the limit-cycle paragraph, and five
   letter items.
 - No `\syn{}` or `\open{}` markers remain in the tex. Survival is now 59.3% (target 60%, floor 55%). The abstract runs about 270 words.
+
+## 11. Round 2 (2026-11-17)
+
+Applied by `paper/apply_round2.py`, then `apply_round2b.py` to `apply_round2e.py` (length passes back to 13 pages); backups
+`paper/backup_*_before_round2.tex`. Four-robot results in V-C and V-D; matched simulations defined in V-B, compared in VI-A (new
+Fig. 8) and as a Table III(a) row; the limit cycle moved to a new VI-B with a one-column figure (Fig. 9) and the closed-form radius;
+III-A model fit quality; III-B four-robot square; abstract (250 words), introduction, Limitations Three and conclusion updated; Figs. 7
+to 9 in the shared style (`common/figstyle.py`); Table II zero printed as 0.000; last `\newnum` markers became `\rev`. Table III(d)
+(classification) was dropped for length; its numbers are in Sec. V-D. Paper: 13 pages, no errors or new warnings. Letter: Section VI
+references renumbered (V2S is VI-C, Limitations VI-D, Future Work VI-E), Fig. 10 for V2S, R1.4 and R2.2 updated; quotes 46/46 match.
+Survival 57.6% (target 60%, floor 55%).

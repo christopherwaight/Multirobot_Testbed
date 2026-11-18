@@ -1,8 +1,11 @@
 """Hardware table for the paper (tab:estimation_results), 3R and 4R, from analysis/hardware/outputs/.
 
-(a) Attraction (2025 runs; vortex 4R = Oct 2025 least squares; no saddle 4R attraction data).
+(a) Attraction (2025 runs; vortex 4R = Oct 2025 least squares; no saddle 4R attraction data), with the
+    mean final error of the matched simulations (each run re-simulated from its start, linear/reconstructed
+    field; analysis/simulation/paired/).
 (b) Orbit radial bias e_r +- between-run spread s_b, (c) within-run spread s_w (2026 runs, 3 s
-transient excluded). Writes analysis/paper/table_hardware.tex and prints it.
+transient excluded). (d) Classification of J-hat on the orbit runs (% of cycles).
+Writes analysis/paper/table_hardware.tex and prints it.
 """
 import json
 import os
@@ -15,17 +18,22 @@ sys.path.insert(0, os.path.join(os.path.dirname(HERE), "common"))
 import paths  # noqa: E402
 
 HW = os.path.join(paths.OUT_HW, "outputs")
+CLASSIFICATION_ROWS = False      # (d) dropped 2026-11-17 for length; the numbers are in Sec. V-D
 
 
 def f(x, nd=3, signed=False):
     if x is None or pd.isna(x):
         return "--"
+    if signed and round(x, nd) == 0:
+        signed = False
     s = f"{x:+.{nd}f}" if signed else f"{x:.{nd}f}"
     return s.replace("-", "$-$") if signed else s
 
 
 def main():
-    R = json.load(open(os.path.join(HW, "hardware_summary.json")))["attraction"]
+    H = json.load(open(os.path.join(HW, "hardware_summary.json")))
+    R, CL = H["attraction"], H["classification_2026_orbits"]
+    PA = pd.read_csv(os.path.join(paths.OUT_SIM, "paired", "paired_attraction_summary.csv")).set_index(["field", "nr"])
     SO = pd.read_csv(os.path.join(HW, "orbit_summary.csv"))
     cols = [("vortex_3R", "V 3R"), ("vortex_4R", "V 4R"), ("saddle_3R", "S 3R")]
     A = [R[k] for k, _ in cols]
@@ -44,6 +52,9 @@ def main():
     for name, fn in rows:
         v = [fn(s) for s in A]
         lines.append(f"{name} & {v[0]} & {v[1]} & {v[2]} & -- \\\\")
+    sim = [PA.loc[(fld, nr)] for fld, nr in (("vortex", 3), ("vortex", 4), ("saddle", 3))]
+    v = [f"{f(p.lin_e)}/{f(p.rec_e)}" for p in sim]
+    lines.append(f"Sim.\\ $\\bar{{e}}_f$ anal./rec.\\ (m) & {v[0]} & {v[1]} & {v[2]} & -- \\\\")
     lines += [r"\hline", r"\multicolumn{5}{l}{\textit{(b) Orbit radial bias $\bar e_r \pm s_b$ (m), by $r_d$ (m)}} \\", r"\hline"]
     order = [("vortex", 3), ("vortex", 4), ("saddle", 3), ("saddle", 4)]
     for rd in sorted(SO.rd.unique()):
@@ -59,6 +70,16 @@ def main():
             g = SO[(SO.field == fld) & (SO.nr == nr) & (SO.rd == rd)]
             cells.append("--" if g.empty else f(g.s_w.iloc[0]))
         lines.append(f"\\quad {rd:.2f} & " + " & ".join(cells) + r" \\")
+    if not CLASSIFICATION_ROWS:
+        lines += [r"\hline", r"\end{tabular}"]
+        tex = "\n".join(lines)
+        open(os.path.join(HERE, "table_hardware.tex"), "w").write(tex + "\n")
+        print(tex)
+        return
+    lines += [r"\hline", r"\multicolumn{5}{l}{\textit{(d) Orbit classification (\%)}} \\", r"\hline"]
+    keys = ("vortex_3R", "vortex_4R", "saddle_3R", "saddle_4R")
+    lines.append("Type correct & " + " & ".join(f"{CL[k]['strict']:.1f}" for k in keys) + r" \\")
+    lines.append("Rotational & " + " & ".join(f"{CL[k]['rotational']:.1f}" if k.startswith("vortex") else "--" for k in keys) + r" \\")
     lines += [r"\hline", r"\end{tabular}"]
     tex = "\n".join(lines)
     open(os.path.join(HERE, "table_hardware.tex"), "w").write(tex + "\n")

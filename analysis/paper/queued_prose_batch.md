@@ -283,3 +283,16 @@ items wait for you:
    > changes by at most 4~mm between exclusions of 0, 2, 5 and 10~s.
 
    Source: analysis/hardware/outputs/transient_choice.md and settling_2026.csv.
+
+## Round 3 queue (2026-11-17): per-robot sensor accuracy, V-A (awaiting approval)
+
+Source: `analysis/hardware/sensor_accuracy_2026.py` -> `hardware/outputs/sensor_accuracy_2026.csv`. Readings 0.10 to 0.65 m
+from p*, scored against the 2026 map nets (trained robots on held-out runs, redwood on all runs).
+
+Replace "Calibration achieved hue RMSE of 0.17 radians (9.7$^\circ$, R$^2$=0.991) and saturation RMSE of 4.4\% (R$^2$=0.951)
+across the operational range." with:
+
+"Measured on the printed maps against fields reconstructed from the other robots' readings, the three robots in the
+calibration training set read hue with median errors of 2.3 to 3.5$^\circ$, against a 2.3 to 3.2$^\circ$ spread of
+neighboring readings. The fourth robot, never used in training, read hue within 3.0$^\circ$ in median but reported
+field magnitude 12 to 14\% low, so the calibration transfers to a new robot in direction more than in magnitude."

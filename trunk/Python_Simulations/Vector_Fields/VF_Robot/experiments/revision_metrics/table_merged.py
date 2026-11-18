@@ -46,6 +46,8 @@ def num(x, nd=4):
 
 
 def sgn(x, nd=3):
+    if round(x, nd) == 0:
+        return f"{0:.{nd}f}"
     return f"{x:+.{nd}f}".replace("-", "$-$")
 
 

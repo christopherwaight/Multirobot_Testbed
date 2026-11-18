@@ -60,7 +60,7 @@ Each response quotes the comment, split into lettered sentences, then points to 
 
 (d) \emph{Stability for changing estimates, lag, sampling, and nearly singular cases.} We agree. The new Section~III-D treats all four: the changing estimate $\hat{\mathbf{p}}^*[j] = \mathbf{p}^* + \boldsymbol\delta[j]$ in the sampled loop (14), the gain condition (15), the final-error bound, and a paragraph headed ``Near-Singular Estimates''.
 
-(e) \emph{Matched fixed-radius baselines.} We agree. Section~VI-B and Table~IV drive the fixed-radius law (11) with three estimates: the vector-to-scalar primitive alone, the same primitive given a magnitude-only critical point, and an oracle given the true point. The oracle isolates the controller from the estimate.
+(e) \emph{Matched fixed-radius baselines.} We agree. Section~VI-C and Table~IV drive the fixed-radius law (11) with three estimates: the vector-to-scalar primitive alone, the same primitive given a magnitude-only critical point, and an oracle given the true point. The oracle isolates the controller from the estimate.
 
 (f) \emph{Repeated trials.} We agree; every result uses repeated trials (1000 attraction and \rev{100} orbit per field in simulation, 10 per start and \rev{ten} per radius on hardware), with a stated first-\rev{3}~s exclusion. Table~III reports the between-trial and within-run spreads.
 
@@ -71,11 +71,11 @@ Each response quotes the comment, split into lettered sentences, then points to 
 For an affine field $\mathbf{v}(\mathbf{p}) = \mathbf{J}(\mathbf{p}-\mathbf{p}^*)$ with $\det(\mathbf{J}) \neq 0$, locating $\mathbf{p}^*$ of every such field from instantaneous measurements requires at least three non-collinear robots, and three suffice.
 \end{newtext}
 
-(i) \emph{Centralized vs.\ distributed, practical scope.} We agree. The abstract and Section~I now state the sensing is ``spatially distributed across the robots, while the estimate and control laws are computed on a central computer''; Section~V-A describes that computer, and Section~VI-C (final limitation) what a distributed version would require.
+(i) \emph{Centralized vs.\ distributed, practical scope.} We agree. The abstract and Section~I now state the sensing is ``distributed across the robots, while the estimate and control laws are computed on a central computer''; Section~V-A describes that computer, and Section~VI-D (final limitation) what a distributed version would require.
 
 (j) \emph{Prior framework vs.\ new contributions.} We agree. Section~III opens with ``The architecture is taken from that prior work'', the Fig.~2 caption marks ``the feature estimation and navigation controller blocks are new'', and Section~I restates the four contributions (see Reviewer~2, Comment~2.1).
 
-(k) \emph{Static-lab limitations.} We agree. Limitation Two of Section~VI-C states that the printed field ``does not advect the robots'' and gives the destabilizing condition; the final limitation covers dropouts and latency (see Reviewer~2, Comment~2.5).
+(k) \emph{Static-lab limitations.} We agree. Limitation Two of Section~VI-D states that the printed field ``does not advect the robots'' and gives the destabilizing condition; the final limitation covers dropouts and latency (see Reviewer~2, Comment~2.5).
 
 (l) Responses to every reviewer comment follow.
 
@@ -150,9 +150,9 @@ with final error ``$\|\mathbf{e}_{\text{final}}\| \le v_c/k + \|\boldsymbol{\del
 \textbf{(e)}~and report repeated trials with consistent transient exclusion criteria for simulation and hardware.
 \end{quote}
 
-\resp (a, b) We agree; 0.246~m at a commanded 0.01~m is not radius tracking. Section~V-D and the conclusion now say the controller ``holds a bounded orbit about the critical point but does not track the commanded radius''.
+\resp (a, b) We agree; 0.246~m at a commanded 0.01~m is not radius tracking. Section~V-D and the conclusion now say the controller ``holds a bounded orbit about the critical point but does not track the commanded radius''. Below the practical range the orbit is a limit cycle whose size follows from the delay and lag: at a commanded 0.10~m in the vortex, hardware runs started inside and outside converge to one closed curve of mean radius \rev{0.127}~m, against \rev{0.120}~m from (16) (Section~VI-B, Fig.~9).
 
-(c) Section~IV defines the range by a numerical criterion (``radial bias [\ldots] at most $0.25\,r_d$''): $r_d \ge \rev{0.20}$~m (vortex) and $\rev{0.20}$~m (saddle) on hardware (Section~V-D).
+(c) Section~IV defines the range by a numerical criterion (``radial bias [\ldots] at most $0.25\,r_d$''): $r_d \ge \rev{0.20}$~m in both fields with three robots on hardware, and with four robots from \rev{0.20}~m in the saddle and at 0.20 and 0.40~m in the vortex (Section~V-D).
 
 (d) The dependence on actuator dynamics and gains is given in closed form, (16) in Section~III-D, with the floor $r_{\min} = \sqrt{C}$; Section~VI-A tabulates $r_{\min}$ for each gain setting (search ``matches simulation within'').
 
@@ -168,11 +168,11 @@ with final error ``$\|\mathbf{e}_{\text{final}}\| \le v_c/k + \|\boldsymbol{\del
 \textbf{(e)}~and clarify how the modified vector-to-scalar baseline is implemented and tuned.
 \end{quote}
 
-\resp (a, b) We agree; the alternatives lacked radial feedback. Section~VI-B now gives the vector-to-scalar primitive that feedback, through an oracle and through a magnitude-only critical point, so the comparison no longer rests on its absence.
+\resp (a, b) We agree; the alternatives lacked radial feedback. Section~VI-C now gives the vector-to-scalar primitive that feedback, through an oracle and through a magnitude-only critical point, so the comparison no longer rests on its absence.
 
-(c, d) The comparison covers attraction and orbit under matched sensing and actuators (search ``in three forms''), over \rev{500} attraction and \rev{50} orbit trials per setting. Table~IV reports success, mean error, $T_{\mathrm{conv}}$, control effort $E_u$, and orbit RMSE; Fig.~9 plots speed and distance. On the anisotropic node the primitive ``reached $\mathbf{p}^*$ in \rev{6}\% of trials'' against 100\% for the Jacobian estimate.
+(c, d) The comparison covers attraction and orbit under matched sensing and actuators (search ``in three forms''), over \rev{500} attraction and \rev{50} orbit trials per setting. Table~IV reports success, mean error, $T_{\mathrm{conv}}$, control effort $E_u$, and orbit RMSE; Fig.~10 plots speed and distance. On the anisotropic node the primitive ``reached $\mathbf{p}^*$ in \rev{6}\% of trials'' against 100\% for the Jacobian estimate.
 
-(e) Section~VI-B specifies the implementation (search ``reduces the flow to its magnitude'') and the coordinate $\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$; every form uses the gains of Section~IV, so none is tuned separately.
+(e) Section~VI-C specifies the implementation (search ``reduces the flow to its magnitude'') and the coordinate $\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$; every form uses the gains of Section~IV, so none is tuned separately.
 
 \subsection*{Comment 1.6}
 
@@ -238,7 +238,7 @@ We thank Reviewer~2 and have followed each suggestion.
 \textbf{(b)}~Please add a brief discussion about expected benefits/trade-offs when deploying larger robot teams.
 \end{quote}
 
-\resp (a, b) We agree. Limitation Three of Section~VI-C discusses larger teams (search ``supports larger teams''): averaging and fault tolerance against a wider footprint, with the trade-off tied to the bound (8).
+\resp (a, b) We agree, and the hardware now tests a larger team. The vortex attraction trials and both fields' orbit trials were repeated with four robots in a square, with $\hat{\mathbf{J}}$ from the least-squares fit (Section~V-B); Table~III reports three- and four-robot columns. Limitation Three of Section~VI-D discusses the benefits and trade-offs (search ``supports larger teams''): averaging and fault tolerance against a wider footprint, with the trade-off tied to the bound (8). The four-robot square shows both, with final positions less than half as spread as the triangle's but a \rev{0.024}~m offset.
 
 \subsection*{Comment 2.3}
 
@@ -265,7 +265,7 @@ We thank Reviewer~2 and have followed each suggestion.
 \textbf{(c)}~Distinguish results obtained under lab conditions from real world applicability.
 \end{quote}
 
-\resp (a, b) We agree. Section~VI-C summarizes the four challenges: advection and drifting points in Limitation Two (search ``does not advect the robots''), dropouts and latency in the final limitation (search ``dropout below three readings''), and time-varying fields in Section~VI-D.
+\resp (a, b) We agree. Section~VI-D summarizes the four challenges: advection and drifting points in Limitation Two (search ``does not advect the robots''), dropouts and latency in the final limitation (search ``dropout below three readings''), and time-varying fields in Section~VI-E.
 
 (c) The abstract and Section~VII distinguish the lab results from field use (search ``do not yet advect the robots as a physical flow would'').
 
@@ -286,11 +286,11 @@ We thank Reviewer~3 for an incisive review; its requests for nonlinear benchmark
 
 \resp (a, b) We agree on both points: the advance is the critical-point coordinate, and the construction is two affine fits and an inversion. That compactness is deliberate, since it runs each 10~Hz cycle from one instant with no map or memory.
 
-(c) The novelty is what the estimate enables in closed loop: the error relation and bound (Section~II-B), the Newton-step basin behavior (Section~IV-A, search ``continuous-time Newton step''), the sampled-loop stability and orbit bounds (Section~III-D), and the matched comparison showing a heading-only method ``reached $\mathbf{p}^*$ in \rev{6}\% of trials'' on an affine node (Section~VI-B).
+(c) The novelty is what the estimate enables in closed loop: the error relation and bound (Section~II-B), the Newton-step basin behavior (Section~IV-A, search ``continuous-time Newton step''), the sampled-loop stability and orbit bounds (Section~III-D), and the matched comparison showing a heading-only method ``reached $\mathbf{p}^*$ in \rev{6}\% of trials'' on an affine node (Section~VI-C).
 
 (d) Proposition~1 states the assumptions precisely (see Associate Editor, (h)).
 
-(e) We agree. Section~V-A states the layers ``run in MATLAB/Simulink on a central computer'', the abstract and Section~I keep the sensing distributed, and Section~VI-C notes a robot ``could compute it'' from its neighbors' readings.
+(e) We agree. Section~V-A states the layers ``run in MATLAB/Simulink on a central computer'', the abstract and Section~I keep the sensing distributed, and Section~VI-D notes a robot ``could compute it'' from its neighbors' readings.
 
 \subsection*{Comment 3.2}
 
@@ -312,7 +312,7 @@ We thank Reviewer~3 for an incisive review; its requests for nonlinear benchmark
 
 (f) Section~IV-A reports localization against formation size: ``this error grew roughly as the cube of the formation side, from \rev{0.15}~mm [\ldots] to \rev{25}~mm''.
 
-(g) We agree. Section~VI-C, Fourth, names the untested frontier (search ``critical points closer together than one formation side'').
+(g) We agree. Section~VI-D, Fourth, names the untested frontier (search ``critical points closer together than one formation side'').
 
 \subsection*{Comment 3.3}
 
@@ -344,9 +344,9 @@ with final error ``$\|\mathbf{e}_{\text{final}}\| \le v_c/k + \|\boldsymbol{\del
 \textbf{(e)}~A separate comparison using the true critical-point location would help distinguish estimation errors from limitations of the orbital controller itself.
 \end{quote}
 
-\resp (a, b) We agree; the alternatives lacked radial feedback. Section~VI-B is rebuilt so the comparison no longer rests on that (see Reviewer~1, Comment~1.5).
+\resp (a, b) We agree; the alternatives lacked radial feedback. Section~VI-C is rebuilt so the comparison no longer rests on that (see Reviewer~1, Comment~1.5).
 
-(c) Section~VI-B adds the matched fixed-radius baseline, a magnitude-only coordinate ``$\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$'' driving the same law (11).
+(c) Section~VI-C adds the matched fixed-radius baseline, a magnitude-only coordinate ``$\hat{\mathbf{p}}_m = \mathbf{p}_c - S_c\mathbf{g}/\|\mathbf{g}\|^2$'' driving the same law (11).
 
 (d) Table~IV reports the comparison over \rev{500} attraction and \rev{50} orbit trials per setting, with success, mean error, $T_{\mathrm{conv}}$, effort, and orbit RMSE.
 
