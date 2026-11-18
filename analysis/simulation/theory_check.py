@@ -6,6 +6,10 @@
    Stability limit k_max from the eigenvalues of this linear system (bisection). For alpha ~ 0 and
    L < dt (d = 0): characteristic z^2 - (1 - a(1-f)) z + a f, a = k g dt, stable iff a f < 1 and
    a (1 - 2f) < 2, so k_max = 1 / (g L) when f >= 1/4.
+   Exact sampling of the continuous robot (tau v' = -v + g u(t - L), p' = v, command held over dt)
+   keeps the lag's position delay inside each period, which the model above drops. Its limit is
+   lower (16.1 at L 0.055, tau 0.02; paper Sec. III-D), and over every split of the fitted
+   L + tau = 0.075 s it is at least 1 / (g (L + tau)) = 15.5 (reached when tau = 0).
 2. Orbit floor. The orbit command turns at V / r; the robot follows it T late, which moves the
    centroid outward at about T V^2 / r; the radial correction g k_r (r - r_d) balances it:
        r* = (r_d + sqrt(r_d^2 + 4 C)) / 2,   C = V^2 T / (g k_r),   V = g k_t.
@@ -47,6 +51,31 @@ def k_max(g=0.86, L=0.055, tau=0.02, dt=0.1):
     return lo
 
 
+def k_max_exact(g=0.86, L=0.055, tau=0.02, dt=0.1):
+    """Stability limit of the exactly sampled continuous robot, for 0 <= L < dt. State (p, v, u_prev)."""
+    def step(t):   # state transition and input response of (p, v) over time t with a held command
+        if tau == 0:
+            return np.array([[1.0, 0.0], [0.0, 0.0]]), np.array([g * t, g])
+        e = np.exp(-t / tau)
+        return np.array([[1.0, tau * (1 - e)], [0.0, e]]), g * np.array([t - tau * (1 - e), 1 - e])
+
+    P1, G1 = step(L)
+    P2, G2 = step(dt - L)
+
+    def rho(k):
+        A = np.zeros((3, 3))
+        A[:2, :2] = P2 @ P1
+        A[:2, 0] -= k * G2
+        A[:2, 2] = P2 @ G1
+        A[2, 0] = -k
+        return np.max(np.abs(np.linalg.eigvals(A)))
+    lo, hi = 0.01, 1000.0
+    for _ in range(80):
+        m = np.sqrt(lo * hi)
+        lo, hi = (m, hi) if rho(m) < 1 else (lo, m)
+    return lo
+
+
 def r_star(rd, T, g=0.86, kt=0.15, kr=1.0):
     V = g * kt
     C = V * V * T / (g * kr)
@@ -57,6 +86,10 @@ def main():
     print("1. attraction stability limit k_max (1/s)")
     print(f"   eigenvalues, new model: {k_max():.2f};  1/(g L) = {1 / (0.86 * 0.055):.2f};  "
           f"old model (tau 0.28, no delay, g 1): {k_max(g=1.0, L=0.0, tau=0.28):.1f} (paper: 113)")
+    print(f"   exact sampling of the continuous robot: {k_max_exact():.2f} (paper: 16.1)")
+    splits = [k_max_exact(L=L, tau=0.075 - L) for L in np.linspace(0, 0.075, 16)]
+    print(f"   over splits of L + tau = 0.075 s: {min(splits):.2f} to {max(splits):.2f};  "
+          f"1/(g (L + tau)) = {1 / (0.86 * 0.075):.2f} (paper: 15.5)")
     F = vs.make_field("vortex")
     for k in (15.0, 20.0, 21.0, 22.0, 25.0):
         P = vs.params(200, k=k, vcmd_max=1e9, vaxis=1e9, vs=0.0, vmax=1e9)

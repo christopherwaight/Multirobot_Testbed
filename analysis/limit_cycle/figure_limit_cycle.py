@@ -32,29 +32,34 @@ def closed(curve):
 
 
 def column_figure(sim, hw):
-    """One-column version for the paper (panels a and b only): fig_limit_cycle_column.{pdf,png}."""
-    from matplotlib.lines import Line2D
-    fig, ax = plt.subplots(1, 2, figsize=(fs.COLUMN, 1.68), sharey=True)
+    """One-column version for the paper (panels a and b only): fig_limit_cycle_column.{pdf,png}.
+
+    Two square panels that fill the column width. Limits of +-0.17 m hold every hardware run
+    (within +-0.165 m); the caption names the colors, so there are no legends.
+    """
+    W, H, L = fs.COLUMN, 1.95, 0.17
+    left, right, gap, bottom, top = 0.42, 0.04, 0.08, 0.32, 0.16   # inches
+    pw = min((W - left - right - gap) / 2, H - bottom - top)
+    x0 = left + ((W - left - right - gap) - 2 * pw) / 2
+    fig = plt.figure(figsize=(W, H))
+    ax = [fig.add_axes([(x0 + i * (pw + gap)) / W, bottom / H, pw / W, pw / H]) for i in range(2)]
     for C, tag in zip(sim["C"], sim["tags"]):
         ax[0].plot(C[:, 0], C[:, 1], lw=0.5, alpha=0.6, color=fs.BLUE if tag == "in" else fs.RED)
     ax[0].plot(*closed(sim["curve"]), "k", lw=1.3)
-    ax[0].legend([Line2D([], [], color=c, lw=1) for c in (fs.BLUE, fs.RED)], ["Start inside", "Start outside"],
-                 frameon=False, loc="upper left", fontsize=6, handlelength=1.2, borderaxespad=0.1)
     for C in hw["C"]:
         ax[1].plot(C[:, 0], C[:, 1], lw=0.4, alpha=0.7, color=fs.GREY)
-    ax[1].plot(*closed(hw["curve"]), "k", lw=1.3, label="Hardware cycle")
-    ax[1].plot(*closed(sim["curve"]), "--", color=fs.GREEN, lw=1.1, label="Simulated cycle")
-    ax[1].legend(frameon=False, loc="upper left", fontsize=6, handlelength=1.5, borderaxespad=0.1)
+    ax[1].plot(*closed(hw["curve"]), "k", lw=1.3)
+    ax[1].plot(*closed(sim["curve"]), "--", color=fs.GREEN, lw=1.1)
     circ = np.linspace(0, 2 * np.pi, 200)
     for a, title in zip(ax, ("(a) Simulation", "(b) Hardware, ten runs")):
         a.plot(RD * np.cos(circ), RD * np.sin(circ), ":", color=fs.ORANGE, lw=1.0)
         a.plot(0, 0, "k+", ms=5)
-        a.set_aspect("equal"); a.set_xlim(-0.22, 0.22); a.set_ylim(-0.22, 0.25)
-        a.set_xticks([-0.2, 0, 0.2]); a.set_yticks([-0.2, 0, 0.2])
+        a.set_xlim(-L, L); a.set_ylim(-L, L)
+        a.set_xticks([-0.1, 0, 0.1]); a.set_yticks([-0.1, 0, 0.1])
         a.set_title(title, pad=2); a.set_xlabel("$x$ (m)")
         fs.axes(a)
+    ax[1].set_yticklabels([])
     ax[0].set_ylabel("$y$ (m)")
-    fig.subplots_adjust(left=0.13, right=0.99, top=0.9, bottom=0.2, wspace=0.08)
     for ext in ("png", "pdf"):
         fig.savefig(os.path.join(HERE, "figures", f"fig_limit_cycle_column.{ext}"))
     plt.close(fig)
