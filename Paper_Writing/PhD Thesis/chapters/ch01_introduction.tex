@@ -7,23 +7,16 @@
 \section{Adaptive Navigation in Vector Field Environments}
 \label{sec:ch1:an}
 
-% Ported from: Draft_11_6ec7e51.tex
+% Ported from: Draft_13.tex
 Multirobot systems (MRS) offer redundancy, increased
-throughput, and cooperative behaviors a single vehicle cannot produce,
-and they now operate across land, sea, air, and space \cite{1,2}.
- In adaptive
-navigation (AN), a vehicle or group of vehicles modifies its direction and path in real time
-from measurements taken while moving \cite{3}. A single vehicle must translate to sense a
-gradient, which costs time and misleads in a time-varying field,
-whereas an MRS can sample multiple locations simultaneously, tolerate
-vehicle failures, adapt its size and shape to the spatial frequencies
-present, and fit a local model of the landscape to steer on its features
-\cite{3,4,5}.
+throughput, and cooperative capabilities a single robot cannot produce,
+and have demonstrated operational success across land, sea, air, and space \cite{1,2}.
+Furthermore, an MRS can tolerate individual robot failures and adapt its formation based on mission objectives \cite{3,4,5}.
 
-% Ported from: Draft_11_6ec7e51.tex
-Some environments are better modeled as vector fields, which contain features without scalar field equivalents. Critical points, such as sinks, sources, and spewing vortices can be used to model convergence zones \cite{6} and subsurface leaks \cite{7}. 
+% Ported from: Draft_13.tex
+Some flows are better described as vector fields, which carry features a scalar map cannot. Critical points, such as sinks, sources, and vortices, can model convergence zones \cite{6} and subsurface leaks \cite{7}.
 
-% Ported from: cwaight_systems_paper.tex
+% Ported from: cwaight_systems_paper_with_revisions2.tex
 The oceanic and atmospheric environments that motivate this work are governed by a spatially varying velocity or force, and their transport and accumulation behavior is organized by the critical points of the field, the coordinates where the flow vanishes \cite{8,9}. A surface convergence zone acts as a sink, gathering buoyant debris and drifting bodies; this makes such zones high probability search regions after a loss at sea \cite{10,11}. Containing a ruptured wellhead or a harbor discharge requires reaching the source against its own outward flow \cite{7,12}. A mesoscale ocean eddy serves as a center, trapping a body of water, along with the plankton bloom inside it, and carrying both across a basin for weeks \cite{13,14,15}. Monitoring the bloom over its lifetime therefore requires a sensor to orbit the drifting core at a fixed standoff; a ground-fixed station would not stay with the eddy. These applications require the coordinate of the feature itself, whether to drive the multirobot team onto it or to hold it at a fixed standoff radius; a heading toward the feature is not sufficient.
 
 \section{Literature Review}
@@ -31,22 +24,23 @@ The oceanic and atmospheric environments that motivate this work are governed by
 
 \subsection{Adaptive Navigation in Scalar Fields}
 
-% Ported from: Draft_11_6ec7e51.tex
+% Ported from: Draft_13.tex
 AN in scalar fields is well developed. Each
-robot contributes one scalar measurement to a policy that reaches and
-follows a feature, and formations are sized so that differential
-measurements across the cluster recover the gradient and curvature that
-policy consumes \cite{5,16}. \"{O}gren, Fiorelli, and Leonard
+robot contributes one scalar measurement, and the policy drives the cluster to reach or
+follow a feature. For example, specific formations are held so that differential measurements across different robots
+recover the gradient and curvature needed for specific control policies
+ \cite{5,16}. 
+ \"{O}gren, Fiorelli, and Leonard
 established cooperative gradient climbing with a formation of mobile
-sensors \cite{16}. Bri\~{n}\'{o}n-Arranz, Renzaglia, and Schenato
-extended it to the Hessian, five robots on a ring plus one at the
-center recovering both in closed form \cite{5}. Kitts, McDonald, and
+sensors using plane fitting \cite{16}. Bri\~{n}\'{o}n-Arranz, Renzaglia, and Schenato
+extended the fitting process to recover the Hessian by exploiting the gradients and curvature calculated from five robots on a ring plus one at the
+center \cite{5}. Kitts, McDonald, and
 Neumann developed primitives for extrema finding, contour following,
 ridge/trench following, and saddle point station keeping \cite{3}, and
 verified ridge, trench, saddle, and front tracking experimentally on an
 indoor testbed \cite{4,17}.
 
-% Ported from: cwaight_systems_paper.tex
+% Ported from: cwaight_systems_paper_with_revisions2.tex
 Strategies include gradient following \cite{2}, Hessian estimation \cite{5}, extended information consensus filters \cite{18,19}, constrained nonsmooth distributed optimization \cite{20}, and bio-inspired search \cite{21}, and several such systems have been field-deployed on ground, surface, and aerial vehicles for environmental monitoring, pollution tracking, and search and rescue \cite{2,22,23,24}.
 
 \subsection{Navigation in Vector Fields}
@@ -66,13 +60,13 @@ like flow maxima, sinks, sources, and vortices, but these approaches lack
 comprehensive real-world validation and are only validated in simulation
 \cite{26}.
 
-% Ported from: cwaight_systems_paper.tex
+% Ported from: cwaight_systems_paper_with_revisions2.tex
 By contrast, only a few works address navigation of physically sensed vector fields \cite{27,28,29}. Much of the broader vector field literature constructs artificial fields for path-following and obstacle avoidance, a separate problem from sensing a real flow \cite{30,31,25,32}, and field campaigns that track features carried by an actual ocean current underscore the distinction \cite{33}.
 
 \subsection{Robotic Sensing of Physical Flows}
 
-% Ported from: cwaight_systems_paper.tex
-Work that senses the physical field falls into two camps. One camp presumes prior knowledge of the environment, which is unavailable in the unmapped settings that motivate this work \cite{34,35}. The other operates online in two behaviors: minimally actuated drifters that ride and station-keep along ambient streamlines, and PIM-triple-inspired teams that straddle a saddle and track a single stable or unstable manifold from local velocity measurements \cite{29,8,36}. Both supply a heading along the flow or track the manifold of a single assumed saddle; neither recovers the coordinate of a critical point together with its identity across the full taxonomy of feature types. Estimating the locations of critical points in vector fields remains an open problem for multirobot systems.
+% Ported from: cwaight_systems_paper_with_revisions2.tex
+Work that senses the physical field falls into two camps. One camp presumes prior knowledge of the environment, which is unavailable in the unmapped settings that motivate this work \cite{34,35}. The other operates online in two behaviors: minimally actuated drifters that ride and station-keep along ambient streamlines, and PIM-triple-inspired teams that straddle a saddle and track a single stable or unstable manifold from local velocity measurements \cite{29,8,36}. Both supply a heading along the flow or track the manifold of a single assumed saddle; neither recovers the coordinate of a critical point together with its identity across the full taxonomy of feature types. Estimating the locations of critical points in vector fields remains an open problem for multirobot systems. To our knowledge, this paper gives the first hardware demonstration of a multirobot cluster that locates, reaches, and orbits the critical points of a sensed vector field from instantaneous measurements alone.
 
 \subsection{Experimental Testbeds}
 

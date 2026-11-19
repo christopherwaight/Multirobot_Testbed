@@ -97,8 +97,11 @@ P('sys', "The testbed used for validation is SCU's Robotic Systems Laboratory De
   subs=[('The testbed used for validation is', 'The same testbed, used for the critical point experiments of Chapter~\\ref{ch:first_order}, is')]),
 P('sys', '\\caption{Experimental testbed: 1.6 m', end='\\end{figure}', back=3,
   subs=[('testbed_with_four.png', 'ch2_testbed_with_four.png'),
-        ('width=0.28\\textwidth', 'width=0.5\\textwidth')]),
-P('sys', 'The multilayer control architecture from Section~III runs in MATLAB/Simulink',
+        ('width=0.58\\columnwidth', 'width=0.5\\textwidth')]),
+# Kept from the submitted paper: the revision cut this architecture sentence
+# for length, but the thesis tools chapter still wants the MATLAB/Simulink
+# description. Cross-ref retargeted to the estimation chapter.
+P('sys0', 'The multilayer control architecture from Section~III runs in MATLAB/Simulink',
   subs=[('from Section~III runs', 'of Chapter~\\ref{ch:estimation} runs')]),
 
 T(r"""
@@ -284,12 +287,18 @@ recalibrated models use the four raw channels as inputs and are the ones
 the later hardware results rely on.
 
 """),
-P('sys', 'The experimental platform used three omnidirectional Decabot rovers operating within',
-  subs=[('The experimental platform used three omnidirectional Decabot rovers operating within a 1.6~m $\\times$ 1.6~m workspace. Each Decabot features three omnidirectional wheels providing holonomic motion capability and a downward-facing TCS34725 RGB color sensor enclosed in a light-shrouded housing to minimize external lighting effects. ', '')]),
-P('sys', '\\caption{Neural network predictions for HSV field encoding on unit-normalized axes.',
+P('sys', 'The experimental platform used three or four omnidirectional Decabot rovers operating within',
+  subs=[('The experimental platform used three or four omnidirectional Decabot rovers operating within a 1.6~m $\\times$ 1.6~m workspace. Each Decabot features three omnidirectional wheels providing holonomic motion capability and a downward-facing, self-illuminated TCS34725 RGB color sensor enclosed in a light-shrouded housing to minimize external lighting effects. ', '')]),
+# Kept from the submitted paper: the revision cut this figure, but the tools
+# chapter benefits from the visualization. The caption's pooled-RMSE numbers
+# are dropped so they do not contradict the revision's reported calibration
+# accuracy (6.1 deg hue, 3.8% saturation for the trained robots), which the
+# recap paragraph above now carries.
+P('sys0', '\\caption{Neural network predictions for HSV field encoding on unit-normalized axes.',
   end='\\end{figure}', back=3,
   subs=[('color_sensor_hsv_predictions.png', 'ch2_color_sensor_hsv_predictions.png'),
-        ('width=0.90\\columnwidth', 'width=0.8\\textwidth')]),
+        ('width=0.90\\columnwidth', 'width=0.8\\textwidth'),
+        (' Hue RMSE = 0.027 (0.17 rad, 9.7$^\\circ$), saturation RMSE = 0.044 (4.4\\%).', '')]),
 
 T(r"""
 \section{Saturation-to-Velocity Characterization}
@@ -326,25 +335,26 @@ interpreting vector primitive performance.
 \section{Robot Dynamics Identification}
 \label{sec:ch2:dynamics}
 """),
+# Refit robot model (2026-11-16 campaign): gain g, transport delay L, lag tau,
+# dead zone v_c, speed cap. Ported as one block from the revision; the leading
+# controller sentence (which belongs to the architecture chapter) is trimmed,
+# and the estimation cross-ref is retargeted.
 P('sys', 'In simulation, each robot is modeled as a single omnidirectional point mass',
-  end='the momentum coefficient $\\alpha = e^{-\\Delta t/\\tau}$. At a 10~Hz control rate'),
-P('sys', 'The sensed field $\\mathbf{v}(\\mathbf{p}_i)$ enters only the estimation framework of Section~II.',
-  subs=[('enters only the estimation framework of Section~II.',
-         'enters only the estimation framework of Section~\\ref{sec:ch4:estimation}.'),
-        ('Section~VI-D discusses the extension to flows that advect the robot directly.',
-         'Section~\\ref{sec:ch9:advection} discusses the extension to flows that advect the robot directly.')]),
+  end='so the robot reaches $g$ times its command within one cycle.',
+  subs=[("Each robot's controller receives velocity commands and translates them into motion. Each robot also samples the local vector field $\\mathbf{v}(\\mathbf{p}_i) = (u_i, v_i)$ and reports its global position $\\mathbf{p}_i$, providing the inputs to the estimation framework described in Section~II. ", ''),
+        ('Fits to the hardware runs of Section~V', 'Fits to the hardware runs of Chapter~\\ref{ch:first_order}')]),
 
 T(r"""
 \section{Field Reconstruction as a Noise Model}
 \label{sec:ch2:reconstruction}
 """),
 P('sys', 'This method of representing vector fields in printed floor maps has imperfections',
-  subs=[('referenced in Section~IV as the realistic noise model for simulation.',
+  subs=[('referenced in Section~\\ref{sec:sim_setup} as reconstructed fields.',
          'used in Chapter~\\ref{ch:first_order} as the realistic noise model for simulation.')]),
 P('sys', '\\caption{Analytical fields, sensor-based reconstructions, and reconstruction error',
   end='\\end{figure}', back=3,
-  subs=[('measurement_error_comparison.png', 'ch2_measurement_error_comparison.png'),
-        ('width=0.43\\textwidth', 'width=0.75\\textwidth')]),
+  subs=[('fig_reconstruction_3x2_2026.png', 'ch2_measurement_error_comparison.png'),
+        ('width=0.85\\columnwidth', 'width=0.75\\textwidth')]),
 
 T(r"""
 \section{Simulation Environment}

@@ -34,19 +34,24 @@ using standardized components in downstream layers. Additionally, the
 architecture enables the same control laws to be applied across different
 robot platforms and formations.
 """),
-P('sys', 'At each control cycle (10~Hz), each robot reports its position and vector field measurement.'),
+# Kept from the submitted paper: the revision reworded this control-cycle
+# summary into a denser paragraph; the thesis keeps the plainer statement.
+P('sys0', 'At each control cycle (10~Hz), each robot reports its position and vector field measurement.'),
 P('sys', '\\caption{Hierarchical control architecture: robot, cluster space, and adaptive',
   end='\\end{figure}', back=3,
   subs=[('control_architecture_2.png', 'ch4_control_architecture.png'),
-        ('width=0.40\\textwidth', 'width=0.55\\textwidth')]),
+        ('width=0.98\\columnwidth', 'width=0.55\\textwidth')]),
 
 T(r"""
 \subsection{Robot Controller Layer}
 \label{sec:ch4:robot_layer}
 """),
+# The revision merged the robot-dynamics description onto this line; the
+# dynamics are ported in Section~\ref{sec:ch2:dynamics}, so trim that tail here.
 P('sys', "Each robot's controller receives velocity commands and translates them into motion.",
   subs=[('providing the inputs to the estimation framework described in Section~II.',
-         'providing the inputs to the estimation framework of Section~\\ref{sec:ch4:estimation}.')]),
+         'providing the inputs to the estimation framework of Section~\\ref{sec:ch4:estimation}.'),
+        (' In simulation, each robot is modeled as a single omnidirectional point mass that follows its command after a transport delay $L$, through a first order response with actuator time constant $\\tau$ \\cite{4,7}, a dead zone $v_c$, and a speed limit $v_{\\max}$. The robot attains a fraction $g$ of each command, so its velocity $\\mathbf{v}_{r,i} = \\dot{\\mathbf{p}}_i$ follows', '')]),
 T(r"""
 % New text
 Section~\ref{sec:ch2:dynamics} gives the first-order lag, speed limit, and
@@ -83,14 +88,18 @@ instantaneous position and sensed information.
 \subsubsection{Three-Robot SAS Formation}
 \label{sec:ch4:sas}
 """),
-P('sys', "The cluster space controller maintains the cluster's formation geometry while executing"),
-P('sys', 'In this study, we consider a cluster of three robots forming a triangular configuration.',
+# The three-robot SAS block (controller role, SAS parameterization, figure,
+# forward kinematics) is kept from the submitted paper: the revision folded
+# it into one dense paragraph that also introduces the four-robot square,
+# which does not belong in the thesis's three-robot subsection.
+P('sys0', "The cluster space controller maintains the cluster's formation geometry while executing"),
+P('sys0', 'In this study, we consider a cluster of three robots forming a triangular configuration.',
   subs=[('In this study, we consider', 'Chapters~\\ref{ch:zeroth} and~\\ref{ch:first_order} consider')]),
-P('sys', '\\caption{Three-robot triangular formation parameterized by SAS variables',
+P('sys0', '\\caption{Three-robot triangular formation parameterized by SAS variables',
   end='\\end{figure}', back=3,
   subs=[('SAS_Robots.png', 'ch4_SAS_Robots.png'),
         ('width=0.30\\textwidth', 'width=0.45\\textwidth')]),
-P('sys', 'The forward kinematic equations map the robot positions',
+P('sys0', 'The forward kinematic equations map the robot positions',
   subs=[('The full equations are given in Appendix~B.',
          'The full equations are given in Appendix~\\ref{app:kin3}.')]),
 
@@ -98,10 +107,10 @@ T(r"""
 \subsubsection{Six-Robot Pentagon-Plus-Center Formation}
 \label{sec:ch4:pentagon}
 """),
-P('sep', 'Cluster space control treats a multirobot formation as a virtual rigid',
+P('sep', 'The cluster controller layer uses cluster space control, an operational',
   end='the layer above through the forward kinematics.',
   subs=[('(Fig.~\\ref{fig:pentagon})', '(Fig.~\\ref{fig:ch4:pentagon})'),
-        ('inverse Jacobian $\\mathbf{J}^{-1}$', 'inverse Jacobian $\\mathbf{J}_c^{-1}$'),
+        ('(Fig.~\\ref{fig:control_architecture})', '(Fig.~\\ref{fig:ch4:control_architecture})'),
         ('through the forward kinematics.', 'through the forward kinematics (Appendix~\\ref{app:kin6}).')]),
 P('sep', '\\caption{Pentagon-plus-center formation. Robot 1 sits at the centroid',
   end='\\end{figure}', back=3,

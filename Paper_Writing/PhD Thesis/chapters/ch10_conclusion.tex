@@ -16,28 +16,26 @@ cluster. On it, the vector-sum and vector-to-scalar primitives ran in
 continuous motion, confirming behaviors previously demonstrated only in
 simulation.
 
-% Ported from: cwaight_systems_paper.tex
-Chapter~\ref{ch:first_order} presented a distributed framework for multirobot navigation in vector fields containing critical points. A Jacobian-based approach uses instantaneous measurements from three robots to identify critical point locations without prior field knowledge, supporting an attraction control law and an orbital control law built on these estimates. Simulation across six canonical field types confirmed convergence of these control primitives. In 157 hardware convergence trials, the system achieved a 100\% success rate with average position errors of 0.012~m or less. Orbital control experiments maintained commanded radii within 0.25~m error at small radii and 0.1~m at larger radii.
+% Ported from: cwaight_systems_paper_with_revisions2.tex
+Chapter~\ref{ch:first_order} presented a framework for multirobot navigation in vector fields containing critical points. A Jacobian-based approach uses instantaneous measurements from three or more robots to identify critical point locations without prior field knowledge, supporting attraction and orbital control laws built on these estimates. Simulation across six canonical field types confirmed convergence of these control primitives. On curved fields the sign of $\det\hat{\mathbf{J}}$ on the first cycle decided which type of critical point the cluster reached. In 459 hardware runs, the cluster converged within 0.05~m in 99\% of saddle and 91\% of vortex trials with three robots and in every vortex trial with four, with mean position errors of 0.034~m or less. Orbital control experiments maintained commanded radii within a quarter of the radius from 0.20~m upward with three robots in both fields, and below that held bounded orbits that did not track the commanded radius; at 0.10~m the vortex orbit settled onto a limit cycle sized by the robots' delay and lag. Simulations matched to each run reproduced the saddle's attraction error and about half of the orbit fluctuation.
 
-% Ported from: Draft_11_6ec7e51.tex
-Chapter~\ref{ch:second_order} showed that a second-order fit of the local flow, from six
-robots sampling at once, is enough to acquire and ride the instantaneous
-coherent structures of a planar flow. The fit gives the velocity gradient
-as a field over the formation, and the two adaptive navigation primitives
-built on it use only synchronous local velocity measurements, with no
-map, no forecast, and no assumption about the structure's identity.
-
-% Ported from: Draft_11_6ec7e51.tex
-The experiments give an operational selection rule. With a noisy sensor
-the $D$ tracker withstands about four times the noise the $s_1$ tracker does. Under a rotating observer the
-ranking reverses. Above a heading drift of about 7$^\circ$/h the $D$ tracker's formation
-no longer straddles the structure, while the $s_1$ tracker keeps the
-straddle and returns the same material curve in both frames. On Santa Barbara Channel currents both followed the same transport corridor
-to its bifurcation, at mean distances of 1.5 and 2.1~km from an FTLE ridge neither could see. A cluster with an absolute heading reference, such as a compass, GNSS
-heading, or overhead tracking, should carry the $D$ tracker, which
-tolerates a noisier sensor. One whose heading is dead-reckoned, and so
-drifts, should carry the $s_1$ tracker, which is objective past its one
-seed step.
+% Ported from: Draft_13.tex
+Chapter~\ref{ch:second_order} showed that six robots sampling at once can fit a local
+quadratic model of a planar flow, which gives the velocity gradient as a
+field over the formation. Two surrogate fields read from that fit, the
+Jacobian determinant $D$ and the smaller strain eigenvalue $s_1$, mark
+coherent structures of the flow as trenches. On each field we built an
+adaptive navigation primitive that acquires and rides those trenches from
+instantaneous measurements, with no integration horizon and no
+pre-straddling. Without noise, both acquire and traverse the
+double-gyre separatrix from every start and hold the downstream saddle. Measured
+by the noise level at which retention falls to 50\%, the $D$ tracker
+withstands more measurement and position noise than the $s_1$ tracker from
+every start tested. The $s_1$ tracker is objective past its
+one seed step, and it alone holds the same path under a rotating observer.
+A cluster with an absolute heading reference, such as a compass or GNSS,
+should therefore carry the $D$ tracker, and one whose flow estimate
+carries its own rotation should carry the $s_1$ tracker.
 
 % New text. Primitive library, moved from Chapter 8 on 2026-09-30.
 Table~\ref{tab:ch10:library} collects every primitive in this
@@ -57,8 +55,8 @@ Primitive & Order & Robots & Steers on & Stability & Verification \\
 \hline
 Vector-sum & 0 & 3 & mean sensed vector & none stated & hardware, fixed and sinking vortex, 10 runs each \\
 Vector-to-scalar & 0 & 3 & slope of the sensed magnitude & none stated & hardware, fixed vortex, 10 runs plus randomized starts \\
-Attraction & 1 & 3 & $\hat{\mathbf{p}}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{h}}$ & exponential convergence to a stationary estimate, $\tau = 1/k$ & simulation, 8 fields; hardware, 157 trials \\
-Orbital & 1 & 3 & $\hat{\mathbf{p}}^*$ with radial and tangential terms & radial error $\dot{e}_r = -k_r e_r$ & simulation, 8 fields; hardware, 12 trials \\
+Attraction & 1 & 3 & $\hat{\mathbf{p}}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{h}}$ & exponential convergence to a stationary estimate, $\tau = 1/k$ & simulation, 11 fields; hardware, 239 trials \\
+Orbital & 1 & 3 & $\hat{\mathbf{p}}^*$ with radial and tangential terms & radial error $\dot{e}_r = -k_r e_r$ & simulation, 11 fields; hardware, 220 runs \\
 $D$ tracker & 2 & 6 & $\hat{D}$ and $\hat{\mathbf{H}}_{D,0}$ & transverse practical stability, $\limsup|n| \leq \delta/a_\perp$ & simulation, double gyre and Santa Barbara Channel \\
 $s_1$ tracker & 2 & 6 & $\hat{s}_1$ and $\nabla\hat{s}_1$ & same transverse bound, frame equivariant past its seed step & simulation, double gyre and Santa Barbara Channel \\
 \hline

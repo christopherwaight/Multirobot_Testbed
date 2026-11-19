@@ -26,20 +26,17 @@ Section~\ref{sec:ch2:limitations}.
 \label{sec:ch9:first_order}
 """),
 P('sys', 'Several limitations constrain the current implementation and experimental validation.',
-  end='The robustness of the approach to lower update rates and communication dropouts was not tested.'),
+  end='Onboard relative localization, inter-robot communication, and robustness to lower update rates and dropouts were not tested.',
+  subs=[('Section~V-C)', 'Section~\\ref{sec:ch6:hw_attraction})'),
+        ('the curvature term of (\\ref{eq:bound})', 'the curvature term of (\\ref{eq:ch6:bound})'),
+        ('(Section~\\ref{sec:hw_testbed})', '(Section~\\ref{sec:ch2:testbed})')]),
 
 T(r"""
 \subsection{Second-Order Estimation and Tracking}
 \label{sec:ch9:second_order}
 """),
-P('sep', 'Cluster space control is centralized, requires global state, becomes intractable',
-  end='extrapolation, untested against real advection.',
-  subs=[('Section~\\ref{sec:s1_controller} weakens near the saddles.',
-         'Section~\\ref{sec:ch7:s1_controller} weakens near the saddles.'),
-        ('the premise of\nSection~\\ref{sec:sep_controller}, as the fitted',
-         'the premise of\nSection~\\ref{sec:ch7:sep_controller}, as the fitted'),
-        ("and their robots are advected while this paper's are not",
-         "and their robots are advected while this dissertation's are not")]),
+P('sep', 'Cluster space control is centralized and needs global state and reliable',
+  end='untested in a physical flow.'),
 
 T(r"""
 \section{Future Work}
@@ -58,7 +55,9 @@ and with no analytic guarantee.
 \subsection{Advection-Aware Control}
 \label{sec:ch9:advection}
 """),
-P('sys', 'As noted in Section~III-A, the robot dynamics',
+# Kept from the submitted paper: the revision folded the advection point into
+# its limitations list, but the thesis keeps the dedicated future-work passage.
+P('sys0', 'As noted in Section~III-A, the robot dynamics',
   subs=[('As noted in Section~III-A,', 'As noted in Section~\\ref{sec:ch2:dynamics},'),
         ('(\\ref{eq:continuous})--(\\ref{eq:momentum})', '(\\ref{eq:ch2:continuous})--(\\ref{eq:ch2:momentum})')]),
 
@@ -66,8 +65,8 @@ T(r"""
 \subsection{Higher-Order Fits and Formation Reshaping}
 \label{sec:ch9:higher_order}
 """),
-P('sep', 'Ongoing and future work targets a) extending the stability results to',
-  end='d) testing both primitives on the Decabot testbed, then on surface vessels.'),
+P('sep', 'Future work targets three extensions. First, a fit from more than six',
+  end='the transverse curvature of an $s_1$ trench depend.'),
 
 T(r"""
 \subsection{Three-Dimensional Fields}

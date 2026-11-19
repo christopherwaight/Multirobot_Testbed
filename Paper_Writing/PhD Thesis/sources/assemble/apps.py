@@ -11,11 +11,13 @@ T(r"""
 \section{Six Canonical Critical Point Fields}
 \label{sec:appA:canonical}
 """),
-P('sys', 'Six vector field environments centered at the origin were used to evaluate',
+# The canonical-field equation blocks are kept from the submitted paper: the
+# revision moved the definitions inline and dropped the appendix listing.
+P('sys0', 'Six vector field environments centered at the origin were used to evaluate',
   end='\\end{equation}', extra=0,
   subs=[('Six vector field environments centered at the origin were used to evaluate the multi-robot navigation algorithms.',
          'Six vector field environments centered at the origin were used to evaluate the first-order primitives of Chapter~\\ref{ch:first_order}.')]),
-P('sys', 'The sinking vortex (spiraling inward) and spewing vortex (spiraling outward)',
+P('sys0', 'The sinking vortex (spiraling inward) and spewing vortex (spiraling outward)',
   end='\\end{equation}'),
 T(r"""
 \section{Testbed Vortex Fields}
@@ -65,7 +67,9 @@ T(r"""
 \chapter{Three-Robot Cluster Kinematics}
 \label{app:kin3}
 """),
-P('sys', '\\subsection{Forward Kinematics}',
+# Kept from the submitted paper: the revision dropped the three-robot
+# kinematics appendix, which the dissertation keeps as Appendix B.
+P('sys0', '\\subsection{Forward Kinematics}',
   end='The explicit forms of the equations are omitted from this paper for brevity.',
   subs=[('\\subsection{', '\\section{'),
         ('The explicit forms of the equations are omitted from this paper for brevity.',
@@ -218,9 +222,16 @@ T(r"""
 \chapter{Transverse Stability of the Trackers}
 \label{app:stability}
 """),
-P('sep', 'Both arguments assume the cluster realizes $\\dot{\\mathbf{p}}_c$',
+# Kept from the Draft_11 snapshot (sep0): Draft_13 moved the transverse
+# stability argument inline into the tracker sections of Chapter 7, but this
+# proof states both trackers' bounds together, so the thesis keeps it. Draft_11
+# ref 35 (Mas and Kitts) is sep:37 in bib_sources; 'the fold' is Draft_11's
+# name for the kink of s_1 at the origin.
+P('sep0', 'Both arguments assume the cluster realizes $\\dot{\\mathbf{p}}_c$',
   end='within $L_\\Gamma/(k\\,v_{\\min})$.',
-  subs=[('\\begin{IEEEproof}', '\\begin{proof}'), ('\\end{IEEEproof}', '\\end{proof}'),
+  subs=[('\\cite{35,3}', '\\cite{sep:37,sep:3}'),
+        ('as at the\nfold,', 'as at the\nkink of $s_1$,'),
+        ('\\begin{IEEEproof}', '\\begin{proof}'), ('\\end{IEEEproof}', '\\end{proof}'),
         ('In (\\ref{eq:d_law}),', 'In (\\ref{eq:ch7:d_law}),'),
         ('In (\\ref{eq:s1_law}),', 'In (\\ref{eq:ch7:s1_law}),'),
         ('Both branches of (\\ref{eq:vpar}) are nonnegative', 'Both branches of (\\ref{eq:ch7:vpar}) are nonnegative'),

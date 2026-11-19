@@ -15,55 +15,53 @@ Section~\ref{sec:ch2:limitations}.
 \subsection{First-Order Estimation and Control}
 \label{sec:ch9:first_order}
 
-% Ported from: cwaight_systems_paper.tex
-Several limitations constrain the current implementation and experimental validation. First, the approach is restricted to planar (2D) vector fields, though many real-world applications involve three-dimensional flows. Extension to 3D fields would require at minimum four non-coplanar robots for Jacobian estimation.
+% Ported from: cwaight_systems_paper_with_revisions2.tex
+Several limitations constrain the current implementation and experimental validation. First, the approach is restricted to planar (2D) fields, though many applications involve three-dimensional flows; extension to 3D fields would require at minimum four non-coplanar robots for Jacobian estimation.
 
-Second, the testbed validates performance only on static fields where critical points remain fixed during operation. The static printed field approach enables precise ground truth validation but does not capture dynamic field behavior.
+Second, the testbed validates performance only on static fields where critical points remain fixed during operation. The static printed field approach enables precise ground truth validation but does not advect the robots: a physical flow whose outward speed grows with distance from the critical point faster than $gk$ would destabilize the attraction law, and a critical point drifting at constant speed would be trailed by that speed divided by $gk$.
 
-Third, robot team sizes were limited to three. While the theoretical framework supports arbitrary team sizes through the overdetermined system approach, larger formations present practical implementation challenges including communication bandwidth, computational complexity, and formation control stability.
+Third, robot team sizes were limited to four. The theoretical framework supports arbitrary team sizes through the overdetermined least-squares fit, which averages measurement errors (with four robots, attraction precision improved from 0.036 to 0.014~m, Section~\ref{sec:ch6:hw_attraction}) and tolerates the loss of one robot. However, spreading more robots over a wider footprint requires the affine model to hold over a larger region of the curved field, where the curvature term of (\ref{eq:ch6:bound}) grows with the square of the formation size, and larger formations present practical implementation challenges including communication bandwidth, computational complexity, and formation control stability. Teams beyond four, and the loss of a robot during a run, were not tested.
 
-Fourth, the estimator assumes the field is well approximated by an affine model over the cluster's spatial extent. On fields that are highly nonlinear at the scale of the formation, this local linear fit degrades, biasing the recovered critical point location; the six canonical fields and the two reconstructed hardware fields evaluated here do not probe this regime.
+Fourth, the estimator assumes the field is well approximated by an affine model from the cluster out to the critical point (Section~II-B). On fields that are highly nonlinear at the scale of the formation, this local linear fit degrades, biasing the recovered critical point location. Section~IV probes this regime on a gyre cell and a curved saddle, but fields with stronger curvature, or with critical points closer together than one formation side, were not tested.
 
-Finally, this work assumes a sampling rate sufficiently high that the system approximates continuous control. The robustness of the approach to lower update rates and communication dropouts was not tested.
+Finally, the computation is centralized (Section~\ref{sec:ch2:testbed}). The estimate needs only the positions and readings of one cycle in a common frame, so a robot receiving them from its neighbors could compute it. A dropout below three readings leaves the fit underdetermined, and latency mixes readings from different cycles into one fit. Onboard relative localization, inter-robot communication, and robustness to lower update rates and dropouts were not tested.
 
 \subsection{Second-Order Estimation and Tracking}
 \label{sec:ch9:second_order}
 
-% Ported from: Draft_11_6ec7e51.tex
-Cluster space control is centralized, requires global state, becomes intractable
-for suitably large clusters, and is impractical without reliable
-high-bandwidth communication among the robots \cite{52}. The claims here
-are for small clusters in a limited workspace with ample bandwidth, the
-regime the six-robot estimator occupies.
+% Ported from: Draft_13.tex
+Cluster space control is centralized and needs global state and reliable
+high-bandwidth communication \cite{52}. Unlike distributed or
+event-triggered consensus protocols \cite{69}, the estimator gathers all six
+readings on one processor each step. The claims here are for small clusters
+in a limited workspace with ample bandwidth.
 
-Two limitations sit in the estimator and its band logic. The fit is
-ill-conditioned whenever the six sampling points drift toward a common
-conic, and no field tested here drives the formation toward one, so the
-estimator is untested in the regime its own conditioning limit
-describes; the mitigation, monitoring $\kappa(\boldsymbol{\Phi})$ with a
-shape-maintenance term, is not implemented. The band test carries no
-hysteresis, so noise can chatter the $D$ tracker across its boundary,
-which costs speed alone, since both branches share the same transverse
-dynamics.
+The $s_1$ tracker's tangent selection weakens near the saddles, and its
+passage through the origin rests on the benchmark's vanishing shear
+strain. Without it the strain eigenvector
+can tilt off the trench, the open-loop ride along $\mathbf{t}$ then
+pushes the cluster across it, and the crest becomes a smooth saddle where
+tangent selection rests on a weak signal. Its capture test then passes
+there as well, since $\nabla\hat{s}_1$ vanishes with $\hat{s}_1 < 0$, so
+the tracker can latch before it reaches a minimum.
 
-The eigenvector comparison of
-Section~\ref{sec:ch7:s1_controller} weakens near the saddles. The residual risk
-of a wrong branch under heavy noise is damped but not excluded by the
-capture latch.
+The $D$ tracker relies on properties of the fitted quadratic and the
+inertial frame. It assumes the crest is a saddle of the fitted $D$, which
+is untested off the benchmark, and its traversal on the benchmark rests on
+the third-derivative terms the fitted Hessian omits. Under noise, the
+fitted Hessian can also become definite before acquisition. Finally, a
+rotating observer shifts the $D'$ landscape and the crest, and the capture
+test and hold read the measured flow, so the tracker is not objective.
 
-The $D$ tracker's traversal past a saddle is untested off the benchmark,
-and on it runs outside the premise of
-Section~\ref{sec:ch7:sep_controller}, as the fitted Hessian is
-indefinite where the true one is not.
-
-No controlled head-to-head against the straddle family \cite{29,63,64} or the onboard-FTLE strategy of \cite{8} was run. Running those methods from an off-structure start is outside their stated problems, and their robots are advected while this dissertation's are not, so one simulator cannot host both.
-All results are simulated, and the ocean run samples the gridded product without added noise. The ocean agreement is a finding on one time-varying record, where
-neither primitive has an analytic guarantee, not a guarantee for arbitrary
-flows. Neither instantaneous field is guaranteed to mark the material
-transport structure \cite{58}. The no-advection premise is exact for the
-planned Decabot follow-on, where the field is encoded and read rather
-than physically experienced \cite{28}, but on the ocean field it is an
-extrapolation, untested against real advection.
+The evaluation here is limited to kinematic simulation without flow
+advection. The ocean trial is a single record sampled without added noise,
+and in general neither instantaneous Eulerian field is guaranteed to mark a
+Lagrangian material transport structure \cite{59}. No head-to-head against
+\cite{29,63,64} or \cite{8} was run because their robots are advected by
+the flow and one simulator cannot host both models. The no-advection
+premise is exact for the planned Decabot hardware follow-on, where the
+field is encoded rather than physically experienced \cite{28}, but remains
+untested in a physical flow.
 
 \section{Future Work}
 \label{sec:ch9:future}
@@ -71,8 +69,8 @@ extrapolation, untested against real advection.
 \subsection{Time-Varying Fields}
 \label{sec:ch9:time_varying}
 
-% Ported from: cwaight_systems_paper.tex
-The estimation framework uses only instantaneous measurements and carries no state between control cycles. This memoryless property means the estimator does not assume field stationarity, suggesting applicability to environments where the field itself varies with time, that is, where $\mathbf{v}(\mathbf{p}, t)$ changes shape or strength during operation. This is distinct from a critical point that translates while the field's structure around it stays fixed, a moving-target tracking problem the current formulation does not address. Validating the estimator on a genuinely time-varying field remains future work.
+% Ported from: cwaight_systems_paper_with_revisions2.tex
+The estimation framework uses only instantaneous measurements and carries no state between control cycles. This memoryless property means the estimator does not assume field stationarity, suggesting applicability to environments where the field itself varies with time, that is, where $\mathbf{v}(\mathbf{p}, t)$ changes shape or strength during operation. Validating the estimator on a genuinely time-varying field remains future work.
 
 % New text
 The Santa Barbara Channel trial of Section~\ref{sec:ch7:ocean} ran the
@@ -88,12 +86,20 @@ As noted in Section~\ref{sec:ch2:dynamics}, the robot dynamics (\ref{eq:ch2:cont
 \subsection{Higher-Order Fits and Formation Reshaping}
 \label{sec:ch9:higher_order}
 
-% Ported from: Draft_11_6ec7e51.tex
-Ongoing and future work targets a) extending the stability results to
-time-varying fields; b) online formation reshaping, to protect the
-conditioning of $\boldsymbol{\Phi}$; c) a cubic fit from ten robots off any common cubic curve, which
-recovers the third derivatives on which the true $\mathbf{H}_D$ and the
-transverse curvature of an $s_1$ trench depend; and d) testing both primitives on the Decabot testbed, then on surface vessels.
+% Ported from: Draft_13.tex
+Future work targets three extensions. First, a fit from more than six
+robots becomes least squares, which averages the measurement noise and
+leaves a residual that, where the truncation error is small, estimates
+it online. A cluster could then detect the
+high-noise regime in which neither tracker is reliable. Second, the
+$s_1$ tracker could take as its tangent the strain eigenvector nearest the
+previous tangent, holding the previous tangent where the eigenframe is
+unresolved. That rule does not rest on the along-trench slope, which
+vanishes near the saddles where reversals concentrate. Finally, a cubic fit
+from ten robots off any common cubic curve would take the progression from
+the linear fit of \cite{65} to the quadratic fit here one order further. It
+would recover the third derivatives on which the true $\mathbf{H}_D$ and
+the transverse curvature of an $s_1$ trench depend.
 
 \subsection{Three-Dimensional Fields}
 \label{sec:ch9:3d}
@@ -110,8 +116,8 @@ three-dimensional cluster are outside this dissertation.
 \subsection{Additional Topological Features}
 \label{sec:ch9:features}
 
-% Ported from: cwaight_systems_paper.tex
-Beyond critical point detection and orbital control, vector fields contain other topological features of practical interest. Heteroclinic orbits connecting different critical points through their manifolds offer transit routes through complex fields. The Jacobian estimation framework developed here provides the foundation for detecting such features through analysis of eigenvector alignment between neighboring critical points.
+% Ported from: cwaight_systems_paper_with_revisions2.tex
+Beyond critical point detection and orbital control, vector fields contain other topological features of practical interest. Heteroclinic orbits connecting different critical points through their manifolds offer transit routes through complex fields. The three-robot fit returns a spatially constant Jacobian, so detecting these features calls for a second-order fit, which six robots that do not lie on a common conic can provide.
 
 \subsection{Testbed Extensions}
 \label{sec:ch9:testbed}

@@ -28,13 +28,14 @@ T(r"""
 P('sys', 'Unlike scalar fields where $m=1$, vector fields can exhibit features'),
 P('sys', 'Near a critical point, the field is well approximated by its linearization'),
 P('sys', 'Eigenvalue analysis can also identify degenerate scenarios',
-  subs=[('through the estimation framework we present in the following section',
+  subs=[('through the estimation framework of Section~II-B',
          'through the estimation framework of Chapter~\\ref{ch:first_order}')]),
 P('sys', '\\caption{Six linear vector field types with critical points.}', end='\\end{figure}', back=3,
-  subs=[('six_vector_fields.png', 'ch3_six_vector_fields.png'),
-        ('width=0.35\\textwidth', 'width=0.6\\textwidth')]),
+  subs=[('six_vector_fields_3x2.png', 'ch3_six_vector_fields.png'),
+        ('width=0.98\\columnwidth', 'width=0.6\\textwidth')]),
 P('sys', '\\caption{Classification of critical points by Jacobian eigenvalue structure',
-  end='\\end{table}', back=2),
+  end='\\end{table}', back=2,
+  subs=[('i\\omega', 'i\\nu'), ('imaginary part $\\omega$', 'imaginary part $\\nu$')]),
 
 T(r"""
 \section{Rotation, Strain, and the Okubo-Weiss Partition}
@@ -98,12 +99,10 @@ nondegenerate formation.
 \label{sec:ch3:dg_example}
 """),
 P('sep', 'The double gyre is', end='\\label{fig:dg_fields}', extra=1,
-  subs=[('(Section~\\ref{sec:surrogates}), so\nthe two fields share every trench.',
-         '(Section~\\ref{sec:ch3:relation}), so\nthe two fields share every trench.'),
-        ('OECS definition of Section~\\ref{sec:surrogates}',
-         'OECS definition of Section~\\ref{sec:ch3:oecs}'),
+  subs=[('$D = -s_1^2$ there\n(Section~\\ref{sec:surrogates}).',
+         '$D = -s_1^2$ there\n(Section~\\ref{sec:ch3:relation}).'),
         ('figures/double_gyre_fields.png', 'ch3_double_gyre_fields.png')],
-  width='0.7\\textwidth'),
+  width='0.55\\textwidth'),
 ]
 
 write('ch03_preliminaries.tex', parts)

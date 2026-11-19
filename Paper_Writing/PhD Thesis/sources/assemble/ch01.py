@@ -18,9 +18,12 @@ T(r"""
 P('sep', '\\IEEEPARstart{M}{ultirobot} systems (MRS) offer redundancy, increased',
   end='\\cite{3,4,5}.',
   subs=[('\\IEEEPARstart{M}{ultirobot} systems (MRS)', 'Multirobot systems (MRS)')]),
-P('sep', 'Some environments are better modeled as vector fields, which contain features',
-  end='simultaneous local velocity measurements and used this estimate to adaptively navigate towards and around them.',
-  subs=[('  In \\cite{10} a three-robot cluster\nestimated the location and type of one from a linear fit of\nsimultaneous local velocity measurements and used this estimate to adaptively navigate towards and around them.', '')]),
+# The trailing \cite{10} critical-point sentence is covered elsewhere in the
+# introduction, so the passage ends before it (the end anchor stops at the
+# subsurface-leaks clause rather than stripping the sentence by substitution).
+P('sep', 'Some flows are better described as vector fields, which carry features',
+  end='adaptively navigate towards and orbit it.',
+  subs=[(' In \\cite{10} a three-robot cluster\nestimated the location and type of a nearby critical point from a linear fit of\nsimultaneous local velocity measurements and used this estimate to adaptively navigate towards and orbit it.', '')]),
 P('sys', 'The oceanic and atmospheric environments that motivate this work are governed'),
 
 T(r"""

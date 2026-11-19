@@ -22,12 +22,12 @@ cluster. On it, the vector-sum and vector-to-scalar primitives ran in
 continuous motion, confirming behaviors previously demonstrated only in
 simulation.
 """),
-P('sys', 'This paper presents a distributed framework for multirobot navigation',
+P('sys', 'This paper presents a framework for multirobot navigation in vector fields containing critical points.',
+  end='reproduced the saddle\'s attraction error and about half of the orbit fluctuation.',
   subs=[('This paper presents', 'Chapter~\\ref{ch:first_order} presented')]),
-P('sep', 'This paper has shown that a second-order fit of the local flow, from six',
-  end='map, no forecast, and no assumption about the structure\'s identity.',
+P('sep', 'This paper has shown that six robots sampling at once can fit a local',
+  end='carries its own rotation should carry the $s_1$ tracker.',
   subs=[('This paper has shown', 'Chapter~\\ref{ch:second_order} showed')]),
-P('sep', 'The experiments give an operational selection rule.', end='seed step.'),
 
 T(r"""
 % New text. Primitive library, moved from Chapter 8 on 2026-09-30.
@@ -48,8 +48,8 @@ Primitive & Order & Robots & Steers on & Stability & Verification \\
 \hline
 Vector-sum & 0 & 3 & mean sensed vector & none stated & hardware, fixed and sinking vortex, 10 runs each \\
 Vector-to-scalar & 0 & 3 & slope of the sensed magnitude & none stated & hardware, fixed vortex, 10 runs plus randomized starts \\
-Attraction & 1 & 3 & $\hat{\mathbf{p}}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{h}}$ & exponential convergence to a stationary estimate, $\tau = 1/k$ & simulation, 8 fields; hardware, 157 trials \\
-Orbital & 1 & 3 & $\hat{\mathbf{p}}^*$ with radial and tangential terms & radial error $\dot{e}_r = -k_r e_r$ & simulation, 8 fields; hardware, 12 trials \\
+Attraction & 1 & 3 & $\hat{\mathbf{p}}^* = -\hat{\mathbf{J}}^{-1}\hat{\mathbf{h}}$ & exponential convergence to a stationary estimate, $\tau = 1/k$ & simulation, 11 fields; hardware, 239 trials \\
+Orbital & 1 & 3 & $\hat{\mathbf{p}}^*$ with radial and tangential terms & radial error $\dot{e}_r = -k_r e_r$ & simulation, 11 fields; hardware, 220 runs \\
 $D$ tracker & 2 & 6 & $\hat{D}$ and $\hat{\mathbf{H}}_{D,0}$ & transverse practical stability, $\limsup|n| \leq \delta/a_\perp$ & simulation, double gyre and Santa Barbara Channel \\
 $s_1$ tracker & 2 & 6 & $\hat{s}_1$ and $\nabla\hat{s}_1$ & same transverse bound, frame equivariant past its seed step & simulation, double gyre and Santa Barbara Channel \\
 \hline
