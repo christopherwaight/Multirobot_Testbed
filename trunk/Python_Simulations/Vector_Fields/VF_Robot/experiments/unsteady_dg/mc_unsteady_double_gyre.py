@@ -117,7 +117,7 @@ def run_trial(spec):
 
     with contextlib.redirect_stdout(io.StringIO()):
         field = AnalyticalField(double_gyre_static)
-        cluster = PentagonCluster(mc.FORMATION_CONFIG, field)
+        cluster = PentagonCluster(mc.FORMATION_CONFIG, field, **mc.robot_from_env())
     field.config = {**field.config, "eps": spec["eps"]}
     omega = field.config.get("omega", 2 * np.pi / PERIOD)
     field.t = t0

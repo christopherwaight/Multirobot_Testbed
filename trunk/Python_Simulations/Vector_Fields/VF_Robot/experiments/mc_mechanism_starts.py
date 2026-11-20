@@ -59,6 +59,8 @@ STARTS = {"S1": (-0.10, 0.30), "S2": (0.15, 0.25), "S3": (0.0, 0.35), "S4": (0.0
 SIGMA_D, SIGMA_S1 = 0.005, 0.002
 BINS = np.round(np.arange(-0.5, 0.5001, 0.1), 2)
 OUT_DIR = os.path.join(project_root, "experiments", "outputs", "mc_mechanism")
+# Draft_14: D14=1 runs the 2026-11-16 robot model and writes *_d14.csv.
+SUF = "_d14" if os.environ.get("D14") == "1" else ""
 os.makedirs(OUT_DIR, exist_ok=True)
 
 
@@ -67,7 +69,8 @@ def trial(args):
     np.random.seed(seed)
     rng = np.random.default_rng(seed)
     with contextlib.redirect_stdout(io.StringIO()):
-        cl = PentagonCluster(mc.FORMATION_CONFIG, AnalyticalField(double_gyre_static))
+        cl = PentagonCluster(mc.FORMATION_CONFIG, AnalyticalField(double_gyre_static),
+                             **mc.robot_from_env())
     cl.reset(start[0], start[1], heading_offset=rng.uniform(0, 2 * np.pi))
     cl.measurement_noise_std = sig
     cl.position_noise_std = 0.0
@@ -156,7 +159,7 @@ def main():
             rows.append(r)
             print("  " + "  ".join(f"{k}={v:.4f}" if isinstance(v, float) else f"{k}={v}"
                                    for k, v in r.items()), flush=True)
-        with open(os.path.join(OUT_DIR, "d_fallback.csv"), "w") as f:
+        with open(os.path.join(OUT_DIR, f"d_fallback{SUF}.csv"), "w") as f:
             f.write(head + f"# sigma_uv: {SIGMA_D}  sigma_p: 0\n" + ",".join(rows[0]) + "\n")
             for r in rows:
                 f.write(",".join(f"{v:.4f}" if isinstance(v, float) else str(v) for v in r.values()) + "\n")
@@ -180,12 +183,12 @@ def main():
                     revs[np.clip(np.digitize(o["rev_y"], BINS) - 1, 0, len(revs) - 1)] += 1
             print("  " + "  ".join(f"{k}={v:.4f}" if isinstance(v, float) else f"{k}={v}"
                                    for k, v in r.items()), flush=True)
-        with open(os.path.join(OUT_DIR, "s1_reversal.csv"), "w") as f:
+        with open(os.path.join(OUT_DIR, f"s1_reversal{SUF}.csv"), "w") as f:
             f.write(head + f"# sigma_uv: {SIGMA_S1}  sigma_p: 0\n" + ",".join(rows[0]) + "\n")
             for r in rows:
                 f.write(",".join(f"{v:.4f}" if isinstance(v, float) else str(v) for v in r.values()) + "\n")
         print("\n  height bin, riding steps, first reversals, hazard per step, |cos(pi y)| at bin centre")
-        with open(os.path.join(OUT_DIR, "s1_hazard.csv"), "w") as f:
+        with open(os.path.join(OUT_DIR, f"s1_hazard{SUF}.csv"), "w") as f:
             f.write(head + f"# sigma_uv: {SIGMA_S1}  pooled over all seven starts\n"
                     "y_lo,y_hi,riding_steps,first_reversals,hazard_per_step,abs_cos_pi_y\n")
             for i in range(len(dwell)):

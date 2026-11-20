@@ -224,7 +224,7 @@ def ride(kind, par, tracker, start, max_steps=500):
         else:
             field = AnalyticalField(bj.bickley)
             starts, p1, p2 = bj.STARTS, bj.P1, bj.P2
-        cluster = PentagonCluster(mc.FORMATION_CONFIG, field)
+        cluster = PentagonCluster(mc.FORMATION_CONFIG, field, **mc.robot_from_env())
     if kind == "tp":
         field.config = {**field.config, "eps": par}
         field.t = 0.0

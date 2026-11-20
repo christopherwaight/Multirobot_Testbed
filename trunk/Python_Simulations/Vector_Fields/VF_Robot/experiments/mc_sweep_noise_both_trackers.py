@@ -80,12 +80,16 @@ def _worker(spec):
     return mc.run_trial(spec)
 
 
-def cell_specs(tracker, sigma_uv, sigma_p, n_trials, start):
+def cell_specs(tracker, sigma_uv, sigma_p, n_trials, start, robot=None, formation=None):
     base = int(1e6 * (sigma_uv or sigma_p) * 1000) % (2**31)
     specs = []
     for t in range(n_trials):
         s = {"tracker": tracker, "sigma_uv": sigma_uv, "sigma_p": sigma_p,
              "start": start, "seed": (base + 7919 * t) % (2**31)}
+        if robot:
+            s["robot"] = robot
+        if formation:
+            s["formation"] = formation
         if tracker == "s1":
             s["target"] = S1_TARGET
             s["y_exit"] = S1_Y_EXIT
@@ -103,7 +107,13 @@ def main():
     ap.add_argument("--tag", default="",
                     help="suffix for the checkpoint and output files, so a "
                          "new start does not overwrite or resume noise_both.csv")
+    ap.add_argument("--robot", choices=sorted(mc.ROBOT_MODELS), default="legacy",
+                    help="robot model; Draft_14 uses 2026 (see _mc_common.ROBOT_2026)")
+    ap.add_argument("--formation", default=None,
+                    help="formation yaml (default mc.FORMATION_CONFIG, rho = 0.075)")
+    ap.add_argument("--axes", default="uv,p", help="noise axes to sweep: uv, p, or uv,p")
     args = ap.parse_args()
+    robot = mc.ROBOT_MODELS[args.robot]
     start = tuple(args.start) if args.start else mc.FIXED_START
     if args.start and not args.tag:
         ap.error("--tag is required with --start")
@@ -127,7 +137,8 @@ def main():
         if done:
             print(f"  checkpoint: resuming, {len(done)} cells already done")
 
-    cells = [(tr, ax, s) for ax in ("uv", "p") for tr in ("D", "s1") for s in SIGMAS]
+    axes = tuple(args.axes.split(","))
+    cells = [(tr, ax, s) for ax in axes for tr in ("D", "s1") for s in SIGMAS]
     rows = []
     with Pool(args.workers) as pool:
         for tr, ax, s in cells:
@@ -137,7 +148,7 @@ def main():
                 succ, strad, sign = done[key]
             else:
                 out = list(pool.imap_unordered(
-                    _worker, cell_specs(tr, s_uv, s_p, args.trials, start),
+                    _worker, cell_specs(tr, s_uv, s_p, args.trials, start, robot, args.formation),
                     chunksize=16))
                 n = len(out)
                 hits = hits_strad = sign_ok = 0
@@ -162,6 +173,7 @@ def main():
         f.write(f"# generated_by: experiments/mc_sweep_noise_both_trackers.py\n"
                 f"# git_commit: {commit}\n# date: {stamp}\n"
                 f"# trials_per_cell: {args.trials}  start: {start}\n"
+                f"# robot: {args.robot}  formation: {args.formation or mc.FORMATION_CONFIG}\n"
                 f"# target: single far saddle {SADDLE_FAR}, contact_d={SADDLE_CONTACT_D}\n")
         f.write("tracker,axis,sigma_uv,sigma_p,success,success_straddle,far_saddle_sign_rate\n")
         for r in rows:

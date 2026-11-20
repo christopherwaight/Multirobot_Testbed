@@ -32,12 +32,22 @@ class PentagonCluster:
     """
 
     def __init__(self, formation_config_path, field, timestep=0.1, momentum_alpha=0.7,
-                 max_velocity=0.3, stiction_threshold=0.025):
+                 max_velocity=0.3, stiction_threshold=0.025, stiction_model="legacy",
+                 command_gain=1.0, input_delay=0.0):
+        """
+        Defaults are the legacy robot model (alpha 0.7, no delay, gain 1), which
+        the ocean runs rely on. The 2026-11-16 hardware fit used by OmniCluster
+        and QuadCluster is experiments/_mc_common.ROBOT_2026; pass it as
+        PentagonCluster(cfg, field, **ROBOT_2026).
+        """
         self.field = field
         self.timestep = timestep
         self.momentum_alpha = momentum_alpha
         self.max_velocity = max_velocity
         self.stiction_threshold = stiction_threshold
+        self.stiction_model = stiction_model
+        self.command_gain = command_gain
+        self.input_delay = input_delay
 
         self._load_formation_config(formation_config_path)
         self._initialize_robots()
@@ -97,7 +107,9 @@ class PentagonCluster:
         # coords = (x1,y1, x2,y2, x3,y3, x4,y4, x5,y5, x6,y6)
         self.robots = [
             Omnibot(coords[2*i], coords[2*i + 1], self.timestep, self.momentum_alpha,
-                     max_velocity=self.max_velocity, stiction_threshold=self.stiction_threshold)
+                     max_velocity=self.max_velocity, stiction_threshold=self.stiction_threshold,
+                     stiction_model=self.stiction_model, command_gain=self.command_gain,
+                     input_delay=self.input_delay)
             for i in range(6)
         ]
         print(f"Initialized 6 robots at centroid ({x_c_init:.3f}, {y_c_init:.3f})")
@@ -241,7 +253,7 @@ class PentagonCluster:
 
         for i, robot in enumerate(self.robots):
             robot.set_position(coords[2*i], coords[2*i + 1])
-            robot.velocity = np.array([0.0, 0.0])
+            robot.reset_dynamics()   # zero velocity, clear delayed commands
 
         self.center_history = []
         self.robot_history = []

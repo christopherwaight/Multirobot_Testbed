@@ -77,6 +77,18 @@ SIZES = {
 }
 
 
+# Draft_14 (D14=1): read the _d14 sweeps on the 2026 robot model, mark the 50%
+# crossings of straddle retention (the quantity the text compares) instead of
+# success, enlarge the column-width fonts, and write *_d14.png.
+D14 = os.environ.get("D14") == "1"
+if D14:
+    CSV_FILES.clear()
+    _TAG = os.environ.get("D14_TAG", "d14")      # d14_10k after the overnight run
+    CSV_FILES.update({f"S{i}": f"noise_both_S{i}_{_TAG}.csv" for i in range(1, 8)})
+    SIZES["column"].update(tick=6.5, val=6.2, ylab=6.8, title=7.3, xlab=7.5, sup=7.5, leg=6.6,
+                           mk=2.6, mk_s=1.9, lw=1.2, lw_s=0.9)
+
+
 def zone_mask():
     """Boolean grid, True where both trackers reach the far saddle after a band hold in
     at least 95% of headings (noise-free map), plus its extent."""
@@ -147,6 +159,9 @@ def draw_panel(ax, data, axis, variant, theme, sz=SIZES["full"]):
         if variant in ("B", "C") and cs is not None:
             ax.plot([cs], [50], marker="v", markersize=4.2, markerfacecolor=theme["bg"],
                     markeredgecolor=col, markeredgewidth=1.0, zorder=4.5, linestyle="none")
+        if D14 and variant == "A":
+            c = cs                  # mark retention, the text's measure
+            cross[tr] = cs
         if c is not None:
             if variant == "C":
                 ax.plot([c, c], [0, 50], color=col, linewidth=0.8, linestyle=":", alpha=0.8, zorder=2)
@@ -194,7 +209,7 @@ def build(variant, out_path, data_for, mask, paper=False, column=False):
     # Column: single column of the same page, 3.5 in wide.
     sz = SIZES["column" if column else "full"]
     if column:
-        size = (3.5, 0.74 * n + 0.55)
+        size = (3.5, 0.74 * n + 0.6)
     else:
         size = (7.16, 1.07 * n + 0.75) if paper else (7.4, 1.32 * n + 1.0)
     fig, axes = plt.subplots(n, 2, figsize=size, sharex=True, sharey=True,
@@ -228,10 +243,10 @@ def build(variant, out_path, data_for, mask, paper=False, column=False):
     if variant == "A":
         handles = [Line2D([], [], color=cD, marker="o", markersize=3, label="$D$ success"),
                    Line2D([], [], color=cD, marker="s", markersize=2.5, linestyle="--", alpha=0.6,
-                          label="$D$ straddle"),
+                          label="$D$ retention" if D14 else "$D$ straddle"),
                    Line2D([], [], color=cS, marker="^", markersize=3, label="$s_1$ success"),
                    Line2D([], [], color=cS, marker="s", markersize=2.5, linestyle="--", alpha=0.6,
-                          label="$s_1$ straddle")]
+                          label="$s_1$ retention" if D14 else "$s_1$ straddle")]
     else:
         handles = [Line2D([], [], color=cD, marker="o", markersize=3, label="$D$ far-saddle success"),
                    Patch(color=cD, alpha=0.3, label="$D$ reached the saddle, lost the line"),
@@ -279,6 +294,8 @@ def main():
         if any(ph for _, ph in data_for.values()):
             sys.exit("paper figure refused: a row would use placeholder data")
         name = "noise_seven_starts_col.png" if args.column else "noise_seven_starts.png"
+        if D14:
+            name = name.replace(".png", "_d14.png")   # same file the paper includes
         allc = build("A", os.path.join(FIG_DIR, name), data_for, None, paper=True, column=args.column)
     else:
         mask = zone_mask()
@@ -287,7 +304,7 @@ def main():
             allc = build(v, os.path.join(args.out_dir, f"flip_resolution_rows_{v}.png"), data_for, mask)
 
     fmt = lambda c: "None" if c is None else f"{c:.4f}"
-    print("\n50% crossings of success (None = no tick drawn)")
+    print("\n50% crossings of " + ("retention" if D14 else "success") + " (None = no tick drawn)")
     print(f"{'start':<6}{'D sigma_uv':>12}{'s1 sigma_uv':>13}{'D sigma_p':>12}{'s1 sigma_p':>13}")
     for name, _, _ in ROWS:
         cu, cp = allc[name]

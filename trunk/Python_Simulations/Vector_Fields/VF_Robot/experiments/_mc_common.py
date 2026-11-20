@@ -28,6 +28,22 @@ from src.fields.environments.Double_Gyre import double_gyre_static
 
 FORMATION_CONFIG = "config/formations/pentagon_small.yaml"
 V_MAX, GAIN = 0.04, 3.0
+
+# Robot model. {} is the legacy model (alpha 0.7, no delay, gain 1) behind
+# Draft_13. ROBOT_2026 is the 2026-11-16 fit to the hardware campaign that
+# OmniCluster and QuadCluster use (gain 0.86, delay 0.055 s, lag 0.02 s,
+# dead zone 0.025, cap 0.3). Draft_14 runs pass it as spec["robot"].
+ROBOT_2026 = dict(momentum_alpha=float(np.exp(-0.1 / 0.02)), stiction_model="deadzone",
+                  stiction_threshold=0.025, max_velocity=0.3,
+                  command_gain=0.86, input_delay=0.055)
+ROBOT_MODELS = {"legacy": {}, "2026": ROBOT_2026}
+
+
+def robot_from_env():
+    """ROBOT_2026 when D14=1 is set in the environment (spawned workers inherit
+    it), else the legacy model. Used by the experiments/unsteady_dg runners."""
+    import os
+    return ROBOT_2026 if os.environ.get("D14") == "1" else {}
 EPS_RAW, EPS_DIM = 1e-3, 0.025
 SIM_STEPS = 500
 # Paper experiment (user 2026-07-02): ONE consistent straddling start on
@@ -52,7 +68,7 @@ SADDLE_CONTACT_D = 0.06
 # which no experiment uses. The threshold value itself is unchanged.)
 COLLAPSE_RMS = 0.30
 
-_NOMINAL_PDIST = None
+_NOMINAL_PDIST = {}   # per formation config
 
 
 def _pairdists(pts):
@@ -65,13 +81,13 @@ def _pairdists(pts):
 
 def run_trial(spec):
     """spec: dict(sigma_uv, sigma_p, seed, primitive). Returns row dict."""
-    global _NOMINAL_PDIST
     np.random.seed(spec["seed"])
     rng = np.random.default_rng(spec["seed"])
 
     with contextlib.redirect_stdout(io.StringIO()):
         field = AnalyticalField(double_gyre_static)
-        cluster = PentagonCluster(FORMATION_CONFIG, field)
+        cluster = PentagonCluster(spec.get("formation", FORMATION_CONFIG), field,
+                                  **spec.get("robot", {}))
 
     if spec.get("start") is not None:
         x0, y0 = spec["start"]
@@ -85,9 +101,10 @@ def run_trial(spec):
     cluster.measurement_noise_std = spec["sigma_uv"]
     cluster.position_noise_std = spec["sigma_p"]
 
-    if _NOMINAL_PDIST is None:
+    form = spec.get("formation", FORMATION_CONFIG)
+    if form not in _NOMINAL_PDIST:
         pts0 = np.array(cluster.get_robot_positions()).reshape(6, 2)
-        _NOMINAL_PDIST = _pairdists(pts0)
+        _NOMINAL_PDIST[form] = _pairdists(pts0)
 
     prim = spec["primitive"]
     effort = 0.0
@@ -134,7 +151,7 @@ def run_trial(spec):
     # formation collapse (max over trial)
     rms_max = 0.0
     for k in range(0, len(rhist), 10):
-        err = _pairdists(rhist[k]) - _NOMINAL_PDIST
+        err = _pairdists(rhist[k]) - _NOMINAL_PDIST[form]
         rms_max = max(rms_max, float(np.sqrt(np.mean(err ** 2))))
     collapsed = rms_max > COLLAPSE_RMS
 

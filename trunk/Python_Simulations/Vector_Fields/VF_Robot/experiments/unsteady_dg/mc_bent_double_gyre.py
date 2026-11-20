@@ -84,6 +84,40 @@ def sep_x(y, d):
     return -d * np.cos(np.pi * y)
 
 
+# -- Own-trench scoring (Draft_14) --------------------------------------------
+# Each tracker rides a trench of its own field, D or s1, which on the bent gyre
+# bows away from the separatrix. Scoring the straddle against that trench
+# separates "rode the wrong curve" from "lost the curve". The trench at height
+# y is the local minimum of the true field across x nearest the separatrix,
+# found on a fine grid; heights with no such minimum within 0.3 are skipped.
+_TRENCH = {}
+_TY = np.linspace(-0.49, 0.49, 197)
+
+
+def _true_field(x, y, d, which, h=1e-5):
+    up = bent_gyre(x + h, y, 0.0, {"delta": d}); um = bent_gyre(x - h, y, 0.0, {"delta": d})
+    vp = bent_gyre(x, y + h, 0.0, {"delta": d}); vm = bent_gyre(x, y - h, 0.0, {"delta": d})
+    ux, vx = (up[0] - um[0]) / (2 * h), (up[1] - um[1]) / (2 * h)
+    uy, vy = (vp[0] - vm[0]) / (2 * h), (vp[1] - vm[1]) / (2 * h)
+    if which == "D":
+        return ux * vy - uy * vx
+    return 0.5 * (ux + vy) - np.hypot(0.5 * (ux - vy), 0.5 * (uy + vx))
+
+
+def own_trench_x(y, d, which):
+    key = (round(d, 6), which)
+    if key not in _TRENCH:
+        xs = []
+        for yy in _TY:
+            x0 = sep_x(yy, d)
+            xg = np.linspace(x0 - 0.3, x0 + 0.3, 601)
+            f = np.array([_true_field(x, yy, d, which) for x in xg])
+            k = np.nonzero((f[1:-1] < f[:-2]) & (f[1:-1] <= f[2:]))[0] + 1
+            xs.append(xg[k[np.argmin(np.abs(xg[k] - x0))]] if len(k) else np.nan)
+        _TRENCH[key] = np.array(xs)
+    return np.interp(y, _TY, _TRENCH[key], left=np.nan, right=np.nan)
+
+
 def run_trial(spec):
     rng = np.random.default_rng(spec["seed"])
     np.random.seed(spec["seed"] % (2**32))
@@ -91,7 +125,7 @@ def run_trial(spec):
     d = spec["delta"]
     with contextlib.redirect_stdout(io.StringIO()):
         field = AnalyticalField(bent_gyre)
-        cluster = PentagonCluster(mc.FORMATION_CONFIG, field)
+        cluster = PentagonCluster(mc.FORMATION_CONFIG, field, **mc.robot_from_env())
     field.config = {"delta": d}
     x0, y0 = STARTS[spec["start"]]
     cluster.reset(x0, y0, heading_offset=heading)
@@ -109,6 +143,7 @@ def run_trial(spec):
             return vx * mc.GAIN, vy * mc.GAIN
 
     err_h, cy_h, strad_h, rms = [], [], [], []
+    own_h, own_err = [], []
     outcome, contact_step = "timeout", -1
     for k in range(MAX_STEPS):
         cluster.move(prim)
@@ -118,6 +153,11 @@ def run_trial(spec):
         err_h.append(abs(cx - sep_x(cy, d)))
         cy_h.append(cy)
         strad_h.append(bool(side.min() < 0 < side.max()))
+        tx = own_trench_x(rp[:, 1], d, spec["tracker"])
+        ok = np.isfinite(tx)
+        own_h.append(bool(ok.sum() < 2 or ((rp[ok, 0] - tx[ok]).min() < 0 < (rp[ok, 0] - tx[ok]).max())))
+        txc = own_trench_x(cy, d, spec["tracker"])
+        own_err.append(abs(cx - txc) if np.isfinite(txc) else np.nan)
         if k % 10 == 0:
             rms.append(float(np.sqrt(np.mean((mc._pairdists(rp) - nominal) ** 2))))
         if np.hypot(cx - P1[0], cy - P1[1]) < CONTACT:
@@ -156,11 +196,18 @@ def run_trial(spec):
         lost_y = float(cy_h[first + int(np.argmin(strad[first:]))])
     success = outcome == "p1" and not collapsed
     seg = err[acq:] if acq >= 0 else err[-50:]
+    own = np.array(own_h)
+    o_first = int(np.argmax(own)) if own.any() else -1
+    kept_own = bool(own.any() and own[o_first:].all())
+    oe = np.array(own_err)
+    oe = oe[acq:] if acq >= 0 else oe[-50:]
     return {
         "delta": d, "tracker": spec["tracker"], "start": spec["start"],
         "trial": spec["trial"], "seed": spec["seed"], "heading": round(heading, 5),
         "outcome": outcome, "success": int(success), "reversal": int(outcome == "p2"),
         "retained": int(success and kept), "collapsed": int(collapsed),
+        "retained_own": int(success and kept_own), "kept_own": int(kept_own),
+        "track_own": round(float(np.nanmean(oe)), 6) if np.isfinite(oe).any() else np.nan,
         "steps": len(err_h), "contact_step": contact_step, "acq_step": acq,
         "track_mean": round(float(seg.mean()), 6), "hold_frac": hold_frac,
         "hold_max": hold_max, "final_x": round(float(cluster.get_centroid()[0]), 5),

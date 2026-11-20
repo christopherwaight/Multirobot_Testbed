@@ -83,6 +83,22 @@ N_WORKERS  = max(1, (os.cpu_count() or 2) - 1)
 OUT_DIR   = os.path.join(HERE, "outputs", "oecs")
 CACHE_DIR = os.path.join(OUT_DIR, "objectivity_rotating_mc")
 
+# Draft_14 (set ROT_D14=1 in the environment, so spawned workers see it too):
+# the 2026-11-16 robot model (_mc_common.ROBOT_2026) and frames at +/-0.10 and
+# +/-0.18. With command gain g = 0.86 the s1 hold delivers at most
+# g k c_max = 0.103, so holding the far saddle needs |Omega| < 0.206; 0.18
+# leaves about a 10% margin. Outputs carry a _d14 suffix.
+D14 = os.environ.get("ROT_D14") == "1"
+ROBOT = {}
+FILE_TAG = ""
+if D14:
+    from _mc_common import ROBOT_2026 as ROBOT
+    FRAMES = (0.0, -0.10, 0.10, -0.18, 0.18)
+    SNAP_OMEGA = 0.18
+    CACHE_DIR = CACHE_DIR + "_d14"
+    FILE_TAG = "_d14"
+N_WORKERS = int(os.environ.get("ROT_WORKERS", N_WORKERS))
+
 
 # ============================================================================
 # SIMULATION
@@ -106,7 +122,7 @@ def simulate(name, omega, heading, robots=False):
     fn = (double_gyre_static if omega == 0.0
           else make_rotating_frame(double_gyre_static, omega))
     field = AnalyticalField(fn)
-    cl = PentagonCluster(FORMATION_CONFIG, field)
+    cl = PentagonCluster(FORMATION_CONFIG, field, **ROBOT)
     cl.reset(*START, heading_offset=heading)
     field.reset_clock()
     prim = _primitive(name)
@@ -290,7 +306,7 @@ def summarize(n):
                   f"{row['final_dist_median']:14.4f} {100*row['latch_frac']:5.1f}% "
                   f"{100*row['reached_near_saddle_frac']:10.1f}%  ring min {row['ring_min_min']:.3f}")
     tag = "" if n == N_TRIALS else f"_n{n}"
-    path = os.path.join(OUT_DIR, f"objectivity_rotating_summary{tag}.csv")
+    path = os.path.join(OUT_DIR, f"objectivity_rotating_summary{tag}{FILE_TAG}.csv")
     with open(path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader()
@@ -309,8 +325,9 @@ X_VIEW, Y_VIEW = (-0.32, 0.32), (-0.62, 0.42)    # Fig. 6's view
 # blue is 2.99:1, relieved by the legend).
 STYLE = {0.0: ("#1a1a1a", "inertial"),
          -0.10: ("#5598e7", r"$\Omega=-0.10$"), 0.10: ("#e2615e", r"$\Omega=+0.10$"),
-         -0.23: ("#1c5cab", r"$\Omega=-0.23$"), 0.23: ("#a82a29", r"$\Omega=+0.23$")}
-LEGEND_ORDER = (-0.23, -0.10, 0.0, 0.10, 0.23)
+         -SNAP_OMEGA: ("#1c5cab", rf"$\Omega=-{SNAP_OMEGA:.2f}$"),
+         SNAP_OMEGA: ("#a82a29", rf"$\Omega=+{SNAP_OMEGA:.2f}$")}
+LEGEND_ORDER = (-SNAP_OMEGA, -0.10, 0.0, 0.10, SNAP_OMEGA)
 
 
 def _outline(P):
@@ -337,9 +354,16 @@ def snapshot_steps():
         C, R = z["C"], z["R"]
         ride = len(first_descent(C))
         depth = _one_sided_depth(R[:ride])
-        depth[(C[:ride, 1] > RIDE_Y[0]) | (C[:ride, 1] < y_min)] = 0.0
-        assert depth.max() > 0, f"D {om:+.2f} keeps the straddle in the snapshot window"
-        k = int(np.argmax(depth))
+        outside = (C[:ride, 1] > RIDE_Y[0]) | (C[:ride, 1] < y_min)
+        depth[outside] = 0.0
+        if depth.max() > 0:
+            k = int(np.argmax(depth))
+        else:
+            # Draft_14 rates: this heading keeps the straddle, so show the
+            # largest centroid offset from x = 0 in the same window instead.
+            off = np.abs(C[:ride, 0])
+            off[outside] = -1.0
+            k = int(np.argmax(off))
         out[("D", om)] = k
         zs = np.load(os.path.join(CACHE_DIR, f"snap_s1_{om:+.2f}.npz"))
         Cs = zs["C"]
@@ -424,7 +448,7 @@ def plot(n):
                handletextpad=0.3, bbox_to_anchor=(0.5 * (left + right), 0.0),
                borderaxespad=0.15)
     tag = "" if n == N_TRIALS else f"_n{n}"
-    path = os.path.join(OUT_DIR, f"objectivity_rotating{tag}.png")
+    path = os.path.join(OUT_DIR, f"objectivity_rotating{tag}{FILE_TAG}.png")
     fig.savefig(path, dpi=400)
     print(f"Figure written to {path}")
     for key, k in snaps.items():

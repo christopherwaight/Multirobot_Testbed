@@ -102,7 +102,7 @@ def _worker(spec):
             "final_x": fx, "final_y": fy, "outcome": out}
 
 
-def make_specs(n_map, seed, n_head):
+def make_specs(n_map, seed, n_head, robot=None):
     rng = np.random.default_rng(seed)
     x0, x1, y0, y1 = mc.START_BOX
     xs = rng.uniform(x0, x1, n_map)
@@ -113,7 +113,7 @@ def make_specs(n_map, seed, n_head):
         for k in range(n_map):
             specs.append({"tracker": tr, "name": "", "start": (float(xs[k]), float(ys[k])),
                           "heading": float(hs[k]), "sigma_uv": 0.0, "sigma_p": 0.0,
-                          "seed": int((seed + 7919 * k) % (2**31))})
+                          "seed": int((seed + 7919 * k) % (2**31)), "robot": robot or {}})
     hrng = np.random.default_rng(seed + 1)
     hh = hrng.uniform(0.0, 2 * np.pi, n_head)
     for name, st in NAMED_STARTS.items():
@@ -121,7 +121,8 @@ def make_specs(n_map, seed, n_head):
             for k in range(n_head):
                 specs.append({"tracker": tr, "name": name, "start": st,
                               "heading": float(hh[k]), "sigma_uv": 0.0, "sigma_p": 0.0,
-                              "seed": int((seed + 104729 + 7919 * k) % (2**31))})
+                              "seed": int((seed + 104729 + 7919 * k) % (2**31)),
+                              "robot": robot or {}})
     return specs
 
 
@@ -263,6 +264,9 @@ def main():
     ap.add_argument("--headings", type=int, default=N_HEADINGS,
                     help="random headings per named start")
     ap.add_argument("--seed", type=int, default=20261006)
+    ap.add_argument("--robot", choices=sorted(mc.ROBOT_MODELS), default="legacy",
+                    help="robot model; Draft_14 uses 2026 with --tag _d14")
+    ap.add_argument("--tag", default="", help="suffix for every output file, e.g. _d14")
     ap.add_argument("--skip-map", action="store_true",
                     help="run only the named starts; writes zone_starts_seven.csv and "
                          "leaves zone_trials.csv, zone_candidates.csv and the figure alone")
@@ -285,7 +289,7 @@ def main():
         commit = "unknown"
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    specs = make_specs(args.trials, args.seed, args.headings)
+    specs = make_specs(args.trials, args.seed, args.headings, mc.ROBOT_MODELS[args.robot])
     print(f"{len(specs)} trials, {args.workers} workers", flush=True)
     rows = []
     with Pool(args.workers) as pool:
@@ -301,7 +305,7 @@ def main():
     if args.skip_map:
         named_only(rows, head, "_" + args.only.replace(",", "_") if args.only else "")
         return
-    with open(os.path.join(OUT_DIR, "zone_trials.csv"), "w") as f:
+    with open(os.path.join(OUT_DIR, f"zone_trials{args.tag}.csv"), "w") as f:
         f.write(head + ",".join(["name"] + COLUMNS) + "\n")
         for r in rows:
             f.write(",".join(str(r[c]) if c != "name" else r["name"] for c in ["name"] + COLUMNS) + "\n")
@@ -312,7 +316,7 @@ def main():
     print("that cell and its neighbours. A low nbr with a high own rate marks an edge.")
     print(f"{'start':<6}{'trk':<4}" + "".join(f"{c:>11}" for c in CLASSES)
           + f"{'far total':>11}{'cell':>7}{'nbr':>7}")
-    with open(os.path.join(OUT_DIR, "zone_starts.csv"), "w") as f:
+    with open(os.path.join(OUT_DIR, f"zone_starts{args.tag}.csv"), "w") as f:
         f.write(head + "start,tracker,n," + ",".join(CLASSES) + ",far_total,cell_far_band,nbr_min_far_band\n")
         for name, (sx_, sy_) in NAMED_STARTS.items():
             ci, cj = cell_of(sx_, sy_)
@@ -334,12 +338,12 @@ def main():
     print(f"{'x':>7}{'y':>7}{'p_D':>7}{'p_s1':>7}{'nbr_D':>7}{'nbr_s1':>8}")
     for c in cand[:25]:
         print(f"{c[0]:7.2f}{c[1]:7.2f}{c[2]:7.2f}{c[3]:7.2f}{c[4]:7.2f}{c[5]:8.2f}")
-    with open(os.path.join(OUT_DIR, "zone_candidates.csv"), "w") as f:
+    with open(os.path.join(OUT_DIR, f"zone_candidates{args.tag}.csv"), "w") as f:
         f.write(head + "x,y,p_D,p_s1,nbr_min_D,nbr_min_s1\n")
         for c in cand:
             f.write(",".join(f"{v:.4f}" for v in c) + "\n")
 
-    plot(rows, os.path.join(FIG_DIR, "zone_of_convergence.png"), g)
+    plot(rows, os.path.join(OUT_DIR if args.tag else FIG_DIR, f"zone_of_convergence{args.tag}.png"), g)
 
 
 if __name__ == "__main__":

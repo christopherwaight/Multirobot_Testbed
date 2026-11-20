@@ -82,16 +82,20 @@ def main(args):
     X, Y = np.meshgrid(xs, ys)
     Z = _s1(X, Y, A)
 
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 3.25))
+    # Drawn at the printed column width (3.5 in), so the labels print at their
+    # stated size; Draft_13 drew it at 7 in and LaTeX halved every font.
+    plt.rcParams.update({"font.size": 7, "axes.labelsize": 7})
+    fig, axes = plt.subplots(1, 2, figsize=(3.5, 2.25))
 
     for ax in axes:
         ax.contourf(X, Y, Z, levels=28, cmap="viridis", alpha=0.85)
-        ax.axvline(0.0, color="black", linewidth=2.0, zorder=4)
-        ax.plot([0], [0], "o", color="crimson", ms=7, zorder=6)
+        ax.axvline(0.0, color="black", linewidth=1.3, zorder=4)
+        ax.plot([0], [0], "o", color="crimson", ms=4.5, zorder=6)
         ax.set_xlim(*p["x_range"]); ax.set_ylim(*p["y_range"])
         ax.set_aspect("equal")
         ax.set_xlabel(r"$x$")
-        ax.tick_params(labelsize=8)
+        ax.tick_params(labelsize=6, length=2, pad=1)
+        ax.set_xticks([-0.25, 0, 0.25])
 
     # ---------------- (a) tangent selection ----------------
     ax = axes[0]
@@ -105,24 +109,24 @@ def main(args):
         win, name = _tangent(xo, yv, A)
         lose = e1 if name == "e_2" else e2
         # loser: thin grey; winner: heavy white. Both drawn as axes.
-        for vec, col, lw, z in ((lose, "0.75", 1.3, 6), (win, "white", 2.8, 7)):
+        for vec, col, lw, z in ((lose, "0.75", 0.9, 6), (win, "white", 1.9, 7)):
             ax.plot([xo - L * vec[0], xo + L * vec[0]],
                     [yv - L * vec[1], yv + L * vec[1]],
                     color=col, linewidth=lw, zorder=z, solid_capstyle="round")
         gn = g / np.linalg.norm(g)
         ax.annotate("", xy=(xo + 0.78 * L * gn[0], yv + 0.78 * L * gn[1]),
                     xytext=(xo, yv), zorder=8,
-                    arrowprops=dict(arrowstyle="-|>", color="orangered", lw=1.7))
-        ax.text(xo + L + 0.022, yv, rf"$\mathbf{{{name}}}$", color="white",
-                fontsize=9, va="center", zorder=9)
-    ax.text(0.0, 0.335, "attracting segment", fontsize=8, color="white",
+                    arrowprops=dict(arrowstyle="-|>", color="orangered", lw=1.2))
+        ax.text(xo + L + 0.012, yv, rf"$\mathbf{{{name}}}$", color="white",
+                fontsize=7.5, va="center", zorder=9)
+    ax.text(0.0, 0.335, "attracting segment", fontsize=6.5, color="white",
             ha="center", zorder=9)
-    ax.text(0.0, -0.355, "repelling segment", fontsize=8, color="white",
+    ax.text(0.0, -0.355, "repelling segment", fontsize=6.5, color="white",
             ha="center", zorder=9)
-    ax.text(-0.285, 0.325, r"$\nabla \hat{s}_1$", color="orangered",
-            fontsize=9, ha="left", va="center", zorder=9)
-    ax.set_title(r"(a) tangent from $\arg\max|\nabla \hat{s}_1^\top \mathbf{e}|$",
-                 fontsize=9)
+    ax.text(-0.285, 0.21, r"$\nabla \hat{s}_1$", color="orangered",
+            fontsize=7.5, ha="left", va="center", zorder=9)
+    ax.set_title(r"(a) tangent: $\arg\max|\nabla \hat{s}_1^\top \mathbf{e}|$",
+                 fontsize=7, pad=3)
 
     # ---------------- (b) command decomposition ----------------
     ax = axes[1]
@@ -141,21 +145,20 @@ def main(args):
     ax.plot([x0], [y0], "o", color="white", ms=6, mec="black", zorder=8)
     ax.annotate("", xy=(x0 + ride[0], y0 + ride[1]), xytext=(x0, y0),
                 zorder=8,
-                arrowprops=dict(arrowstyle="-|>", color="white", lw=2.4))
+                arrowprops=dict(arrowstyle="-|>", color="white", lw=1.6))
     ax.annotate("", xy=(x0 + perp[0], y0 + perp[1]), xytext=(x0, y0),
                 zorder=8,
-                arrowprops=dict(arrowstyle="-|>", color="orangered", lw=2.4))
-    ax.text(x0 + ride[0] + 0.022, y0 + ride[1] - 0.01,
-            r"$\mathrm{sat}(c_{\max})\,\mathbf{t}$",
-            color="white", fontsize=8, ha="center", va="top", zorder=9)
-    ax.text(x0 - 0.02, y0 + 0.035,
-            r"$\mathrm{sat}(-g_\perp \mathbf{t}_\perp^\top\nabla \hat{s}_1)\,\mathbf{t}_\perp$",
-            color="orangered", fontsize=8, ha="right", zorder=9)
-    ax.set_title(r"(b) ride along $\mathbf{t}$, descend across it",
-                 fontsize=9)
+                arrowprops=dict(arrowstyle="-|>", color="orangered", lw=1.6))
+    ax.text(x0 + ride[0] + 0.03, y0 + ride[1] - 0.015,
+            "ride\nalong $\\mathbf{t}$",
+            color="white", fontsize=6.5, ha="center", va="top", zorder=9)
+    ax.text(x0 + perp[0] - 0.012, y0 + perp[1],
+            "descend\nacross $\\mathbf{t}_\\perp$",
+            color="orangered", fontsize=6.5, ha="right", va="center", zorder=9)
+    ax.set_title(r"(b) the command", fontsize=7, pad=3)
 
-    fig.subplots_adjust(left=0.08, right=0.99, top=0.90, bottom=0.14,
-                        wspace=0.10)
+    fig.subplots_adjust(left=0.11, right=0.99, top=0.91, bottom=0.13,
+                        wspace=0.08)
 
     out = args.out
     out.parent.mkdir(parents=True, exist_ok=True)

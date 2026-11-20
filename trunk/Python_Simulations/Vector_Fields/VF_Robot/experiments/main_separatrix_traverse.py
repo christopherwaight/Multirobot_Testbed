@@ -88,6 +88,13 @@ LABEL_OFFSETS = {"S5": (-12, -2), "S7": (4, -7)}
 # Output stem suffix, so these runs do not overwrite the six-start outputs.
 SUFFIX = "_seven"
 
+# Draft_14: set D14=1 in the environment for the 2026-11-16 robot model
+# (_mc_common.ROBOT_2026); outputs then carry the suffix _seven_d14.
+ROBOT = {}
+if os.environ.get("D14") == "1":
+    from experiments._mc_common import ROBOT_2026 as ROBOT
+    SUFFIX = "_seven_d14"
+
 OUT_DIR = os.path.join(project_root, "experiments", "outputs", "oecs")
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -109,7 +116,7 @@ def run_until_held(cl, prim):
 
 def run_logic_c(sx, sy):
     field = AnalyticalField(double_gyre_static)
-    cl = PentagonCluster(FORMATION_CONFIG, field)
+    cl = PentagonCluster(FORMATION_CONFIG, field, **ROBOT)
     cl.reset(sx, sy)
 
     def prim(c):
@@ -121,7 +128,7 @@ def run_logic_c(sx, sy):
 
 def run_traverser(sx, sy):
     field = AnalyticalField(double_gyre_static)
-    cl = PentagonCluster(FORMATION_CONFIG, field)
+    cl = PentagonCluster(FORMATION_CONFIG, field, **ROBOT)
     cl.reset(sx, sy)
 
     def prim(c):
@@ -174,6 +181,27 @@ def path_gap(hist_a, hist_b):
     return float(all_d.mean()), float(all_d.max())
 
 
+def basin_grid(tracker):
+    """Draft_14: share of headings from which a start in each 0.1 cell reaches
+    the downstream saddle, from mc_zone_of_convergence.py --robot 2026 --tag _d14."""
+    import csv
+    tag = os.environ.get("D14_ZONE_TAG", "_d14")   # _d14_10k after the overnight run
+    path = os.path.join(project_root, "experiments", "outputs", "mc_zone", f"zone_trials{tag}.csv")
+    if not os.path.exists(path):
+        return None
+    xe, ye = np.arange(-0.8, 0.81, 0.1), np.arange(-0.4, 0.41, 0.1)
+    n = np.zeros((len(ye) - 1, len(xe) - 1)); k = np.zeros_like(n)
+    with open(path) as f:
+        for r in csv.DictReader(l for l in f if not l.startswith("#")):
+            if r["tracker"] != tracker or r["name"]:
+                continue
+            i = min(int((float(r["start_y"]) + 0.4) / 0.1), len(ye) - 2)
+            j = min(int((float(r["start_x"]) + 0.8) / 0.1), len(xe) - 2)
+            n[i, j] += 1
+            k[i, j] += r["outcome"] in ("far_band", "far_direct")
+    return xe, ye, np.where(n > 0, k / np.maximum(n, 1), np.nan)
+
+
 def main():
     try:
         commit = subprocess.check_output(
@@ -199,8 +227,14 @@ def main():
     # Titles use the paper's names for the two primitives. The internal
     # names (Logic C / Primitive 7, Primitive 11) do not appear in the
     # paper and must not appear in a figure it embeds.
-    for ax, title in ((ax_c, "$D$ tracker"),
-                      (ax_t, "$s_1$ tracker")):
+    from matplotlib.colors import ListedColormap, BoundaryNorm
+    shade = ListedColormap(["none", "#dcefdc", "#a9d8a9"])
+    for ax, title, trk in ((ax_c, "$D$ tracker", "D"),
+                           (ax_t, "$s_1$ tracker", "s1")):
+        g = basin_grid(trk) if ROBOT else None
+        if g is not None:
+            ax.pcolormesh(g[0], g[1], np.nan_to_num(g[2]), cmap=shade,
+                          norm=BoundaryNorm([0, 0.5, 0.9, 1.01], 3), zorder=0)
         ax.streamplot(GX, GY, U, Vv, color="0.82", density=0.9, linewidth=0.4,
                       arrowsize=0.5)
         ax.axvline(SEPARATRIX_X, color="0.35", ls="--", lw=0.7)

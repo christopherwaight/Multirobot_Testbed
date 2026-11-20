@@ -159,7 +159,7 @@ def run_trial(spec):
     heading = rng.uniform(0.0, 2 * np.pi)
     with contextlib.redirect_stdout(io.StringIO()):
         field = AnalyticalField(bickley)
-        cluster = PentagonCluster(mc.FORMATION_CONFIG, field)
+        cluster = PentagonCluster(mc.FORMATION_CONFIG, field, **mc.robot_from_env())
     x0, y0 = STARTS[spec["start"]]
     cluster.reset(x0, y0, heading_offset=heading)
     cluster.measurement_noise_std = 0.0
