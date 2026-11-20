@@ -17,9 +17,82 @@ T(r"""
 
 Each rung of the ladder of Section~\ref{sec:ch4:ladder} reads more of the
 field than the one below it, and it pays for that in robots, in formation
-geometry, and in noise. This chapter compares the rungs on those costs.
-Three short numerical experiments supply the evidence where no chapter
-already does.
+geometry, and in noise. This chapter compares the rungs on one flow, on
+the landscapes each can read, and on those costs. Short numerical
+experiments supply the evidence where no chapter already does.
+
+\section{One Flow at Three Orders}
+\label{sec:ch8:one_flow}
+
+% New text. Checked 2026-11-19 in experiments/thesis_ch8_one_flow.py: the
+% shifted field equals the left gyre of Section~\ref{sec:ch3:dg_example} to
+% machine precision, and det J vanishes on the diamond.
+A cell of the double gyre is a bounded eddy: water circulates about a
+center and is held between saddles at the corners of the cell. Two of the
+benchmark fields of this dissertation are this one flow.
+Chapter~\ref{ch:first_order} tests the first-order estimate on a single
+cell centered on the origin,
+\begin{equation}
+    \mathbf{v} = 0.1\pi\,\bigl(\cos\pi X\,\sin\pi Y,\;
+    -\sin\pi X\,\cos\pi Y\bigr),
+    \label{eq:ch8:cell}
+\end{equation}
+and Chapter~\ref{ch:second_order} tracks the separatrix between the two
+cells of the steady double gyre of Section~\ref{sec:ch3:dg_example}.
+Shifting the left cell by $X = x + 0.5$, with $Y = y$, turns the
+double-gyre field into (\ref{eq:ch8:cell}) term for term. The right wall
+of the cell, $X = 0.5$, is then the separatrix $x = 0$, and the saddles at
+its ends are the flow saddles of Chapter~\ref{ch:second_order}. On the
+cell the determinant of the velocity gradient is
+$D = \tfrac{1}{2}\pi^4 A^2(\cos 2\pi X + \cos 2\pi Y)$ with $A = 0.1$,
+which vanishes on the diamond $|X| + |Y| = 1/2$.
+
+Each rung of the ladder was run on this flow, and
+Table~\ref{tab:ch8:one_flow} records what happened.
+
+\begin{table}[htbp]
+\centering
+\caption{The gyre cell at each rung.}
+\label{tab:ch8:one_flow}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.6cm} >{\raggedright\arraybackslash}p{4.0cm} >{\raggedright\arraybackslash}p{7.2cm}}
+\hline
+Rung & What the cluster reads & What it did on this flow \\
+\hline
+Zeroth & the speed & It could not tell the center from the saddles, since the speed vanishes at all of them, and it lost every orbit (Section~\ref{sec:ch6:comparison}). \\
+First & $\hat{\mathbf{J}}$ at one point, from three robots & The sign of $\det\hat{\mathbf{J}}$ at the first step decided which critical point the cluster reached, and orbits were lost once the formation reached the diamond (Section~\ref{sec:ch6:sim_attraction}). \\
+Second & the quadratic fit over the footprint, from six robots & Both trackers rode the separatrix, the right wall of the cell, to the saddle at its end (Section~\ref{sec:ch7:disc_clean}). \\
+\hline
+\end{tabular}
+\end{table}
+
+The determinant is the function behind the last two rows, read at two
+orders. At first order the cluster reads one value of $D$ at a point, and
+its sign sorts the starts into basins: the attraction law is a Newton step
+toward a zero of the fitted flow, which cannot cross the diamond
+$\det\hat{\mathbf{J}} = 0$. At second order the cluster reads the
+landscape of $D$ over its footprint, and the trenches of that landscape
+are separatrices (Section~\ref{sec:ch7:surrogates}). The two readings meet
+at one point. On the separatrix $D$ is zero only at the crest, where the
+diamond touches the wall (Fig.~\ref{fig:ch8:one_flow}). The crest is also
+where the along-trench slope of $D$ vanishes, so it is where the Newton
+step of the $D$ tracker stalls and the measured flow carries the cluster
+over (Section~\ref{sec:ch7:sep_controller}).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.7\textwidth]{ch8_one_flow.png}
+    \caption{One gyre cell at three orders, in the cell coordinates of
+    (\ref{eq:ch8:cell}). The shading is $D$, and the dotted diamond is
+    $\det\mathbf{J} = 0$. Dots are the 1000 starts of the first-order gyre
+    trials, blue where the cluster reached the center and orange where it
+    reached a saddle. Lines are one noise-free ride of each second-order
+    tracker from start S1 of Chapter~\ref{ch:second_order}, shifted into
+    cell coordinates; both ride the separatrix, the right wall of the cell,
+    to the saddle at its lower corner. Crosses mark the saddles of the cell,
+    and the diamond marker is the crest.}
+    \label{fig:ch8:one_flow}
+\end{figure}
 
 \section{Vector Fields as Scalar Landscapes}
 \label{sec:ch8:scalar}
@@ -36,8 +109,11 @@ cluster can climb, descend, or follow.
 Table~\ref{tab:ch8:scalar} shows what each fit order makes available. A
 fit of order $k$ recovers derivatives of the field up to order $k$. A
 quantity built from derivatives of order $m$ therefore has a value at
-order $m$, a gradient at order $m + 1$, and a curvature at order $m + 2$.
-A primitive needs the gradient to steer on a landscape and the curvature
+order $m$, a gradient at order $m + 1$, and a curvature at order $m + 2$,
+wherever it is differentiable. The magnitude is not differentiable where
+the velocity vanishes, which matters at the critical points themselves,
+and $s_1 = \mu - r$ is not differentiable at an isotropic point, where
+the strain vanishes. A primitive needs the gradient to steer on a landscape and the curvature
 to know what shape it is on. The magnitude sits one order below the
 quantities built from $\mathbf{J}$. This is why a three-robot fit can
 steer on the magnitude but only read the value of $D$ and $s_1$, and why
@@ -87,17 +163,21 @@ is one Newton step toward $\mathbf{v} = \mathbf{0}$, and the same
 $\hat{\mathbf{J}}$ names the type.
 
 A closed-loop test confirms this with the three-robot simulator of
-Chapter~\ref{ch:first_order}. The vector-to-scalar primitive of
+Chapter~\ref{ch:first_order}, on the robot model of
+Section~\ref{sec:ch2:dynamics}. The vector-to-scalar primitive of
 Section~\ref{sec:ch5:vector_to_scalar} descended the magnitude from 1000
 random starts in a 1~m box around a saddle. On the canonical saddle of
-Appendix~\ref{app:fields} it finished within 0.006~m of the saddle in
-95\% of trials, the same as on the vortex, whose magnitude landscape is
+Appendix~\ref{app:fields} it finished within 0.005~m of the saddle in
+every trial, the same as on the vortex, whose magnitude landscape is
 identical. On a saddle with rates 1 and $-1/3$ the magnitude is an
 elliptic cone with a sharp point at the saddle, and a plane fit across
 that point is biased. The cluster then settled a median of 0.048~m from
-the saddle, with 91\% of trials within 0.05~m. The attraction law of
-Chapter~\ref{ch:first_order} finished within 0.015~m in 95\% of trials on
-all three fields (Fig.~\ref{fig:ch8:magnitude}).
+the saddle, with every trial within 0.05~m. The attraction law of
+Chapter~\ref{ch:first_order} finished within 0.024~m in every trial on
+all three fields, at the edge of the friction ring $v_c/k = 0.025$~m of
+Section~\ref{sec:ch6:friction} and in agreement with the 22.6~mm mean
+final error of Table~\ref{tab:ch6:simulation_results}
+(Fig.~\ref{fig:ch8:magnitude}).
 
 \begin{figure}[htbp]
     \centering
@@ -117,7 +197,7 @@ all three fields (Fig.~\ref{fig:ch8:magnitude}).
 A fit of order $k$ has $n_k = \tfrac{1}{2}(k+1)(k+2)$ coefficients per
 component (Section~\ref{sec:ch4:minimality}), so it needs 3, 6, 10, and 15
 robots for $k = 1$ to 4. With exactly $n_k$ robots the fit fails when the
-robots lie on a common algebraic curve of degree $k$, a line for the
+robots lie on a common algebraic curve of degree at most $k$, a line for the
 first order, a conic for the second, and a cubic for the third.
 Interpolation theory calls a point set that avoids this unisolvent.
 
@@ -194,7 +274,9 @@ reading, the fitted coefficient of degree $q$ has standard deviation
     \qquad q = |\alpha|,
     \label{eq:ch8:coef_noise}
 \end{equation}
-where the row norm depends on the formation's shape alone.
+where the row norm depends on the formation's shape alone. This scaling is
+exact for a formation of fixed shape, independent noise of equal variance
+on every reading, and a full-rank $\boldsymbol{\Phi}_1$.
 
 What matters at the terminal step is the error in whatever quantity the
 controller drives to zero. An error $\delta f$ in that quantity moves its
@@ -206,7 +288,9 @@ $\delta f$ scales as $\rho^{-m}\sigma$, and
     \delta n \sim \frac{\rho^{-m}\,\sigma}{|\partial f/\partial n|}.
     \label{eq:ch8:terminal_noise}
 \end{equation}
-The first-order law drives the velocity itself to zero ($m = 0$). With
+Unlike (\ref{eq:ch8:coef_noise}), this relation is an approximation to
+first order in the noise, since $f$ is nonlinear in the coefficients. The
+first-order law drives the velocity itself to zero ($m = 0$). With
 the centroid on the critical point, the fit's value there is the mean of
 the three readings, so its error has standard deviation $\sigma/\sqrt{3}$
 per component. This recovers the estimate $\sigma_p \approx
@@ -249,7 +333,14 @@ two were nearly equal at twice the nominal radius.
 At every radius the transverse error of the $s_1$ tracker was about 3.6
 times that of the $D$ tracker. Section~\ref{sec:ch7:disc_noise} traces
 the $s_1$ tracker's failures under noise to the sign of its tangent,
-which is selected from the same gradient.
+which is selected from the same gradient. The ordering matches the
+retention levels of Section~\ref{sec:ch7:disc_noise}, where the $D$
+tracker withstood \prelim{4.4} to \prelim{5.6} times the measurement noise
+of the $s_1$ tracker from the starts above the origin. The two ratios
+measure different things. The first compares the fit errors at one point
+of the separatrix at a fixed noise level. The second compares the noise
+levels at which each tracker's retention falls to 50\%, and acquisition
+and reversals enter only the second.
 
 \begin{figure}[htbp]
     \centering
@@ -261,6 +352,85 @@ which is selected from the same gradient.
     Right, the RMS truncation error of the noise-free fits.}
     \label{fig:ch8:radius}
 \end{figure}
+
+Each rung has a signal-to-noise ratio of its own. The signal is the next
+derivative of the field times the footprint raised to that order, and
+Table~\ref{tab:ch8:snr} sets it against the noise on it and gives the
+threshold that each chapter found. The thresholds are not comparable one
+to one: the first-order condition is a validity condition for a
+covariance prediction and not a failure point, and the zeroth rung has no
+measured threshold, so none is stated. The zeroth rung has a sharp
+consequence all the same. A direction read from a vector becomes unreliable
+where the vector vanishes, and the vector vanishes at the critical points
+that the first rung was built to find.
+
+\begin{table}[htbp]
+\centering
+\caption{The signal each rung reads, the noise on it, and the threshold
+found for that rung.}
+\label{tab:ch8:snr}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.5cm} >{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{2.0cm} >{\raggedright\arraybackslash}p{5.7cm}}
+\hline
+Rung & Signal & Noise on it & Threshold found \\
+\hline
+Zeroth & $\lVert\mathbf{v}\rVert$ & sensing error & None measured. Small vectors gave large direction shifts on the RGB testbed (Section~\ref{sec:ch2:hsv}). \\
+First & $\sigma_{\min}(\mathbf{J})R$ & $\sigma_v$ & The covariance prediction of $\bar{e}_f$ holds within 5\% when $\sigma_{\min}(\mathbf{J})R \geq 3\sigma_v$ (Section~\ref{sec:ch6:discussion}). \\
+Second & $\pi^3 A\rho^2$, the largest second derivative of the gyre times $\rho^2$ & $2.53\,\sigma_{uv}$ & The two are equal near $\sigma_{uv} = 0.007$. By $\sigma_{uv} = 0.01$ neither tracker keeps the straddle in more than \prelim{60}\% of trials from any start (Section~\ref{sec:ch7:disc_noise}). \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Steady Offsets: Speed over Loop Gain}
+\label{sec:ch8:offsets}
+
+% New text. Every row of the table is a result of Chapters 5 to 7 or a
+% statement of Chapter 9; nothing here was run for this chapter, except the
+% fit of the vector-sum drift in Section~\ref{sec:ch6:limit_cycle}.
+Every primitive of this dissertation closes a loop around a target, and
+every one settles away from it for the same reason. When some speed
+reaches the loop uncancelled, the cluster settles offset from its target by
+that speed divided by the loop gain. If the speed exceeds the largest
+command the loop can issue, the cluster loses the target.
+Table~\ref{tab:ch8:offsets} lists the speeds that reached the loop in the
+experiments.
+
+\begin{table}[htbp]
+\centering
+\caption{Speeds that the loop does not cancel, the loop gain that opposes
+them, and the offset or loss that follows. $T$ is the response delay of
+Section~\ref{sec:ch6:orbits}.}
+\label{tab:ch8:offsets}
+\footnotesize
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.4cm} c >{\raggedright\arraybackslash}p{5.4cm} >{\raggedright\arraybackslash}p{2.4cm}}
+\hline
+Speed the loop does not cancel & Loop gain & Result & Where \\
+\hline
+Dead zone $v_c$ & $k$ & The cluster settles inside the friction ring $v_c/k$: 0.025~m in Chapter~\ref{ch:first_order} and 0.008 in the hold of Chapter~\ref{ch:second_order}. & Sec.~\ref{sec:ch6:friction}, \ref{sec:ch7:closed_loop} \\
+Outward drift from late turns, $TV^2/r^*$ & $gk_r$ & Limit cycle, $r^* - r_d = (TV^2/r^*)/(gk_r)$. & Sec.~\ref{sec:ch6:orbits} \\
+The same drift with no radial loop & $0$ & $r^2$ grows at $2TV^2$ without bound, as the vector-sum primitive drifted. & Sec.~\ref{sec:ch5:trials}, \ref{sec:ch6:limit_cycle} \\
+A critical point moving at speed $V$ & $gk$ & The cluster trails it by $V/(gk)$ (stated, not tested). & Sec.~\ref{sec:ch9:limitations} \\
+Frame transport, $0.5\lvert\Omega\rvert$ & $gk$ & The hold trails by $0.5\lvert\Omega\rvert/(gk)$. The $s_1$ hold is lost once $0.5\lvert\Omega\rvert > gkc_{\max}$. & Sec.~\ref{sec:ch7:rotating} \\
+A separatrix moving faster than $gkc_{\max} = 0.103$ & saturated & Both channels lose it. & Sec.~\ref{sec:ch7:beyond} \\
+\hline
+\end{tabular}
+\end{table}
+
+The friction ring is the simplest case. The dead zone ignores any command
+below $v_c$, so the cluster stops where $k\lVert\mathbf{p}_c -
+\hat{\mathbf{p}}^*\rVert = v_c$. The orbit's limit cycle has the same
+form. The late turn drifts the cluster outward at $TV^2/r^*$, and the
+radial loop of gain $gk_r$ balances it at
+$r^* - r_d = (TV^2/r^*)/(gk_r)$, which is (\ref{eq:ch6:orbit_cf})
+rearranged. A primitive with no radial loop leaves the drift uncorrected.
+
+All of these settle a loop whose gain is bounded above. The sampled loop
+is stable only below $1/(gL) = 21.1$ per unit time, or 16.1 with the lag
+included (Section~\ref{sec:ch7:closed_loop}). At first order the designer
+sets the gain, which is $k$. At second order the field sets part of it: $k$
+times the ratio of true to fitted curvature for the $D$ tracker, and
+$k g_\perp\,\partial^2 s_1/\partial n^2$ for the $s_1$ tracker. This is why
+the $s_1$ path wiggles below $y = -0.19$, where its gain passes the bound.
 
 \section{Scalability}
 \label{sec:ch8:scalability}
@@ -302,6 +472,192 @@ Section~\ref{sec:ch4:cluster_space}. The claims of
 Chapter~\ref{ch:second_order} are for six robots with ample bandwidth
 (Section~\ref{sec:ch9:second_order}), and a ten-robot cubic cluster would
 carry the same limitation with more state to share.
+
+\section{Fitted Features and True Features}
+\label{sec:ch8:fitted_true}
+
+% New text.
+A cluster steers on a feature of its fit, and the fit stands in for the
+flow. Each rung therefore has two features: the one the cluster steers on,
+which belongs to the fitted polynomial, and the one it wants, which belongs
+to the flow. Table~\ref{tab:ch8:fitted_true} gives, for each rung, when the
+two coincide and where they came apart.
+
+\begin{table}[htbp]
+\centering
+\caption{The feature each rung steers on, the condition under which it is
+the true feature, and where it was seen to fail.}
+\label{tab:ch8:fitted_true}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{1.4cm} >{\raggedright\arraybackslash}p{3.0cm} >{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}p{4.6cm}}
+\hline
+Rung & Steers to & It is the true feature when & It fails visibly on \\
+\hline
+Zeroth & the minimum of the fitted magnitude plane & the speed grows equally in every direction & the anisotropic node, where the primitive reached the critical point in 6\% of trials, and the gyre, where the speed vanishes at the center and the saddles alike (Section~\ref{sec:ch6:comparison}). \\
+First & the zero of the fitted affine field & the field is affine from the cluster out to the critical point & the gyre and the rotational saddle, where the estimate stayed 2.6 to 4.9~mm from the true critical point and the sign of $\det\hat{\mathbf{J}}$ set the basin (Section~\ref{sec:ch6:sim_attraction}). \\
+Second & the trench of the fitted $D$ or $s_1$ & the rotation on the separatrix is small against the strain, which is necessary but not sufficient & the bent gyre and the Bickley jet, where each tracker rides the trench of its own field (Section~\ref{sec:ch7:beyond}). \\
+\hline
+\end{tabular}
+\end{table}
+
+The condition is a statement about the flow, which the cluster cannot see.
+What it can do is compute quantities from its own fit that signal when the
+condition is likely to fail. Table~\ref{tab:ch8:indicators} lists them.
+
+\begin{table}[htbp]
+\centering
+\caption{Quantities a cluster can compute about its own fit.}
+\label{tab:ch8:indicators}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.3cm} >{\raggedright\arraybackslash}p{1.7cm} >{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}p{4.0cm}}
+\hline
+Indicator & Order & Signals & Tested \\
+\hline
+$\sigma_{\min}(\hat{\mathbf{J}})$ & first & a near-singular critical point estimate, since model error is amplified by $1/\sigma_{\min}$ & Stated in Section~\ref{sec:ch6:discussion}. The attraction law does not gate on it. \\
+$\lvert\hat{\alpha}\rvert/\hat{\nu}$ against the center threshold & first & a type label near a boundary & The labels were scored at three thresholds (Table~\ref{tab:ch6:classification_hw}). \\
+$\lvert\hat{\omega}\rvert/2\hat{r}$ & first & a trench unlikely to mark a separatrix & Yes: retention falls as the ratio rises (Section~\ref{sec:ch7:beyond}). It needs a heading referenced to an inertial frame. \\
+The least-squares residual & any order with more than $n_k$ robots & measurement noise, where the truncation error is small & Not tested (Section~\ref{sec:ch9:higher_order}). \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Lower Rungs Inside Higher Ones}
+\label{sec:ch8:nesting}
+
+% New text. The decision rule below is a synthesis of the two trackers of
+% Chapter 7, not a tested result.
+The rungs also nest in use. The $D$ tracker is a composition of all three.
+It makes its stop decision with the zeroth- and first-order coefficients,
+the least noisy that the fit returns: once the fitted flow has a saddle
+inside the formation, it latches the attraction law of
+Chapter~\ref{ch:first_order}. It signs its direction against the measured
+flow, a zeroth-order quantity. Only its directions and steps along and
+across the trench, the eigenvectors and curvature of the fitted Hessian of
+$D$, are of second order. The $s_1$ tracker nests the other way. It chooses
+between the strain eigenvectors $\mathbf{e}_1$ and $\mathbf{e}_2$, a
+first-order quantity, by the gradient of $s_1$, a second-order quantity,
+and it takes the sign of that choice from memory. Its reversals therefore
+concentrate where the along-trench slope goes to zero
+(Section~\ref{sec:ch7:disc_noise}), and the future-work rule of
+Section~\ref{sec:ch9:higher_order}, taking the eigenvector nearest the
+previous tangent, would move that choice down to first order.
+
+These two cases suggest a design rule: make each decision with the
+lowest-order coefficients that can make it, since the noise on a
+coefficient of order $q$ grows as $\rho^{-q}$ (Section~\ref{sec:ch8:noise_order}).
+The rule accounts for the sign and stop decisions of the $D$ tracker. It
+does not account for the whole noise gap between the trackers, because the
+along-trench direction of the $D$ tracker is itself of second order.
+
+The rungs meet in a second way. Critical points are the nodes of a flow,
+and separatrices connect them. On the steady double gyre the separatrix is
+a heteroclinic connection, since the flow runs down it from
+$\mathbf{p}^*_2$ to $\mathbf{p}^*_1$. The $D$ tracker travels that
+connection and captures the node at its end with the test and the law of
+Chapter~\ref{ch:first_order}. Section~\ref{sec:ch9:features} lists
+heteroclinic orbits as a feature that needs a second-order fit. On this one
+steady flow Chapter~\ref{ch:second_order} has done it, and
+Section~\ref{sec:ch7:beyond} shows that the time-periodic and jet cases
+do not hold up as cleanly.
+
+\section{Classification and Frames Across the Rungs}
+\label{sec:ch8:class_frames}
+
+% New text. The saddle-read-as-center statement follows from
+% D' = D + Omega*omega + Omega^2 (Appendix D); with omega = 0 and a pure
+% strain s, D' = Omega^2 - s^2, and J' has eigenvalues +/- i sqrt(Omega^2 - s^2)
+% for Omega > s. Checked numerically 2026-11-19.
+Every rung is asked what it is looking at. The zeroth rung cannot say: the
+speed looks the same at a saddle and a center
+(Section~\ref{sec:ch8:scalar}). The first names the type from the
+eigenvalues of $\hat{\mathbf{J}}$ (Chapter~\ref{ch:first_order}). The
+second types what it rides. At sea the tangent of the $s_1$ tracker
+followed $\mathbf{e}_2$, an attracting OECS, on 34 of 42 steps from 7 to
+14~h, and a backward FTLE field checked it (Section~\ref{sec:ch7:disc_ocean}).
+The hard cases sit on the classifier's boundaries at both rungs. A center
+has $\operatorname{tr}\mathbf{J} = 0$, and on hardware only 45\% and 47\%
+of its cycles were labeled strictly as a center with three and four robots
+(Section~\ref{sec:ch6:hw_class}). At an isotropic point, where the strain
+vanishes, the tangent of the $s_1$ tracker swaps eigenvector and its
+reversals begin.
+
+Table~\ref{tab:ch8:scalar} marks which fields are objective, and the
+primitives need the same column (Table~\ref{tab:ch8:objectivity}). A
+first-order fit is not objective either. With no vorticity and a pure
+strain $s$, an observer rotating at $\Omega$ reads $D' = \Omega^2 - s^2$
+(Appendix~\ref{app:frame_equivariance}), so one that rotates faster than
+the strain rate reads an irrotational saddle as a center.
+
+\begin{table}[htbp]
+\centering
+\caption{Objectivity of the primitives. A primitive is objective when
+observers rotating relative to each other agree on what it steers on.}
+\label{tab:ch8:objectivity}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{3.4cm} >{\raggedright\arraybackslash}p{3.8cm} >{\raggedright\arraybackslash}p{5.2cm}}
+\hline
+Primitive & Reads & Objective \\
+\hline
+Vector-sum, vector-to-scalar & the sensed vector and its magnitude & no \\
+Attraction, orbital & the fitted affine field & no \\
+$D$ tracker & $\hat{D}$ and its Hessian & no \\
+$s_1$ tracker & $\hat{s}_1$, its gradient, the strain eigenframe & the features, yes; the command, where its sign test is decisive; the path, only empirically (Appendix~\ref{app:frame_equivariance}) \\
+\hline
+\end{tabular}
+\end{table}
+
+``Instantaneous'' also needs one scope sentence. Estimation is memoryless,
+but control is not: the $D$ tracker latches its stop test, and the $s_1$
+tracker carries one sign bit. That bit buys its objectivity and is the
+source of its reversals.
+
+\section{Design Guidelines}
+\label{sec:ch8:guidelines}
+
+% New text. The ratios 0.14 and 0.11 are arithmetic on stated numbers:
+% 0.025 m over the center-to-robot distance of the 0.30 m triangle,
+% 0.30/sqrt(3) = 0.173 m, and 0.008 m over the pentagon radius 0.075 m.
+The thresholds of the second-order trackers are stated in formation radii,
+which is why the same trackers ran on the nondimensional double gyre and,
+after a uniform dilation, on the Santa Barbara Channel, where one length
+unit is 51.4~km (Section~\ref{sec:ch7:ocean_sim}).
+Table~\ref{tab:ch8:groups} collects the dimensionless groups behind the
+results of this dissertation.
+
+\begin{table}[htbp]
+\centering
+\caption{Dimensionless groups behind the results of this dissertation.}
+\label{tab:ch8:groups}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{4.4cm} >{\raggedright\arraybackslash}p{4.0cm} >{\raggedright\arraybackslash}p{4.0cm}}
+\hline
+Group & Governs & Where \\
+\hline
+$\rho$ over the length on which the field curves & truncation bias & Sections~\ref{sec:ch4:size}, \ref{sec:ch8:noise_order} \\
+Signal over noise, by rung & noise failure & Table~\ref{tab:ch8:snr} \\
+$gkL$ & stability of the sampled loop & Section~\ref{sec:ch7:closed_loop} \\
+$v_c/(k\rho)$ & the friction ring in formation radii, 0.14 of the center-to-robot distance of the triangle in Chapter~\ref{ch:first_order} and 0.11 of the pentagon radius in Chapter~\ref{ch:second_order} & Table~\ref{tab:ch8:offsets} \\
+$\lvert\omega\rvert/2r$ & whether a trench marks a separatrix & Section~\ref{sec:ch7:beyond} \\
+Feature or frame speed over $gkc_{\max}$ & tracking a moving feature or holding in a rotating frame & Table~\ref{tab:ch8:offsets} \\
+\hline
+\end{tabular}
+\end{table}
+
+Four guidelines follow, each from a result above. First, size the
+formation to the field. A larger formation suppresses the noise on a
+coefficient of order $q$ as $\rho^{-q}$ and raises the truncation error with
+$\rho$, so the radius belongs where the two curves cross
+(Section~\ref{sec:ch8:noise_order}). Second, keep the robots off the
+degenerate curve and watch the condition number: the pentagon plus center
+gives 8.26 for a quadratic fit, and the best ten-robot layout found for a
+cubic fit gives 44.3 (Section~\ref{sec:ch8:geometry}). Third, keep the loop
+gain below the sampled-loop limit and the friction ring small against the
+formation radius, remembering that at second order the field sets part of the
+gain (Section~\ref{sec:ch8:offsets}). Fourth, choose the tracker by the
+constraint: rotation of the observer favors the $s_1$ tracker, while noise
+and directional reliability favor the $D$ tracker, and a cluster with an
+absolute heading reference gives up little by carrying the $D$ tracker
+(Chapter~\ref{ch:second_order}).
 """),
 ]
 

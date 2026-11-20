@@ -8,7 +8,7 @@
 The hardware results of this dissertation come from the Decabot testbed
 of the Santa Clara University Robotic Systems Laboratory. The robots, the
 motion capture system, and the cluster space software predate this work
-\cite{41}. This dissertation adds the HSV encoding of vector fields
+\cite{42}. This dissertation adds the HSV encoding of vector fields
 on printed floor maps, the neural network calibration of the robots'
 color sensors, a remeasurement of the robots' dynamics, and the
 simulation environments built around them.
@@ -19,10 +19,12 @@ simulation environments built around them.
 % Ported from: IDETC 2025 (DETC2025-167604), Sec. 2.2, transcribed from the published PDF
 The robots used for this testbed are Decabots, a fleet of
 omnidirectional rovers developed at Santa Clara University
-\cite{41}. They are equipped with TCS34725 RGB sensors on their
+\cite{42}. They are equipped with TCS34725 RGB sensors on their
 undercarriage, enabling them to sense the color patterns of the colored
 floor mat underneath and estimate the vector field being represented at
-that point. Each is powered by an Arduino and communicates over TCP/IP to
+that point. Each is powered by an Intel Edison on an Arduino breakout board,
+with a Teensy 3.2 that reads the encoders and the light sensor, and
+communicates over TCP/IP to
 a host computer that interprets the robot's sensed value, uses the
 information to calculate and return robot velocity commands to each
 robot. Each robot has a maximum linear velocity of 0.3~m/s. No
@@ -61,12 +63,12 @@ readings from the test palette.
 
 % Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.1, transcribed from the published PDF
 This research used an existing testbed as a starting point
-\cite{41}. Unlike general-purpose multi-agent platforms such as
-Robotic Park \cite{42} that emphasize heterogeneous robot
+\cite{42}. Unlike general-purpose multi-agent platforms such as
+Robotic Park \cite{43} that emphasize heterogeneous robot
 integration, our testbed specifically focuses on vector field
 representation and interpretation through a homogeneous robot fleet with
-consistent sensing capabilities. It includes three omnidirectional mobile
-rovers (Decabots), 2.3~m$^2$ multicolored floor maps representing
+consistent sensing capabilities. It includes three or four omnidirectional
+mobile rovers (Decabots), 1.6~m by 1.6~m multicolored floor maps representing
 different vector fields, and a motion capture system (OptiTrack) to
 verify the position of the robots relative to the floor mat with
 centimeter level accuracy. The Decabots and OptiTrack communicate to a
@@ -86,7 +88,7 @@ equipment.
 \end{figure}
 
 % Ported from: cwaight_systems_paper_with_revisions2.tex
-The same testbed, used for the critical point experiments of Chapter~\ref{ch:first_order}, is SCU's Robotic Systems Laboratory Decabot testbed \cite{41} (Fig.~\ref{fig:ch2:fullbed}), which has been used to validate multirobot adaptive navigation algorithms for both cluster control and swarm particle optimization techniques \cite{4,43}.
+The testbed of Chapters~\ref{ch:zeroth} and~\ref{ch:first_order}, with three robots in the first and three or four in the second, is SCU's Robotic Systems Laboratory Decabot testbed \cite{42} (Fig.~\ref{fig:ch2:fullbed}), which has been used to validate multirobot adaptive navigation algorithms for cluster control and swarm particle optimization \cite{16,44}.
 
 % Ported from: cwaight_systems_paper_with_revisions2.tex
 \begin{figure}[htbp]
@@ -107,7 +109,7 @@ The multilayer control architecture of Chapter~\ref{ch:estimation} runs in MATLA
 % Ported from: IDETC 2025 (DETC2025-167604), Sec. 1, transcribed from the published PDF
 Previous attempts at creating vector field testbeds for multirobot
 adaptive navigation had limited success due to technical barriers
-\cite{44}. Approaches using red and green colors to represent
+\cite{45}. Approaches using red and green colors to represent
 orthogonal vectors suffered from sensor channel interference on robotic
 RGB sensors. This interference made encoding vectors to color maps
 problematic, preventing accurate decoding of direction and magnitude
@@ -161,7 +163,7 @@ friction.
 
 % Ported from: IDETC 2025 (DETC2025-167604), Sec. 3.3, transcribed from the published PDF
 The RGB sensor data suffered from channel interference as noted in
-previous studies \cite{44}. The TCS34725 RGB sensor specification
+previous studies \cite{45}. The TCS34725 RGB sensor specification
 sheet confirms that blue, green, and red channels cannot be fully
 isolated. This effect persisted even after conversion to an HSV color
 space. Traditional calibration methods neither significantly improved
@@ -278,11 +280,15 @@ calibration procedures while maintaining high accuracy.
 % New text
 The robots were recalibrated after preventive maintenance, before the
 critical point experiments of Chapter~\ref{ch:first_order}. The
-recalibrated models use the four raw channels as inputs and are the ones
-the later hardware results rely on.
+recalibrated models are the ones the later hardware results rely on.
+Their errors are reported as RMS errors in degrees of hue and percent of
+saturation, where Table~\ref{tab:ch2:calibration} gives the circular $R^2$
+and the RMSE of hue in turns and of saturation on a unit scale. An RMS error
+of 6.1$^\circ$ in hue is an RMSE of 0.017 on the scale of that table, and
+3.8\% in saturation is 0.038.
 
 % Ported from: cwaight_systems_paper_with_revisions2.tex
-The robots' RGB sensors are calibrated against a printed palette spanning hue $0$ to $2\pi$ and saturation $0$ to $1$ at 24 intervals in each dimension. The encoding and calibration palette follows~\cite{28}. Each robot records raw RGB and clear-channel counts over every palette cell. The readings are normalized and stored as a four-dimensional feature vector $(R,G,B,K)$. Two feedforward networks, each with two hyperbolic-tangent hidden layers, are trained to recover the target hue and saturation from this vector. The saturation network has a single output, while the hue network outputs the sine and cosine of hue to respect its circularity. Training pools data across robots so that a single model can be applied to an uncalibrated unit without per-robot tuning. On the printed maps, this calibration gave the three trained robots RMS errors of 6.1$^\circ$ in hue and 3.8\% in saturation. The fourth robot, never used in training, read hue as accurately (6.3$^\circ$) but reported field magnitude 12 to 14\% low.
+The recalibration repeats the palette and the two networks of the previous sections with two changes. The input is the four normalized raw channels $(R,G,B,K)$ in place of seven inputs, and training pools data across robots so that a single model can be applied to an uncalibrated unit without per-robot tuning. On the printed maps, this calibration gave the three trained robots RMS errors of 6.1$^\circ$ in hue and 3.8\% in saturation. The fourth robot, never used in training, read hue as accurately (6.3$^\circ$) but reported field magnitude 12 to 14\% low.
 
 % Ported from: cwaight_systems_paper.tex
 \begin{figure}[htbp]
@@ -313,7 +319,7 @@ velocity.
 
 Each robot's position was tracked over a 3 second period as it followed
 each lane. This continuous motion capability stands in contrast to sparse
-sampling approaches necessary in marine environments \cite{45}, where
+sampling approaches necessary in marine environments \cite{46}, where
 energy constraints and environmental factors limit sampling frequency.
 The average velocity for each saturation run was computed. Across all
 robots, the velocities scaled linearly with saturation at values above
@@ -327,23 +333,34 @@ interpreting vector primitive performance.
 \label{sec:ch2:dynamics}
 
 % Ported from: cwaight_systems_paper_with_revisions2.tex
-In simulation, each robot is modeled as a single omnidirectional point mass that follows its command after a transport delay $L$, through a first order response with actuator time constant $\tau$ \cite{5,46}, a dead zone $v_c$, and a speed limit $v_{\max}$. The robot attains a fraction $g$ of each command, so its velocity $\mathbf{v}_{r,i} = \dot{\mathbf{p}}_i$ follows
+In simulation, each robot is modeled as a single omnidirectional point mass that follows its command after a transport delay $L$, through a first order response with actuator time constant $\tau$, a dead zone $v_c$, and a speed limit $v_{\max}$. The robot attains a fraction $g$ of each command, so its velocity $\mathbf{v}_{r,i} = \dot{\mathbf{p}}_i$ follows
 \begin{equation}
     \tau\,\dot{\mathbf{v}}_{r,i}(t) = -\mathbf{v}_{r,i}(t) + g\,\mathbf{u}_i(t - L),
     \label{eq:ch2:continuous}
 \end{equation}
-where $\mathbf{u}_i$ is zero for commands below $v_c$. Fits to the hardware runs of Chapter~\ref{ch:first_order} give $g = 0.86$ and $L + \tau = 0.075$~s, which we split as $\tau = 0.02$~s and $L = 0.055$~s; we take $v_{\max} = 0.3$~m/s and the measured $v_c = 0.025$~m/s.
+where $\mathbf{u}_i$ is zero for commands below $v_c$. Through system characterization of the hardware, it was found that $g = 0.86$, $L + \tau = 0.075$~s (split as $\tau = 0.02$~s and $L = 0.055$~s), $v_{\max} = 0.3$~m/s, and $v_c = 0.025$~m/s.
 
-For digital implementation at control period $\Delta t$ and cycle $j$, each command is held over its period. A fractional delay $f = L/\Delta t \in [0, 1)$ means the robot spends the first fraction $f$ of each period on the previous command, yielding
+For digital implementation, each command is held over the control period $\Delta t$ of cycle $j$, with a fractional delay $f = L/\Delta t \in [0, 1)$, yielding
 \begin{equation}\label{eq:ch2:momentum}
 \begin{split}
 &\bar{\mathbf{u}}_i[j] = (1-f)\,\mathbf{u}_i[j] + f\,\mathbf{u}_i[j-1],\\
-&\tilde{\mathbf{v}} = \alpha\,\mathbf{v}_{r,i}[j] + (1-\alpha)\,g\,\bar{\mathbf{u}}_i[j],\\
+&\tilde{\mathbf{v}} = \alpha_{\text{mom}}\,\mathbf{v}_{r,i}[j] + (1-\alpha_{\text{mom}})\,g\,\bar{\mathbf{u}}_i[j],\\
 &\mathbf{v}_{r,i}[j+1] = \tilde{\mathbf{v}}\,\min\{1,\ v_{\max}/\|\tilde{\mathbf{v}}\|\},\\
 &\mathbf{p}_i[j+1] = \mathbf{p}_i[j] + \Delta t\,\mathbf{v}_{r,i}[j+1],
 \end{split}
 \end{equation}
-where $\alpha = e^{-\Delta t/\tau}$ and the dead zone acts on $\bar{\mathbf{u}}_i$. At a 10~Hz control rate, $f = 0.55$ and $\alpha \approx 0.007$, so the robot reaches $g$ times its command within one cycle.
+where $\alpha_{\text{mom}} = e^{-\Delta t/\tau}$ and the dead zone acts on $\bar{\mathbf{u}}_i$. At a 10~Hz control rate, $f = 0.55$ and $\alpha_{\text{mom}} \approx 0.007$, so the robot reaches $g$ times its command within one cycle.
+
+% New text. The fitted dead zone and the 0.05 m/s of the 2025 tests.
+The dead zone of 0.025~m/s is a fitted value. The 2025 tests place the
+floor near 0.05~m/s: lanes below a saturation of 0.3, a command of about
+0.09~m/s, did not overcome static friction (Section~\ref{sec:ch2:saturation}).
+The two numbers measure different things. A lane test combines the decoding
+of a low saturation with the friction of the robot, while the fit uses the
+commanded and the measured velocity directly. The runs of both campaigns
+come to rest where the attraction command falls to about 0.03 to
+0.05~m/s, and no run commanded less than about 0.06~m/s, so neither number
+is a direct measurement of the threshold.
 
 \section{Field Reconstruction as a Noise Model}
 \label{sec:ch2:reconstruction}
@@ -379,9 +396,9 @@ measurement time, leaving the true robot state untouched.
 % Ported from: IDETC 2025 (DETC2025-167604), Sec. 5, transcribed from the published PDF
 Despite significant improvements over previous testbeds, important
 limitations persist. Indoor small-scale testbeds often inadequately
-represent large-scale environments \cite{40}, and our system is
+represent large-scale environments \cite{41}, and our system is
 currently restricted to static vector fields, preventing reactive control
-testing in dynamic environments \cite{37} with no clear path to enable
+testing in dynamic environments \cite{38} with no clear path to enable
 this using colormaps. Constrained to two-dimensional vector fields, 3D
 extensions would require additional sensing capabilities.
 
@@ -391,7 +408,49 @@ path planning methods. The testbed is limited to homogeneous robots and
 lacks obstacle avoidance sensors, restricting studies of heterogeneous
 multi-robot behaviors in complex environments. Physical constraints
 include a maximum 3~m by 6~m work area, approximately one hour battery
-life per robot, and a limited velocity range of 0.05 to 0.3~m/s.
+life per robot, and a limited velocity range of 0.05 to 0.3~m/s in the 2025
+tests (Section~\ref{sec:ch2:dynamics}).
 Additionally, the Decabots' wheels degrade both paper and printed colors
 on colormaps, necessitating replacement after a few dozen runs and adding
 significant operational costs.
+
+\section{Verification by Substitution}
+\label{sec:ch2:substitution}
+
+% New text. The studies of this dissertation earn their claims one way: swap
+% one part of the system, hold the rest fixed, and see what changes.
+The claims of this dissertation rest on one habit: swap one part of the
+system, hold the rest fixed, and see what changes.
+Table~\ref{tab:ch2:substitution} lists the substitutions, and each isolates
+a single question.
+
+\begin{table}[htbp]
+\centering
+\caption{Substitutions used to isolate one question at a time.}
+\label{tab:ch2:substitution}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{5.2cm} >{\raggedright\arraybackslash}p{7.0cm} c}
+\hline
+Substitution & What it isolates & Chapter \\
+\hline
+Robot R4 held out of the calibration training & whether the sensor calibration generalizes to a new robot & \ref{ch:tools} \\
+Analytical field against reconstructed field & the fixed distortion of the printed map against measurement noise that changes in time & \ref{ch:first_order} \\
+A simulation matched to each hardware run & what the model reproduces and what it omits & \ref{ch:first_order} \\
+The vector-to-scalar primitive alone, with an oracle target, and with a speed estimate & the missing critical point coordinate against the steering direction & \ref{ch:first_order} \\
+Measurement noise and position noise swept separately & which noise limits each tracker & \ref{ch:second_order} \\
+Scoring against the separatrix and against the tracker's own trench, with analytic trenches & the field against the tracker & \ref{ch:second_order} \\
+A rotating observer & objectivity & \ref{ch:second_order} \\
+A replay of the ocean start with small perturbations & whether the headline run was selected & \ref{ch:second_order} \\
+\hline
+\end{tabular}
+\end{table}
+
+The studies also form a sequence. The testbed paper found an outward drift
+that simulation had not predicted, and it promised digital twins of the
+Decabots that capture their dynamics for simulation, together with
+controller substitution on a fixed lower architecture. The first-order
+study delivered both. It fitted the robot model of
+Section~\ref{sec:ch2:dynamics}, used it to explain the drift as a limit
+cycle, and substituted the vector-to-scalar primitive for the Jacobian
+method with the lower layers held fixed. The second-order study runs its
+six-robot simulations on the same model.

@@ -7,8 +7,12 @@ Section "Vector Fields as Scalar Landscapes".
 Near a nondegenerate critical point |v|^2 = (p - p*)^T J^T J (p - p*) is
 positive definite for every type, so every critical point, a saddle
 included, is a minimum of |v|. This script tests that in closed loop with
-the three-robot simulator of the critical-points paper (0.33 m equilateral
-triangle, momentum alpha 0.7, stiction 0.025 m/s, 0.3 m/s cap, 10 Hz).
+the three-robot simulator of the critical-points paper. 2026-11-19 rerun:
+OmniCluster defaults (2026-11-16 fit: gain 0.86, delay 0.055 s, lag 0.02 s,
+dead zone 0.025 m/s, 0.3 m/s cap, 10 Hz) and a 0.30 m triangle
+(config/formations/equilateral_small.yaml). The 2026-09-30 run used a 0.33 m
+triangle and momentum alpha 0.7; its results are kept as
+outputs/thesis_ch8/magnitude_saddle_2026-09-30_legacy.{json,png}.
 
 Primitives, run from the same random starts:
   magnitude descent  plane fit to the three robots' |v_i|, command -k grad|v|,
@@ -30,7 +34,7 @@ Outputs: experiments/outputs/thesis_ch8/magnitude_saddle.json, magnitude_saddle.
 
 Running:
     cd trunk/Python_Simulations/Vector_Fields/VF_Robot
-    venv/bin/python3 experiments/thesis_ch8_magnitude_saddle.py
+    venv/bin/python3 experiments/interesting/thesis_ch8_magnitude_saddle.py
 """
 import io
 import os
@@ -40,7 +44,7 @@ import contextlib
 import math
 import numpy as np
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 from src.robot.omni_cluster import OmniCluster
 from src.fields.field_types import AnalyticalField
@@ -49,7 +53,7 @@ from src.fields.environments.Saddle import saddle1
 from src.fields.environments.Vortex import vortex1
 
 OUT = os.path.join(ROOT, 'experiments', 'outputs', 'thesis_ch8')
-FORMATION = os.path.join(ROOT, 'config', 'formations', 'equilateral_default.yaml')
+FORMATION = os.path.join(ROOT, 'config', 'formations', 'equilateral_small.yaml')
 N_TRIALS = 1000
 STEPS = 150
 GAIN = 1.0

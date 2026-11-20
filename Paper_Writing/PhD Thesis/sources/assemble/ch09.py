@@ -29,14 +29,28 @@ P('sys', 'Several limitations constrain the current implementation and experimen
   end='Onboard relative localization, inter-robot communication, and robustness to lower update rates and dropouts were not tested.',
   subs=[('Section~V-C)', 'Section~\\ref{sec:ch6:hw_attraction})'),
         ('the curvature term of (\\ref{eq:bound})', 'the curvature term of (\\ref{eq:ch6:bound})'),
-        ('(Section~\\ref{sec:hw_testbed})', '(Section~\\ref{sec:ch2:testbed})')]),
+        ('(Section~\\ref{sec:hw_testbed})', '(Section~\\ref{sec:ch2:testbed})'),
+        ('(Section~II-B)', '(Section~\\ref{sec:ch6:estimation})'),
+        ('Section~IV probes', 'Section~\\ref{sec:ch6:sim_attraction} probes')]),
 
 T(r"""
+% New text. What the fitted robot model still misses (Chapter 6).
+The fitted robot model of Section~\ref{sec:ch2:dynamics} closes part of the
+gap between simulation and hardware that Chapter~\ref{ch:zeroth} found.
+Chapter~\ref{ch:first_order} reports three differences that it leaves. The
+live estimate led the cluster along its motion by 1.7 to 2.8~cm in small
+orbits, a lead that the model omits. The hardware vortex ended 0.4 to
+1.5~cm farther from the critical point than the matched simulations. The
+orbits of the four-robot square fell short of the triangle's, which the
+matched simulations did not predict. The shape of the low-speed response
+is also unmeasured, since no run commanded less than about 0.06~m/s.
+
 \subsection{Second-Order Estimation and Tracking}
 \label{sec:ch9:second_order}
 """),
 P('sep', 'Cluster space control is centralized and needs global state and reliable',
-  end='untested in a physical flow.'),
+  end='untested in a physical flow.',
+  subs=[('(Section~\\ref{sec:beyond})', '(Section~\\ref{sec:ch7:beyond})')]),
 
 T(r"""
 \section{Future Work}
@@ -50,7 +64,10 @@ T(r"""
 % New text
 The Santa Barbara Channel trial of Section~\ref{sec:ch7:ocean} ran the
 second-order trackers on a field that changes in time, but on one record
-and with no analytic guarantee.
+and with no analytic guarantee. On a time-periodic double gyre,
+Section~\ref{sec:ch7:beyond} found that both trackers follow the separatrix
+at the smaller amplitude, and that at the larger the separatrix outruns the
+speed that either channel can deliver.
 
 \subsection{Advection-Aware Control}
 \label{sec:ch9:advection}
@@ -66,9 +83,22 @@ T(r"""
 \label{sec:ch9:higher_order}
 """),
 P('sep', 'Future work targets three extensions. First, a fit from more than six',
-  end='the transverse curvature of an $s_1$ trench depend.'),
+  end='of an $s_1$ trench depend.'),
 
 T(r"""
+\subsection{Choosing the Fit Order}
+\label{sec:ch9:switching}
+
+% New text. Built from the indicators of Table~\ref{tab:ch8:indicators}; none of
+% this was built or tested.
+The indicators of Table~\ref{tab:ch8:indicators} give a cluster the inputs
+for choosing its own fit order. A cluster could hold a first-order fit while
+$\lvert\hat{\omega}\rvert/2\hat{r}$ stays small and its type labels sit away
+from their thresholds, and move to a second-order fit when a curve is worth
+following. A fit from more robots than $n_k$ could signal, through its
+residual, when the measurement noise is too large for either tracker. None
+of this was built or tested.
+
 \subsection{Three-Dimensional Fields}
 \label{sec:ch9:3d}
 
@@ -88,6 +118,14 @@ P('sys', 'Beyond critical point detection and orbital control, vector fields con
   subs=[('Separatrices connected to saddle points define boundaries between distinct flow regimes and act as Lagrangian coherent structures in steady flows. ', '')]),
 
 T(r"""
+% New text. Chapter 7 followed one heteroclinic connection on the steady flow.
+On the steady double gyre the separatrix between the two saddles is a
+heteroclinic connection, and the $D$ tracker travels it
+(Section~\ref{sec:ch8:nesting}). The bent gyre and the Bickley jet of
+Section~\ref{sec:ch7:beyond} show that a trench of a fitted surrogate
+follows such a connection only where strain outweighs rotation, so
+following heteroclinic connections in general fields remains future work.
+
 \subsection{Testbed Extensions}
 \label{sec:ch9:testbed}
 
@@ -104,6 +142,14 @@ strategies while maintaining consistent environmental conditions.
 Outdoor testing with autonomous surface vessels \cite{idc:11} and UAVs for
 environmental monitoring \cite{idc:20} would examine transferability to
 larger scales and real-world deployment challenges.
+
+% New text. The IDETC digital-twin and controller-substitution plans, now done in part.
+Part of this has been done. Section~\ref{sec:ch2:dynamics} fits the dynamics
+of the Decabots for simulation, and Section~\ref{sec:ch6:comparison}
+substituted the vector-to-scalar primitive for the Jacobian method with the
+cluster and robot layers held fixed. One further test would settle the dead
+zone of Section~\ref{sec:ch2:dynamics}: a single robot stepped through
+commands from 0.01 to 0.08~m/s, from rest and from motion.
 
 % -------------------------------------------------------------------
 % Parked research note, kept by the author's decision (commit ad76bbf,

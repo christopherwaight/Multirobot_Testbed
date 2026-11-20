@@ -1,11 +1,14 @@
-\chapter{Frame Equivariance of the $s_1$ Tracker}
+\chapter{Objectivity and Frame Equivariance of the $s_1$ Tracker}
 \label{app:frame_equivariance}
 
 % New text. Draft 11 states the frame shift without the algebra; the
 % derivation below was checked 2026-09-29.
 Section~\ref{sec:ch3:relation} states that an observer rotating at rate
 $\Omega$ sees the determinant field shifted by $\Omega\omega + \Omega^2$
-and the strain eigenvalues unchanged. This appendix gives the algebra.
+and the strain eigenvalues unchanged. This appendix gives the algebra and
+then separates three claims about the $s_1$ tracker that differ in
+strength: its features are objective, its command is covariant, and its
+trajectory is equivariant only under conditions.
 
 Split the velocity gradient into strain and spin,
 \begin{equation}
@@ -47,9 +50,36 @@ $\mathbf{J}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^{\top} +
 while $s_1' = s_1$ and $s_2' = s_2$.
 
 The $s_1$ tracker's channels are built from $\hat{s}_1$, its gradient,
-and the strain eigenframe, which all co-rotate with the observer. Its
-tests are scalar inequalities in quantities a rotation leaves unchanged,
-and its tangent reference is its own previous output, carried in state. Its command therefore co-rotates with the frame. The one
-exception is the tangent seed on the first ride step, taken from the
-measured flow, and Section~\ref{sec:ch7:rotating} gives the condition
-under which the two frames agree on it.
+and the strain eigenframe, which all co-rotate with the observer. Three
+statements follow, in increasing strength, and they are the three levels
+of Section~\ref{sec:ch7:s1_controller}.
+
+First, the features are objective. The strain tensor co-rotates as
+$\mathbf{S}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^{\top}$ and its eigenvalues
+are unchanged, so $\hat{s}_1$ is the same scalar field in every frame,
+while its gradient and the eigenvectors turn with the axes. The capture
+test is a ratio of quantities that a rotation leaves invariant, so it gives
+the same answer. The determinant is not objective, by
+(\ref{eq:appD:shift}).
+
+Second, the command is rotationally covariant where its sign test is
+decisive. Given co-rotated inputs and a co-rotated tangent reference, the
+channels return the co-rotated command $\mathbf{u}' = \mathbf{Q}\mathbf{u}$.
+The tangent reference is the previous output, which a rotating observer
+sees turned by $\Omega\,\Delta t$ per step, so the sign rule returns the
+same tangent in both frames except where
+$|\mathbf{t}_{\mathrm{ref}}^{\top}\mathbf{t}_{\mathrm{raw}}| <
+\sin\Omega\,\Delta t$, as at an eigenframe swap. The tangent seed on the
+first ride step is the one input that is not objective, since it is taken
+from the measured flow, which carries the transport velocity of the frame.
+
+Third, the trajectory is not equivariant in general. The co-rotated
+command $\mathbf{u}' = \mathbf{Q}\mathbf{u}$ is not the transformation law
+of coordinate velocity in a rotating frame,
+$\dot{\mathbf{p}}' = \mathbf{Q}\dot{\mathbf{p}} + \dot{\mathbf{Q}}\mathbf{p}$,
+whose second term is the transport velocity of the frame. A cluster that
+realizes the co-rotated command still follows the inertial path only if
+its across-trench feedback absorbs that term, and the feedback can deliver
+no more than the saturated command allows. Section~\ref{sec:ch7:rotating}
+tests this in simulation and finds matching paths while the transport
+velocity stays inside the delivered speed. This appendix does not prove it.

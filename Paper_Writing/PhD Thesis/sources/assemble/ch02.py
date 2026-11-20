@@ -30,7 +30,9 @@ omnidirectional rovers developed at Santa Clara University
 \cite{idc:16}. They are equipped with TCS34725 RGB sensors on their
 undercarriage, enabling them to sense the color patterns of the colored
 floor mat underneath and estimate the vector field being represented at
-that point. Each is powered by an Arduino and communicates over TCP/IP to
+that point. Each is powered by an Intel Edison on an Arduino breakout board,
+with a Teensy 3.2 that reads the encoders and the light sensor, and
+communicates over TCP/IP to
 a host computer that interprets the robot's sensed value, uses the
 information to calculate and return robot velocity commands to each
 robot. Each robot has a maximum linear velocity of 0.3~m/s. No
@@ -73,8 +75,8 @@ This research used an existing testbed as a starting point
 Robotic Park \cite{idc:19} that emphasize heterogeneous robot
 integration, our testbed specifically focuses on vector field
 representation and interpretation through a homogeneous robot fleet with
-consistent sensing capabilities. It includes three omnidirectional mobile
-rovers (Decabots), 2.3~m$^2$ multicolored floor maps representing
+consistent sensing capabilities. It includes three or four omnidirectional
+mobile rovers (Decabots), 1.6~m by 1.6~m multicolored floor maps representing
 different vector fields, and a motion capture system (OptiTrack) to
 verify the position of the robots relative to the floor mat with
 centimeter level accuracy. The Decabots and OptiTrack communicate to a
@@ -94,7 +96,7 @@ equipment.
 \end{figure}
 """),
 P('sys', "The testbed used for validation is SCU's Robotic Systems Laboratory Decabot testbed",
-  subs=[('The testbed used for validation is', 'The same testbed, used for the critical point experiments of Chapter~\\ref{ch:first_order}, is')]),
+  subs=[('The testbed used for validation is', 'The testbed of Chapters~\\ref{ch:zeroth} and~\\ref{ch:first_order}, with three robots in the first and three or four in the second, is')]),
 P('sys', '\\caption{Experimental testbed: 1.6 m', end='\\end{figure}', back=3,
   subs=[('testbed_with_four.png', 'ch2_testbed_with_four.png'),
         ('width=0.58\\columnwidth', 'width=0.5\\textwidth')]),
@@ -283,12 +285,18 @@ calibration procedures while maintaining high accuracy.
 % New text
 The robots were recalibrated after preventive maintenance, before the
 critical point experiments of Chapter~\ref{ch:first_order}. The
-recalibrated models use the four raw channels as inputs and are the ones
-the later hardware results rely on.
+recalibrated models are the ones the later hardware results rely on.
+Their errors are reported as RMS errors in degrees of hue and percent of
+saturation, where Table~\ref{tab:ch2:calibration} gives the circular $R^2$
+and the RMSE of hue in turns and of saturation on a unit scale. An RMS error
+of 6.1$^\circ$ in hue is an RMSE of 0.017 on the scale of that table, and
+3.8\% in saturation is 0.038.
 
 """),
 P('sys', 'The experimental platform used three or four omnidirectional Decabot rovers operating within',
-  subs=[('The experimental platform used three or four omnidirectional Decabot rovers operating within a 1.6~m $\\times$ 1.6~m workspace. Each Decabot features three omnidirectional wheels providing holonomic motion capability and a downward-facing, self-illuminated TCS34725 RGB color sensor enclosed in a light-shrouded housing to minimize external lighting effects. ', '')]),
+  subs=[('The experimental platform used three or four omnidirectional Decabot rovers operating within a 1.6~m $\\times$ 1.6~m workspace. Each Decabot features three omnidirectional wheels providing holonomic motion capability and a downward-facing, self-illuminated TCS34725 RGB color sensor enclosed in a light-shrouded housing to minimize external lighting effects. ', ''),
+        ("The robots' RGB sensors are calibrated against a printed palette spanning hue $0$ to $2\\pi$ and saturation $0$ to $1$ at 24 intervals in each dimension. The encoding and calibration palette follows~\\cite{22}. Each robot records raw RGB and clear-channel counts over every palette cell. The readings are normalized and stored as a four-dimensional feature vector $(R,G,B,K)$. Two feedforward networks, each with two hyperbolic-tangent hidden layers, are trained to recover the target hue and saturation from this vector. The saturation network has a single output, while the hue network outputs the sine and cosine of hue to respect its circularity. Training pools data across robots so that a single model can be applied to an uncalibrated unit without per-robot tuning.",
+         "The recalibration repeats the palette and the two networks of the previous sections with two changes. The input is the four normalized raw channels $(R,G,B,K)$ in place of seven inputs, and training pools data across robots so that a single model can be applied to an uncalibrated unit without per-robot tuning.")]),
 # Kept from the submitted paper: the revision cut this figure, but the tools
 # chapter benefits from the visualization. The caption's pooled-RMSE numbers
 # are dropped so they do not contradict the revision's reported calibration
@@ -342,9 +350,23 @@ interpreting vector primitive performance.
 P('sys', 'In simulation, each robot is modeled as a single omnidirectional point mass',
   end='so the robot reaches $g$ times its command within one cycle.',
   subs=[("Each robot's controller receives velocity commands and translates them into motion. Each robot also samples the local vector field $\\mathbf{v}(\\mathbf{p}_i) = (u_i, v_i)$ and reports its global position $\\mathbf{p}_i$, providing the inputs to the estimation framework described in Section~II. ", ''),
-        ('Fits to the hardware runs of Section~V', 'Fits to the hardware runs of Chapter~\\ref{ch:first_order}')]),
+        ('\\tilde{\\mathbf{v}} = \\alpha\\,\\mathbf{v}_{r,i}[j] + (1-\\alpha)\\,g', '\\tilde{\\mathbf{v}} = \\alpha_{\\text{mom}}\\,\\mathbf{v}_{r,i}[j] + (1-\\alpha_{\\text{mom}})\\,g'),
+        ('where $\\alpha = e^{-\\Delta t/\\tau}$', 'where $\\alpha_{\\text{mom}} = e^{-\\Delta t/\\tau}$'),
+        ('$\\alpha \\approx 0.007$', '$\\alpha_{\\text{mom}} \\approx 0.007$')]),
 
 T(r"""
+
+% New text. The fitted dead zone and the 0.05 m/s of the 2025 tests.
+The dead zone of 0.025~m/s is a fitted value. The 2025 tests place the
+floor near 0.05~m/s: lanes below a saturation of 0.3, a command of about
+0.09~m/s, did not overcome static friction (Section~\ref{sec:ch2:saturation}).
+The two numbers measure different things. A lane test combines the decoding
+of a low saturation with the friction of the robot, while the fit uses the
+commanded and the measured velocity directly. The runs of both campaigns
+come to rest where the attraction command falls to about 0.03 to
+0.05~m/s, and no run commanded less than about 0.06~m/s, so neither number
+is a direct measurement of the threshold.
+
 \section{Field Reconstruction as a Noise Model}
 \label{sec:ch2:reconstruction}
 """),
@@ -389,10 +411,52 @@ path planning methods. The testbed is limited to homogeneous robots and
 lacks obstacle avoidance sensors, restricting studies of heterogeneous
 multi-robot behaviors in complex environments. Physical constraints
 include a maximum 3~m by 6~m work area, approximately one hour battery
-life per robot, and a limited velocity range of 0.05 to 0.3~m/s.
+life per robot, and a limited velocity range of 0.05 to 0.3~m/s in the 2025
+tests (Section~\ref{sec:ch2:dynamics}).
 Additionally, the Decabots' wheels degrade both paper and printed colors
 on colormaps, necessitating replacement after a few dozen runs and adding
 significant operational costs.
+
+\section{Verification by Substitution}
+\label{sec:ch2:substitution}
+
+% New text. The studies of this dissertation earn their claims one way: swap
+% one part of the system, hold the rest fixed, and see what changes.
+The claims of this dissertation rest on one habit: swap one part of the
+system, hold the rest fixed, and see what changes.
+Table~\ref{tab:ch2:substitution} lists the substitutions, and each isolates
+a single question.
+
+\begin{table}[htbp]
+\centering
+\caption{Substitutions used to isolate one question at a time.}
+\label{tab:ch2:substitution}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{5.2cm} >{\raggedright\arraybackslash}p{7.0cm} c}
+\hline
+Substitution & What it isolates & Chapter \\
+\hline
+Robot R4 held out of the calibration training & whether the sensor calibration generalizes to a new robot & \ref{ch:tools} \\
+Analytical field against reconstructed field & the fixed distortion of the printed map against measurement noise that changes in time & \ref{ch:first_order} \\
+A simulation matched to each hardware run & what the model reproduces and what it omits & \ref{ch:first_order} \\
+The vector-to-scalar primitive alone, with an oracle target, and with a speed estimate & the missing critical point coordinate against the steering direction & \ref{ch:first_order} \\
+Measurement noise and position noise swept separately & which noise limits each tracker & \ref{ch:second_order} \\
+Scoring against the separatrix and against the tracker's own trench, with analytic trenches & the field against the tracker & \ref{ch:second_order} \\
+A rotating observer & objectivity & \ref{ch:second_order} \\
+A replay of the ocean start with small perturbations & whether the headline run was selected & \ref{ch:second_order} \\
+\hline
+\end{tabular}
+\end{table}
+
+The studies also form a sequence. The testbed paper found an outward drift
+that simulation had not predicted, and it promised digital twins of the
+Decabots that capture their dynamics for simulation, together with
+controller substitution on a fixed lower architecture. The first-order
+study delivered both. It fitted the robot model of
+Section~\ref{sec:ch2:dynamics}, used it to explain the drift as a limit
+cycle, and substituted the vector-to-scalar primitive for the Jacobian
+method with the lower layers held fixed. The second-order study runs its
+six-robot simulations on the same model.
 """),
 ]
 

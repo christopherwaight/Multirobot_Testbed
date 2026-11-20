@@ -1,9 +1,22 @@
 \chapter{Transverse Stability of the Trackers}
 \label{app:stability}
 
+% New text, reconciled with the closed-loop discussion of Chapter 7.
+This appendix gives two arguments about the loop across the trench: a
+Lyapunov argument for the Newton channel, and a bound on the saturated
+across-trench loop of each tracker. Both are local and idealized. They
+assume that the cluster realizes the commanded velocity exactly, that the
+surrogate is quadratic across the trench, and that the estimate error is
+bounded. The robot model of Section~\ref{sec:ch2:dynamics} is weaker than
+the first assumption, since it attains a share $g$ of a command after a
+delay $L$ and a lag $\tau$. For that model the sampled loop across the
+trench is stable only for loop gains below $1/(gL)$, as
+Section~\ref{sec:ch7:closed_loop} states, and nothing here covers the
+switched and saturated controller as a whole.
+
 % Ported from: Draft_11_6ec7e51.tex
 Both arguments assume the cluster realizes $\dot{\mathbf{p}}_c$
-\cite{53,3} and neglect robot lag. Near a trench, with $n$ the distance
+\cite{54,3} and neglect robot lag. Near a trench, with $n$ the distance
 across it and $\ell$ the arclength along it, the surrogate is
 $f = h(\ell) + \tfrac{1}{2}\kappa_\perp(\ell)\,n^2$ to second order, with
 $\kappa_\perp > 0$.
@@ -54,5 +67,16 @@ leaving $n$ bounded while $\Omega\lVert\mathbf{p}\rVert < k\,c_{\max}$.
 
 Both branches of (\ref{eq:ch7:vpar}) are nonnegative, so the $D$ tracker
 never reverses along the trench. If $\mathrm{sat}(v_\parallel) \geq v_{\min} > 0$ outside
-the flow-saddle neighborhoods where (\ref{eq:ch7:d_capture}) applies, it crosses a
+the flow-saddle neighborhoods where the stop test of Section~\ref{sec:ch7:sep_controller} applies, it crosses a
 segment of length $L_\Gamma$ within $L_\Gamma/(k\,v_{\min})$.
+
+% New text, reconciled with the closed-loop discussion of Chapter 7.
+The proposition describes the unsaturated, delay-free loop across the
+trench. With the robot model of Section~\ref{sec:ch2:dynamics}, the loop
+gain $k\,a_\perp$ must also stay below the sampled-loop limit of
+Section~\ref{sec:ch7:closed_loop}, and the field sets part of that gain:
+$a_\perp = \kappa_\perp/\hat{\kappa}_\perp$ for the $D$ tracker and
+$a_\perp = g_\perp\kappa_\perp$ for the $s_1$ tracker. Where the field
+raises $a_\perp$ past the limit, the argument gives no bound. The
+simulated $s_1$ path wiggles about the separatrix there
+(Section~\ref{sec:ch7:disc_clean}).

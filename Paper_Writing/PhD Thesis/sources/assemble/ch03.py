@@ -56,7 +56,7 @@ compression and stretching directions. The determinant
 $D = \det\mathbf{J}$ combines both parts.
 """),
 P('sep', 'For incompressible flow the determinant is a negative multiple of the',
-  end='inside the strain-dominated regions.'),
+  end='it is rotation-dominated.'),
 
 T(r"""
 \section{Objective Eulerian Coherent Structures}
@@ -69,19 +69,29 @@ trajectories over a time window. This dissertation uses the
 instantaneous, Eulerian kind, read from the strain tensor at one time.
 """),
 P('sep', 'Serra and Haller define objective Eulerian coherent structures (OECS)',
-  end='structures are also trenches of $s_1$, and one tracker rides both.',
-  subs=[('trenches of $s_1$, and one tracker rides both.', 'trenches of $s_1$.')]),
+  end='trenches of $s_1$ too, and one tracker rides both.',
+  subs=[('trenches of $s_1$ too, and one tracker rides both.', 'trenches of $s_1$ too.')]),
 
 T(r"""
 \section{Relation Between the Fields}
 \label{sec:ch3:relation}
 """),
-P('sep', 'Both fields are read from the same fitted Jacobian, so moving between',
-  end='trenches of $D$ lie.',
-  subs=[('Both fields are read from the same fitted Jacobian, so moving between\nthem changes nothing in the estimator. Where',
-         'Where')]),
+P('sep', 'Both fields come from the same fitted Jacobian.',
+  end='to $\\omega$ but leaves $r$ unchanged.',
+  subs=[('Both fields come from the same fitted Jacobian.',
+         'Both fields come from the same velocity gradient.')]),
 
 T(r"""
+% New text. Instantaneous Eulerian fields are surrogates for material
+% transport structures (Draft 14 Sec. VI; Plan0 Sec. 3E).
+Both fields are instantaneous and Eulerian, so they are surrogates for the
+Lagrangian structures that carry material, and not the structures
+themselves \cite{sep:19}. A trench of $D$ or $s_1$ marks a separatrix of
+the flow only where the rotation on it is small against the strain, and
+even there it need not match the Lagrangian structure. Chapter~\ref{ch:second_order}
+states each result for the trench, and it names a separatrix only where the
+benchmark supports it.
+
 \section{Benchmark Fields}
 \label{sec:ch3:benchmarks}
 
@@ -97,11 +107,17 @@ nondegenerate formation.
 
 \subsection{The Steady Double Gyre}
 \label{sec:ch3:dg_example}
+
+% New text. The nonlinear gyre cell of Chapter 6 is one cell of this flow.
+The gyre cell that tests the first-order estimate in
+Chapter~\ref{ch:first_order} is the left cell of this flow, shifted so that
+its center sits at the origin.
 """),
-P('sep', 'The double gyre is', end='\\label{fig:dg_fields}', extra=1,
-  subs=[('$D = -s_1^2$ there\n(Section~\\ref{sec:surrogates}).',
-         '$D = -s_1^2$ there\n(Section~\\ref{sec:ch3:relation}).'),
-        ('figures/double_gyre_fields.png', 'ch3_double_gyre_fields.png')],
+# Draft 14 follows the closed forms with two paragraphs that check the fit
+# against them; those are Chapter 7 material (Section~\\ref{sec:ch7:fit_check}).
+P('sep', 'The double gyre is', end='kink at the origin.'),
+P('sep', '\\caption{Steady double gyre. (a) Streamlines', end='\\end{figure}', back=3,
+  subs=[('figures/double_gyre_fields.png', 'ch3_double_gyre_fields.png')],
   width='0.55\\textwidth'),
 ]
 

@@ -16,14 +16,14 @@ T(r"""
 \label{sec:ch1:an}
 """),
 P('sep', '\\IEEEPARstart{M}{ultirobot} systems (MRS) offer redundancy, increased',
-  end='\\cite{3,4,5}.',
+  end='field, while an MRS samples many points at once.',
   subs=[('\\IEEEPARstart{M}{ultirobot} systems (MRS)', 'Multirobot systems (MRS)')]),
 # The trailing \cite{10} critical-point sentence is covered elsewhere in the
 # introduction, so the passage ends before it (the end anchor stops at the
 # subsurface-leaks clause rather than stripping the sentence by substitution).
 P('sep', 'Some flows are better described as vector fields, which carry features',
-  end='adaptively navigate towards and orbit it.',
-  subs=[(' In \\cite{10} a three-robot cluster\nestimated the location and type of a nearby critical point from a linear fit of\nsimultaneous local velocity measurements and used this estimate to adaptively navigate towards and orbit it.', '')]),
+  end='and subsurface leaks \\cite{9}.',
+  subs=[('\\cite{9}. In', '\\cite{9}.')]),
 P('sys', 'The oceanic and atmospheric environments that motivate this work are governed'),
 
 T(r"""
@@ -32,7 +32,7 @@ T(r"""
 
 \subsection{Adaptive Navigation in Scalar Fields}
 """),
-P('sep', 'AN in scalar fields is well developed. Each', end='indoor testbed \\cite{4,7}.'),
+P('sep', 'AN in scalar fields is well developed.', end='\\cite{6,7}.'),
 P('sys', 'AN in scalar fields is well explored.',
   subs=[('AN in scalar fields is well explored. Each robot collects a single scalar measurement as the input to a navigation policy that reaches and follows features such as extrema, saddle points, ridges, trenches, contour lines, and fronts \\cite{5,6,7,8,9}. ', '')]),
 
@@ -51,15 +51,17 @@ through naturally existing vector fields. The few studies examining
 multirobot systems with distributed sensor measurements in physical
 vector fields have identified promising control primitives for features
 like flow maxima, sinks, sources, and vortices, but these approaches lack
-comprehensive real-world validation and are only validated in simulation
-\cite{idc:4}.
+comprehensive real-world validation: they were validated mainly in
+simulation \cite{idc:4}, and the PIM-triple approach of \cite{sep:26} was
+extended to robots in a flow tank \cite{sep:28}.
 """),
 P('sys', 'By contrast, only a few works address navigation of physically sensed vector fields'),
 
 T(r"""
 \subsection{Robotic Sensing of Physical Flows}
 """),
-P('sys', 'Work that senses the physical field falls into two camps.'),
+P('sys', 'Work that senses the physical field falls into two camps.',
+  subs=[('this paper gives', 'this dissertation gives')]),
 
 T(r"""
 \subsection{Experimental Testbeds}
@@ -91,10 +93,15 @@ and the separatrices that divide it into regions.
 \label{sec:ch1:thesis}
 
 % New text
-The order of the local fit a cluster makes to its measurements determines
-which features of a vector field it can reach. A heading read directly
-from the samples supports only direction-following behaviors. A
-first-order fit from three robots recovers the velocity gradient, and
+The order of the instantaneous local fit that a cluster makes to its
+measurements determines the field information available to it, and so the
+feature-based navigation it can perform. The statement concerns what one
+set of simultaneous measurements supports; methods that add temporal
+measurements or prior knowledge lie outside it. Fit order here means the
+order to which the vector field itself is reconstructed. A heading, or the
+slope of the sensed magnitude, read directly from the samples supports
+direction-following behaviors, which reach a target that the flow carries
+the cluster to and drift when asked to orbit. A first-order fit from three robots recovers the velocity gradient, and
 with it the location and type of a critical point. A second-order fit
 from six robots recovers the velocity gradient as a field over the
 formation, which is enough to acquire and follow a separatrix. Each rung
@@ -105,27 +112,33 @@ coefficients are more sensitive to measurement noise.
 \label{sec:ch1:contributions}
 
 % New text, assembled from the contribution lists of the three papers
-This dissertation makes six contributions. First, it presents an indoor
+This dissertation makes seven contributions. First, it presents an indoor
 testbed for vector field adaptive navigation, with direction encoded in
 hue and magnitude in saturation on printed floor maps, and a cross-robot
 neural network calibration that reads both from the robots' color sensors
 (Chapter~\ref{ch:tools}). Second, it tests the vector-sum and
 vector-to-scalar primitives on that testbed and shows where
 direction-only navigation reaches its target and where it drifts
-(Chapter~\ref{ch:zeroth}). Third, it presents a distributed algorithm that
+(Chapter~\ref{ch:zeroth}). Third, it presents a cooperative estimation algorithm that
 estimates the location and type of a critical point from instantaneous
-measurements alone, and proves that three robots are the minimum for this
-estimate (Chapter~\ref{ch:first_order}). Fourth, it validates attraction
-and orbital control laws built on that estimate in 169 hardware
-experiments (Chapter~\ref{ch:first_order}). Fifth, it presents a
+measurements alone, and proves that three robots are the minimum for an
+unrestricted affine fit from one set of measurements
+(Chapter~\ref{ch:first_order}). Fourth, it validates attraction
+and orbital control laws built on that estimate in 459 hardware runs
+with three and four robots (Chapter~\ref{ch:first_order}). Fifth, it presents a
 second-order estimator that recovers the local quadratic model of a flow
 from six robots, the minimum, and fails only when the robots lie on a
-common conic (Chapter~\ref{ch:second_order}). Finally, it builds two
+common conic (Chapter~\ref{ch:second_order}). Sixth, it builds two
 primitives on that fit, the $D$ tracker and the $s_1$ tracker, which
-acquire and ride a separatrix from instantaneous measurements without
-pre-straddling (Chapter~\ref{ch:second_order}). The $D$ tracker tolerates
-more measurement noise, while the $s_1$ tracker, being objective, holds
-its path under a rotating observer.
+acquire and ride the trench of their field from instantaneous measurements
+without pre-straddling, and it tests them in simulation on a double gyre,
+on three further fields, and on measured ocean currents
+(Chapter~\ref{ch:second_order}). The $D$ tracker tolerates more
+measurement noise, while the $s_1$ tracker, being built from objective
+quantities, holds its path under a rotating observer. Finally, it compares
+the three rungs on one flow, on formation geometry, on noise, and on steady
+offsets, and it states for each rung when the feature that it steers to is
+the feature of the flow (Chapter~\ref{ch:crosscutting}).
 
 \section{Publications}
 \label{sec:ch1:publications}
@@ -148,6 +161,16 @@ estimation for multirobot tracking of coherent flow structures,'' in
 preparation for \textit{IEEE Systems Journal}.
 Chapter~\ref{ch:second_order}.
 \end{itemize}
+
+\section{Availability of Code and Data}
+\label{sec:ch1:availability}
+
+% New text. Plan0 optional reproducibility statement. Each campaign folder
+% has a README that lists its files, robots, and maps.
+The code for every simulation, the scripts behind each figure, the
+calibration data, and the logs of the three hardware campaigns are
+available from the author on request. Each hardware campaign has a README
+that lists its files, its robots, and its maps.
 
 \section{Dissertation Organization}
 \label{sec:ch1:organization}

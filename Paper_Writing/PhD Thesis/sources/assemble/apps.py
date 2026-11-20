@@ -157,14 +157,17 @@ commands zero spin throughout.
 port.PRE = 'appD'
 write('appD_frame_equivariance.tex', [
 T(r"""
-\chapter{Frame Equivariance of the $s_1$ Tracker}
+\chapter{Objectivity and Frame Equivariance of the $s_1$ Tracker}
 \label{app:frame_equivariance}
 
 % New text. Draft 11 states the frame shift without the algebra; the
 % derivation below was checked 2026-09-29.
 Section~\ref{sec:ch3:relation} states that an observer rotating at rate
 $\Omega$ sees the determinant field shifted by $\Omega\omega + \Omega^2$
-and the strain eigenvalues unchanged. This appendix gives the algebra.
+and the strain eigenvalues unchanged. This appendix gives the algebra and
+then separates three claims about the $s_1$ tracker that differ in
+strength: its features are objective, its command is covariant, and its
+trajectory is equivariant only under conditions.
 
 Split the velocity gradient into strain and spin,
 \begin{equation}
@@ -206,12 +209,39 @@ $\mathbf{J}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^{\top} +
 while $s_1' = s_1$ and $s_2' = s_2$.
 
 The $s_1$ tracker's channels are built from $\hat{s}_1$, its gradient,
-and the strain eigenframe, which all co-rotate with the observer. Its
-tests are scalar inequalities in quantities a rotation leaves unchanged,
-and its tangent reference is its own previous output, carried in state. Its command therefore co-rotates with the frame. The one
-exception is the tangent seed on the first ride step, taken from the
-measured flow, and Section~\ref{sec:ch7:rotating} gives the condition
-under which the two frames agree on it.
+and the strain eigenframe, which all co-rotate with the observer. Three
+statements follow, in increasing strength, and they are the three levels
+of Section~\ref{sec:ch7:s1_controller}.
+
+First, the features are objective. The strain tensor co-rotates as
+$\mathbf{S}' = \mathbf{Q}\mathbf{S}\mathbf{Q}^{\top}$ and its eigenvalues
+are unchanged, so $\hat{s}_1$ is the same scalar field in every frame,
+while its gradient and the eigenvectors turn with the axes. The capture
+test is a ratio of quantities that a rotation leaves invariant, so it gives
+the same answer. The determinant is not objective, by
+(\ref{eq:appD:shift}).
+
+Second, the command is rotationally covariant where its sign test is
+decisive. Given co-rotated inputs and a co-rotated tangent reference, the
+channels return the co-rotated command $\mathbf{u}' = \mathbf{Q}\mathbf{u}$.
+The tangent reference is the previous output, which a rotating observer
+sees turned by $\Omega\,\Delta t$ per step, so the sign rule returns the
+same tangent in both frames except where
+$|\mathbf{t}_{\mathrm{ref}}^{\top}\mathbf{t}_{\mathrm{raw}}| <
+\sin\Omega\,\Delta t$, as at an eigenframe swap. The tangent seed on the
+first ride step is the one input that is not objective, since it is taken
+from the measured flow, which carries the transport velocity of the frame.
+
+Third, the trajectory is not equivariant in general. The co-rotated
+command $\mathbf{u}' = \mathbf{Q}\mathbf{u}$ is not the transformation law
+of coordinate velocity in a rotating frame,
+$\dot{\mathbf{p}}' = \mathbf{Q}\dot{\mathbf{p}} + \dot{\mathbf{Q}}\mathbf{p}$,
+whose second term is the transport velocity of the frame. A cluster that
+realizes the co-rotated command still follows the inertial path only if
+its across-trench feedback absorbs that term, and the feedback can deliver
+no more than the saturated command allows. Section~\ref{sec:ch7:rotating}
+tests this in simulation and finds matching paths while the transport
+velocity stays inside the delivered speed. This appendix does not prove it.
 """),
 ])
 
@@ -221,21 +251,46 @@ write('appE_stability.tex', [
 T(r"""
 \chapter{Transverse Stability of the Trackers}
 \label{app:stability}
+
+% New text, reconciled with the closed-loop discussion of Chapter 7.
+This appendix gives two arguments about the loop across the trench: a
+Lyapunov argument for the Newton channel, and a bound on the saturated
+across-trench loop of each tracker. Both are local and idealized. They
+assume that the cluster realizes the commanded velocity exactly, that the
+surrogate is quadratic across the trench, and that the estimate error is
+bounded. The robot model of Section~\ref{sec:ch2:dynamics} is weaker than
+the first assumption, since it attains a share $g$ of a command after a
+delay $L$ and a lag $\tau$. For that model the sampled loop across the
+trench is stable only for loop gains below $1/(gL)$, as
+Section~\ref{sec:ch7:closed_loop} states, and nothing here covers the
+switched and saturated controller as a whole.
 """),
 # Kept from the Draft_11 snapshot (sep0): Draft_13 moved the transverse
 # stability argument inline into the tracker sections of Chapter 7, but this
 # proof states both trackers' bounds together, so the thesis keeps it. Draft_11
-# ref 35 (Mas and Kitts) is sep:37 in bib_sources; 'the fold' is Draft_11's
+# ref 35 (Mas and Kitts) is sys:51 in bib_sources; 'the fold' is Draft_11's
 # name for the kink of s_1 at the origin.
 P('sep0', 'Both arguments assume the cluster realizes $\\dot{\\mathbf{p}}_c$',
   end='within $L_\\Gamma/(k\\,v_{\\min})$.',
-  subs=[('\\cite{35,3}', '\\cite{sep:37,sep:3}'),
+  subs=[('\\cite{35,3}', '\\cite{sys:51,sep:3}'),
         ('as at the\nfold,', 'as at the\nkink of $s_1$,'),
         ('\\begin{IEEEproof}', '\\begin{proof}'), ('\\end{IEEEproof}', '\\end{proof}'),
         ('In (\\ref{eq:d_law}),', 'In (\\ref{eq:ch7:d_law}),'),
         ('In (\\ref{eq:s1_law}),', 'In (\\ref{eq:ch7:s1_law}),'),
         ('Both branches of (\\ref{eq:vpar}) are nonnegative', 'Both branches of (\\ref{eq:ch7:vpar}) are nonnegative'),
-        ('neighborhoods where (\\ref{eq:d_capture}) applies', 'neighborhoods where (\\ref{eq:ch7:d_capture}) applies')]),
+        ('neighborhoods where (\\ref{eq:d_capture}) applies', 'neighborhoods where the stop test of Section~\\ref{sec:ch7:sep_controller} applies')]),
+T(r"""
+% New text, reconciled with the closed-loop discussion of Chapter 7.
+The proposition describes the unsaturated, delay-free loop across the
+trench. With the robot model of Section~\ref{sec:ch2:dynamics}, the loop
+gain $k\,a_\perp$ must also stay below the sampled-loop limit of
+Section~\ref{sec:ch7:closed_loop}, and the field sets part of that gain:
+$a_\perp = \kappa_\perp/\hat{\kappa}_\perp$ for the $D$ tracker and
+$a_\perp = g_\perp\kappa_\perp$ for the $s_1$ tracker. Where the field
+raises $a_\perp$ past the limit, the argument gives no bound. The
+simulated $s_1$ path wiggles about the separatrix there
+(Section~\ref{sec:ch7:disc_clean}).
+"""),
 ])
 
 # ------------------------------------------------------------------ F

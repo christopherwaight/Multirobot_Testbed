@@ -12,8 +12,8 @@ import os, re, sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..')) + '/'  # Paper_Writing/
 # 2026-11-18: re-pointed to the current sources. 'sys' is the revision paper
 # (about to be submitted, so effectively frozen; supersedes the submitted
-# paper, which stays the record). 'sep' is the live Draft_13 (supersedes the
-# Draft_11 snapshot). Both papers were rewritten since the first port, so the
+# paper, which stays the record). 'sep' is the live Draft_14 (2026-11-19;
+# supersedes Draft_13, now in Archived/, and the Draft_11 snapshot). Both papers were rewritten since the first port, so the
 # chapter scripts were re-anchored to the new text on this date.
 # 'sys0' and 'sep0' are the earlier frozen sources (submitted critical-point
 # paper and the Draft_11 snapshot). They are used only to keep a passage the
@@ -21,7 +21,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 # every current result ports from 'sys'/'sep'.
 SRC = {
     'sys': ROOT + 'Systems Paper Revision/cwaight_systems_paper/cwaight_systems_paper_with_revisions2.tex',
-    'sep': ROOT + 'Separatrix_and_OW_Paper/Draft_13.tex',
+    'sep': ROOT + 'Separatrix_and_OW_Paper/Draft_14.tex',
     'sys0': ROOT + 'Systems Paper/cwaight_systems_paper/cwaight_systems_paper.tex',
     'sep0': ROOT + 'PhD Thesis/sources/snapshots/Draft_11_6ec7e51.tex',
 }

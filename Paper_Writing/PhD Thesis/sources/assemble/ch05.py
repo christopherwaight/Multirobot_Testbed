@@ -24,7 +24,7 @@ of Chapter~\ref{ch:tools}, and they set the baseline for the higher rungs
 of Section~\ref{sec:ch4:ladder}.
 
 """ + IDC.format('Sec. 2.5') + r"""
-To evaluate our platform, we implemented two adaptive navigation
+We implemented two adaptive navigation
 primitives as control laws from \cite{idc:4}. These were both shown as
 center finding primitives that can find environmental extrema or follow a
 closed orbit around the extrema. Both primitives were previously
@@ -195,10 +195,12 @@ high consistency between runs.
 \end{figure}
 
 The outward drift rate appears stable at all angles, a behavior not
-predicted in simulation studies. This drift occurs because the robots,
-following only their perceived direction using the vector-sum technique,
-are always moving tangent to the circle while experiencing momentum
-effects not captured in previous simulation models. This real-world
+predicted in the simulation studies of \cite{idc:4}. This drift occurs
+because the robots, following only their perceived direction using the
+vector-sum technique, are always moving tangent to the circle, but each
+robot answers a new heading late, after a delay and a lag that those
+simulations did not model, so every step leaves the cluster slightly
+outside the circle it was on. This real-world
 validation highlights the importance of physical testing, as the physical
 dynamics introduced nuances absent in simulated environments. The ability
 to orbit a center with a fixed radius using adaptive navigation
@@ -282,11 +284,12 @@ overcome static friction.
 
 """ + IDC.format('Sec. 4.3') + r"""
 Throughout all experiments, the cluster space controller maintained
-precise formation control, as evidenced by
-Table~\ref{tab:ch5:formation}. The values stayed within 1~cm of desired
-parameters ($p = 0.35$~m, $q = 0.35$~m, and $\beta = 1.05$~radians) across
-all test environments. This formation precision, within the resolution
-limits of the OptiTrack motion capture system, demonstrates the
+formation control, as evidenced by
+Table~\ref{tab:ch5:formation}. The mean side lengths stayed within 1~cm of
+the commanded values ($p = 0.35$~m and $q = 0.35$~m) and the mean angle
+within 0.03~rad of $\beta = 1.05$~rad across all test environments, with
+standard deviations of 0.9 to 3.2~cm in the sides and 0.045 to 0.12~rad in
+the angle. This demonstrates the
 effectiveness of the cluster space controller in maintaining desired
 geometric relationships between robots while executing adaptive
 navigation primitives.
@@ -318,8 +321,9 @@ there. On the sinking vortex the flow itself points inward, and the
 vector-sum primitive settled about 0.1~m from the center. On the fixed
 vortex the vector-to-scalar primitive descended the magnitude to within
 0.2~m. Orbiting was different. A heading keeps the cluster tangent to the
-flow, and nothing in it measures the distance to the center, so momentum
-carried the cluster steadily outward. Correcting that drift needs the
+flow, and nothing in it measures the distance to the center, so the late
+turns carried the cluster steadily outward. Those turns are late because of
+a delay and a lag that Section~\ref{sec:ch2:dynamics} fits to the hardware. Correcting that drift needs the
 location of the center itself, which the three robots can estimate from
 the same readings once they assemble the Jacobian.
 """),

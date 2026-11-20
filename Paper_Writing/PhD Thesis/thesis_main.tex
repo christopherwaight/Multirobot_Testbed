@@ -30,6 +30,7 @@
 \usepackage{tikz}
 \usepackage{url}
 \usepackage{textcomp}
+\usepackage{xcolor}
 \usepackage[hidelinks]{hyperref}
 
 % -----------------------------------------------------------------------
@@ -87,6 +88,14 @@
 \setlength{\emergencystretch}{3em}  % let long math-heavy lines break
 
 % -----------------------------------------------------------------------
+% Pending numbers. \prelim{} prints a number from a reduced-size run in blue.
+% It is copied from Draft_14 (Separatrix paper), where the 10^4-trial runs of
+% overnight_runs.txt will replace these numbers. After that, rerun
+% sources/assemble/all.py against the updated Draft_14 and the blue goes away.
+% -----------------------------------------------------------------------
+\newcommand{\prelim}[1]{\textcolor{blue}{#1}}
+
+% -----------------------------------------------------------------------
 % Placeholder figure macro
 % -----------------------------------------------------------------------
 \newcommand{\placeholderfig}[1]{\fbox{\rule{0pt}{2in}\rule{0.7\textwidth}{0pt}}\\[-1.6in]\centering\textit{[placeholder: #1]}\\[1.4in]}
@@ -96,64 +105,67 @@
 % -----------------------------------------------------------------------
 \begin{document}
 
-% Front matter uses roman numerals
-\pagenumbering{roman}
-\setcounter{page}{1}
+% Front matter. The approval page carries no number and is not counted; the
+% title page is page i and carries no number. The titlepage environment is not
+% used because it resets the page counter, which repeated the numerals.
+\pagenumbering{gobble}
 
 % ===================================================================
 % 1. APPROVAL / SIGNATURE PAGE
 % ===================================================================
-\begin{titlepage}
+\thispagestyle{empty}
 \begin{center}
   \large
   Santa Clara University \\[6pt]
   Department of \thesisdepartment
 
-  \vspace{1.5in}
+  \vspace{0.3in}
 
   \normalsize
   Date: \thesismonth\ \thesisday, \thesisyear
 
-  \vspace{1in}
+  \vspace{0.3in}
 
   I HEREBY RECOMMEND THAT THE THESIS PREPARED UNDER MY SUPERVISION BY
 
-  \vspace{0.5in}
+  \vspace{0.2in}
   \MakeUppercase{\thesisauthor}
-  \vspace{0.5in}
+  \vspace{0.2in}
 
   ENTITLED
 
-  \vspace{0.4in}
+  \vspace{0.15in}
   \textit{\thesistitle}
-  \vspace{0.4in}
+  \vspace{0.15in}
 
   BE ACCEPTED IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR THE DEGREE
 
-  \vspace{0.3in}
+  \vspace{0.15in}
   \textbf{DOCTOR OF PHILOSOPHY IN \MakeUppercase{\thesisdegreefield}}
 \end{center}
 
-\vspace{0.8in}
+\vspace{0.25in}
 
 \noindent
 \begin{tabular}{p{2.6in} p{0.2in} p{2.6in}}
   \hrulefill & & \hrulefill \\[2pt]
-  Thesis Advisor & & Thesis Reader \\[24pt]
+  Thesis Advisor & & Thesis Reader \\[20pt]
   \hrulefill & & \hrulefill \\[2pt]
-  Chairman of Department & & Thesis Reader \\[24pt]
+  Chairman of Department & & Thesis Reader \\[20pt]
   & & \hrulefill \\[2pt]
-  & & Thesis Reader \\[24pt]
+  & & Thesis Reader \\[20pt]
   & & \hrulefill \\[2pt]
   & & Thesis Reader
 \end{tabular}
 
-\end{titlepage}
+\clearpage
+\pagenumbering{roman}
+\setcounter{page}{1}
 
 % ===================================================================
 % 2. TITLE PAGE
 % ===================================================================
-\begin{titlepage}
+\thispagestyle{empty}
 \begin{center}
   \vspace*{1in}
 
@@ -175,7 +187,7 @@
   Santa Clara, California \\
   \thesisyear
 \end{center}
-\end{titlepage}
+\clearpage
 
 % ===================================================================
 % 3. COPYRIGHT
@@ -228,11 +240,14 @@ Section~\ref{sec:ch1:publications}.
 Adaptive navigation is the process of modifying a robot's or a system of
 robots' motion in real time based on measurements taken while moving. This
 dissertation applies that process to vector fields and shows that the
-order of the local fit a cluster makes to its measurements sets which
-features of the field it can reach. An indoor testbed encodes direction in
-hue and magnitude in saturation on printed floor maps, and a supervised
-learning neural network calibration achieves an encoding-decoding $R^2$ of
-0.96 in direction and 0.91 in magnitude. On it, direction-only primitives
+order of the instantaneous local fit a cluster makes to its measurements
+determines the field information available to it, and so the feature-based
+navigation it can perform. An indoor testbed encodes direction in hue and
+magnitude in saturation on printed floor maps, and a cross-robot neural
+network calibration achieves an encoding-decoding $R^2$ of 0.96 in direction
+and 0.91 in magnitude. After maintenance, a recalibration with pooled
+training reads direction to within 6.1$^\circ$ and magnitude to within
+3.8\% for the trained robots. On the testbed, direction-only primitives
 reach a target the flow carries them to, but drift outward when asked to
 orbit. A first-order fit from a minimum of three robots estimates critical
 point locations without prior field knowledge, using only real-time local
@@ -243,14 +258,21 @@ four, with mean position errors of 0.034~m or less, and orbits held the
 commanded radius to within a quarter of that radius from 0.20~m upward
 with three robots. A
 second-order fit from six robots recovers the local quadratic model of a
-flow from one synchronized set of measurements. Two primitives built on it
-locate the separatrix and navigate to and along it with no
-integration horizon and no pre-straddling. Monte Carlo sweeps show the
-determinant tracker withstands 1.1 to 5.8 times more measurement noise
-than the strain tracker, depending on the start, while in a rotating-frame trial only the strain
-tracker, which is objective, holds the same path. On Santa
-Barbara Channel radar currents, both primitives successfully follow the dominant
-transport corridor.
+flow from one synchronized set of measurements. In simulation, two
+primitives built on it navigate to and along the trenches of two fields
+computed from that fit, the determinant of the velocity gradient and the
+smaller strain eigenvalue, which lie closest to a separatrix where strain
+dominates rotation, with no integration horizon and no pre-straddling. The
+determinant tracker withstands more measurement noise than the strain
+tracker from every start tested, while in a rotating-frame trial only the
+strain tracker, which is built from objective quantities, holds the same
+path. On Santa Barbara Channel radar currents, both primitives acquire the
+dominant transport corridor, but under small changes to the start only the
+determinant tracker keeps its downstream direction. Across the three rungs,
+the noise on a fitted coefficient grows as the inverse formation radius
+raised to the order of the coefficient, and the steady offset of a cluster
+from its target is the speed that its loop does not cancel divided by the
+loop gain.
 
 \clearpage
 
@@ -284,8 +306,11 @@ $p, \beta, q$ & SAS side lengths and interior angle of a cluster triangle \\
 $\rho$ & Formation radius \\
 $r$, $r_d$ & Orbital radius and commanded orbital radius \\
 $\sigma_{uv}$, $\sigma_p$ & Standard deviations of measurement noise and position noise \\
-$\tau$ & Actuator time constant, 0.28~s on the Decabots \\
-$\alpha_{\text{mom}}$ & Momentum coefficient, $e^{-\Delta t/\tau}$ \\
+$g$ & Share of a command that a robot attains, 0.86 (Section~\ref{sec:ch2:dynamics}) \\
+$L$ & Transport delay of a robot command, 0.055~s \\
+$\tau$ & Actuator time constant, 0.02~s \\
+$v_c$ & Dead zone of a robot, 0.025~m/s \\
+$\alpha_{\text{mom}}$ & Momentum coefficient of the sampled robot model, $e^{-\Delta t/\tau}$ \\
 $\Delta t$ & Control period, 0.1~s (10~Hz) \\
 $\Omega$ & Rotation rate of an observer frame \\
 \end{tabular}

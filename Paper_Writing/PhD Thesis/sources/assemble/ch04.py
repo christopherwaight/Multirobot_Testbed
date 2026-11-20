@@ -20,10 +20,10 @@ describes the architecture and the estimation pattern once.
 \section{Multilayer Control Architecture}
 \label{sec:ch4:architecture}
 """),
-P('sep', 'The control architecture is the established multilayer approach of prior',
-  end='positions alone.',
-  subs=[('studies \\cite{2,10}, shown in\nFig.~\\ref{fig:control_architecture}.',
-         'studies \\cite{2}, shown in\nFig.~\\ref{fig:ch4:control_architecture}.')]),
+P('sep', 'The cluster runs the three-layer cluster space architecture of',
+  end='layer drives each robot.',
+  subs=[('\\cite{2,10}', '\\cite{2}'),
+        (' This paper fills two blocks of the first layer:', '')]),
 T(r"""
 % Ported from: IDETC 2025 (DETC2025-167604), Sec. 2.1, transcribed from the published PDF
 This architecture was selected because its modular layered approach
@@ -37,10 +37,11 @@ robot platforms and formations.
 # Kept from the submitted paper: the revision reworded this control-cycle
 # summary into a denser paragraph; the thesis keeps the plainer statement.
 P('sys0', 'At each control cycle (10~Hz), each robot reports its position and vector field measurement.'),
-P('sys', '\\caption{Hierarchical control architecture: robot, cluster space, and adaptive',
+P('sys', '\\caption{Hierarchical control architecture: adaptive navigation, cluster space, and robot',
   end='\\end{figure}', back=3,
   subs=[('control_architecture_2.png', 'ch4_control_architecture.png'),
-        ('width=0.98\\columnwidth', 'width=0.55\\textwidth')]),
+        ('width=0.98\\columnwidth', 'width=0.55\\textwidth'),
+        ('are new in this paper.', 'are the contributions of this dissertation.')]),
 
 T(r"""
 \subsection{Robot Controller Layer}
@@ -51,7 +52,7 @@ T(r"""
 P('sys', "Each robot's controller receives velocity commands and translates them into motion.",
   subs=[('providing the inputs to the estimation framework described in Section~II.',
          'providing the inputs to the estimation framework of Section~\\ref{sec:ch4:estimation}.'),
-        (' In simulation, each robot is modeled as a single omnidirectional point mass that follows its command after a transport delay $L$, through a first order response with actuator time constant $\\tau$ \\cite{4,7}, a dead zone $v_c$, and a speed limit $v_{\\max}$. The robot attains a fraction $g$ of each command, so its velocity $\\mathbf{v}_{r,i} = \\dot{\\mathbf{p}}_i$ follows', '')]),
+        (' In simulation, each robot is modeled as a single omnidirectional point mass that follows its command after a transport delay $L$, through a first order response with actuator time constant $\\tau$, a dead zone $v_c$, and a speed limit $v_{\\max}$. The robot attains a fraction $g$ of each command, so its velocity $\\mathbf{v}_{r,i} = \\dot{\\mathbf{p}}_i$ follows', '')]),
 T(r"""
 % New text
 Section~\ref{sec:ch2:dynamics} gives the first-order lag, speed limit, and
@@ -64,7 +65,7 @@ later chapters reproduce.
 % Ported from: IDETC 2025, Sec. 2.3, transcribed from the published PDF
 To maintain a fixed formation while commanding all robots with individual
 velocity commands, a cluster space controller was used. Cluster space
-control is a technique developed by Dr. Chris Kitts of Santa Clara
+control is a technique developed by Kitts and colleagues at Santa Clara
 University \cite{idc:17}. In this technique, all robot positions are
 described geometrically relative to a cluster frame via a set of
 kinematic equations.
@@ -107,11 +108,13 @@ T(r"""
 \subsubsection{Six-Robot Pentagon-Plus-Center Formation}
 \label{sec:ch4:pentagon}
 """),
-P('sep', 'The cluster controller layer uses cluster space control, an operational',
-  end='the layer above through the forward kinematics.',
-  subs=[('(Fig.~\\ref{fig:pentagon})', '(Fig.~\\ref{fig:ch4:pentagon})'),
-        ('(Fig.~\\ref{fig:control_architecture})', '(Fig.~\\ref{fig:ch4:control_architecture})'),
-        ('through the forward kinematics.', 'through the forward kinematics (Appendix~\\ref{app:kin6}).')]),
+# Draft 14 opens this paragraph with a one-sentence definition of cluster
+# space control; Section~\ref{sec:ch4:cluster_space} already gives it, so the
+# thesis starts at the six-robot state.
+P('sep', 'six planar robots the cluster state has twelve variables.',
+  end='Jacobian of the cluster kinematics.', back=1,
+  subs=[('articulated mechanism \\cite{30}. For\n', 'For '),
+        ('Jacobian of the cluster kinematics.', 'Jacobian of the cluster kinematics (Appendix~\\ref{app:kin6}).')]),
 P('sep', '\\caption{Pentagon-plus-center formation. Robot 1 sits at the centroid',
   end='\\end{figure}', back=3,
   subs=[('figures/pentagon_formation.png', 'ch4_pentagon_formation.png')],
@@ -147,7 +150,8 @@ learn about the field.
 Let $\boldsymbol{\phi}_k(\mathbf{p})$ collect the monomials $x^a y^b$
 with $a + b \leq k$, each scaled by $1/(a!\,b!)$, with coordinates
 measured from the cluster centroid. The scaling makes each fitted
-coefficient a Taylor derivative of the field at the centroid. The basis
+coefficient an estimate of the corresponding Taylor derivative of the field
+at the centroid. The basis
 has
 \begin{equation}
     n_k = \tfrac{1}{2}(k+1)(k+2)
@@ -166,6 +170,18 @@ first-order fit of Chapter~\ref{ch:first_order} is the case $k = 1$, and
 the second-order fit of Chapter~\ref{ch:second_order} is $k = 2$. The two
 chapters order the columns differently, which changes nothing in the fit.
 
+Every robot reads the field with its own sensor, so the measurement noise
+on one reading is independent of the noise on another. Suppose each
+reading carries zero-mean noise of variance $\sigma^2$ and
+$\boldsymbol{\Phi}_k$ has full column rank. The least-squares coefficients
+of one velocity component are then unbiased, with covariance
+\begin{equation}
+    \operatorname{Cov}(\hat{\boldsymbol{\theta}}) =
+    \sigma^{2}\,(\boldsymbol{\Phi}_k^{\top}\boldsymbol{\Phi}_k)^{-1},
+    \label{eq:ch4:cov}
+\end{equation}
+conditional on the robot positions being known.
+
 \subsection{Minimality and Degeneracy}
 \label{sec:ch4:minimality}
 
@@ -176,8 +192,9 @@ is singular exactly when a nonzero coefficient vector $\mathbf{c}$
 satisfies $\boldsymbol{\Phi}_k\mathbf{c} = \mathbf{0}$, which says that
 the polynomial $\mathbf{c}^{\top}\boldsymbol{\phi}_k(\mathbf{p})$
 vanishes at every robot. The fit therefore fails exactly when the robots
-lie on a common algebraic curve of degree $k$. For $k = 1$ that curve is
-a line, and for $k = 2$ it is a conic. With more than $n_k$ robots the
+lie on a common algebraic curve of degree at most $k$. For $k = 1$ that
+curve is a line, and for $k = 2$ it is a conic, which may be a pair of
+lines. With more than $n_k$ robots the
 system is overdetermined and is solved by least squares.
 
 \subsection{Formation Size}
@@ -188,20 +205,29 @@ formation keeps its shape and is scaled to radius $\rho$, a monomial of
 degree $q$ scales as $\rho^{\,q}$, so the noise reaching a coefficient of
 order $q$ scales as $\rho^{-q}$ (Section~\ref{sec:ch8:noise_order}).
 Truncation error runs the other way. The neglected terms are of degree
-$k + 1$, so the bias they leave grows with $\rho$. A larger formation
-therefore trades truncation bias for noise suppression.
+$k + 1$, so the bias they leave grows with $\rho$. Under smoothness and a
+fixed, full-rank normalized formation, the truncation error in an
+order-$q$ derivative estimated by an order-$k$ fit generally behaves as
+$O(\rho^{\,k+1-q})$, and leading terms can cancel by symmetry or by the
+structure of the field. A larger formation therefore trades truncation
+bias for noise suppression.
 
 \section{The Fit-Order Ladder}
 \label{sec:ch4:ladder}
 
-Table~\ref{tab:ch4:ladder} organizes this dissertation by fit order. Each
-rung fixes a failure of the one below it. The zeroth-order primitives of
+Table~\ref{tab:ch4:ladder} organizes this dissertation by fit order, the
+order to which the vector field itself is reconstructed from one set of
+simultaneous measurements (Section~\ref{sec:ch1:thesis}). The
+vector-to-scalar primitive fits a plane to the sensed magnitudes, which is
+a first-order fit of a scalar field, but it reconstructs the vector field
+only to zeroth order, so it sits on the lowest rung. Each rung fixes a
+failure of the one below it. The zeroth-order primitives of
 Chapter~\ref{ch:zeroth} use the mean sensed vector, or the gradient of
 the sensed magnitude, and never assemble the velocity gradient. They
 supply a heading, which drifts on an orbit. The first-order fit of
 Chapter~\ref{ch:first_order} locates and classifies a critical point, but
-it gives the velocity gradient at one point only, so it cannot follow a
-curve. The second-order fit of Chapter~\ref{ch:second_order} gives the
+it gives the velocity gradient at one point only, so one instantaneous
+first-order fit does not by itself identify a curve to follow. The second-order fit of Chapter~\ref{ch:second_order} gives the
 velocity gradient as a field over the formation, which is enough to
 acquire and ride a separatrix. A third-order fit from ten robots would
 recover the third derivatives the second-order trackers lack, and
@@ -215,7 +241,7 @@ robots cannot support the fit.}
 \label{tab:ch4:ladder}
 \begin{tabular}{>{\raggedright\arraybackslash}p{1.6cm} c >{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}p{5.2cm} c}
 \hline
-Fit order & Robots & Degenerate on & Features reachable & Chapter \\
+Fit order & Robots & Degenerate on & Enabled navigation capabilities & Chapter \\
 \hline
 Zeroth & 1 & none & heading only, which drifts on orbits & \ref{ch:zeroth} \\
 First & 3 & common line & critical points, with location, type, and orbit & \ref{ch:first_order} \\
